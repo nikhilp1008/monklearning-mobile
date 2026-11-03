@@ -35,6 +35,7 @@ export interface PlaybackQueueItem {
  * file-based player doesn't expose one precisely enough to bother).
  */
 export class AudioPlaybackQueue {
+  private destroyed = false;
   private player: AudioPlayer;
   private queue: { item: PlaybackQueueItem; uri: string }[] = [];
   private playing = false;
@@ -83,6 +84,8 @@ export class AudioPlaybackQueue {
   }
 
   enqueue(item: PlaybackQueueItem) {
+    // After End the player is removed; a late chunk must not reuse it.
+    if (this.destroyed) return;
     const file = new File(Paths.cache, `drona-tts-${item.id}.wav`);
     if (file.exists) file.delete();
     file.create();
@@ -227,6 +230,7 @@ export class AudioPlaybackQueue {
   }
 
   destroy() {
+    this.destroyed = true;
     this.clear();
     this.removeListener?.();
     this.player.remove();

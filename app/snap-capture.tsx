@@ -1,31 +1,33 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
+import { SnapCamera, inAppCameraAvailable } from '@/components/snap-camera';
+import { StateCard } from '@/components/states';
+import { useFreeTier } from '@/lib/free-tier';
+import { useDarkNavigationBar } from '@/lib/nav-bar';
+import { takePendingSnap } from '@/lib/snap-pending';
 import { SnapCrop } from '@/components/snap-crop';
 import { SnapFailed, SnapLoading, failureCopy } from '@/components/snap-loading';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { DoubtPhoto, SnapFailure, rejectPhoto } from '@/lib/doubts';
+import { DoubtPhoto, SnapFailure, rejectPhotoFailure } from '@/lib/doubts';
+import { registerForPush } from '@/lib/push';
 import { SNAP_HANDOFF_MS, cancelSnapJob, startSnapJob, useSnapJob } from '@/lib/snap-job';
 import { hapticKey } from '@/lib/haptics';
 
-type Phase = 'opening' | 'idle' | 'cropping' | 'permission_denied' | 'uploading' | 'failed';
+type Phase = 'opening' | 'camera' | 'idle' | 'cropping' | 'permission_denied' | 'uploading' | 'failed';
 
-function quotaMessage(failure: SnapFailure): string {
-  if (failure.daily_limit == null) return failure.message;
-  const used = failure.used_today ?? failure.daily_limit;
-  return `${failure.message} (${used}/${failure.daily_limit} today)`;
-}
 
 export default function SnapCaptureScreen() {
+  // "Free" is only true for a free student: a Pro student at their ceiling is shown Max.
+  const { free } = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  useDarkNavigationBar();
 
   const [phase, setPhase] = useState<Phase>('opening');
   const [photo, setPhoto] = useState<DoubtPhoto | null>(null);
@@ -66,6 +68,9 @@ export default function SnapCaptureScreen() {
     setPhase('uploading');
     setFailure(null);
     startSnapJob(toUpload);
+    // A solve can outlast the student's patience: this is the moment "we'll tell
+    // you when it's done" is true. Asks once ever (lib/push.ts).
+    void registerForPush({ ask: true });
   }
 
   useEffect(() => {
@@ -73,7 +78,9 @@ export default function SnapCaptureScreen() {
 
     if (job.status === 'failed') {
       setFailure(job.failure);
-      setCanRetryUpload(job.failure.stage !== 'quota');
+      // The same file would be refused the same way: a different photo is the
+      // only way on for the size cap and the file checks.
+      setCanRetryUpload(!['quota', 'pass', 'too_large', 'rejected'].includes(job.failure.stage));
       setPhase('failed');
       return;
     }
@@ -128,29 +135,36 @@ export default function SnapCaptureScreen() {
     close();
   };
 
+  /** Where to go when nothing was picked: back to Snap's own camera, or the
+   *  idle card where there is no in-app camera in this build. */
+  const backToCamera = () => setPhase(inAppCameraAvailable() ? 'camera' : 'idle');
+
   async function handlePicked(result: ImagePicker.ImagePickerResult) {
     if (result.canceled || !result.assets?.[0]) {
-      setPhase('idle');
+      backToCamera();
       return;
     }
-    // The shutter belongs to iOS's camera screen, which gives its own
-    // feedback. This is the moment the photo lands back here — the snap, as
-    // far as this app can feel it.
+    // The moment the photo lands back here: the snap, as far as the app can
+    // feel it. (Snap's own camera taps on its shutter instead.)
     hapticKey();
     const asset = result.assets[0];
-    const picked: DoubtPhoto = {
+    takeShot({
       uri: asset.uri,
       fileName: asset.fileName,
       mimeType: asset.mimeType,
       fileSize: asset.fileSize,
-    };
+    });
+  }
+
+  /** A photo, from either camera or the gallery, on its way to the crop. */
+  function takeShot(picked: DoubtPhoto) {
     setPhoto(picked);
 
     // A bad mime/size never even reaches the server — same photo, same
     // result, so only retaking (not "try again") makes sense here.
-    const rejectReason = rejectPhoto(picked);
-    if (rejectReason) {
-      setFailure({ message: rejectReason, stage: 'config', remedy: 'retake', retake_helps: true });
+    const rejected = rejectPhotoFailure(picked);
+    if (rejected) {
+      setFailure(rejected);
       setCanRetryUpload(false);
       setPhase('failed');
       return;
@@ -171,6 +185,12 @@ export default function SnapCaptureScreen() {
         setPhase('permission_denied');
         return;
       }
+      // Snap's own camera where the build has it (components/snap-camera):
+      // gallery at hand, no second confirm. The phone's camera app otherwise.
+      if (inAppCameraAvailable()) {
+        setPhase('camera');
+        return;
+      }
       const result = await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: false });
       await handlePicked(result);
     } catch {
@@ -188,11 +208,16 @@ export default function SnapCaptureScreen() {
     setPhase('opening');
     setIdleNote(null);
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        setDeniedTarget('gallery');
-        setPhase('permission_denied');
-        return;
+      // Android's photo picker needs no permission: asking for one put up a
+      // needless "allow access to photos" prompt, and saying no to it blocked
+      // a gallery that would have opened anyway. iOS still asks.
+      if (Platform.OS !== 'android') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          setDeniedTarget('gallery');
+          setPhase('permission_denied');
+          return;
+        }
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -213,6 +238,14 @@ export default function SnapCaptureScreen() {
   useEffect(() => {
     if (autoOpenedRef.current) return;
     autoOpenedRef.current = true;
+    // A snap Android rescued after closing the app mid-camera (see
+    // lib/snap-pending.ts) goes straight on, instead of opening the camera
+    // again for a photo already taken.
+    const rescued = takePendingSnap();
+    if (rescued) {
+      void handlePicked(rescued);
+      return;
+    }
     openCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -228,7 +261,7 @@ export default function SnapCaptureScreen() {
         <StatusBar style="light" />
         <SnapCrop
           photo={photo}
-          onCancel={() => setPhase('idle')}
+          onCancel={backToCamera}
           onDone={(cropped) => {
             setPhoto(cropped);
             upload(cropped);
@@ -238,11 +271,10 @@ export default function SnapCaptureScreen() {
     );
   }
 
-  if (phase === 'failed' && photo && failure) {
-    const quota = failure.stage === 'quota';
-    const copy = quota
-      ? { title: 'That is today’s limit', body: quotaMessage(failure) }
-      : failureCopy(failure.remedy, failure.message);
+  // The day's limit is not a failed photo: it gets the limit card in the
+  // screen below, not the photo-failure screen. Nor is an ended pass.
+  if (phase === 'failed' && photo && failure && failure.stage !== 'quota' && failure.stage !== 'pass') {
+    const copy = failureCopy(failure.remedy, failure.message, failure.stage);
     return (
       <>
         <StatusBar style="dark" />
@@ -250,9 +282,28 @@ export default function SnapCaptureScreen() {
           photoUri={photo.uri}
           title={copy.title}
           body={copy.body}
-          onRetry={!quota && canRetryUpload ? () => upload(photo) : undefined}
-          onRetake={!quota && failure.retake_helps !== false ? openCamera : undefined}
+          onRetry={canRetryUpload ? () => upload(photo) : undefined}
+          onRetake={failure.retake_helps !== false ? openCamera : undefined}
           onClose={close}
+        />
+      </>
+    );
+  }
+
+  if (phase === 'camera') {
+    return (
+      <>
+        <StatusBar style="light" />
+        <SnapCamera
+          onCapture={(picture) =>
+            takeShot({ uri: picture.uri, fileName: 'snap.jpg', mimeType: 'image/jpeg' })
+          }
+          onGallery={() => void openGallery()}
+          onClose={close}
+          onFailed={() => {
+            setIdleNote("Couldn't open the camera on this device. Pick a photo from your gallery instead.");
+            setPhase('idle');
+          }}
         />
       </>
     );
@@ -275,116 +326,83 @@ export default function SnapCaptureScreen() {
           <Pressable style={styles.iconButton} onPress={close}>
             <Text style={styles.closeGlyph}>✕</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Snap a doubt</Text>
-          <View style={styles.iconButton} />
+          <Text style={styles.headerTitle}>Snap and Solve</Text>
+          {/* Balances the close button so the title is centred; no fill of its own. */}
+          <View style={styles.iconSpacer} />
         </View>
 
         <View style={styles.body}>
-          {(phase === 'uploading' || phase === 'failed') && photo ? (
-            <View style={styles.photoFrame}>
-              <Image source={{ uri: photo.uri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-              <LinearGradient
-                colors={['rgba(14,12,9,.15)', 'rgba(14,12,9,.82)']}
-                start={{ x: 0.5, y: 0.35 }}
-                end={{ x: 0.5, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
+          {phase === 'failed' && failure?.stage === 'quota' && failure.upgrade ? (
+            // A limit with a way up (the free tier's, or Pro's). Not "open again
+            // tomorrow": the server's own sentence, which makes the case for a
+            // bigger plan, and a way to one.
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph="clock"
+                title={free ? "You've used your free snaps" : "You've used today's snaps"}
+                line={failure.message}
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
               />
-              {phase === 'uploading' ? (
-                <View style={styles.statusBlock}>
-                  <ActivityIndicator color="#F5CB60" size="large" />
-                  <Text style={styles.statusTitle}>Drona is reading your photo…</Text>
-                  <Text style={styles.statusSubtext}>
-                    Pulling out the question, the formulas, the context. Up to 30 seconds.
-                  </Text>
-                </View>
-              ) : failure ? (
-                <View style={styles.statusBlock}>
-                  <View style={styles.errorIconChip}>
-                    <Text style={styles.errorIconGlyph}>!</Text>
-                  </View>
-                  <Text style={styles.statusTitle}>
-                    {failure.stage === 'quota' ? "That's today's limit" : "Couldn't solve that one"}
-                  </Text>
-                  <Text style={styles.statusSubtext}>
-                    {failure.stage === 'quota' ? quotaMessage(failure) : failure.message}
-                  </Text>
-                  {failure.stage === 'quota' ? (
-                    <View style={styles.failureActions}>
-                      <Pressable style={styles.primaryAction} onPress={close}>
-                        <Text style={styles.primaryActionText}>Got it</Text>
-                      </Pressable>
-                    </View>
-                  ) : (
-                    <View style={styles.failureActions}>
-                      {canRetryUpload && (
-                        <Pressable style={styles.primaryAction} onPress={() => upload(photo)}>
-                          <Text style={styles.primaryActionText}>Try again</Text>
-                        </Pressable>
-                      )}
-                      {failure.retake_helps !== false && (
-                        <Pressable
-                          style={[styles.secondaryAction, !canRetryUpload && styles.primaryAction]}
-                          onPress={openCamera}>
-                          <Text
-                            style={[
-                              styles.secondaryActionText,
-                              !canRetryUpload && styles.primaryActionText,
-                            ]}>
-                            Retake
-                          </Text>
-                        </Pressable>
-                      )}
-                    </View>
-                  )}
-                </View>
-              ) : null}
+            </View>
+          ) : phase === 'failed' && failure?.stage === 'quota' ? (
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph="clock"
+                title="You've used today's snaps"
+                line={`Snaps open again tomorrow. Everything you've solved is in Doubts.${
+                  failure.daily_limit != null ? ` (${failure.used_today ?? failure.daily_limit} of ${failure.daily_limit} today)` : ''
+                }`}
+                action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                quiet={{ label: 'Close', onPress: close }}
+              />
+            </View>
+          ) : phase === 'failed' && failure?.stage === 'pass' ? (
+            // The app root is already opening Plans (lib/pass-events); this
+            // is only what shows if that navigation has not happened.
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph="clock"
+                title="Your pass has ended"
+                line="Pick a plan to keep snapping. Everything you've solved is still in Doubts."
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Close', onPress: close }}
+              />
             </View>
           ) : phase === 'permission_denied' ? (
-            <View style={styles.fallbackBlock}>
-              <View style={styles.fallbackIconChip}>
-                <CameraOffIcon size={scale(22)} />
-              </View>
-              <Text style={styles.statusTitle}>
-                {deniedTarget === 'camera' ? 'Camera access is off' : 'Photo access is off'}
-              </Text>
-              <Text style={styles.statusSubtext}>
-                {deniedTarget === 'camera'
-                  ? 'Turn it on in Settings to snap a doubt, or pick a photo you already have.'
-                  : 'Turn it on in Settings to pick a saved photo, or use the camera instead.'}
-              </Text>
-              <View style={styles.failureActions}>
-                <Pressable style={styles.primaryAction} onPress={() => Linking.openSettings()}>
-                  <Text style={styles.primaryActionText}>Open Settings</Text>
-                </Pressable>
-                {/* Offer the OTHER route — sending someone who just denied the
-                    gallery back to the gallery is a loop. */}
-                {deniedTarget === 'camera' ? (
-                  <Pressable style={styles.secondaryAction} onPress={openGallery}>
-                    <Text style={styles.secondaryActionText}>Choose from gallery</Text>
-                  </Pressable>
-                ) : (
-                  <Pressable style={styles.secondaryAction} onPress={openCamera}>
-                    <Text style={styles.secondaryActionText}>Use camera</Text>
-                  </Pressable>
-                )}
-              </View>
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph="cameraOff"
+                title={deniedTarget === 'camera' ? 'Camera access is off' : 'Photo access is off'}
+                line={
+                  deniedTarget === 'camera'
+                    ? 'Turn it on in Settings to snap a question, or pick a photo you already have.'
+                    : 'Turn it on in Settings to pick a saved photo, or use the camera instead.'
+                }
+                action={{ label: 'Open Settings', onPress: () => void Linking.openSettings() }}
+                // Offer the OTHER route: sending someone who just denied the
+                // gallery back to the gallery is a loop.
+                quiet={
+                  deniedTarget === 'camera'
+                    ? { label: 'Choose from gallery', onPress: () => void openGallery() }
+                    : { label: 'Use the camera', onPress: () => void openCamera() }
+                }
+              />
             </View>
           ) : phase === 'idle' ? (
-            <View style={styles.fallbackBlock}>
-              <Text style={styles.statusTitle}>
-                {idleNote ? 'Camera unavailable' : "Didn't catch a photo"}
-              </Text>
-              <Text style={styles.statusSubtext}>
-                {idleNote ?? 'Try the camera again, or pick one from your gallery.'}
-              </Text>
-              <View style={styles.failureActions}>
-                <Pressable style={styles.primaryAction} onPress={openCamera}>
-                  <Text style={styles.primaryActionText}>Open camera</Text>
-                </Pressable>
-                <Pressable style={styles.secondaryAction} onPress={openGallery}>
-                  <Text style={styles.secondaryActionText}>Gallery</Text>
-                </Pressable>
-              </View>
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph={idleNote ? 'cameraOff' : 'retry'}
+                title={idleNote ? 'Camera unavailable' : "Didn't catch a photo"}
+                line={idleNote ?? 'Try the camera again, or pick one from your gallery.'}
+                action={{ label: 'Open camera', onPress: () => void openCamera() }}
+                quiet={{ label: 'Choose from gallery', onPress: () => void openGallery() }}
+              />
             </View>
           ) : (
             // Was a bare spinner on near-black: if the camera was slow, or
@@ -410,20 +428,6 @@ export default function SnapCaptureScreen() {
   );
 }
 
-function CameraOffIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M3 4h13l2 3h3v13H5a2 2 0 0 1-2-2V4Z"
-        stroke="#EFEBDD"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path d="M2 2l20 20" stroke="#EFEBDD" strokeWidth={1.7} strokeLinecap="round" />
-    </Svg>
-  );
-}
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
@@ -443,11 +447,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(12),
       paddingHorizontal: scale(20),
     },
+    // The camera's own controls, so the header is one across Snap's screens.
+    iconSpacer: { width: scale(44), height: scale(44) },
     iconButton: {
-      width: scale(34),
-      height: scale(34),
-      borderRadius: scale(17),
-      backgroundColor: 'rgba(255,255,255,.1)',
+      width: scale(44),
+      height: scale(44),
+      borderRadius: scale(22),
+      backgroundColor: 'rgba(26,24,20,.45)',
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: 'rgba(255,253,248,.18)',
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -472,6 +480,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     photoFrame: {
       flex: 1,
     },
+    /** Where a state card sits on the dark camera ground. */
+    stateBlock: { flex: 1, justifyContent: 'center', paddingHorizontal: scale(4) },
     fallbackBlock: {
       flex: 1,
       alignItems: 'center',

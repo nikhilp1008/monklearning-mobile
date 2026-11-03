@@ -1,19 +1,46 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+
+import { MathLine } from '@/components/math-line';
+import type { CheckinChoice } from '@/lib/drona-voice-client';
+import { getLanguagePreference, type LanguageId } from '@/lib/preferences';
+
+/** The check-in card, in the class language. "said" is what a tap means as
+ *  the student's own words (a doubt, or asking for it again). */
+const CHECKIN_COPY: Record<LanguageId, { prompt: string; options: { choice: CheckinChoice; label: string; said?: string }[] }> = {
+  hinglish: {
+    prompt: 'Samajh aa raha hai?',
+    options: [
+      { choice: 'ok', label: 'Haan, samajh aaya' },
+      { choice: 'doubt', label: 'Thoda doubt hai', said: 'Mujhe is part mein thoda doubt hai.' },
+      { choice: 'repeat', label: 'Phir se samjhao', said: 'Yeh part phir se samjhao, kisi aur example se.' },
+    ],
+  },
+  english: {
+    prompt: 'Is this making sense?',
+    options: [
+      { choice: 'ok', label: 'Yes, got it' },
+      { choice: 'doubt', label: 'I have a doubt', said: 'I have a doubt about this part.' },
+      { choice: 'repeat', label: 'Explain again', said: 'Please explain this part again, with a different example.' },
+    ],
+  },
+};
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BackHandler,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
   PixelRatio,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   FadeIn,
@@ -21,17 +48,24 @@ import Animated, {
   FadeOut,
   FadeOutDown,
   runOnJS,
-  SlideInRight,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
-import { DockRing, type RingMood } from '@/components/dock-ring';
-import { turnColor, turnWords, type VoiceTurn } from '@/components/voice-turn';
+import { useClock } from '@shopify/react-native-skia';
+import { StateBanner, StateCard } from '@/components/states';
+import { useOnline } from '@/lib/connection';
+import { shadow } from '@/lib/shadow';
+import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
+import { DockEdge, ThinkingRing, type DockMood } from '@/components/classroom-dock-face';
+import { DockBars } from '@/components/dock-face';
+import { useDockMotion, type DockMotion } from '@/components/dock-motion';
+import { turnWords, type VoiceTurn } from '@/components/voice-turn';
 import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
 import { hapticCommitted, hapticFloorReleased, hapticFloorTaken, hapticRefused } from '@/lib/haptics';
 
@@ -48,8 +82,6 @@ import {
   INK,
   INK_FAINT,
   INK_MUTED,
-  LevelBars,
-  PAPER,
   RED,
   RHYTHM,
   RuledGround,
@@ -64,7 +96,7 @@ import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudi
 import { base64ToBytes } from '@/lib/audio-pcm';
 import { endDronaSession } from '@/lib/drona-live';
 import { startSessionEnd } from '@/lib/session-end';
-import { createFollowTracker, isFling } from '@/lib/board-follow';
+import { createFollowTracker, isFling, pageTarget } from '@/lib/board-follow';
 import { claimDronaClient } from '@/lib/drona-prewarm';
 import {
   appendBoardEvent,
@@ -78,7 +110,10 @@ import {
 import { BoardBlockView } from '@/components/board-text';
 import { applyContinuity, boardRowKeys } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
-import { REPORT_REASONS, sendReport as postReport } from '@/lib/reports';
+import { teacherName, teacherNameNow, type TeacherId } from '@/lib/preferences';
+import { useTeacherId } from '@/components/states/state-plate';
+import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
+import { ReportSheet } from '@/components/report-sheet';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
@@ -122,16 +157,37 @@ const CARD_CEILING_MS = 30000;
 // copy, which is how two surfaces drift into reasons that almost group.
 /** Half the rail's own height, so it can be centred with a transform. */
 /**
- * Half the rail's height, for centring it. 84, because 8b's pill is 168 tall:
- * 8 + 48 (mic) + 12 + 40 (pause) + 12 + 40 (rotate) + 8. It was 108 when the
- * rail also carried a teacher wave, two dividers and an Interrupt label.
+ * Half the rail's height, for centring it. 105, because the pill is 210 tall:
+ * 8 + 64 (Ask: orb and its word) + 12 + 1 (divider) + 12 + 40 (pause) + 12 +
+ * 1 (divider) + 12 + 40 (rotate) + 8.
  */
-const RAIL_HALF = 84;
+const RAIL_HALF = 105;
 /** Far enough right to clear the rail's own width (64) plus its 12pt inset,
  *  plus the ring's halo, which reaches about 20pt past the pill. */
 const RAIL_TUCK_X = 96;
 /** `sleepC`'s timer: how long the ring lingers after the last touch. */
 const DOCK_SLEEP_MS = 1500;
+/**
+ * THE ASK CONTROL IS THE TEACHER, not a mic: the student's own teacher's orb
+ * and "Ask Drona", the same pill the Ask bar wears in Practice, Doubts and
+ * the textbooks, so the teacher is the one being asked wherever they are.
+ * 52 is the pill's height on the upright dock (the size the mic was, so the
+ * plate keeps its height); the orb inside is the Ask bar's 40. The sideways
+ * rail is too narrow for the name and says "Ask" under the orb.
+ */
+const DOCK_ASK_H = 52;
+const ASK_ORB = 40;
+/**
+ * NO PILL INSIDE THE PILL (26 Oct 2026, Nikhil picked B of three white
+ * versions). The orb and its words sit straight on the white dock, set apart
+ * from Pause and Rotate by hairline dividers; held or thinking, the whole
+ * dock's edge goes marigold (DockEdge), as it did for the mic. The first
+ * version gave Ask a cream ground, which is a tint fill and off-brand.
+ */
+const DOCK_DIVIDER = 'rgba(28,26,22,.10)';
+const RAIL_MIC = 48;
+/** The follow-up's hint ink: one colour in every state; only the words change. */
+const DOCK_HINT_INK = '#3D3A33';
 /**
  * The student's turn, after they let go. Thinking holds until the teacher
  * actually starts answering — no timer decides that — but a reply that never
@@ -210,6 +266,9 @@ interface AudioRecorderLike {
         categoryOptions?: string[];
       };
     };
+    keepAwake?: boolean;
+    showNotification?: boolean;
+    android?: { audioFocusStrategy?: 'background' | 'interactive' | 'communication' | 'none' };
     onAudioStream: (event: { data: unknown }) => void;
   }): Promise<unknown>;
   stopRecording(): Promise<unknown>;
@@ -355,13 +414,37 @@ export default function LiveClassroomScreen() {
 
 
 
+  const insets = useSafeAreaInsets();
+  /**
+   * WHERE THE WRITING STARTS, just under the header — on a rule.
+   *
+   * The header sits under the status bar and stays (portrait), so the board's
+   * top is set from it instead of the old fixed 130, which left three empty
+   * rules above the first heading once the header had faded. Rounded up to a
+   * whole 26pt rule so every block starts on a line of the paper.
+   */
+  const headerTop = isLandscape ? 14 : Math.max(insets.top, 20) + 4;
+  const boardTop = isLandscape ? BOARD_TOP : Math.ceil((headerTop + 30 + 10) / RHYTHM) * RHYTHM;
+  /**
+   * ANDROID'S NAVIGATION BAR. The dock, the mic card and the toast sit a
+   * fixed 20pt off the bottom, which clears iPhone's thin home indicator and
+   * is meant to overlap its strip. Android's bar is buttons (up to 48dp) or a
+   * gesture handle, drawn over the app since edge-to-edge, so there they sit
+   * that far above it. In landscape the 3-button bar moves to the side, where
+   * the rail is.
+   */
+  const navBottom = Platform.OS === 'android' ? insets.bottom : 0;
+  const navRight = Platform.OS === 'android' ? insets.right : 0;
   const styles = useMemo(
-    () => createStyles(scale, verticalScale, isLandscape),
-    [scale, verticalScale, isLandscape]
+    () => createStyles(scale, verticalScale, isLandscape, headerTop, boardTop, navBottom, navRight),
+    [scale, verticalScale, isLandscape, headerTop, boardTop, navBottom, navRight]
   );
 
   // --- Real session state, replacing the old hardcoded BOARD_BLOCKS/caption loop ---
   const [board, setBoard] = useState<BoardEvent[]>([]);
+  /** The teacher's voice is playing: the dock's "is explaining", and its light. */
+  const [teacherSpeaking, setTeacherSpeaking] = useState(false);
+  const teacher = useTeacherId();
   /**
    * How many checkpoint questions the teacher actually put to the student.
    *
@@ -381,6 +464,7 @@ export default function LiveClassroomScreen() {
 
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  const online = useOnline();
   const [paused, setPaused] = useState(false);
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -424,6 +508,17 @@ export default function LiveClassroomScreen() {
    * voicing a question.
    */
   const [questionText, setQuestionText] = useState<string | null>(null);
+  /** The "Samajh aa raha hai?" check-in on screen (see onCheckin). */
+  const [checkin, setCheckin] = useState<(typeof CHECKIN_COPY)[LanguageId] | null>(null);
+  const languageRef = useRef<LanguageId>('hinglish');
+  useEffect(() => {
+    getLanguagePreference()
+      .then((l) => {
+        languageRef.current = l;
+      })
+      .catch(() => {});
+  }, []);
+  const checkinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * The option the student just pressed, held so the card can acknowledge it.
    *
@@ -494,7 +589,7 @@ export default function LiveClassroomScreen() {
     setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: false,
-      interruptionMode: 'mixWithOthers',
+      interruptionMode: TEACHER_INTERRUPTION,
     }).catch((err) => {
       console.error('[live-classroom] could not configure the audio session:', err);
     });
@@ -535,7 +630,25 @@ export default function LiveClassroomScreen() {
       // The turn's first frame — board events or audio, whichever landed
       // first. Real content exists on the client now, seconds before it is
       // spoken, so the card can stop guessing and say so.
+      onCheckin: () => {
+        setCheckin(CHECKIN_COPY[languageRef.current] ?? CHECKIN_COPY.hinglish);
+        // A quiet student is never stuck: no tap in time means "carry on".
+        if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+        checkinTimerRef.current = setTimeout(() => answerCheckinRef.current?.('ok'), CHECKIN_AUTO_OK_MS);
+      },
+      onCheckinClosed: () => {
+        if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+        checkinTimerRef.current = null;
+        setCheckin(null);
+      },
+      // The student spoke or answered during a pause: the class runs again.
+      onPauseEnded: () => setPaused(false),
       onTurnStarted: () => {
+        // A new turn brings the board back to the live edge. A small drag
+        // earlier latched following off, and with the "Jump to live" chip
+        // hidden during a checkpoint there was no way back: the board filled
+        // and never scrolled. Both copies (see applyFollowing), then glide.
+        resumeFollowingRef.current?.();
         setCardPhase('writing');
         voiceTurnRef.current?.handOver();
       },
@@ -552,6 +665,7 @@ export default function LiveClassroomScreen() {
           .filter((v): v is string => typeof v === 'string');
         if (slugs.length > 0) void figures.prefetch(slugs);
       },
+      onSpeakingChange: (speaking) => setTeacherSpeaking(speaking),
       onBoardReveal: (event) => {
         // Drona is actually speaking: this fires when the first clip starts
         // playing. That is the handoff — the card goes, the board takes over.
@@ -734,6 +848,8 @@ export default function LiveClassroomScreen() {
    * a level meter. It does not need a strip of its own.
    */
   const [boardHeight, setBoardHeight] = useState(390);
+  /** The board's written height, for the rules drawn inside the scroll. */
+  const [boardContentH, setBoardContentH] = useState(0);
   // `windowWidth` / `isLandscape` are read near the top of the component, above
   // the styles that depend on them.
   /**
@@ -813,7 +929,12 @@ export default function LiveClassroomScreen() {
       accent: DEEP_AMBER,
       surface: colors.paper,
       fontFamily: 'Onest_400Regular',
-      monoFontFamily: 'Menlo',
+      // Menlo is an Apple font; Android has none of that name and fell back
+      // to its default, whose wider letters broke the measured label layout.
+      // Android's own 'monospace' has Menlo's advance (0.600 vs 0.602 em), and
+      // the widget measurer reads an unknown family as Menlo, so every tick
+      // label and readout lands where it does on iOS.
+      monoFontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
     }),
     []
   );
@@ -1024,11 +1145,7 @@ export default function LiveClassroomScreen() {
   /** Set when the socket opens onto a session already in 'teaching'. */
   const serverStartedTurnRef = useRef(false);
   const [reportOpen, setReportOpen] = useState(false);
-  const [selectedReason, setSelectedReason] = useState<string | null>('Wrong answer');
   const [toastVisible, setToastVisible] = useState(false);
-  const [reportSending, setReportSending] = useState(false);
-  const [reportError, setReportError] = useState<string | null>(null);
-  const [reportNotes, setReportNotes] = useState('');
   /**
    * Shared values, not state. These are written on every scroll event, and as
    * state that meant three setState calls per frame at scrollEventThrottle={16}
@@ -1055,7 +1172,18 @@ export default function LiveClassroomScreen() {
    * class was a bare page with no chapter name and no controls. Now the clock
    * starts when the class does.
    */
-  useChromeAutoHide(chromeVisible, cardVisible || handRaised || reportOpen, hideChrome);
+  /**
+   * PORTRAIT'S HEADER STAYS. It used to fade after six seconds, and the board
+   * never took the space back, so a class looked like it started a third of
+   * the way down an empty page. The topic, Report and End are now always one
+   * tap away and nothing moves at the top while the student listens.
+   * Landscape still tucks its header and rail: there the board needs the room.
+   */
+  useChromeAutoHide(
+    chromeVisible,
+    cardVisible || handRaised || reportOpen || !isLandscape,
+    hideChrome
+  );
 
   /**
    * Turning the phone brings the chrome back and restarts the clock.
@@ -1068,6 +1196,7 @@ export default function LiveClassroomScreen() {
   useEffect(() => {
     setChromeVisible(true);
   }, [isLandscape]);
+
 
   useEffect(() => {
     return () => {
@@ -1098,12 +1227,91 @@ export default function LiveClassroomScreen() {
   followingRef.current = following;
   // Whose motion is it — the student's or the board's own glide (lib/board-follow.ts).
   const followTracker = useRef(createFollowTracker()).current;
-  const onBoardGrow = useCallback(() => {
-    if (followingRef.current) {
+  /**
+   * THE LIVE EDGE IS A READING LINE, NOT THE BOTTOM OF THE SCREEN.
+   *
+   * `scrollToEnd` put every new line at the very bottom, under the dock's
+   * shadow, where the eye has to chase it. Gliding every sentence to hold the
+   * line 45% down fixed that but kept the board moving under the eye. Now the
+   * board stays still until the writing fills 80% of it, then turns a page:
+   * one glide that brings the newest line back to 45% (`pageTarget`). The
+   * paper below it is blank room still to be written on (`boardBottomRoom`).
+   *
+   * Two things move the line up from there:
+   *  - A NEW HEADING turns the page: it glides to the top of the board, just
+   *    under the header, and the section is written down from it.
+   *  - A CHECKPOINT CARD: the reading line sits just above the card, so what
+   *    the question is about stays in view instead of under it.
+   */
+  const contentHRef = useRef(0);
+  const headingYRef = useRef(0);
+  const askTopRef = useRef<number | null>(null);
+  const boardHeightRef = useRef(390);
+  const followTargetShared = useSharedValue(0);
+  const followTargetRef = useRef(0);
+  const glidedToRef = useRef(-1);
+  const followTarget = useCallback(() => {
+    const h = boardHeightRef.current;
+    const room = boardBottomRoom(h, boardTop);
+    const writingBottom = contentHRef.current - room;
+    const askTop = askTopRef.current;
+    // A checkpoint card: what the question is about sits just above it.
+    // Otherwise the board turns a page at 80% full (pageTarget).
+    const target =
+      askTop != null
+        ? Math.max(0, headingYRef.current, writingBottom - Math.max(boardTop + RHYTHM * 2, askTop - 20))
+        : pageTarget({
+            current: followTargetRef.current,
+            writingBottom,
+            boardHeight: h,
+            readLine: READ_LINE,
+            headingY: headingYRef.current,
+          });
+    followTargetRef.current = target;
+    followTargetShared.value = target;
+    return target;
+  }, [boardTop, followTargetShared]);
+  const glide = useCallback(
+    (force = false) => {
+      const y = followTarget();
+      if (!followingRef.current) return;
+      if (!force && Math.abs(y - glidedToRef.current) < 1) return;
+      glidedToRef.current = y;
       followTracker.programmaticScroll();
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }
-  }, [followTracker]);
+      scrollRef.current?.scrollTo({ y, animated: true });
+    },
+    [followTarget, followTracker]
+  );
+  const onBoardGrow = useCallback(
+    (_w: number, h: number) => {
+      contentHRef.current = h;
+      setBoardContentH(h);
+      glide();
+    },
+    [glide]
+  );
+  // Every line moves when the board changes width, so the positions the follow
+  // logic remembered belong to the other orientation. `headingYRef` only ever
+  // grows, so a stale value pinned the follow target and new lines were
+  // written below the screen. Start over; the headings report again on layout.
+  useEffect(() => {
+    headingYRef.current = 0;
+    glidedToRef.current = -1;
+    followTargetRef.current = 0;
+    const id = setTimeout(() => glide(true), 50);
+    return () => clearTimeout(id);
+  }, [isLandscape, glide]);
+
+  /** A heading landed: it is the top of the new page. `y` is its place inside
+   *  the padded content, which is also the offset that puts it under the header. */
+  const onHeadingAt = useCallback(
+    (y: number) => {
+      if (y <= headingYRef.current) return;
+      headingYRef.current = y;
+      glide();
+    },
+    [glide]
+  );
   /**
    * WHO SCROLLED DECIDES WHETHER WE ARE STILL FOLLOWING — not where we are.
    *
@@ -1191,7 +1399,7 @@ export default function LiveClassroomScreen() {
    * So: `ringAwake` is the linger OR the hold, and releasing re-arms the
    * linger so the fade still happens after, not during.
    */
-  const [dockLinger, setDockLinger] = useState(false);
+  const [, setDockLinger] = useState(false);
   const dockSleepRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wakeDock = useCallback(() => {
     if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
@@ -1205,23 +1413,57 @@ export default function LiveClassroomScreen() {
   useEffect(() => () => {
     if (dockSleepRef.current) clearTimeout(dockSleepRef.current);
   }, []);
-  const ringAwake = dockLinger || handRaised || turnAfter !== 'idle';
-  /** Talking beats paused, which beats the resting teacher palette — the
-   *  prototype's `on ? S2 : (paused ? G2 : T2)`. */
-  const ringMood: RingMood = handRaised
-    ? 'student'
-    : turnAfter === 'thinking'
-      ? 'thinking'
-      : turnAfter === 'failed' || paused
-        ? 'paused'
-        : 'teacher';
   /** The one name for where the student's turn is, for the words. */
   const turn: VoiceTurn = handRaised ? 'listening' : turnAfter;
+  /** What the dock's edge says: the student speaking, the teacher thinking,
+   *  or nothing (components/classroom-dock-face). */
+  const dockMood: DockMood = handRaised ? 'student' : turn === 'thinking' ? 'thinking' : 'rest';
+
+  /**
+   * THE DOCK IS A WHITE PILL (components/classroom-dock-face) round the Ask
+   * follow-up's mic: it fills marigold while the student holds it, a marigold
+   * arc turns round it while the teacher thinks, and the edge goes marigold
+   * for both. It wore a drifting four-colour light, which was busy under the
+   * writing and, on Android, redrew from scratch on every turn of the phone,
+   * showing white for a second or two. The motion below
+   * still drives the voice bars and the disc's breathing scale.
+   */
+  const dockClock = useClock();
+  const dockDown = useSharedValue(false);
+  const dockMotion = useDockMotion({
+    // While the teacher talks the dock's light breathes with a speech envelope
+    // (dock-motion's `talking`), so a board with nothing new on it never looks
+    // stuck.
+    phase: handRaised
+      ? 'listening'
+      : turnAfter === 'thinking'
+        ? 'thinking'
+        : teacherSpeaking && !paused
+          ? 'speaking'
+          : 'idle',
+    level: voiceLevel,
+    clock: dockClock,
+    down: dockDown,
+    stretch: false,
+  });
+  const discAnim = useAnimatedStyle(() => ({ transform: [{ scale: dockMotion.value.ds }] }));
+  const dockTouch = {
+    onTouchStart: () => {
+      dockDown.value = true;
+      wakeDock();
+    },
+    onTouchEnd: () => {
+      dockDown.value = false;
+    },
+    onTouchCancel: () => {
+      dockDown.value = false;
+    },
+  };
 
   const showChrome = () => setChromeVisible(true);
 
   const toggleChrome = () => {
-    if (reportOpen) return;
+    if (reportOpen || !isLandscape) return;
     setChromeVisible((visible) => !visible);
   };
 
@@ -1254,7 +1496,7 @@ export default function LiveClassroomScreen() {
         indicatorOpacity.value = 1;
       }
       if (draggingShared.value) {
-        const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
+        const atBottom = contentOffset.y >= followTargetShared.value - 40;
         if (atBottom !== followingShared.value) {
           followingShared.value = atBottom;
           runOnJS(setFollowing)(atBottom);
@@ -1281,15 +1523,15 @@ export default function LiveClassroomScreen() {
     setFollowing(next);
   };
 
-  const atLiveEdge = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    return contentOffset.y + layoutMeasurement.height >= contentSize.height - 40;
-  };
+  const atLiveEdge = (e: NativeSyntheticEvent<NativeScrollEvent>) =>
+    e.nativeEvent.contentOffset.y >= followTargetRef.current - 40;
 
   /** The student lifted their finger: a drag always decides whether they left
    *  the live edge or came back to it. */
   const onBoardDragEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    applyFollowing(followTracker.dragEnded(atLiveEdge(e), isFling(e.nativeEvent.velocity?.y)));
+    const next = followTracker.dragEnded(atLiveEdge(e), isFling(e.nativeEvent.velocity?.y));
+    applyFollowing(next);
+    if (!next) scheduleResume();
   };
 
   /** A scroll came to rest. Only the student's fling decides here: on iOS the
@@ -1299,13 +1541,59 @@ export default function LiveClassroomScreen() {
   const onBoardMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = followTracker.momentumEnded(atLiveEdge(e));
     if (next !== null) applyFollowing(next);
+    if (next === false) scheduleResume();
   };
 
+  const answerCheckinRef = useRef<((choice: CheckinChoice) => void) | null>(null);
+  answerCheckinRef.current = (choice) => {
+    if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+    checkinTimerRef.current = null;
+    const said = checkin?.options.find((o) => o.choice === choice)?.said;
+    setCheckin(null);
+    clientRef.current?.answerCheckin(choice, said);
+  };
+  useEffect(
+    () => () => {
+      if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+    },
+    []
+  );
+
   const jumpToLive = () => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = null;
     followTracker.programmaticScroll();
     applyFollowing(true);
-    scrollRef.current?.scrollToEnd({ animated: true });
+    glide(true);
   };
+  // Called from the transport's onTurnStarted, which was wired before this
+  // render; the ref keeps it pointing at the current closure.
+  const resumeFollowingRef = useRef<(() => void) | null>(null);
+  resumeFollowingRef.current = () => {
+    if (draggingRef.current) return;
+    jumpToLive();
+  };
+
+  /**
+   * THE BOARD COMES BACK BY ITSELF. A student who scrolls up to reread is left
+   * there for a moment, and then the board returns to the live edge: they
+   * should not have to find "Jump to live" every time the board fills. A new
+   * drag cancels the countdown, so a student still reading is never yanked.
+   */
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleResume = () => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => {
+      resumeTimerRef.current = null;
+      resumeFollowingRef.current?.();
+    }, RESUME_FOLLOW_MS);
+  };
+  useEffect(
+    () => () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    },
+    []
+  );
 
   // --- Real push-to-talk ---
   /**
@@ -1374,6 +1662,16 @@ export default function LiveClassroomScreen() {
           // 100ms, matching web's ~128ms cadence. The gate is in JS, so this
           // is only about how finely a hold can be sliced at its edges.
           interval: 100,
+          // ANDROID: a microphone held for one class, not a background voice
+          // recorder. The library's Android defaults keep the device awake
+          // through a foreground service, post a "recording" notification and
+          // keep the mic running after the app is left. None of that is wanted,
+          // and the service is no longer in the build (see app.json). Audio
+          // focus is left to expo-audio, which plays the teacher: if the
+          // recorder claimed it too, the two would pause each other.
+          keepAwake: false,
+          showNotification: false,
+          android: { audioFocusStrategy: 'none' },
           // Without `DefaultToSpeaker`, iOS's shared AVAudioSession defaults a
           // `.playAndRecord` category to the earpiece receiver — and this
           // category is now held for the whole class, so without it every
@@ -1539,8 +1837,13 @@ export default function LiveClassroomScreen() {
   const togglePause = () => {
     setPaused((p) => {
       const next = !p;
-      if (next) clientRef.current?.pausePlayback();
-      else clientRef.current?.resumePlayback();
+      if (next) {
+        // A pause stops the check-in's "carry on" countdown too; pressing play
+        // over the card is the student carrying on (the client closes it).
+        if (checkinTimerRef.current) clearTimeout(checkinTimerRef.current);
+        checkinTimerRef.current = null;
+        clientRef.current?.pausePlayback();
+      } else clientRef.current?.resumePlayback();
       return next;
     });
   };
@@ -1553,50 +1856,30 @@ export default function LiveClassroomScreen() {
   const closeReport = () => setReportOpen(false);
 
   /**
-   * Actually send it.
-   *
-   * This used to close the drawer and show "Report sent. Drona's team will
-   * check this class." without making a single request. Students were told
-   * their report had been received; none ever was, and the dashboard showed
-   * live classes as the one surface with no problems.
-   *
-   * The toast now waits for the server. A failure says so — a thank-you for
-   * something that did not send is the bug being fixed, and repeating it in a
-   * nicer shape would be worse than an error message.
+   * ANDROID'S BACK DOES NOT LEAVE THE CLASS. The back gesture and the back
+   * button both arrive here; the End button is the only way out (the iPhone
+   * swipe is switched off on the route, in app/_layout.tsx). The one thing
+   * back still does is what a student expects of it over a pop-up: close the
+   * report.
    */
-  const sendReport = async () => {
-    if (reportSending) return;
-    setReportSending(true);
-    setReportError(null);
-    try {
-      await postReport({
-        surface: 'live',
-        reason: selectedReason,
-        comment: reportNotes.trim() || null,
-        sessionId: sessionId || null,
-        subject: params.subject || null,
-        chapter: params.chapterTitle || null,
-        // What was on screen when they hit report. For a live class this is
-        // most of the diagnosis: it says what Drona actually said, which no
-        // id recovers once the session transcript ages out.
-        quote: caption || null,
-        context: {
-          card_phase: cardPhase,
-          chapter_id: params.chapterId ?? null,
-          subtopic: params.subtopic ?? null,
-        },
-      });
-      setReportSending(false);
-      setReportOpen(false);
-      setToastVisible(true);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
-    } catch (err) {
-      setReportSending(false);
-      setReportError(
-        err instanceof Error ? err.message : 'Could not send that. Try again.'
-      );
-    }
+  const reportOpenRef = useRef(reportOpen);
+  useEffect(() => {
+    reportOpenRef.current = reportOpen;
+  }, [reportOpen]);
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (reportOpenRef.current) setReportOpen(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
+  /** After the server has the report — never before; a thank-you for
+   *  something that did not send was a bug here once. */
+  const showReportToast = () => {
+    setToastVisible(true);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   };
 
   /**
@@ -1626,6 +1909,10 @@ export default function LiveClassroomScreen() {
     // Close an open turn cleanly before the socket goes; the recorder itself
     // is torn down by the mount effect's cleanup on unmount.
     doneListening();
+    // Silence first. End means the voice stops NOW: this used to wait for the
+    // recorder teardown (100-400ms) before disconnecting, and frames already
+    // in flight kept restarting the player in that gap.
+    clientRef.current?.disconnect();
 
     // STARTED HERE, AWAITED ON THE NEXT SCREEN.
     //
@@ -1646,7 +1933,6 @@ export default function LiveClassroomScreen() {
     } catch {
       // Never started, or already stopped.
     }
-    clientRef.current?.disconnect();
 
     router.replace({
       pathname: '/session-summary',
@@ -1702,24 +1988,35 @@ export default function LiveClassroomScreen() {
   // ended up sitting on the dock's hint text.
   const showJumpChip = !following && !handRaised && checkOptions.length === 0;
 
+  // The card went: the reading line goes back to its 45%.
+  const askShown = checkOptions.length > 0 && !!questionText && !handRaised;
+  useEffect(() => {
+    if (askShown || askTopRef.current == null) return;
+    askTopRef.current = null;
+    glide();
+  }, [askShown, glide]);
+
   // Hold the first paint until the window has actually turned, so the board
   // is never seen reflowing mid-rotation. Unlike the old landscape lock this
   // is only a paint gate: the layout below reads the real window, so if a lock
   // is refused the board still matches the phone instead of lying sideways.
-  if (!oriented) {
-    return <View style={styles.rotateHold} />;
-  }
+  // NOT an early return any more. Returning the hold view unmounted the board,
+  // and every line's "already written" state is component-local, so each
+  // rotation replayed the writing of every line on the board. The hold is now
+  // a cover over the live tree, which keeps every line (and the scroll view)
+  // mounted.
 
   if (connectError) {
     return (
       <View style={styles.screen}>
         <StatusBar style="dark" />
-        <View style={styles.errorBlock}>
-          <Text style={styles.errorTitle}>Couldn&apos;t join the class</Text>
-          <Text style={styles.errorBody}>{connectError}</Text>
-          <Pressable style={styles.errorButton} onPress={() => router.back()}>
-            <Text style={styles.errorButtonText}>Go back</Text>
-          </Pressable>
+        <View style={styles.stateBlock}>
+          <StateCard
+            glyph="retry"
+            title="Couldn't join the class"
+            line={connectError}
+            action={{ label: 'Go back', onPress: () => router.back() }}
+          />
         </View>
       </View>
     );
@@ -1738,19 +2035,26 @@ export default function LiveClassroomScreen() {
           ruled page runs to all four edges and every control floats over it,
           so the only border on a phone is the phone's own. */}
       <View style={styles.boardArea}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={toggleChrome}>
-          <RuledGround height={boardHeight} />
-        </Pressable>
+        <Pressable style={StyleSheet.absoluteFill} onPress={toggleChrome} />
 
         <Animated.ScrollView
           ref={scrollRef}
           style={StyleSheet.absoluteFill}
-          contentContainerStyle={styles.boardContent}
+          contentContainerStyle={[
+            styles.boardContent,
+            { paddingBottom: boardBottomRoom(boardHeight, boardTop) },
+          ]}
           scrollEventThrottle={16}
           onScroll={onBoardScroll}
-          onLayout={(e) => setBoardHeight(e.nativeEvent.layout.height)}
+          onLayout={(e) => {
+            boardHeightRef.current = e.nativeEvent.layout.height;
+            setBoardHeight(e.nativeEvent.layout.height);
+            glide();
+          }}
           onContentSizeChange={onBoardGrow}
           onScrollBeginDrag={() => {
+            if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+            resumeTimerRef.current = null;
             draggingRef.current = true;
             draggingShared.value = true;
             followTracker.dragBegan();
@@ -1762,6 +2066,12 @@ export default function LiveClassroomScreen() {
           }}
           onMomentumScrollEnd={onBoardMomentumEnd}
           showsVerticalScrollIndicator={false}>
+          {/* The rules scroll WITH the writing, so a line stays on its rule as
+              the board moves — they used to be fixed behind the scroll view,
+              and the writing slid across them. */}
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <RuledGround height={Math.max(boardContentH, boardHeight)} />
+          </View>
           <Pressable style={styles.boardTapTarget} onPress={toggleChrome}>
             {board.length === 0 ? (
               <View style={styles.writingRow}>
@@ -1780,12 +2090,22 @@ export default function LiveClassroomScreen() {
                  survives that change and animates instead of remounting; a
                  picture drawn a second time gets its own key (`boardRowKeys`). */
               boardRows.map((event, i) => (
-                <BoardLine key={boardKeys[i]}>
-                  <BoardBlockView
-                    event={event}
-                    diagramBox={diagramBox}
-                    widgetHost={widgetHost}
-                  />
+                <BoardLine
+                  key={boardKeys[i]}
+                  event={event}
+                  first={i === 0}
+                  paused={paused}
+                  hurry={!teacherSpeaking}
+                  onHeadingAt={onHeadingAt}>
+                  {(progress) => (
+                    <BoardBlockView
+                      event={event}
+                      diagramBox={diagramBox}
+                      widgetHost={widgetHost}
+                      progress={progress}
+                      grid
+                    />
+                  )}
                 </BoardLine>
               ))
             )}
@@ -1893,15 +2213,52 @@ export default function LiveClassroomScreen() {
           Portrait puts it directly above the dock, landscape above the bottom
           edge and clear of the rail's channel — the positioning lives on
           `askColumn`. */}
-      {checkOptions.length > 0 && questionText && !handRaised && (
+      {checkin && !handRaised && checkOptions.length === 0 && (
         <Animated.View
           style={styles.askColumn}
+          onLayout={(e) => {
+            askTopRef.current = e.nativeEvent.layout.y;
+            glide();
+          }}
           entering={FadeInDown.duration(320).easing(Easing.bezier(0.2, 0.7, 0.2, 1).factory())}
           exiting={FadeOutDown.duration(220)}>
           <View style={styles.askCard}>
-            <Text style={styles.askQuestion} numberOfLines={3}>
-              {spokenMathToNotation(questionText)}
-            </Text>
+            <Text style={styles.askQuestion}>{checkin.prompt}</Text>
+            <View style={styles.askRow}>
+              {checkin.options.map((o) => (
+                <Pressable
+                  key={o.choice}
+                  style={styles.askChip}
+                  onPress={() => answerCheckinRef.current?.(o.choice)}>
+                  <Text style={styles.askChipText}>{o.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
+      {checkOptions.length > 0 && questionText && !handRaised && (
+        <Animated.View
+          style={styles.askColumn}
+          onLayout={(e) => {
+            askTopRef.current = e.nativeEvent.layout.y;
+            glide();
+          }}
+          entering={FadeInDown.duration(320).easing(Easing.bezier(0.2, 0.7, 0.2, 1).factory())}
+          exiting={FadeOutDown.duration(220)}>
+          <View style={styles.askCard}>
+            {/* The whole question: it was cut at three lines, and a checkpoint
+                you cannot read to the end is not one you can answer. */}
+            {/* Through the board's own formula renderer, so a subscript the
+                lesson writes as v_{AB} is drawn small and lowered here too
+                instead of reading "vAB". Plain text renders as one Text. */}
+            <MathLine
+              text={spokenMathToNotation(questionText)}
+              style={styles.askQuestion}
+              fontSize={scale(14.5)}
+              color={INK}
+            />
             {/* THE VERDICT REPLACES THE ROW, it does not squeeze into it.
                 The four chips leave only 5.9pt of slack across a 336pt row, so
                 adding a mark to the chosen one would have wrapped the set at
@@ -1948,9 +2305,12 @@ export default function LiveClassroomScreen() {
                         // first and replaces this with the shorter verdict hold.
                         answerHoldRef.current = setTimeout(clearCheckpoint, ANSWER_HOLD_MS);
                       }}>
-                      <Text style={[styles.askChipText, chosen && styles.askChipTextChosen]}>
-                        {option}
-                      </Text>
+                      <MathLine
+                        text={option}
+                        style={[styles.askChipText, chosen && styles.askChipTextChosen]}
+                        fontSize={scale(13)}
+                        color={chosen ? colors.paper : colors.ink}
+                      />
                     </Pressable>
                   );
                 })}
@@ -1975,9 +2335,9 @@ export default function LiveClassroomScreen() {
             for touches on the buttons inside as well, which is how one gesture
             both wakes the ring and works the control — the prototype's
             `onpointerdown` on `#dockQL` over its own children. */}
-        <View style={styles.dockAnchor} onTouchStart={wakeDock}>
-          <DockRing mood={ringMood} awake={ringAwake} vertical id="rail" level={voiceLevel} />
+        <View style={styles.dockAnchor} {...dockTouch}>
           <View style={styles.railPill}>
+            <DockEdge mood={dockMood} radius={99} />
             {/* Press and hold to speak; release to hand the board back. No
                 confirm step, no "done" button, no modal.
 
@@ -1987,25 +2347,25 @@ export default function LiveClassroomScreen() {
                 press, and pressing it opens the card that says why rather
                 than doing nothing. */}
             <Pressable
-              style={[styles.railMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+              style={[styles.railMic, voiceOff && styles.micOff]}
               onPressIn={onMicPressIn}
               onPressOut={onMicPressOut}
               accessibilityLabel="Hold to speak">
-              {handRaised ? (
-                <LevelBars color={PAPER} heights={[9, 17, 12]} />
-              ) : voiceOff ? (
-                <MicOffIcon size={20} color={PAPER} />
-              ) : (
-                <MicIcon size={20} color={PAPER} />
-              )}
+              <Animated.View style={[styles.askDisc, discAnim]}>
+                <AskOrbFace teacher={teacher} handRaised={handRaised} thinking={turn === 'thinking'}
+                  voiceOff={voiceOff} motion={dockMotion} />
+              </Animated.View>
+              <Text style={styles.railAskWord} maxFontSizeMultiplier={1.2}>Ask</Text>
             </Pressable>
+            <View style={styles.railDivider} />
             <Pressable
               style={styles.railCtrl}
               onPress={togglePause}
               hitSlop={6}
-              accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+              accessibilityLabel={paused ? `Resume ${teacherNameNow()}` : `Pause ${teacherNameNow()}`}>
               {paused ? <PlayIcon size={16} color={INK} /> : <PauseIcon size={16} color={INK} />}
             </Pressable>
+            <View style={styles.railDivider} />
             {/* Back to upright. The same slot CC used to hold — captions are
                 gone and this is the control that earns it. */}
             <Pressable
@@ -2033,33 +2393,35 @@ export default function LiveClassroomScreen() {
            animated wrapper that always resolves to translateY(0)/opacity(1)
            only looks like it does. */
         <View style={styles.dockWrap}>
-          <View style={styles.dockAnchor} onTouchStart={wakeDock}>
-            <DockRing mood={ringMood} awake={ringAwake} vertical={false} id="dock" level={voiceLevel} />
+          <View style={styles.dockAnchor} {...dockTouch}>
             <View style={styles.dockPill}>
+              <DockEdge mood={dockMood} radius={99} />
               <Pressable
                 style={styles.dockCtrl}
                 onPress={togglePause}
                 hitSlop={6}
-                accessibilityLabel={paused ? 'Resume teacher' : 'Pause teacher'}>
+                accessibilityLabel={paused ? `Resume ${teacherNameNow()}` : `Pause ${teacherNameNow()}`}>
                 {paused ? <PlayIcon size={17} color={INK} /> : <PauseIcon size={17} color={INK} />}
               </Pressable>
+              <View style={styles.dockDivider} />
 
-              {/* The mic is a circle now, not a wide labelled pill. The label
-                  is what the handoff dropped, and once it is gone the pill has
-                  nothing to be wide for. */}
+              {/* Ask, as the Ask bar draws it everywhere else: the teacher's
+                  orb and the words beside it, which say what is happening
+                  while the student holds and while the teacher works. */}
               <Pressable
-                style={[styles.dockMic, handRaised && styles.micOn, voiceOff && styles.micOff]}
+                style={[styles.dockAsk, voiceOff && styles.micOff]}
                 onPressIn={onMicPressIn}
                 onPressOut={onMicPressOut}
                 accessibilityLabel="Hold to speak">
-                {handRaised ? (
-                  <LevelBars color={PAPER} heights={[9, 17, 12]} />
-                ) : voiceOff ? (
-                  <MicOffIcon size={20} color={PAPER} />
-                ) : (
-                  <MicIcon size={20} color={PAPER} />
-                )}
+                <Animated.View style={[styles.askDisc, discAnim]}>
+                  <AskOrbFace teacher={teacher} handRaised={handRaised} thinking={turn === 'thinking'}
+                    voiceOff={voiceOff} motion={dockMotion} />
+                </Animated.View>
+                <Text style={styles.dockAskLabel} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                  {handRaised ? 'Listening…' : turn === 'thinking' ? 'Thinking…' : `Ask ${teacherName(teacher)}`}
+                </Text>
               </Pressable>
+              <View style={styles.dockDivider} />
 
               <Pressable
                 style={[styles.dockCtrl, !canRotate && styles.ctrlUnavailable]}
@@ -2072,11 +2434,13 @@ export default function LiveClassroomScreen() {
             </View>
           </View>
           {/* The handoff's hint is fixed text — it does not answer back while
-              you speak, because the mic going green and growing bars already
+              you speak, because the mic filling marigold and growing bars already
               does. "Mic off" is the one state it has no word for, and that one
               has to be said. */}
-          <Text style={[styles.dockHint, { color: turnColor(voiceOff ? 'idle' : turn) }]}>
-            {turnWords(turn, voiceOff)}
+          <Text style={styles.dockHint}>
+            {turn === 'idle' && teacherSpeaking && !paused && !voiceOff
+              ? `${teacherNameNow()} is explaining`
+              : turnWords(turn, voiceOff)}
           </Text>
         </View>
       )}
@@ -2086,6 +2450,8 @@ export default function LiveClassroomScreen() {
           tab would point at nothing. A tap on the paper brings the header
           back. */}
       <EdgeTab visible={isLandscape && !chromeVisible} onPress={showChrome} />
+
+      {!oriented && <View pointerEvents="auto" style={[StyleSheet.absoluteFill, styles.rotateHold]} />}
 
       {/* Mic off: say plainly WHICH way it is off, and offer Settings only when
           Settings is actually the fix. A student who has no input at all, or
@@ -2121,6 +2487,23 @@ export default function LiveClassroomScreen() {
         </Animated.View>
       )}
 
+      {/* THE CONNECTION DROPPED MID-CLASS. The board used to just stop, with
+          nothing on screen to say why; the client was already reconnecting
+          underneath. A banner over the board while it does (or while the
+          phone has no internet), gone when the class is back. */}
+      {(connectionStatus === 'reconnecting' || !online) && (
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+          pointerEvents="none"
+          style={[styles.connectionBanner, { top: headerTop + verticalScale(44) }]}>
+          <StateBanner
+            bold={online ? 'Reconnecting…' : "You're offline."}
+            text={online ? 'The class picks up where it left off.' : "The class picks up when you're back."}
+          />
+        </Animated.View>
+      )}
+
       {toastVisible && (
         <Animated.View entering={FadeIn.duration(150)} style={styles.toast}>
           <Text style={styles.toastCheck}>✓</Text>
@@ -2128,78 +2511,30 @@ export default function LiveClassroomScreen() {
         </Animated.View>
       )}
 
+      {/* Report a mistake: the same sheet Snap, Doubts and Practice use
+          (components/report-sheet.tsx), shown here over the board so the
+          class carries on behind it. */}
       {reportOpen && (
-        <>
-          <Pressable style={styles.rscrim} onPress={closeReport} />
-          <Animated.View entering={SlideInRight.duration(280)} style={styles.rdrawer}>
-            <View style={styles.rdrawerHeader}>
-              <View style={styles.rdrawerIconChip}>
-                <ReportIcon size={scale(13)} color="#C53A2B" />
-              </View>
-              <Text style={styles.rdrawerTitle}>Report a mistake</Text>
-              <Pressable style={styles.rdrawerClose} onPress={closeReport}>
-                <Text style={styles.rdrawerCloseText}>✕</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.rquoteCard}>
-              <View style={styles.rquoteRule} />
-              <Text style={styles.rquoteLabel}>From this class · {chapterTitle}</Text>
-              <Text style={styles.rquoteText} numberOfLines={2}>
-                {caption || 'This class'}
-              </Text>
-            </View>
-
-            <Text style={styles.rwhatsWrong}>What&apos;s wrong?</Text>
-            <View style={styles.rchipsRow}>
-              {REPORT_REASONS.map((reason) => {
-                const selected = selectedReason === reason;
-                return (
-                  <Pressable
-                    key={reason}
-                    style={[styles.rchip, selected && styles.rchipSelected]}
-                    onPress={() => setSelectedReason(reason)}>
-                    <Text style={[styles.rchipText, selected && styles.rchipTextSelected]}>
-                      {reason}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.rextraRow}>
-              <View style={styles.rscreenshotBox}>
-                <ScreenshotIcon size={scale(13)} />
-                <Text style={styles.rscreenshotText}>
-                  Screenshot <Text style={styles.rscreenshotOptional}>optional</Text>
-                </Text>
-              </View>
-              <TextInput
-                style={styles.rnotesInput}
-                placeholder="Anything else? (optional)"
-                placeholderTextColor={colors.faint}
-                value={reportNotes}
-                onChangeText={setReportNotes}
-                editable={!reportSending}
-                multiline
-              />
-            </View>
-
-            <View style={styles.rfooter}>
-              <Text style={styles.rfooterHint}>
-                {reportError || 'Reporting won\u2019t interrupt your class.'}
-              </Text>
-              <Pressable
-                style={[styles.rsendButton, reportSending && { opacity: 0.6 }]}
-                disabled={reportSending}
-                onPress={sendReport}>
-                <Text style={styles.rsendButtonText}>
-                  {reportSending ? 'Sending\u2026' : reportError ? 'Try again' : 'Send report'}
-                </Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </>
+        <ReportSheet
+          statusBar={false}
+          target={{
+            surface: 'live',
+            sessionId: sessionId || null,
+            subject: params.subject || null,
+            chapter: params.chapterTitle || null,
+            // What was on screen when they hit report. For a live class this
+            // is most of the diagnosis: it says what Drona actually said,
+            // which no id recovers once the session transcript ages out.
+            quote: caption || null,
+            context: {
+              card_phase: cardPhase,
+              chapter_id: params.chapterId ?? null,
+              subtopic: params.subtopic ?? null,
+            },
+          }}
+          onSent={showReportToast}
+          onClose={closeReport}
+        />
       )}
 
       {/* Last child, so it covers everything: the board, the chrome, the rail.
@@ -2266,27 +2601,53 @@ function micNoticeFor(status: MicStatus): {
   }
 }
 
-function MicIcon({ size, color }: { size: number; color: string }) {
+/**
+ * The Ask control's face: the teacher's orb, with the voice bars over it while
+ * the student holds, the thinking arc round it while the teacher works, and
+ * the mic-off mark when there is no mic. The Ask bar's own face
+ * (components/ask-follow-up), drawn here at the dock's sizes.
+ */
+function AskOrbFace({
+  teacher,
+  handRaised,
+  thinking,
+  voiceOff,
+  motion,
+}: {
+  teacher: TeacherId;
+  handRaised: boolean;
+  thinking: boolean;
+  voiceOff: boolean;
+  motion: SharedValue<DockMotion>;
+}) {
   return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"
-        stroke={color}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path d="M6 11a6 6 0 0 0 12 0" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-      <Path d="M12 17v4" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
-    </Svg>
+    <>
+      <TeacherOrbPoster teacher={teacher} size={ASK_ORB} />
+      <ThinkingRing on={thinking} size={ASK_ORB} />
+      {handRaised ? (
+        <View style={askFaceStyles.overlay} pointerEvents="none">
+          <DockBars motion={motion} />
+        </View>
+      ) : voiceOff ? (
+        <View style={askFaceStyles.overlay} pointerEvents="none">
+          <MicOffIcon size={18} color={INK} />
+        </View>
+      ) : null}
+    </>
   );
 }
 
-/**
- * The same mic, struck through — the off state of the Interrupt button. Drawn
- * rather than swapped for a different glyph so the button reads as the same
- * control in two states, not two controls.
- */
+const askFaceStyles = StyleSheet.create({
+  /** The Ask bar's veil: enough white that bars and marks read on the orb. */
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 99,
+  },
+});
+
 function MicOffIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -2410,20 +2771,108 @@ function VerdictMark({ correct, color }: { correct: boolean; color: string }) {
  * discussed. `board_event` only ever names the line a sentence introduces.
  * That ask is with Raasikh; when it lands, the highlight belongs here.
  */
-function BoardLine({ children }: { children: React.ReactNode }) {
-  return <Animated.View entering={enterLine}>{children}</Animated.View>;
+/**
+ * ONE BLOCK ON THE RULED PAGE, WRITTEN AS IT IS SPOKEN.
+ *
+ * A line used to fade in whole the moment its sentence began, so a sentence
+ * that introduced three lines dropped all three at once and then the board sat
+ * still for the rest of the sentence. Now a line carrying `write` (stamped by
+ * the voice client from the sentence's own length, see `paceLines`) waits its
+ * turn inside the sentence and is written word by word across its share of
+ * it. Formulas and figures land whole at their moment, the way a teacher puts
+ * an equation up in one go. Lines with no `write` — flushed at the end of a
+ * turn, or a board restored — fade up whole as before.
+ *
+ * The clock only runs while the teacher's voice does: Pause stops the pen with
+ * the voice, and when the voice stops for good (a raised hand, the end of the
+ * turn) whatever is still unwritten is finished at once (`hurry`).
+ *
+ * ON THE RULES: every block starts on a rule — a 26pt gap before it, two
+ * before a heading — and its height is rounded up to whole rules, so diagrams
+ * and notes keep the page's rhythm instead of leaving the next line between
+ * two rules.
+ */
+function BoardLine({
+  event,
+  first,
+  paused,
+  hurry,
+  onHeadingAt,
+  children,
+}: {
+  event: BoardEvent;
+  first: boolean;
+  paused: boolean;
+  hurry: boolean;
+  onHeadingAt: (y: number) => void;
+  children: (progress: number) => React.ReactNode;
+}) {
+  // The pace a line was revealed with is its own: a later merge of the same
+  // row (board continuity) must not restart the writing.
+  const [write] = useState(event.write);
+  const { shown, progress } = useWriteClock(write, paused, hurry);
+  const whole = !write || write.ms <= 0;
+
+  const opacity = useSharedValue(0);
+  const rise = useSharedValue(whole ? 6 : 0);
+  useEffect(() => {
+    if (!shown) return;
+    if (whole) {
+      opacity.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) });
+      rise.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
+    } else {
+      opacity.value = 1;
+    }
+  }, [shown, whole, opacity, rise]);
+  const appear = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: rise.value }],
+  }));
+
+  const [innerH, setInnerH] = useState(0);
+  const padTo = innerH > 0 ? Math.ceil((innerH - 0.5) / RHYTHM) * RHYTHM - innerH : 0;
+  const heading = event.type === 'heading';
+
+  return (
+    <Animated.View
+      style={[{ marginTop: first ? 0 : heading ? RHYTHM * 2 : RHYTHM }, appear]}
+      onLayout={heading ? (e) => onHeadingAt(e.nativeEvent.layout.y) : undefined}>
+      <View onLayout={(e) => setInnerH(e.nativeEvent.layout.height)}>{children(progress)}</View>
+      {padTo > 0.5 ? <View style={{ height: padTo }} /> : null}
+    </Animated.View>
+  );
 }
 
-/** Fade up and settle, rather than appear. See BoardLine. */
-function enterLine() {
-  'worklet';
-  return {
-    initialValues: { opacity: 0, transform: [{ translateY: 6 }] },
-    animations: {
-      opacity: withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) }),
-      transform: [{ translateY: withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }) }],
-    },
-  };
+/** How far through its writing a line is: `shown` once its moment in the
+ *  sentence has come, `progress` 0..1 across its words. Counts only the time
+ *  the voice is playing. */
+function useWriteClock(
+  write: BoardEvent['write'],
+  paused: boolean,
+  hurry: boolean
+): { shown: boolean; progress: number } {
+  const total = write ? write.delayMs + write.ms : 0;
+  const [elapsed, setElapsed] = useState(0);
+  const [hurried, setHurried] = useState(false);
+  const done = !write || hurried || elapsed >= total;
+  useEffect(() => {
+    if (hurry && !done) setHurried(true);
+  }, [hurry, done]);
+  useEffect(() => {
+    if (done || paused) return;
+    let last = Date.now();
+    const id = setInterval(() => {
+      const now = Date.now();
+      const step = now - last;
+      last = now;
+      setElapsed((e) => Math.min(total, e + step));
+    }, 50);
+    return () => clearInterval(id);
+  }, [done, paused, total]);
+  if (!write || done) return { shown: true, progress: 1 };
+  const shown = elapsed >= write.delayMs;
+  const progress = write.ms <= 0 ? (shown ? 1 : 0) : Math.min(1, Math.max(0, (elapsed - write.delayMs) / write.ms));
+  return { shown, progress };
 }
 
 function PlayIcon({ size, color }: { size: number; color: string }) {
@@ -2434,32 +2883,31 @@ function PlayIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
-function ScreenshotIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M3 4h18v16H3z"
-        stroke={colors.slate}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={9} cy={10} r={1.6} stroke={colors.slate} strokeWidth={1.8} />
-      <Path
-        d="m21 16-4.5-4.5L7 21"
-        stroke={colors.slate}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+/** A check-in with no tap carries on as "ok" after this long. */
+const CHECKIN_AUTO_OK_MS = 10000;
+/** How long a student who scrolled away is left reading before the board
+ *  returns to the live edge by itself. */
+const RESUME_FOLLOW_MS = 5000;
+/** Where the newest line lands after the board turns a page, as a share of
+ *  the board's height (it then fills down to PAGE_FILL before moving again). */
+const READ_LINE = 0.45;
+/**
+ * The blank paper under the writing: enough that the newest line can sit on
+ * the reading line, and that a new heading can be lifted to the top of the
+ * board however little has been written under it yet.
+ */
+function boardBottomRoom(boardHeight: number, boardTop: number) {
+  return Math.max(Math.round(boardHeight * (1 - READ_LINE)), boardHeight - boardTop);
 }
 
 function createStyles(
   scale: (size: number) => number,
   verticalScale: (size: number) => number,
-  isLandscape: boolean
+  isLandscape: boolean,
+  headerTop: number,
+  boardTop: number,
+  navBottom: number,
+  navRight: number
 ) {
   /**
    * The board's gutters, which differ by orientation because the chrome does.
@@ -2477,7 +2925,7 @@ function createStyles(
    */
   const boardPad = isLandscape
     ? { top: BOARD_TOP, right: BOARD_RIGHT_GUTTER, bottom: BOARD_TOP, left: BOARD_LEFT }
-    : { top: 130, right: 28, bottom: 146, left: 28 };
+    : { top: boardTop, right: 28, bottom: 146, left: 28 };
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -2582,7 +3030,7 @@ function createStyles(
     // Header — left 56 so it starts on the same gutter as the writing.
     topBar: {
       position: 'absolute',
-      top: isLandscape ? 14 : 58,
+      top: headerTop,
       left: isLandscape ? BOARD_LEFT : 22,
       right: isLandscape ? 26 : 18,
       flexDirection: 'row',
@@ -2655,7 +3103,9 @@ function createStyles(
       alignSelf: 'center',
       // Above the dock in portrait, not on it. At 14 this sat squarely over
       // the dock's "Hold to interrupt" line.
-      bottom: isLandscape ? 14 : verticalScale(DOCK_TOP + 14),
+      // Plus Android's navigation bar, which the dock now sits above: without
+      // it the chip landed on the dock it is meant to clear.
+      bottom: isLandscape ? 14 : verticalScale(DOCK_TOP + 14) + navBottom,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
@@ -2663,11 +3113,7 @@ function createStyles(
       borderRadius: 99,
       paddingVertical: 8,
       paddingHorizontal: 16,
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 7 },
-      shadowOpacity: 0.35,
-      shadowRadius: 8,
-      elevation: 6,
+      ...shadow({ color: INK, opacity: 0.35, radius: 8, y: 7, elevation: 6 }),
     },
     liveChipArrow: {
       fontFamily: 'Onest_700Bold',
@@ -2691,7 +3137,7 @@ function createStyles(
      */
     rail: {
       position: 'absolute',
-      right: 12,
+      right: 12 + navRight,
       top: '50%',
     },
     /** Wraps ring and plate together and sizes itself to the plate, so the
@@ -2722,17 +3168,38 @@ function createStyles(
         { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
       ],
     },
-    /** 48 here against portrait's 52: the prototype sizes them differently
-     *  because an upright rail has less room to give. */
+    /** The rail's Ask: the orb with "Ask" under it, straight on the dock. */
     railMic: {
-      width: 48,
-      height: 48,
+      width: RAIL_MIC,
+      paddingTop: 4,
+      paddingBottom: 5,
+      gap: 3,
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    /** Hairlines between the rail's three controls (B). */
+    railDivider: {
+      width: 24,
+      height: 1,
+      backgroundColor: DOCK_DIVIDER,
+    },
+    railAskWord: {
+      includeFontPadding: false,
+      fontFamily: 'Onest_700Bold',
+      fontSize: 11,
+      lineHeight: 12,
+      color: INK,
+    },
+    /** The Ask bar's disc: the orb, a hairline and a warm drop. */
+    askDisc: {
+      width: ASK_ORB,
+      height: ASK_ORB,
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: INK,
       boxShadow: [
-        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
+        { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(176,132,32,.22)', inset: true },
+        { offsetX: 0, offsetY: 4, blurRadius: 10, spreadDistance: -4, color: 'rgba(176,132,32,.45)' },
       ],
     },
     railCtrl: {
@@ -2741,6 +3208,7 @@ function createStyles(
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
+      zIndex: 1,
     },
 
     /** A control that would refuse the tap, saying so. Same 0.4 the passed-over
@@ -2767,7 +3235,9 @@ function createStyles(
       left: 0,
       right: 0,
       top: 0,
-      height: isLandscape ? 52 : 124,
+      // To just under the header, then a short fade: the writing passes
+      // beneath the header rather than colliding with it.
+      height: isLandscape ? 52 : headerTop + 30 + 24,
     },
 
     /* --- portrait dock: the rail's controls, laid along the bottom --- */
@@ -2778,7 +3248,7 @@ function createStyles(
       // Lower than it was (30), and the gap under the plate is tighter, so the
       // group sits down near the edge the way the reference draws it. It stops
       // short of the home indicator, which lives in the bottom ~13pt.
-      bottom: verticalScale(20),
+      bottom: verticalScale(20) + navBottom,
       alignItems: 'center',
       gap: verticalScale(6),
     },
@@ -2815,40 +3285,44 @@ function createStyles(
       borderRadius: 99,
       alignItems: 'center',
       justifyContent: 'center',
+      zIndex: 1,
     },
-    /** 52 — the largest target on the dock and the only filled one, which is
-     *  the whole of how the handoff says "this is the one". */
-    dockMic: {
-      width: 52,
-      height: 52,
-      borderRadius: 99,
+    /** The largest target on the dock: the orb and the words beside it,
+     *  straight on the dock (B). The words' width is fixed to the widest of
+     *  them so the dock never breathes as they change. */
+    dockAsk: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: INK,
-      boxShadow: [
-        { offsetX: 0, offsetY: 12, blurRadius: 26, spreadDistance: -14, color: 'rgba(28,26,22,0.7)' },
-      ],
+      gap: 10,
+      height: DOCK_ASK_H,
+      paddingLeft: 2,
+      paddingRight: 6,
+      zIndex: 1,
     },
-    /** Held. GREEN_INK is already #157A45, the prototype's own green; the mic
-     *  glyph gives way to level bars at the same moment. */
-    micOn: {
-      backgroundColor: GREEN_INK,
+    /** Hairlines that set Ask apart from Pause and Rotate (B). */
+    dockDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: DOCK_DIVIDER,
     },
-    /** Off, not missing: same plate in the same place, drained of the shadow
-     *  that makes it read as a live control. The prototype has no state for
-     *  this — it never considers a phone whose mic cannot be opened — so this
-     *  one is the app's own, kept from the dock it replaces. */
+    dockAskLabel: {
+      includeFontPadding: false,
+      fontFamily: 'Onest_700Bold',
+      fontSize: 14,
+      letterSpacing: -0.14,
+      color: INK,
+      minWidth: 82,
+    },
+    /** Off, not missing: the same disc in the same place, stepped back. */
     micOff: {
-      backgroundColor: INK_MUTED,
-      opacity: 0.55,
-      boxShadow: [],
+      opacity: 0.5,
     },
     dockHint: {
       fontFamily: 'Onest_700Bold',
       fontSize: 10.5,
       letterSpacing: 0.08 * 10.5,
       textTransform: 'uppercase',
-      color: INK_FAINT,
+      color: DOCK_HINT_INK,
     },
     /** Off, not missing: same plate, drained of the shadow that makes it read
      *  as a live control. */
@@ -2869,7 +3343,7 @@ function createStyles(
     micDeniedCard: {
       position: 'absolute',
       left: '50%',
-      bottom: verticalScale(20),
+      bottom: verticalScale(20) + navBottom,
       transform: [{ translateX: -scale(150) }],
       width: scale(300),
       backgroundColor: '#fff',
@@ -2878,11 +3352,7 @@ function createStyles(
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.25,
-      shadowRadius: scale(10),
-      elevation: 6,
+      ...shadow({ color: colors.ink, opacity: 0.25, radius: scale(10), y: verticalScale(6), elevation: 6 }),
     },
     micDeniedTitle: {
       fontFamily: 'Onest_700Bold',
@@ -2954,11 +3424,7 @@ function createStyles(
       paddingBottom: verticalScale(12),
       paddingHorizontal: scale(15),
       gap: verticalScale(11),
-      shadowColor: INK,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.16,
-      shadowRadius: 14,
-      elevation: 6,
+      ...shadow({ color: INK, opacity: 0.16, radius: 14, y: 8, elevation: 6 }),
     },
     // 500, not bold: it is a question to read, and the answers under it are
     // what the eye should land on.
@@ -3022,10 +3488,17 @@ function createStyles(
       fontSize: scale(13),
       color: colors.ink,
     },
+    stateBlock: { flex: 1, justifyContent: 'center', paddingHorizontal: scale(24) },
+    connectionBanner: {
+      position: 'absolute',
+      left: scale(20),
+      right: scale(20),
+      zIndex: 20,
+    },
     toast: {
       position: 'absolute',
       left: '50%',
-      bottom: verticalScale(70),
+      bottom: verticalScale(70) + navBottom,
       transform: [{ translateX: -scale(150) }],
       flexDirection: 'row',
       backgroundColor: '#221D16',
@@ -3042,191 +3515,6 @@ function createStyles(
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12.5),
       color: '#EFEBDD',
-    },
-    rscrim: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(22,19,14,.35)',
-    },
-    rdrawer: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: scale(400),
-      backgroundColor: colors.paper,
-      borderLeftWidth: 1,
-      borderLeftColor: colors.hairline,
-      flexDirection: 'column',
-      gap: verticalScale(9),
-      padding: scale(16),
-      paddingTop: verticalScale(14),
-    },
-    rdrawerHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    rdrawerIconChip: {
-      width: scale(30),
-      height: scale(30),
-      flexShrink: 0,
-      borderRadius: scale(10),
-      backgroundColor: 'rgba(221,68,51,.07)',
-      borderWidth: 1,
-      borderColor: 'rgba(221,68,51,.25)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    rdrawerTitle: {
-      flex: 1,
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(15.5),
-      color: colors.ink,
-    },
-    rdrawerClose: {
-      width: scale(28),
-      height: scale(28),
-      borderRadius: scale(14),
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    rdrawerCloseText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    rquoteCard: {
-      position: 'relative',
-      backgroundColor: colors.welcomePaper,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(9),
-      paddingRight: scale(12),
-      paddingLeft: scale(28),
-    },
-    rquoteRule: {
-      position: 'absolute',
-      top: verticalScale(8),
-      bottom: verticalScale(8),
-      left: scale(18),
-      width: scale(1.4),
-      backgroundColor: 'rgba(221,68,51,.4)',
-    },
-    rquoteLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.1),
-      letterSpacing: scale(0.68),
-      textTransform: 'uppercase',
-      color: '#C53A2B',
-    },
-    rquoteText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(11.5),
-      lineHeight: scale(16.7),
-      color: colors.ink,
-      marginTop: verticalScale(3),
-    },
-    rwhatsWrong: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(8.55),
-      letterSpacing: scale(1.0),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    rchipsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: scale(6),
-    },
-    rchip: {
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      backgroundColor: '#fff',
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(8),
-      paddingHorizontal: scale(13),
-    },
-    rchipSelected: {
-      backgroundColor: colors.ink,
-      borderColor: colors.ink,
-    },
-    rchipText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11.5),
-      color: colors.slate,
-    },
-    rchipTextSelected: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.paper,
-    },
-    rextraRow: {
-      flexDirection: 'row',
-      gap: scale(8),
-    },
-    rscreenshotBox: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: scale(8),
-      flexDirection: 'row',
-      borderWidth: scale(1.6),
-      borderColor: 'rgba(28,26,22,.22)',
-      borderStyle: 'dashed',
-      borderRadius: scale(12),
-      backgroundColor: '#fff',
-      paddingVertical: verticalScale(10),
-    },
-    rscreenshotText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    rscreenshotOptional: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(10.5),
-      color: colors.faint,
-    },
-    rnotesInput: {
-      flex: 1.4,
-      backgroundColor: '#fff',
-      borderWidth: scale(1.4),
-      borderColor: colors.hairline,
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(10),
-      paddingHorizontal: scale(12),
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(12),
-      color: colors.ink,
-    },
-    rfooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      marginTop: 'auto',
-    },
-    rfooterHint: {
-      flex: 1,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(10.5),
-      lineHeight: scale(14.7),
-      color: colors.faint,
-    },
-    rsendButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: verticalScale(42),
-      paddingHorizontal: scale(22),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-    },
-    rsendButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.paper,
     },
   });
 }

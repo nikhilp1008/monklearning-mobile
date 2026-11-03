@@ -142,6 +142,28 @@ export function secondBranch(s: ConicShape, samples = 180):
     .map(([x, y]) => [s.cx - (x), s.cy + y] as [number, number]);
 }
 
+
+/**
+ * The latus rectum chord(s), as two endpoints each, in maths coordinates: the
+ * chord through a focus perpendicular to the axis, 2b²/a long (4a for a
+ * parabola). Ellipse and hyperbola have one through each focus, a parabola one.
+ * Placed with the conic's own rotation, like conicPath.
+ */
+export function latusRectumChords(s: ConicShape): Array<[[number, number], [number, number]]> {
+  const rot = (s.rotateDeg * Math.PI) / 180;
+  const place = (x: number, y: number): [number, number] => {
+    const cos = Math.cos(rot), sin = Math.sin(rot);
+    return [s.cx + x * cos - y * sin, s.cy + x * sin + y * cos];
+  };
+  const c = focalDistance(s);
+  if (s.kind === 'circle') return [];
+  if (s.kind === 'parabola') {
+    return [[place(s.a, -2 * s.a), place(s.a, 2 * s.a)]];       // y² = 4ax: x = a, y = ±2a
+  }
+  const h = s.a === 0 ? 0 : (s.b * s.b) / s.a;                  // half the latus rectum
+  return [1, -1].map((m) => [place(m * c, -h), place(m * c, h)] as [[number, number], [number, number]]);
+}
+
 /** A view box that contains the conic with margin, when none was given. */
 export function autoView(s: ConicShape): { xMin: number; xMax: number;
                                            yMin: number; yMax: number } {

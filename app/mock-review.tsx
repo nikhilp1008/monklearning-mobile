@@ -1,0 +1,536 @@
+import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
+
+import { PageSkeleton, StateCard, StateLine } from '@/components/states';
+import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
+import { MathLine } from '@/components/math-line';
+import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { MockSection } from '@/components/mock/mock-kit';
+import { QuestionDiagram } from '@/components/question-diagram';
+import { QuestionStem } from '@/components/question-stem';
+import { SolutionCards } from '@/components/solution-cards';
+import { colors } from '@/constants/brand';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { pageTitle } from '@/constants/page-title';
+import { QUESTION_READ_LINE, QUESTION_READ_SIZE, READ_LINE, READ_SIZE } from '@/constants/reading';
+import { useScale } from '@/constants/scale';
+import { footPadding } from '@/lib/foot-padding';
+import { shadow } from '@/lib/shadow';
+import { fetchReport, getMockSession } from '@/lib/mock';
+import { buildReport, formatSpan, loadReport, type MockReport } from '@/lib/mock-report';
+import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
+import { openReportSheet } from '@/lib/reports';
+
+/**
+ * ONE QUESTION OF A FINISHED PAPER, opened from the report's grid.
+ *
+ * The report used to list every question as a card with the stem and "You
+ * put B · …" under it, but never the options themselves, so a student could
+ * not see what they had chosen between. This page is the question as it was
+ * sat, laid out like Practice after an answer: the stem, every option, the
+ * one you picked edged in red if it was wrong, the right one in green, then
+ * the working. Arrows move through the paper; "All questions" goes back to
+ * the grid.
+ */
+const SUBJECT_LABEL: Record<string, string> = {
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  mathematics: 'Maths',
+  biology: 'Biology',
+};
+
+export default function MockReviewScreen() {
+  const { scale, verticalScale } = useScale();
+  /** The docked row clears the home indicator itself, as Practice's does. */
+  const insets = useSafeAreaInsets();
+  const dockBottom = footPadding(insets.bottom, 16, 12);
+  /** The row's own height (top padding, the 52pt bar, its hint, the bottom
+   *  padding): the white is solid over this; the working fades above it. */
+  const dockRow = verticalScale(14) + 52 + 9 + 14 + dockBottom;
+  const dockFade = verticalScale(40);
+  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  const { run, i } = useLocalSearchParams<{ run?: string; i?: string }>();
+  const [report, setReport] = useState<MockReport | null>(null);
+  /** The paper could not be found on this phone or the server. */
+  const [missing, setMissing] = useState(false);
+  const [index, setIndex] = useState(Math.max(0, Number(i ?? 0) || 0));
+
+  useEffect(() => {
+    let cancelled = false;
+    // The paper just submitted is still in memory; anything older is on the
+    // phone, or rebuilt by the server, as the report itself finds it.
+    const session = getMockSession();
+    if (session?.result && session.result.mock_run_id === run) {
+      setReport(buildReport(session, session.result));
+      return;
+    }
+    if (!run) {
+      setMissing(true);
+      return;
+    }
+    // A copy saved on this phone before figures were kept has no `diagram`
+    // on any question (the server's copy says null where there is none), so
+    // it is read again from the server once; offline, the old copy opens.
+    loadReport(run)
+      .then(async (saved) => {
+        const stale =
+          !!saved && saved.questions.length > 0 && saved.questions.every((x) => x.diagram === undefined);
+        if (saved && !stale) return saved;
+        return (await fetchReport(run).catch(() => null)) ?? saved;
+      })
+      .then((r) => {
+        if (cancelled) return;
+        setReport(r);
+        setMissing(!r);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [run]);
+
+  const q = report?.questions[index];
+  const steps = useMemo(
+    () => (q ? parseAnswerSolution(q.solution as AnswerResult['solution']) : []),
+    [q]
+  );
+
+  // Never a blank page: while it loads, or if the paper cannot be found,
+  // the way back is still there.
+  if (!report || !q) {
+    return (
+      <View style={styles.screen}>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <View style={styles.topRow}>
+            <Pressable
+              style={styles.round}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}>
+              <BackIcon size={scale(16)} />
+            </Pressable>
+          </View>
+          {missing || (report && !q) ? (
+            <View style={styles.loading}>
+              <StateCard
+                glyph="retry"
+                title="This question didn't open"
+                line="Check your connection and open it again. Your paper and its report are saved."
+                action={{ label: 'Go back', onPress: () => router.back() }}
+              />
+            </View>
+          ) : (
+            <View style={styles.loading}>
+              <PageSkeleton />
+            </View>
+          )}
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  const total = report.questions.length;
+  const verdict = !q.answered ? 'skipped' : q.is_correct ? 'right' : 'wrong';
+  const options = q.options ? Object.entries(q.options).sort(([a], [b]) => a.localeCompare(b)) : [];
+  const figures = Array.isArray(q.diagram) ? q.diagram.filter((f) => !!f?.url) : [];
+  const go = (to: number) => setIndex(Math.max(0, Math.min(total - 1, to)));
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.topRow}>
+          <Pressable
+            style={styles.round}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="All questions"
+            onPress={() => router.back()}
+          >
+            <BackIcon size={scale(16)} />
+          </Pressable>
+          {/* One line: the question and where it sits in the paper. The
+              subject and chapter are said once, above the question. */}
+          <Text style={styles.title} numberOfLines={1}>
+            Question {q.num}
+            <Text style={styles.titleOf}> of {total}</Text>
+          </Text>
+          {/* A wrong key or a broken question, reported by the question with
+              the paper and what was put attached, as the report did. */}
+          <Pressable
+            style={styles.round}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`Report a mistake in question ${q.num}`}
+            onPress={() =>
+              openReportSheet({
+                surface: 'mock',
+                questionId: q.id,
+                chapter: q.chapter_name ?? null,
+                subject: q.subject,
+                context: {
+                  run_id: report.run_id,
+                  num: q.num,
+                  picked: q.chosen_option ?? q.chosen_value,
+                  answered: q.answered,
+                  marked_correct: q.is_correct,
+                },
+              })
+            }
+          >
+            <FlagIcon size={scale(15)} />
+          </Pressable>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.body} key={q.id}>
+          {/* Practice's question head, with how it went. */}
+          <View style={styles.metaRow}>
+            <Text style={styles.meta} numberOfLines={1}>
+              {[SUBJECT_LABEL[q.subject] ?? q.subject, q.chapter_name].filter(Boolean).join(' · ')}
+            </Text>
+            {q.elapsed_ms > 0 && <Text style={styles.time}>{formatSpan(q.elapsed_ms)}</Text>}
+            <Text
+              style={[
+                styles.verdict,
+                verdict === 'right' && styles.right,
+                verdict === 'wrong' && styles.wrong,
+              ]}
+            >
+              {verdict === 'right' ? 'Right' : verdict === 'wrong' ? 'Wrong' : 'Skipped'}
+            </Text>
+          </View>
+          <QuestionStem
+            text={q.stem}
+            fontSize={QUESTION_READ_SIZE}
+            lineHeight={QUESTION_READ_LINE}
+            style={styles.stem}
+          />
+          {/* The figure, as the paper showed it under the stem: a circuit or
+              a graph question reviewed without it cannot be understood. The
+              server sends `diagram` as whatever JSON the row holds, so only
+              a list is drawn. */}
+          {figures.map((figure, n) => (
+            <QuestionDiagram
+              key={figure.r2_key ?? figure.url}
+              figure={figure}
+              index={n}
+              total={figures.length}
+            />
+          ))}
+          <View style={styles.divider} />
+
+          {q.type === 'numerical' ? (
+            <View style={styles.numeric}>
+              <View style={styles.numericRow}>
+                <Text style={styles.numericLabel}>You put</Text>
+                <Text
+                  style={[
+                    styles.numericValue,
+                    !q.answered ? styles.nothing : q.is_correct ? styles.right : styles.wrong,
+                  ]}
+                >
+                  {q.chosen_value != null ? String(q.chosen_value) : 'nothing'}
+                </Text>
+              </View>
+              {!q.is_correct && (
+                <View style={styles.numericRow}>
+                  <Text style={styles.numericLabel}>Right answer</Text>
+                  <Text style={[styles.numericValue, styles.right]}>
+                    {q.correct_value != null ? String(q.correct_value) : 'not given'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.options}>
+              {options.map(([key, text]) => {
+                // Letters compared as the server grades them, case aside
+                // (Practice does the same): a key stored as "A" against an
+                // option "a" left the right answer unmarked.
+                const isCorrect = sameOption(q.correct_option, key);
+                const isYourWrong = sameOption(q.chosen_option, key) && !q.is_correct;
+                return (
+                  <View
+                    key={key}
+                    style={[
+                      styles.option,
+                      isCorrect && styles.optionCorrect,
+                      isYourWrong && styles.optionWrong,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.badge,
+                        isCorrect && styles.badgeCorrect,
+                        isYourWrong && styles.badgeWrong,
+                      ]}
+                    >
+                      <Text
+                        style={[styles.badgeText, (isCorrect || isYourWrong) && styles.badgeTextOn]}
+                      >
+                        {key.toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.optionText}>
+                      <MathLine
+                        text={String(text)}
+                        fontSize={READ_SIZE}
+                        color={colors.ink}
+                        style={{
+                          fontFamily: 'Onest_400Regular',
+                          fontSize: READ_SIZE,
+                          lineHeight: READ_LINE,
+                          color: colors.ink,
+                        }}
+                      />
+                    </View>
+                    {isYourWrong && <Text style={styles.tagWrong}>YOUR PICK</Text>}
+                    {isCorrect && (
+                      <Text style={styles.tagCorrect}>
+                        {sameOption(q.chosen_option, key) ? 'YOUR PICK' : 'CORRECT'}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+              {!q.answered && <Text style={styles.skippedNote}>You left this one.</Text>}
+            </View>
+          )}
+
+          <MockSection title="How to solve it" />
+          {steps.length > 0 ? (
+            <SolutionCards steps={steps} />
+          ) : (
+            // Said, as Practice says it: the section used to vanish, which
+            // read as the page not having loaded.
+            <StateLine glyph="paper" text="No worked solution is available for this question yet." />
+          )}
+        </ScrollView>
+
+        {/*
+          ASK FOLLOW-UP, about the question on screen — the same docked bar as
+          Practice, with Previous and Next either side of it. Mock questions
+          are the practice pool's own rows, so the bar asks Practice's route
+          (surface "practice", by the question's id) and the teacher answers
+          from that question and its worked solution. A new question is a new
+          conversation: the bar resets when its id changes.
+        */}
+        <View style={styles.dock} pointerEvents="box-none">
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', '#fff', '#fff']}
+            locations={[0, dockFade / (dockFade + dockRow), 1]}
+            style={[styles.dockFade, { height: dockFade + dockRow }]}
+            pointerEvents="none"
+          />
+          <View style={[styles.dockInner, { paddingBottom: dockBottom }]}>
+            <AskFollowUpBar
+              doubtId={q.id}
+              surface="practice"
+              gutter={scale(20)}
+              trailing={
+                // Practice's own Next, on the right under the thumb, with
+                // Previous beside it: a review needs a way back that Practice,
+                // always on a fresh question, does not.
+                <View style={styles.navPair}>
+                  <Pressable
+                    style={({ pressed }) => [styles.prevButton, (pressed || index === 0) && styles.prevDim]}
+                    disabled={index === 0}
+                    accessibilityRole="button"
+                    accessibilityLabel="Previous question"
+                    accessibilityState={{ disabled: index === 0 }}
+                    onPress={() => go(index - 1)}
+                  >
+                    <BackIcon size={scale(16)} />
+                  </Pressable>
+                  <Pressable
+                    style={styles.nextButton}
+                    accessibilityRole="button"
+                    onPress={() => (index === total - 1 ? router.back() : go(index + 1))}
+                  >
+                    <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.nextButtonText}>
+                      {index === total - 1 ? 'All questions' : 'Next'}
+                    </Text>
+                    {index === total - 1 ? null : <ArrowRightIcon size={scale(14)} color={colors.paper} />}
+                  </Pressable>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+function sameOption(a: string | null | undefined, key: string): boolean {
+  return !!a && a.trim().toLowerCase() === key.trim().toLowerCase();
+}
+
+function BackIcon({ size }: { size: number }) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+      <Path
+        d="M15 5l-7 7 7 7"
+        stroke={colors.ink}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: '#fff' },
+    loading: { marginTop: verticalScale(40) },
+    missing: {
+      paddingHorizontal: scale(20),
+      paddingTop: verticalScale(24),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(22),
+      color: colors.slate,
+    },
+    safe: { flex: 1 },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(13),
+      paddingTop: verticalScale(10),
+      paddingHorizontal: scale(20),
+    },
+    round: {
+      width: scale(36),
+      height: scale(36),
+      borderRadius: scale(18),
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.12)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
+    titleOf: { fontFamily: 'Onest_500Medium', fontSize: scale(16), color: colors.faint },
+    body: {
+      paddingHorizontal: scale(20),
+      paddingTop: verticalScale(22),
+      // Room for the docked Ask follow-up row, so the last line of the
+      // working can be scrolled clear of it.
+      paddingBottom: verticalScale(150),
+    },
+    dock: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    // Centred on the 52pt follow-up pill, as Practice centres its Next.
+    navPair: { flexDirection: 'row', alignItems: 'center', gap: scale(8), marginTop: Math.max(0, (52 - verticalScale(48)) / 2) },
+    /** Previous: a round outline the height of Next, so the pair reads as one control. */
+    prevButton: {
+      width: verticalScale(48),
+      height: verticalScale(48),
+      borderRadius: 99,
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.16)',
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    prevDim: { opacity: 0.4 },
+    /** Practice's Next, as it is there (app/practice.tsx). */
+    nextButton: {
+      flexDirection: 'row',
+      gap: scale(8),
+      height: verticalScale(48),
+      paddingHorizontal: scale(22),
+      borderRadius: scale(99),
+      backgroundColor: colors.ink,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...shadow({ color: colors.ink, opacity: 0.28, radius: scale(10), y: verticalScale(6), elevation: 4 }),
+    },
+    nextButtonText: { includeFontPadding: false, fontFamily: 'Onest_700Bold', fontSize: scale(14), color: colors.paper },
+    dockInner: { paddingHorizontal: scale(20), paddingTop: verticalScale(14) },
+    dockFade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: scale(10) },
+    meta: { flex: 1, fontFamily: 'Onest_400Regular', fontSize: scale(14), color: '#8A857A' },
+    time: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      color: colors.faint,
+      fontVariant: ['tabular-nums'],
+    },
+    verdict: { fontFamily: 'Onest_600SemiBold', fontSize: scale(13), color: colors.faint },
+    right: { color: '#157A45' },
+    wrong: { color: '#C53A2B' },
+    nothing: { color: colors.faint },
+    stem: { marginTop: verticalScale(8) },
+    divider: { height: 1, backgroundColor: 'rgba(28,25,20,.1)', marginTop: verticalScale(18) },
+    /** Practice's option rows after an answer (app/practice.tsx). */
+    options: { gap: verticalScale(10), marginTop: verticalScale(18) },
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+      paddingVertical: verticalScale(12),
+      paddingHorizontal: scale(16),
+      borderRadius: scale(14),
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,25,20,.12)',
+      backgroundColor: '#fff',
+    },
+    optionWrong: {
+      borderWidth: scale(1.6),
+      borderColor: 'rgba(221,68,51,.5)',
+      backgroundColor: 'rgba(221,68,51,.05)',
+    },
+    optionCorrect: {
+      borderWidth: scale(1.6),
+      borderColor: '#1C9B57',
+      backgroundColor: 'rgba(28,155,87,.07)',
+    },
+    badge: {
+      width: scale(28),
+      height: scale(28),
+      flexShrink: 0,
+      borderRadius: scale(9),
+      borderWidth: scale(1.4),
+      borderColor: 'rgba(28,26,22,.16)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badgeWrong: { borderWidth: 0, backgroundColor: colors.red },
+    badgeCorrect: { borderWidth: 0, backgroundColor: '#1C9B57' },
+    badgeText: { fontFamily: 'Onest_700Bold', fontSize: scale(12), color: colors.ink },
+    badgeTextOn: { color: '#fff' },
+    optionText: { flex: 1 },
+    tagWrong: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.54),
+      color: '#C53A2B',
+    },
+    tagCorrect: {
+      fontFamily: 'Onest_800ExtraBold',
+      fontSize: scale(8.1),
+      letterSpacing: scale(0.54),
+      color: '#157A45',
+    },
+    skippedNote: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      color: colors.slate,
+      marginTop: verticalScale(2),
+    },
+    numeric: { marginTop: verticalScale(18), gap: verticalScale(8) },
+    numericRow: { flexDirection: 'row', alignItems: 'baseline', gap: scale(12) },
+    numericLabel: {
+      width: scale(100),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      color: colors.slate,
+    },
+    numericValue: { flex: 1, fontFamily: 'Onest_600SemiBold', fontSize: scale(15) },
+  });
+}

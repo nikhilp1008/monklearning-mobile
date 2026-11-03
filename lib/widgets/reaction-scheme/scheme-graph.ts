@@ -306,6 +306,12 @@ export function parseFormula(raw: string): Record<string, number> | null {
 
   if (stack.length !== 1) return null;             // unclosed bracket
   const out = stack[0];
+  // "Ar" is argon in the table and ARYL on every Class 12 chemistry board
+  // (ArF, ArCl, ArN₂⁺ ...). No argon compound is in the syllabus, so a label
+  // that holds Ar together with any other element is the aryl group, not a
+  // formula: it has no molar mass. (A lone "Ar", the gas, still has one.)
+  // Found reviewing the stored widgets, 2026-10-23: "ArF" printed M 58.95.
+  if (out.Ar !== undefined && Object.keys(out).length > 1) return null;
   return Object.keys(out).length > 0 ? out : null;
 }
 

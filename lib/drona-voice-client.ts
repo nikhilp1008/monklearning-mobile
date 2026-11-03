@@ -1,3 +1,5 @@
+import { PASS_REQUIRED_CLOSE, signalPassRequired } from '@/lib/pass-events';
+import { paceSteps, toSteps } from '@/lib/board-steps';
 import { Platform } from 'react-native';
 
 import { REGISTRY_MANIFEST } from '@/lib/widgets/registry';
@@ -18,6 +20,9 @@ import { base64ToBytes } from '@/lib/audio-pcm';
  * anchoring mechanism for a symptom the reveal path was not causing.
  */
 const REVEAL_PROBE = __DEV__ && process.env.EXPO_PUBLIC_REVEAL_PROBE === '1';
+/** A teacher's speaking pace, ~160 words a minute: the floor for how long a
+ *  sentence runs when not all of its audio has arrived (`sentenceMs`). */
+const MS_PER_SPOKEN_WORD = 375;
 const probe = (line: string) => {
   if (REVEAL_PROBE) console.log(`[reveal-probe] ${line}`);
 };
@@ -107,6 +112,70 @@ export interface BoardEvent {
    * lib/__tests__/drona-voice-client-board.test.ts for each of those paths.
    */
   key?: string;
+  /**
+   * How to write this line, stamped HERE when its sentence starts playing,
+   * never sent by the server. `delayMs` after the reveal it starts; text is
+   * then written word by word over `ms`. A sentence's lines share its length
+   * between them (see `paceLines`). Absent on anything with no measured clip:
+   * replayed history, an end-of-turn flush, a silent chunk. Those are shown
+   * whole, as before.
+   */
+  write?: { delayMs: number; ms: number };
+  /** One row of a formula chain written step by step (board-steps.ts). */
+  step?: 'first' | 'cont';
+}
+
+/**
+ * HOW A SENTENCE'S LINES ARE WRITTEN ACROSS IT.
+ *
+ * One clip can carry several lines; showing them all the instant the sentence
+ * starts is what made the board feel like blocks being dropped. Each line gets
+ * a slice of the sentence in proportion to its words, in order; a formula or a
+ * figure takes a slice the size of a short phrase and lands whole at its start,
+ * the way a teacher writes an equation in one go. The writing finishes a little
+ * before the voice does, so a line is never still being written after the
+ * sentence has moved on.
+ *
+ * And never slower than a hand writes: a short line alone on a long sentence
+ * would otherwise crawl across all of it (a six-word heading took ten
+ * seconds). A heading is put up quickly, as a title is; prose at about the
+ * pace it is spoken.
+ */
+/**
+ * The slowest a line is ever written, per word. Faster than speech
+ * (MS_PER_SPOKEN_WORD = 375): at 420 the writing trailed the voice, and the
+ * student heard a sentence before its line was on the board.
+ */
+const LINE_MS_PER_WORD = 250;
+/**
+ * The share of a sentence its lines are written in. The board leads: a
+ * sentence's lines are up in its first half, so the student sees what is
+ * being said rather than hearing it and then watching it appear. (It was 0.9,
+ * spreading the writing across the whole sentence.)
+ */
+const WRITE_SHARE = 0.5;
+const HEADING_MS_PER_WORD = 220;
+
+export function paceLines(
+  events: Pick<BoardEvent, 'type' | 'text' | 'payload' | 'svg' | 'illustration_slug'>[],
+  durationMs: number | null | undefined
+): ({ delayMs: number; ms: number } | undefined)[] {
+  if (!durationMs || durationMs < 400 || events.length === 0) return events.map(() => undefined);
+  const weights = events.map((e) => {
+    const figure = Boolean(e.payload || e.svg || e.illustration_slug) || e.type === 'diagram' || e.type === 'formula';
+    if (figure) return { w: 4, writes: false, cap: 0 };
+    const words = (e.text ?? '').split(/\s+/).filter(Boolean).length;
+    const perWord = e.type === 'heading' ? HEADING_MS_PER_WORD : LINE_MS_PER_WORD;
+    return { w: Math.max(1, words), writes: words > 0, cap: words * perWord };
+  });
+  const total = weights.reduce((a, b) => a + b.w, 0);
+  const usable = durationMs * WRITE_SHARE;
+  let before = 0;
+  return weights.map(({ w, writes, cap }) => {
+    const delayMs = Math.round((usable * before) / total);
+    before += w;
+    return { delayMs, ms: writes ? Math.round(Math.min((usable * w) / total, cap)) : 0 };
+  });
 }
 
 /**
@@ -210,12 +279,23 @@ export interface DronaMeta {
 
 export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed';
 
+export type CheckinChoice = 'ok' | 'doubt' | 'repeat';
+/**
+ * Speaking time, since the student last tapped, answered or spoke, after which
+ * Drona checks in. A teacher talks for a while and then checks; an explanation
+ * that runs on for minutes loses a student without anyone noticing.
+ */
+export const CHECKIN_AFTER_SPEECH_MS = 40_000;
+
 export interface DronaVoiceHandlers {
   onConnectionChange?: (status: ConnectionStatus) => void;
   onState?: (state: DronaState) => void;
   /** Board items revealed one at a time, synced to when their paired sentence
    *  starts playing. At most once per `key` — append with `appendBoardEvent`. */
   onBoardReveal?: (event: BoardEvent) => void;
+  /** The teacher's voice started (a clip began playing) or stopped (the queue
+   *  ran dry, or was cut for a barge-in). Drives the dock's "is explaining". */
+  onSpeakingChange?: (speaking: boolean) => void;
   /** The whole turn's board, at buffer time — ahead of any audio. For warming
    *  caches only; nothing here is shown until its own reveal. */
   onBoardBuffered?: (events: BoardEvent[]) => void;
@@ -240,6 +320,18 @@ export interface DronaVoiceHandlers {
   onTurnError?: (message: string) => void;
   onSttTooShort?: (message: string) => void;
   onAnswerResult?: (result: DronaAnswerResult) => void;
+  /**
+   * Time for the understanding check-in: Drona has talked for
+   * CHECKIN_AFTER_SPEECH_MS since the student last did anything, and has been
+   * paused at the end of a sentence. The screen shows the card and answers with
+   * `answerCheckin`. Without this handler the client never pauses to ask.
+   */
+  onCheckin?: () => void;
+  /** The check-in ended without a tap: the student spoke (raised a hand). */
+  onCheckinClosed?: () => void;
+  /** The student spoke (or tapped an answer) during a pause: the class is
+   *  running again, so the screen's pause button goes back to "pause". */
+  onPauseEnded?: () => void;
   /** Server signalled the lesson itself is finished (not a disconnect). */
   onSessionEnded?: () => void;
   onError?: (message: string) => void;
@@ -249,10 +341,11 @@ const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 8000, 8000];
 /**
  * Close codes the server uses to mean "do not come back", so the client does
  * not. 4004 is a session that does not exist, 4401 a missing/expired/invalid
- * token, 4403 a session belonging to someone else — see
+ * token, 4403 a session belonging to someone else, 4402 a student whose pass
+ * has ended (the paywall) — see
  * app/drona/live_session_ws.py, which sends each one and then closes.
  */
-const PERMANENT_CLOSE_CODES = new Set([4004, 4401, 4403]);
+const PERMANENT_CLOSE_CODES = new Set([4004, 4401, 4403, PASS_REQUIRED_CLOSE]);
 /**
  * How long a socket must stay open before it counts as having worked.
  *
@@ -401,6 +494,7 @@ export class DronaVoiceClient {
       // the checkpoint over the top of it. See DRAIN_WATCHDOG_MS.
       if (this.awaitingDrain) this.armDrainWatchdog();
       const meta = this.chunkMeta.get(id);
+      this.maybeCheckIn(meta);
       const startedAt = Date.now();
       if (meta?.board?.length || meta?.speech) {
         probe(
@@ -409,21 +503,38 @@ export class DronaVoiceClient {
         );
       }
       if (meta?.speech) this.handlers.onCaptionReveal?.(meta.speech);
-      for (const entry of meta?.board ?? []) {
-        this.revealBoardEntry(entry, `onItemStart(${id})`, {
-          sentenceId: meta?.sentenceId ?? '-',
-          receivedAt: meta?.receivedAt ?? startedAt,
-          startedAt,
-        });
-      }
+      if (meta?.speech || meta?.durationMs) this.handlers.onSpeakingChange?.(true);
+      const entries = meta?.board ?? [];
+      const pace = paceLines(
+        entries.map((e) => e.event),
+        entries.length > 0 ? this.sentenceMs(meta) : undefined
+      );
+      entries.forEach((entry, i) => {
+        this.revealBoardEntry(
+          entry,
+          `onItemStart(${id})`,
+          {
+            sentenceId: meta?.sentenceId ?? '-',
+            receivedAt: meta?.receivedAt ?? startedAt,
+            startedAt,
+          },
+          pace[i]
+        );
+      });
       // Survives the delete below so `playingChunkDurationMs` can be read
       // after the reveal fires. Nothing consumes it yet — see the getter.
       this.currentChunkDurationMs = meta?.durationMs ?? null;
       this.chunkMeta.delete(id);
+      // THE BOARD LEADS BY ONE SENTENCE. The teacher writes the next line
+      // while finishing this one, so when the voice reaches a line it is
+      // already on the board. Revealing a line only when its OWN sentence
+      // started meant the student always heard it first and saw it after.
+      this.revealNextSentenceLines(meta?.sentenceId);
     };
 
     // The turn's audio has actually finished playing — see `flushHeldTurn`.
     this.playback.onQueueDrained = () => {
+      this.handlers.onSpeakingChange?.(false);
       if (this.awaitingDrain) this.flushHeldTurn();
     };
   }
@@ -462,9 +573,23 @@ export class DronaVoiceClient {
     if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
     this.drainWatchdog = null;
     this.clearTurnErrorRecovery();
+    // Frames already on the native bridge are still delivered after close()
+    // (React Native unregisters its listeners only on the native close event),
+    // and an audio_chunk among them restarted the player: the class went on
+    // talking after End. Detach first, then close.
+    const ws = this.ws;
+    if (ws) {
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      ws.onopen = null;
+    }
+    this.pendingState = null;
+    this.pendingBoardEvents = [];
     this.playback.destroy();
-    this.ws?.close();
+    ws?.close();
     this.ws = null;
+    this.handlers.onConnectionChange?.('closed');
   }
 
   /** Resolved by `ws.onopen`; see `whenReady`. */
@@ -564,6 +689,7 @@ export class DronaVoiceClient {
 
     ws.onopen = () => {
       this.openedAt = Date.now();
+      this.turnActivitySinceOpen = false;
       this.reconnectAttempt = 0;
       this.reconnectScheduled = false;
       this.handlers.onConnectionChange?.('open');
@@ -595,10 +721,13 @@ export class DronaVoiceClient {
       // for one that was refused.
       const code = (event as { code?: number })?.code;
       if (code && PERMANENT_CLOSE_CODES.has(code)) {
+        if (code === PASS_REQUIRED_CLOSE) signalPassRequired();
         this.handlers.onError?.(
           code === 4004
             ? 'That class has ended. Go back and start a new one.'
-            : 'Your sign-in is no longer valid here. Go back and rejoin the class.'
+            : code === PASS_REQUIRED_CLOSE
+              ? 'Your pass has ended. Take a new one to rejoin the class.'
+              : 'Your sign-in is no longer valid here. Go back and rejoin the class.'
         );
         return;
       }
@@ -653,6 +782,8 @@ export class DronaVoiceClient {
   }
 
   private handleMessage(data: unknown) {
+    // Ended by the student: nothing that arrives after End may play or draw.
+    if (this.manualDisconnect) return;
     if (typeof data !== 'string') return; // server never sends binary frames outbound
     if (this.buffering) {
       // Bounded: a runaway server should not grow this without limit if the
@@ -686,8 +817,14 @@ export class DronaVoiceClient {
          * prevent. Reconnects are routine on a phone — `RECONNECT_DELAYS_MS`
          * has six entries — so this was the common case, not the exotic one.
          */
-        if (state.check_options?.length && this.turnInFlight) {
+        // Held whenever a turn is under way on this socket — including a
+        // question turn whose state frame is its FIRST frame (no board lines,
+        // the question sentence synthesised after it): that turn never set
+        // `turnInFlight`, so its chips went up before Drona asked. The resume
+        // frame on a fresh socket (no activity since open) still shows at once.
+        if (state.check_options?.length && (this.turnInFlight || this.turnActivitySinceOpen)) {
           this.pendingState = state;
+          this.pendingStateAwaitsComplete = true;
         } else {
           this.handlers.onState?.(state);
         }
@@ -695,6 +832,7 @@ export class DronaVoiceClient {
         break;
       }
       case 'board_events':
+        this.turnActivitySinceOpen = true;
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
         this.serverTurnOpen = true;
@@ -728,6 +866,7 @@ export class DronaVoiceClient {
         break;
       }
       case 'audio_chunk':
+        this.turnActivitySinceOpen = true;
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
         this.serverTurnOpen = true;
@@ -765,6 +904,10 @@ export class DronaVoiceClient {
          * without the arithmetic.
          */
         this.serverTurnOpen = false;
+        this.turnActivitySinceOpen = true;
+        // This turn_complete belongs to the held question (it came after it),
+        // so the question may now mount once the audio drains.
+        this.pendingStateAwaitsComplete = false;
         // The turn being held owns every board frame received up to now; a
         // frame after this belongs to the next turn. See flushHeldTurn.
         this.heldThroughBatch = this.batchSerial;
@@ -788,6 +931,7 @@ export class DronaVoiceClient {
           // No turn_complete is coming to say what the turn owns, and any
           // frame would have cancelled this timer: everything held is its.
           this.heldThroughBatch = this.batchSerial;
+          this.pendingStateAwaitsComplete = false;
           if (this.turnInFlight || this.pendingState) this.flushHeldTurn();
         }, TURN_ERROR_RECOVERY_MS);
         break;
@@ -807,6 +951,67 @@ export class DronaVoiceClient {
 
   /** A state frame carrying check_options, held until its turn finishes. */
   private pendingState: DronaState | null = null;
+  // --- The understanding check-in (time-based) ---
+  /** Drona's speech heard since the student last acted, in ms. */
+  private speechSinceStudentMs = 0;
+  private lastStartedSentence: string | null = null;
+  private checkinOpen = false;
+
+  /**
+   * Called as each part starts (half a second before it is heard). On the FIRST
+   * part of a new sentence — the previous one has just ended, a natural pause —
+   * check whether it is time to ask; never mid-sentence.
+   */
+  private maybeCheckIn(meta: { sentenceId?: string; durationMs?: number } | undefined): boolean {
+    const sentence = meta?.sentenceId;
+    const newSentence = !!sentence && sentence !== this.lastStartedSentence;
+    let asked = false;
+    if (
+      newSentence &&
+      this.lastStartedSentence !== null &&
+      this.handlers.onCheckin &&
+      !this.checkinOpen &&
+      !this.pendingState && // a question is on its way: that is the check
+      !this.awaitingDrain &&
+      !this.userPaused &&
+      this.speechSinceStudentMs >= CHECKIN_AFTER_SPEECH_MS
+    ) {
+      this.checkinOpen = true;
+      this.speechSinceStudentMs = 0;
+      this.holdPlayback();
+      this.handlers.onCheckin();
+      asked = true;
+    }
+    if (sentence) this.lastStartedSentence = sentence;
+    this.speechSinceStudentMs += meta?.durationMs ?? 0;
+    return asked;
+  }
+
+  /** The student's tap (or the screen's timeout, as "ok"). */
+  answerCheckin(choice: CheckinChoice, said?: string) {
+    if (!this.checkinOpen) return;
+    this.checkinOpen = false;
+    this.speechSinceStudentMs = 0;
+    if (choice === 'ok' || !said) {
+      // The screen's 10 s "carry on" must not restart a class the student
+      // paused while the card was up.
+      if (!this.userPaused) this.releasePlayback();
+      return;
+    }
+    // A doubt or "explain again" is the student speaking up: Drona stops that
+    // explanation and answers it, exactly as if they had raised their hand.
+    this.bargeIn();
+    this.sendUtterance(said);
+  }
+  /**
+   * True from the moment a question is held until ITS turn's `turn_complete`.
+   * A drain that belongs to the previous turn (its turn_complete armed
+   * `awaitingDrain` before this question arrived) must not mount it: the
+   * question sentence itself is still to come.
+   */
+  private pendingStateAwaitsComplete = false;
+  /** Any turn frame (or anything we sent) since this socket opened. */
+  private turnActivitySinceOpen = false;
   /**
    * Whether a turn is currently being delivered.
    *
@@ -839,6 +1044,11 @@ export class DronaVoiceClient {
    */
   private armDrainWatchdog() {
     if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
+    this.drainWatchdog = null;
+    // Paused: nothing is being heard, so there is no silence to measure. A
+    // turn_complete arriving mid-pause used to re-arm this, and 20 s later it
+    // mounted the question over a class the student had stopped.
+    if (this.userPaused) return;
     this.drainWatchdog = setTimeout(() => {
       this.drainWatchdog = null;
       if (this.awaitingDrain) this.flushHeldTurn();
@@ -854,6 +1064,18 @@ export class DronaVoiceClient {
    * caption written for the turn, which is exactly what gating on drain buys.
    */
   private flushHeldTurn() {
+    // PAUSE STOPS EVERYTHING. Whatever released the turn (drain, watchdog,
+    // turn_error timer, an idle queue at turn_complete), the question and the
+    // turn's last lines wait for the student to press play; releasePlayback
+    // finishes the job.
+    if (this.userPaused) {
+      this.awaitingDrain = true;
+      if (this.drainWatchdog) {
+        clearTimeout(this.drainWatchdog);
+        this.drainWatchdog = null;
+      }
+      return;
+    }
     this.awaitingDrain = false;
     if (this.drainWatchdog) {
       clearTimeout(this.drainWatchdog);
@@ -862,7 +1084,7 @@ export class DronaVoiceClient {
     this.clearTurnErrorRecovery();
     this.turnInFlight = false;
     this.flushPendingBoardEvents(this.heldThroughBatch);
-    if (this.pendingState) {
+    if (this.pendingState && !this.pendingStateAwaitsComplete) {
       this.handlers.onState?.(this.pendingState);
       this.pendingState = null;
     }
@@ -962,7 +1184,12 @@ export class DronaVoiceClient {
    * showed the line twice. That pairing is the server's to fix; the board
    * holding each event once is this client's.
    */
-  private revealBoardEntry(entry: BoardEntry, carrier: string, timing?: RevealTiming) {
+  private revealBoardEntry(
+    entry: BoardEntry,
+    carrier: string,
+    timing?: RevealTiming,
+    write?: { delayMs: number; ms: number }
+  ) {
     const { event } = entry;
     if (this.revealedBoardKeys.has(entry.key)) {
       probe(`REPEAT seq=${event.seq} key=${entry.key} carriedBy=${carrier} — already on the board, not written again`);
@@ -977,7 +1204,44 @@ export class DronaVoiceClient {
         ` audioStartAt=${timing?.startedAt ?? '-'} revealedAt=${revealedAt}` +
         ` gapMs=${timing ? revealedAt - timing.startedAt : '-'}`
     );
-    this.handlers.onBoardReveal?.({ ...event, key: entry.key });
+    // Step by step (board-steps.ts): a derivation chain or a paragraph is
+    // written as the rows a teacher would write, one after another.
+    const rows = toSteps(event);
+    if (rows.length === 1) {
+      this.handlers.onBoardReveal?.(write ? { ...event, key: entry.key, write } : { ...event, key: entry.key });
+      return;
+    }
+    const pace = paceSteps(rows, write);
+    rows.forEach((row, i) =>
+      this.handlers.onBoardReveal?.({ ...row, key: `${entry.key}~${i}`, write: pace[i] })
+    );
+  }
+
+  /**
+   * Reveals the board lines of the next sentence still queued after
+   * `currentSentenceId`, ahead of its audio. Its chunk keeps its metadata (for
+   * the caption); the reveal is idempotent by key, so its own onItemStart
+   * later writes nothing twice.
+   */
+  private revealNextSentenceLines(currentSentenceId: string | undefined) {
+    for (const [, m] of this.chunkMeta) {
+      if (!m.sentenceId || m.sentenceId === currentSentenceId) continue;
+      if (!m.board?.length) return; // next sentence has no lines: nothing to lead with
+      const now = Date.now();
+      const pace = paceLines(
+        m.board.map((e) => e.event),
+        this.sentenceMs(m)
+      );
+      m.board.forEach((entry, i) =>
+        this.revealBoardEntry(
+          entry,
+          `lead(${m.sentenceId})`,
+          { sentenceId: m.sentenceId ?? '-', receivedAt: m.receivedAt ?? now, startedAt: now },
+          pace[i]
+        )
+      );
+      return;
+    }
   }
 
   /** Board items for the whole turn arrive ahead of their audio — held here,
@@ -1033,6 +1297,32 @@ export class DronaVoiceClient {
       else this.revealBoardEntry(entry, 'END_OF_TURN_FLUSH');
     }
     this.pendingBoardEvents = later;
+  }
+
+  /**
+   * HOW LONG THE SENTENCE THAT CARRIES THESE LINES WILL BE SPOKEN FOR.
+   *
+   * `duration_ms` is the length of one audio FRAME, and a sentence arrives as
+   * several; its board lines ride on the first. Pacing the writing to that one
+   * frame wrote a thirty-word line in about a second and then left the board
+   * still for the rest of the sentence. So: every frame of this sentence
+   * already received, added up — audio arrives ahead of playback, so that is
+   * usually all of it — and never less than the sentence's own words at a
+   * speaking pace, in case its last frames are still on the way.
+   */
+  private sentenceMs(meta: { speech?: string; durationMs?: number; sentenceId?: string } | undefined) {
+    if (!meta) return undefined;
+    let frames = 0;
+    if (meta.sentenceId) {
+      this.chunkMeta.forEach((m) => {
+        if (m.sentenceId === meta.sentenceId && m.durationMs) frames += m.durationMs;
+      });
+    }
+    frames = Math.max(frames, meta.durationMs ?? 0);
+    const words = meta.speech?.trim().split(/\s+/).filter(Boolean).length ?? 0;
+    const spoken = words * MS_PER_SPOKEN_WORD;
+    const ms = Math.max(frames, spoken);
+    return ms > 0 ? ms : undefined;
   }
 
   private handleAudioChunk(msg: Record<string, unknown>) {
@@ -1095,23 +1385,40 @@ export class DronaVoiceClient {
     const playbackId = `${sentenceId}-${this.chunkSeq++}`;
     this.chunkMeta.set(playbackId, { speech, board: entries, durationMs, sentenceId, receivedAt });
 
+    // Nothing playing: this sentence opens a run of speech. Its lines go up
+    // now, while the player buffers, so the board is ahead of the first word.
+    // Not while paused: an idle queue there is a stopped class, not a gap, and
+    // the lines wait to be written as their sentence plays.
+    const opensRun = this.playback.idle && !this.userPaused;
     const pcm = base64ToBytes(audioBase64);
     this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
+    if (opensRun && entries.length > 0) {
+      const pace = paceLines(
+        entries.map((e) => e.event),
+        this.sentenceMs({ speech, durationMs, sentenceId })
+      );
+      entries.forEach((entry, i) =>
+        this.revealBoardEntry(entry, `opens(${sentenceId})`, { sentenceId, receivedAt, startedAt: receivedAt }, pace[i])
+      );
+    }
   }
 
   // --- Outbound ---
 
   private sendJson(payload: Record<string, unknown>) {
+    this.turnActivitySinceOpen = true;
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(payload));
   }
 
   sendUtterance(text: string) {
+    this.endUserPause();
     this.dropHeldTurn();
     this.sendJson({ type: 'utterance', text });
   }
 
   /** The student's answer to a checkpoint question, from a chip tap. */
   sendAnswer(text: string) {
+    this.endUserPause();
     this.dropHeldTurn();
     this.sendJson({ type: 'utterance', text });
   }
@@ -1120,6 +1427,7 @@ export class DronaVoiceClient {
     // Barge-in: stop Drona mid-sentence before the mic opens. Without this she
     // keeps talking into a live mic and speech-to-text transcribes her own
     // voice as the student's answer.
+    this.endUserPause();
     this.bargeIn();
     this.sendJson({ type: 'ptt_start' });
   }
@@ -1142,10 +1450,12 @@ export class DronaVoiceClient {
    * question from what it parks, and the reply turn asks its own.
    */
   bargeIn() {
+    this.lastStartedSentence = null;
     this.dropHeldTurn();
     this.chunkMeta.clear();
     this.currentChunkDurationMs = null;
     this.playback.clear();
+    this.handlers.onSpeakingChange?.(false);
   }
 
   /**
@@ -1158,8 +1468,15 @@ export class DronaVoiceClient {
    * playback queue is only the microphone's business.
    */
   private dropHeldTurn() {
+    // The student acted: the clock starts again and an open check-in is over.
+    this.speechSinceStudentMs = 0;
+    if (this.checkinOpen) {
+      this.checkinOpen = false;
+      this.handlers.onCheckinClosed?.();
+    }
     this.turnInFlight = false;
     this.pendingState = null;
+    this.pendingStateAwaitsComplete = false;
     this.pendingBoardEvents = [];
     // The server aborts its turn too (no turn_complete follows), and whatever
     // the student said makes the next turn an answer to it — never the
@@ -1206,21 +1523,62 @@ export class DronaVoiceClient {
     this.sendJson({ type: 'unmute' });
   }
 
+  /**
+   * The student's pause button. It stops EVERYTHING, not just the sound: no
+   * question or chips mount, no board line is written, no check-in asks, and
+   * nothing times out into carrying on. All of it waits for resumePlayback.
+   */
   pausePlayback() {
+    this.userPaused = true;
+    this.holdPlayback();
+  }
+
+  resumePlayback() {
+    this.userPaused = false;
+    // Play over an open "Samajh aa raha hai?" card is the student carrying on.
+    if (this.checkinOpen) {
+      this.checkinOpen = false;
+      this.speechSinceStudentMs = 0;
+      this.handlers.onCheckinClosed?.();
+    }
+    this.releasePlayback();
+  }
+
+  /** True while the student has the class paused. */
+  get isPaused() {
+    return this.userPaused;
+  }
+
+  private userPaused = false;
+
+  /** Stops the sound (the student's pause, or the check-in's). */
+  private holdPlayback() {
     this.playback.pause();
     // The drain watchdog measures time without progress, and a pause is
     // exactly that — so on a pause of any real length it would fire and mount
     // the checkpoint over a lesson the student had deliberately stopped. Held
-    // down for the duration; `resumePlayback` starts the count again from
-    // zero, which is the right reading: the student has heard nothing new.
+    // down for the duration; it starts again from zero on release, which is
+    // the right reading: the student has heard nothing new.
     if (this.drainWatchdog) {
       clearTimeout(this.drainWatchdog);
       this.drainWatchdog = null;
     }
   }
 
-  resumePlayback() {
+  private releasePlayback() {
     this.playback.resume();
-    if (this.awaitingDrain) this.armDrainWatchdog();
+    if (!this.awaitingDrain) return;
+    // A turn that finished during the pause, all of it already heard: show
+    // its question now. Otherwise wait for the rest of its audio as usual.
+    if (this.playback.idle) this.flushHeldTurn();
+    else this.armDrainWatchdog();
+  }
+
+  /** The student spoke during a pause: the class is running again. */
+  private endUserPause() {
+    if (!this.userPaused) return;
+    this.userPaused = false;
+    this.playback.resume();
+    this.handlers.onPauseEnded?.();
   }
 }

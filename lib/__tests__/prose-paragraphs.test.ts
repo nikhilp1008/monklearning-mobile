@@ -49,6 +49,13 @@ describe('splitProse', () => {
     }
   });
 
+  it('does not split after a reagent abbreviation such as dil. or conc.', () => {
+    for (const ab of ['dil.', 'conc.', 'alc.', 'anhyd.', 'aq.']) {
+      const html = `${S(22)} Lead dissolves: 3Pb + 8HNO<sub>3</sub>(${ab}) → 3Pb(NO<sub>3</sub>)<sub>2</sub> + 2NO + 4H<sub>2</sub>O. ${S(22)} ${S(22)}`;
+      for (const chunk of splitProse(html)) expect(chunk.trimStart()).not.toMatch(/^→/);
+    }
+  });
+
   it('does not split inside maths', () => {
     const html = `${S(22)} The result is $v = 3.5\\,\\text{m s}^{-1}. $ and it holds. ${S(22)} ${S(22)}`;
     for (const chunk of splitProse(html)) {
@@ -68,6 +75,13 @@ describe('splitProse', () => {
     for (const chunk of splitProse(html)) {
       expect((chunk.match(/<b>/g) ?? []).length).toBe((chunk.match(/<\/b>/g) ?? []).length);
     }
+  });
+
+  it('never splits a numbered list after an item number', () => {
+    // "<br>3. <b>Charge-independent</b> …" once split after "3.", leaving the
+    // number alone on a line above its item (Android check of Physics 12 Ch 13).
+    const html = [1, 2, 3, 4, 5, 6].map((n) => `${n}. <b>Item ${n}</b> — ${S(12)}`).join('<br>');
+    for (const chunk of splitProse(html)) expect(chunk).not.toMatch(/(?:^|<br>)\d\.\s*$/);
   });
 
   it('returns the input exactly when its chunks are joined', () => {

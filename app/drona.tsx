@@ -5,13 +5,16 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { StateCard, StateLine } from '@/components/states';
+import { friendlyError } from '@/lib/api';
+import { shadow } from '@/lib/shadow';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { CatalogueSubject, examSubjects, getCatalogue } from '@/lib/drona';
-import { getProfile } from '@/lib/profile';
+import { getProfile, startingClass } from '@/lib/profile';
 
 const CLASSES = ['Class 11', 'Class 12'] as const;
 /**
@@ -45,17 +48,20 @@ function normalizeSubject(name: string) {
 export default function ChapterSelectorScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
-  const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>('Class 12');
+  const [activeClass, setActiveClass] = useState<(typeof CLASSES)[number]>(() => startingClass());
+  /** Set once the student picks a class, so the profile never overrides them. */
+  const pickedClass = useRef(false);
   const [subjects, setSubjects] = useState<string[]>(['Physics', 'Chemistry', 'Maths']);
   const [activeSubject, setActiveSubject] = useState<string>('Physics');
 
-  // The exam decides the tabs. Physics and Chemistry are in every exam, so the
+  // The exam decides the tabs, and the year the class it opens on. Physics and Chemistry are in every exam, so the
   // initial guess above is never wrong for the first two — only the third tab
   // changes, and it settles before the catalogue finishes loading.
   useEffect(() => {
     let cancelled = false;
-    getProfile().then(({ exam }) => {
+    getProfile().then(({ exam, year }) => {
       if (cancelled) return;
+      if (!pickedClass.current) setActiveClass(startingClass(year));
       const next = examSubjects(exam).map((k) => SUBJECT_LABEL[k] ?? k);
       setSubjects(next);
       // Guard against a stranded tab: a student who switches exam would
@@ -75,6 +81,8 @@ export default function ChapterSelectorScreen() {
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Bumped by Try again, which re-runs the load below. */
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +93,7 @@ export default function ChapterSelectorScreen() {
         if (!cancelled) setCatalogue(data);
       })
       .catch((err) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Could not load the syllabus.');
+        if (!cancelled) setLoadError(friendlyError(err, 'load the chapters'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -93,7 +101,7 @@ export default function ChapterSelectorScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   // A shorter list can leave you stranded past its end, so every switch
   // starts at chapter one.
@@ -124,13 +132,22 @@ export default function ChapterSelectorScreen() {
             at most, scanning beats typing, and it was taking a whole row. */}
         <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
-          <PressableScale style={styles.backButton} onPress={() => router.push('/')}>
+          {/* Back, not a push to Home: a push slid Home in from the right, the
+              opposite of the way the topics page leaves. Home is only the
+              fallback when there is nothing to go back to. */}
+          <PressableScale
+            style={styles.backButton}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
             <BackArrowIcon size={scale(16)} />
           </PressableScale>
           <PressableScale
             style={styles.subjectPicker}
             hitSlop={8}
-            onPress={() => setSubjectMenu((open) => !open)}>
+            onPress={() => {
+              // One menu at a time: opening this one closes the other.
+              setClassMenu(false);
+              setSubjectMenu((open) => !open);
+            }}>
             <Text style={styles.headerTitle}>{activeSubject}</Text>
             <View style={subjectMenu ? styles.chevronFlipped : undefined}>
               <ChevronDownIcon size={scale(15)} />
@@ -139,7 +156,10 @@ export default function ChapterSelectorScreen() {
           <PressableScale
             style={styles.classPicker}
             hitSlop={8}
-            onPress={() => setClassMenu((open) => !open)}>
+            onPress={() => {
+              setSubjectMenu(false);
+              setClassMenu((open) => !open);
+            }}>
             <Text style={styles.classPickerText}>{activeClass}</Text>
             <View style={classMenu ? styles.chevronFlipped : undefined}>
               <ChevronDownIcon size={scale(13)} />
@@ -171,6 +191,7 @@ export default function ChapterSelectorScreen() {
                 key={name}
                 style={styles.menuRow}
                 onPress={() => {
+                  pickedClass.current = true;
                   setActiveClass(name);
                   setClassMenu(false);
                 }}>
@@ -211,11 +232,16 @@ export default function ChapterSelectorScreen() {
             </View>
           ) : loadError ? (
             <View style={styles.loadingBlock}>
-              <Text style={styles.errorText}>{loadError}</Text>
+              <StateCard
+                glyph="retry"
+                title="Couldn't load the chapters"
+                line={loadError}
+                action={{ label: 'Try again', onPress: () => setAttempt((n) => n + 1) }}
+              />
             </View>
           ) : chapters.length === 0 ? (
             <View style={styles.loadingBlock}>
-              <Text style={styles.errorText}>No {activeSubject} chapters for {activeClass} yet.</Text>
+              <StateLine glyph="book" text={`No ${activeSubject} chapters for ${activeClass} yet.`} />
             </View>
           ) : (
             <>
@@ -363,11 +389,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       padding: scale(6),
       zIndex: 9,
-      shadowColor: colors.ink,
-      shadowOpacity: 0.22,
-      shadowRadius: scale(20),
-      shadowOffset: { width: 0, height: verticalScale(12) },
-      elevation: 8,
+      ...shadow({ color: colors.ink, opacity: 0.22, radius: scale(20), y: verticalScale(12), elevation: 8 }),
     },
     subjectMenu: { left: scale(68), width: scale(190) },
     classMenu: { right: scale(24), width: scale(150) },

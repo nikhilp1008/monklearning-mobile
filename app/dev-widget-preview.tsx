@@ -1,3 +1,4 @@
+import { Redirect } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -152,7 +153,19 @@ type Mode =
   | 'circuit_network' | 'figures' | 'wframes' | 'froglabels' | 'published'
   | 'sweep';
 
-export default function DevWidgetPreviewScreen() {
+/**
+ * Every file under app/ is a route, and the scheme makes every route a deep
+ * link — so on a store build monklearningapp://dev-widget-preview opened this
+ * tool, authenticated API calls and all. __DEV__ is a build-time constant: the
+ * screen exists in development builds and nowhere else. A wrapper rather than
+ * an early return inside the screen, which would put its hooks behind a branch.
+ */
+export default function DevWidgetPreviewRoute() {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <DevWidgetPreviewScreen />;
+}
+
+function DevWidgetPreviewScreen() {
   // The shot frame decides the orientation: 702pt only fits across a
   // landscape phone, 343/340 only fit down a portrait one. Laying a frame out
   // at less than 1:1 would make the capture evidence of nothing.

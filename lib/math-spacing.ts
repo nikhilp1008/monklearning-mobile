@@ -54,12 +54,19 @@ export function spaceOperators(math: string): string {
     if (c === '(' || c === '[' || c === '{') depth++;
     if ((c === ')' || c === ']' || c === '}') && depth > 0) depth--;
 
+    // A relation opening the run, after a space: the operand it relates is
+    // the piece drawn just before this run (MathLine draws a script or a
+    // fraction as its own element), so the space is kept. Dropped, it read
+    // "θβ= β/D" and "Pavg= V". A run that opens on a bare "=" (a solution's
+    // continuation step) still gets no space in front.
+    const spacedBefore = !out.trim() && i > 0 && /\s/.test(chars[i - 1]);
+
     // `<=`, `>=`, `==`, `=>`: a two-character relation typed in ASCII — leave
     // it as the author wrote it rather than pulling it apart.
     const pair = c + (chars[i + 1] ?? '');
     if (['<=', '>=', '==', '=>', '!='].includes(pair)) {
       out = out.replace(/\s+$/, '');
-      if (out) out += gap();
+      if (out || spacedBefore) out += gap();
       out += pair;
       i = skipSpaces(i + 1);
       if (i + 1 < chars.length) out += gap();
@@ -68,7 +75,7 @@ export function spaceOperators(math: string): string {
 
     if (RELATIONS.has(c)) {
       out = out.replace(/\s+$/, '');
-      if (out) out += gap();
+      if (out || spacedBefore) out += gap();
       out += c;
       i = skipSpaces(i);
       if (i + 1 < chars.length) out += gap();

@@ -33,9 +33,13 @@ const ONEST_SIZE = 0.93;
 const ONEST_TRACKING = 0.75;
 
 export function useDesignScale() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   return useMemo(() => {
-    const ratio = width / DESIGN_WIDTH;
+    // The short side, not the width: the onboarding's button is used beyond
+    // onboarding now — on the classroom's report sheet and error screen,
+    // which can be sideways — and scaled off a landscape width it doubled.
+    // Upright, the short side IS the width, so nothing there changes.
+    const ratio = Math.min(width, height) / DESIGN_WIDTH;
     return {
       /** Geometry: padding, radii, heights. Linear. */
       ds: (size: number) => size * ratio,
@@ -46,7 +50,7 @@ export function useDesignScale() {
       tracking: (em: number, fontSize: number) =>
         em * fontSize * ratio * ONEST_SIZE * ONEST_TRACKING,
     };
-  }, [width]);
+  }, [width, height]);
 }
 
 export const ob = {
@@ -123,8 +127,8 @@ export const ob = {
  * there -- see app/(onboarding)/pass.tsx.
  */
 export const PASSES = [
-  { id: 'day', name: '1 day', price: 149 },
-  { id: 'week', name: '7 days', price: 749 },
+  { id: 'day', name: '1 day', price: 7 },
+  { id: 'week', name: '7 days', price: 39 },
 ] as const;
 
 export type PassKey = (typeof PASSES)[number]['id'];
@@ -138,36 +142,31 @@ export type PassKey = (typeof PASSES)[number]['id'];
  * failure the copy was meant to prevent. A comment cannot keep two constants
  * equal; one constant can.
  *
- * THE NUMBERS ARE 50 AND 150. monklearning.com still publishes 75 in three
- * places, including the structured FAQ answer to "What exactly does a pass
- * include?" that Google reads, and that file is in another repo. Home has
- * always said 150. Neither figure is enforced on the server yet: /practice/*
- * returns no daily or quota field at all, where Snap has `daily_limit` and
- * `used_today`.
+ * WHAT THE STARTER PASSES (day and week) INCLUDE: Pro, for a day and for a week
+ * (founder, 2026-11-03). Live classes are said as Pro's two a day; snaps and
+ * practice are NOT put in numbers on purpose: a day or week pass gets what Pro
+ * gets and is not told so, since a number said up front is a ceiling to be
+ * measured against. The server's `tier_limits` (API migrations 0116 and 0117)
+ * holds the real figures; a student who reaches one is told it then. monklearning.com is another repo and still says
+ * the old ones.
  */
 export const INCLUDED: [string, string][] = [
   ['Class 11 & 12', 'Every chapter, taught aloud'],
-  ['Every day', '50 snaps · 150 practice questions'],
-  ['Teachers', 'Drona & Vedha · Eng / Hinglish'],
+  ['Live classes', 'Up to 2 a day'],
+  ['Snap and Practice', 'Every day'],
+  ['Drona & Vedha', 'English / Hinglish'],
 ];
 
 /**
- * The one code that works, and it clears the balance rather than discounting
- * it.
- *
- * The handoff wired two codes at partial discounts (FIRST100 −₹75, MONK50
- * −₹50), which cannot complete without a payment sheet to take the remainder.
- * Until there is one, a code either brings the total to zero or the student
- * cannot get through -- so there is exactly one, and it is worth the whole
- * amount. Client-side by design; nothing is validated on a server.
+ * Whole rupees as they are (₹1,599); a price with paise always shows both
+ * digits (₹799.50, never ₹799.5) — a percent code on an odd price lands there.
  */
-export const PROMO_CODE = 'FIRST100';
-
-export function promoDiscount(code: string, price: number) {
-  return code.trim().toUpperCase() === PROMO_CODE ? price : 0;
-}
-
-export const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+export const rupees = (n: number) =>
+  `₹${
+    Number.isInteger(n)
+      ? n.toLocaleString('en-IN')
+      : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }`;
 
 /**
  * Onest, loaded app-wide in app/_layout.tsx.
@@ -212,7 +211,8 @@ export const obFont = {
  * "Calculus", "Human Physiology", "Genetics" and "Ecology", none of which are
  * chapters in the table.
  */
-export type ExamKey = 'jee' | 'neet' | 'both';
+/** JEE or NEET. There is no "both": a student prepares for one exam. */
+export type ExamKey = 'jee' | 'neet';
 export type YearKey = 'class11' | 'class12' | 'dropper';
 
 export const EXAMS: Record<
@@ -255,20 +255,6 @@ export const EXAMS: Record<
     ],
     sample:
       'Human Reproduction · Molecular Basis of Inheritance · Thermodynamics · Coordination Compounds · Ecosystem.',
-  },
-  both: {
-    name: 'Both',
-    tag: 'PCMB',
-    label: 'both exams',
-    upper: 'JEE MAIN + NEET UG',
-    subjects: [
-      { name: 'Physics', count: 28 },
-      { name: 'Chemistry', count: 19 },
-      { name: 'Maths', count: 28 },
-      { name: 'Biology', count: 32 },
-    ],
-    sample:
-      'Rotational Motion · Integrals · Human Reproduction · Coordination Compounds · Evolution.',
   },
 };
 

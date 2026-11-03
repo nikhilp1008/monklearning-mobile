@@ -51,3 +51,36 @@ describe('a pass ends when it ends', () => {
     });
   });
 });
+
+describe('what the plans page promises is what the server grants', () => {
+  // The page counted calendar months (Oct 19 + 11 months = Sep 18) while the server
+  // grants 330 days (Sep 14): up to four days more than a student received.
+  test.each([
+    ['1m', 30],
+    ['3m', 90],
+    ['6m', 180],
+    ['11m', 330],
+  ] as const)('%s runs %i days from the moment it starts', (kind, days) => {
+    const start = new Date('2026-10-19T14:00:00.000Z');
+    const end = endsAtFor({ kind, startedAt: start.toISOString() });
+    expect(Math.round((end.getTime() - start.getTime()) / 86400000)).toBe(days);
+  });
+
+  test('the plans page never counts calendar months', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../../components/paywall/plans-page.tsx'), 'utf8');
+    expect(src).not.toMatch(/setMonth\(/);
+  });
+});
+
+describe('a pass is a fixed number of 24-hour days, in any time zone', () => {
+  // The server adds exactly N x 24 hours. The app used calendar days, which can differ by an hour
+  // across a daylight-saving change and so show a different DATE for a purchase near midnight.
+  test.each([['week', 7], ['1m', 30], ['3m', 90], ['6m', 180], ['11m', 330]] as const)('%s is %i x 24 hours', (kind, days) => {
+    for (const start of ['2026-10-19T14:00:00.000Z', '2026-10-31T23:30:00.000Z', '2027-03-06T23:30:00.000Z']) {
+      const end = endsAtFor({ kind, startedAt: start });
+      expect(end.getTime() - new Date(start).getTime()).toBe(days * 86400000);
+    }
+  });
+});
+

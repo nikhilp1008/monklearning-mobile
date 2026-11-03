@@ -2,7 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
-import { buildReport, saveReport, type MockReport } from '@/lib/mock-report';
+import {
+  buildReport,
+  saveReport,
+  submitResultFromReport,
+  type MockPrevious,
+  type MockReport,
+} from '@/lib/mock-report';
 import type { DiagramFigure } from '@/lib/practice';
 
 /**
@@ -45,6 +51,9 @@ export interface MockPaper {
   started_at?: string;
   deadline?: string;
   seconds_left?: number;
+  /** 'diagnostic' is the free starting-point paper; absent on older API
+   *  builds, which only ever made full ones. */
+  kind?: MockKind;
   /** Only on GET /mock/active: the deadline passed while the app was away. */
   expired?: boolean;
 }
@@ -79,14 +88,55 @@ export interface MockReviewQuestion {
 export interface MockSubmitResult {
   mock_run_id: string;
   score: MockScore;
+  /** Against the previous paper; null for a first paper. Absent from API
+   *  builds before it existed. */
+  previous?: MockPrevious | null;
   questions: MockReviewQuestion[];
 }
 
 /** Generation reads the whole light bank per subject and composes 75-180
  *  questions — measured at 6-7s server-side, so the default 60s ceiling is
  *  kept and the UI owns making the wait honest. */
-export function createMockPaper(exam: 'jee' | 'neet'): Promise<MockPaper> {
-  return apiFetch('/mock/paper', { method: 'POST', body: JSON.stringify({ exam }) });
+export function createMockPaper(
+  exam: 'jee' | 'neet',
+  kind: MockKind = 'full'
+): Promise<MockPaper> {
+  // A full paper sends exactly what it always did, so an API build that
+  // predates the diagnostic never sees a field it does not know.
+  const body = kind === 'full' ? { exam } : { exam, kind };
+  return apiFetch('/mock/paper', { method: 'POST', body: JSON.stringify(body) });
+}
+
+/** 'full' is the earned three-hour paper; 'diagnostic' is the free, shorter
+ *  one every student gets once per exam to find their starting point. */
+export type MockKind = 'full' | 'diagnostic';
+
+/**
+ * THE FREE FIRST PAPER, AS GET /mock/status OFFERS IT.
+ *
+ * Not a credit: it is never counted against the unlock gate and it does not
+ * spend one. `available` goes false once the student has sat (or is sitting)
+ * it; an abandoned one is offered again.
+ */
+export interface MockDiagnosticOffer {
+  available: boolean;
+  /** Worth asking for on login: a student the app does not know yet (no
+   *  paper earned by practice, no full paper sat). Absent from API builds
+   *  before it existed, which reads as "do not prompt". */
+  recommended?: boolean;
+  questions: number;
+  duration_minutes: number;
+  max_marks: number;
+  sections: { subject: string; questions: number }[];
+}
+
+/** True when a refusal means "you already have your free paper" — the count
+ *  moved under us (another phone, a double tap), so re-read the status. */
+export function isDiagnosticTaken(err: unknown): boolean {
+  const detail = (err as { data?: { detail?: unknown } } | null)?.data?.detail;
+  return (
+    !!detail && typeof detail === 'object' && (detail as { code?: string }).code === 'diagnostic_taken'
+  );
 }
 
 /**
@@ -135,10 +185,17 @@ export interface MockStatus {
    *  it. Absent from API builds before 21884e2. */
   active_paper?: {
     mock_run_id: string;
+    kind?: MockKind;
     deadline: string;
     seconds_left: number;
     expired: boolean;
   } | null;
+  /** The free starting-point paper. Absent from API builds before it
+   *  existed, which reads as "none on offer". */
+  diagnostic?: MockDiagnosticOffer;
+  /** Present only for a student on the FREE tier: one full paper in total.
+   *  Once it is used `message` is the server's case for a plan. */
+  free_tier?: { mock_used: boolean; upgrade?: boolean; message?: string };
 }
 
 export function getMockStatus(exam: 'jee' | 'neet'): Promise<MockStatus> {
@@ -152,6 +209,8 @@ export interface MockRunRow {
   id: string;
   exam: 'jee' | 'neet';
   status: 'in_progress' | 'submitted' | 'abandoned';
+  /** Absent from API builds before the diagnostic: those are all full. */
+  kind?: MockKind;
   created_at: string;
   submitted_at: string | null;
   score: {
@@ -186,6 +245,29 @@ export async function fetchReport(runId: string): Promise<MockReport> {
   const report = await apiFetch<MockReport>(`/mock/${encodeURIComponent(runId)}/review`);
   await saveReport(report).catch(() => undefined);
   return report;
+}
+
+/**
+ * The server already holds this paper as handed in: a submit got through and
+ * only its response was lost (a dropped connection, the app backgrounded
+ * mid-request). Every submit after that is refused with this 409, and the
+ * paper is safe — so it is a reason to fetch the report, not to ask the
+ * student to submit again. An abandoned paper, or one handed in too late,
+ * is a 409 too, and is not this: see `isPaperClosed`.
+ */
+export function isAlreadySubmitted(err: unknown): boolean {
+  const e = err as { status?: number; message?: unknown } | null;
+  return e?.status === 409 && typeof e.message === 'string' && /already submitted/i.test(e.message);
+}
+
+/**
+ * The server will never take this paper: it is past its deadline and the
+ * grace after it, and has been (or is about to be) marked abandoned. Both of
+ * its 409s say so. Asking the student to "check your connection and submit
+ * again" here was a loop with no way out.
+ */
+export function isPaperClosed(err: unknown): boolean {
+  return (err as { status?: number } | null)?.status === 409 && !isAlreadySubmitted(err);
 }
 
 export function submitMockPaper(
@@ -410,6 +492,22 @@ export function getMockSession(): MockSession | null {
   return session;
 }
 
+/**
+ * Every paper in progress on this phone, in memory and saved, whoever sat it.
+ * For sign-out: the next account must not inherit "In progress · Resume" on
+ * someone else's paper.
+ */
+export async function clearAllMockProgress(): Promise<void> {
+  session = null;
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const progress = keys.filter((k) => k.startsWith(PROGRESS_KEY));
+    if (progress.length) await AsyncStorage.multiRemove(progress);
+  } catch {
+    // Signing out is not blocked by a storage failure.
+  }
+}
+
 export function clearMockSession(): void {
   if (session) forgetProgress(session.paper.mock_run_id);
   session = null;
@@ -448,12 +546,27 @@ export async function submitCurrentSession(): Promise<MockSubmitResult | null> {
   if (!s) return null;
   // The last question was still on screen when Submit was pressed.
   chargeElapsed();
-  const result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s), {
-    marked: [...s.marked],
-    elapsed_ms: Object.fromEntries(
-      [...s.elapsed.entries()].map(([id, ms]) => [id, Math.round(ms)])
-    ),
-  });
+  let result: MockSubmitResult;
+  try {
+    result = await submitMockPaper(s.paper.mock_run_id, sessionAnswersPayload(s), {
+      marked: [...s.marked],
+      elapsed_ms: Object.fromEntries(
+        [...s.elapsed.entries()].map(([id, ms]) => [id, Math.round(ms)])
+      ),
+    });
+  } catch (err) {
+    if (!isAlreadySubmitted(err)) throw err;
+    // Handed in already, on a submit whose answer never arrived. The marked
+    // paper is on the server, so read it back and finish exactly as a
+    // successful submit does. fetchReport saves the server's copy, which is
+    // the one to keep: it carries the real submit time. If this read fails
+    // too, the caller says "submit again", and the next try lands here.
+    const report = await fetchReport(s.paper.mock_run_id);
+    result = submitResultFromReport(report);
+    s.result = result;
+    forgetProgress(s.paper.mock_run_id);
+    return result;
+  }
   s.result = result;
   forgetProgress(s.paper.mock_run_id);
   /**

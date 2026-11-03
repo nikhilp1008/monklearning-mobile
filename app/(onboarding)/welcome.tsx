@@ -20,6 +20,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { exitOnBack, useAndroidBack } from '@/lib/android-back';
 import { MonkLogo } from '@/components/monk-logo';
 import { ObButton } from '@/components/onboarding-kit';
 import { StoryBoard } from '@/components/onboarding/story-board';
@@ -38,7 +39,7 @@ const CAPTION_TRIM = 0.965;
 
 /** The four beats, in the handoff's own words. */
 const CAPTIONS = [
-  ['A teacher who teaches it live.', 'Pick any chapter. The board comes alive.'],
+  ['Drona and Vedha teach it live.', 'Pick any chapter. The board comes alive.'],
   ['Interrupt. Ask anything.', 'Doubts get answered mid-sentence, on the board.'],
   ['Snap a question from your book.', 'Taught step by step, not just answered.'],
   ['Practice your way.', 'Pick a subject or chapter. Questions adapt to how you learn.'],
@@ -46,6 +47,10 @@ const CAPTIONS = [
 
 export default function WelcomeScreen() {
   const { ds, fs, tracking } = useDesignScale();
+  // The first screen: Back leaves the app. Popped instead, it showed Home for
+  // a moment (the signed-out gate replaces Home with this) before the gate
+  // sent the student straight back here.
+  useAndroidBack(exitOnBack);
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
   const { t, float, wave } = useStoryClock();
   /** The stage measures itself so the board can be fitted into it. */

@@ -1,11 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   LayoutAnimation,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,12 +19,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { shadow } from '@/lib/shadow';
+import { SnapADoubtIcon } from '@/components/monk-icons';
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { EmptyState } from '@/components/library-empty';
+import { OfflineBanner, QuietLink, StateCard, StateLine } from '@/components/states';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
-import { friendlyLoadError } from '@/lib/api';
+import { ApiError, friendlyError, friendlyLoadError } from '@/lib/api';
+import { hapticSoft } from '@/lib/haptics';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
@@ -29,9 +36,13 @@ import { useScale } from '@/constants/scale';
 import {
   DoubtSubjectChip,
   DoubtSummary,
+  DoubtsCursor,
+  absorbDoubtsPage,
   deleteDoubt,
   formatRelativeTime,
+  inHistory,
   listDoubts,
+  olderThanCursor,
   subjectMatches,
 } from '@/lib/doubts';
 import { noteRowLine } from '@/lib/note-row';
@@ -180,6 +191,26 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const doubtsLoadedRef = useRef(false);
   const notesLoadedRef = useRef(false);
 
+  /**
+   * PAGING. The history was the newest 60 and nothing past them. Now the
+   * first page loads as before and older pages follow as the list is scrolled
+   * to its end (or "Show older doubts" is pressed, for a search that has
+   * filtered the list too short to scroll). `seen` holds every id loaded, raw
+   * — before `inHistory` — so the cursor and the dedupe both see what the
+   * server sent; `cursor` is the last raw row of the newest page loaded.
+   */
+  const doubtsSeenRef = useRef<Set<string>>(new Set());
+  const doubtsCursorRef = useRef<DoubtsCursor | null>(null);
+  /** More than the first page is on screen. */
+  const doubtsPagedRef = useRef(false);
+  const [doubtsMore, setDoubtsMore] = useState(false);
+  const [doubtsMoreLoading, setDoubtsMoreLoading] = useState(false);
+  const [doubtsMoreError, setDoubtsMoreError] = useState(false);
+  const doubtsMoreBusyRef = useRef(false);
+  /** Bumped by each first-page fetch, so an older page that lands after it
+   *  is not appended to a list it no longer belongs to. */
+  const doubtsEpochRef = useRef(0);
+
   const fetchDoubts = useCallback(() => {
     let cancelled = false;
     // Only the first load may show skeletons. On a return visit the list is
@@ -189,7 +220,32 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     listDoubts()
       .then((res) => {
         if (cancelled) return;
-        setDoubts(res.doubts.filter((d) => d.status === 'solved'));
+        doubtsEpochRef.current += 1;
+        doubtsMoreBusyRef.current = false;
+        setDoubtsMoreLoading(false);
+        const page = res.doubts;
+        const fresh = page.filter(inHistory);
+        const pageIds = new Set(page.map((d) => d.id));
+        const last = page[page.length - 1];
+        if (doubtsPagedRef.current && last) {
+          // Older pages are already on screen. The refetch on focus is for
+          // what is NEW, so it replaces the first page and keeps everything
+          // below it — scrolling back down three pages is not the price of
+          // switching tabs. Where paging stood is unchanged.
+          const edge = { before: last.created_at, beforeId: last.id };
+          setDoubts((prev) => [
+            ...fresh,
+            ...prev.filter((d) => !pageIds.has(d.id) && olderThanCursor(d, edge)),
+          ]);
+          for (const id of pageIds) doubtsSeenRef.current.add(id);
+        } else {
+          doubtsSeenRef.current = new Set();
+          const absorbed = absorbDoubtsPage(doubtsSeenRef.current, page);
+          doubtsCursorRef.current = absorbed.cursor;
+          setDoubtsMore(!absorbed.done);
+          setDoubts(fresh);
+        }
+        setDoubtsMoreError(false);
         setDoubtChips(res.subjects ?? []);
         doubtsLoadedRef.current = true;
       })
@@ -203,6 +259,55 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
       cancelled = true;
     };
   }, []);
+
+  const loadMoreDoubts = useCallback(() => {
+    const cursor = doubtsCursorRef.current;
+    if (!cursor || doubtsMoreBusyRef.current) return;
+    doubtsMoreBusyRef.current = true;
+    const epoch = doubtsEpochRef.current;
+    setDoubtsMoreLoading(true);
+    setDoubtsMoreError(false);
+    listDoubts({ cursor })
+      .then((res) => {
+        if (epoch !== doubtsEpochRef.current) return;
+        const absorbed = absorbDoubtsPage(doubtsSeenRef.current, res.doubts);
+        doubtsCursorRef.current = absorbed.cursor;
+        doubtsPagedRef.current = true;
+        setDoubtsMore(!absorbed.done);
+        if (absorbed.fresh.length) {
+          const older = absorbed.fresh.filter(inHistory);
+          setDoubts((prev) => [...prev, ...older]);
+        }
+      })
+      .catch((err) => {
+        if (epoch !== doubtsEpochRef.current) return;
+        // A cursor the server will not take (422) will not be taken on a
+        // second try either: what is loaded is what there is.
+        if (err instanceof ApiError && err.status === 422) {
+          setDoubtsMore(false);
+          return;
+        }
+        setDoubtsMoreError(true);
+      })
+      .finally(() => {
+        if (epoch !== doubtsEpochRef.current) return;
+        doubtsMoreBusyRef.current = false;
+        setDoubtsMoreLoading(false);
+      });
+  }, []);
+
+  /** Near the end of the list, the next page is asked for — a screen early,
+   *  so it is usually there before the student reaches the bottom. */
+  const onDoubtsScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!doubtsMore || doubtsMoreError) return;
+      const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+      if (contentOffset.y + layoutMeasurement.height >= contentSize.height - layoutMeasurement.height) {
+        loadMoreDoubts();
+      }
+    },
+    [doubtsMore, doubtsMoreError, loadMoreDoubts]
+  );
 
   const fetchNotes = useCallback(() => {
     let cancelled = false;
@@ -277,7 +382,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
       delete: { type: 'easeInEaseOut', property: 'opacity' },
     });
     setEraseMode((on) => {
-      if (!on) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      if (!on) hapticSoft();
       return !on;
     });
   }, []);
@@ -318,11 +423,23 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
     (id: string) => {
       const index = doubts.findIndex((d) => d.id === id);
       if (index < 0) return;
-      armUndo({ kind: 'doubt', index, item: doubts[index] }, () => {
+      const item = doubts[index];
+      armUndo({ kind: 'doubt', index, item }, () => {
         // DELETE /doubts/{id} drops one question, and the photo only when no
         // other question still uses it — which is why these are one card per
         // question. Runs only once undo is no longer on offer.
-        deleteDoubt(id).catch(() => {});
+        deleteDoubt(id).catch((err) => {
+          // It used to be swallowed: the card was gone, the doubt was not,
+          // and the next refetch quietly brought it back as if the eraser had
+          // never worked. Put it back now, where it was, and say so.
+          setDoubts((prev) => {
+            if (prev.some((d) => d.id === id)) return prev;
+            const next = prev.slice();
+            next.splice(Math.min(index, next.length), 0, item);
+            return next;
+          });
+          Alert.alert("Couldn't erase that doubt", friendlyError(err, 'erase it'));
+        });
       });
       setDoubts((prev) => prev.filter((d) => d.id !== id));
     },
@@ -534,11 +651,17 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 </View>
               </View>
 
+              <OfflineBanner style={styles.offline} />
               {notesLoading ? (
                 <ListSkeleton styles={styles} kind="notes" count={5} />
               ) : notesError ? (
-                <View style={styles.stateBlock}>
-                  <Text style={styles.stateText}>{notesError}</Text>
+                <View style={styles.stateWrap}>
+                  <StateCard
+                    glyph="retry"
+                    title="Couldn't load your notes"
+                    line={`${notesError} Nothing you've saved is lost.`}
+                    action={{ label: 'Try again', onPress: () => void fetchNotes() }}
+                  />
                 </View>
               ) : visibleNotes.length === 0 ? (
                 // DEMO_ — while nothing real is saved, these sample cards
@@ -548,14 +671,24 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 showingSamples ? (
                   <EmptyState kind="notes" />
                 ) : (
-                  <View style={styles.stateBlock}>
-                    <Text style={styles.stateText}>
-                      {notes.length === 0
-                        ? 'No saved notes yet. Finish a class with Drona and save its board.'
-                        : notesQuery.trim()
-                          ? 'No notes match that search.'
-                          : `No ${notesFilter} notes yet.`}
-                    </Text>
+                  <View style={styles.stateWrap}>
+                    {notesQuery.trim() ? (
+                      <StateLine
+                        glyph="search"
+                        emphasis={`“${notesQuery.trim()}”`}
+                        text="doesn't match any of your notes."
+                        link={{ label: 'Clear search', onPress: () => setNotesQuery('') }}
+                      />
+                    ) : (
+                      <StateLine
+                        glyph="notes"
+                        text={
+                          notes.length === 0
+                            ? 'No saved notes yet. Finish a class and save its board.'
+                            : `No ${notesFilter} notes yet.`
+                        }
+                      />
+                    )}
                   </View>
                 )
               ) : (
@@ -613,6 +746,8 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
           {kind === 'doubts' && (
             <ScrollView
               contentContainerStyle={styles.pageContent}
+              onScroll={onDoubtsScroll}
+              scrollEventThrottle={200}
               showsVerticalScrollIndicator={false}>
               <View style={styles.searchLine}>
                 <SearchIcon size={scale(15)} />
@@ -636,16 +771,28 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 </View>
                 {/* The camera sits inside the line rather than in a box beside
                     it -- export-8a gives the row no chrome of its own. */}
-                <PressableScale hitSlop={10} onPress={() => router.push('/snap-capture')}>
-                  <CameraIcon size={scale(19)} />
+                <PressableScale
+                  hitSlop={10}
+                  onPress={() => router.push('/snap-capture')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Snap and Solve">
+                  {/* Home's Snap mark, the marigold as its lens: this line had
+                      kept the older copy with the dot off in the corner. */}
+                  <SnapADoubtIcon size={scale(21)} color={colors.ink} accent={colors.marigold} />
                 </PressableScale>
               </View>
 
+              <OfflineBanner style={styles.offline} />
               {doubtsLoading ? (
                 <ListSkeleton styles={styles} kind="doubts" count={5} />
               ) : doubtsError ? (
-                <View style={styles.stateBlock}>
-                  <Text style={styles.stateText}>{doubtsError}</Text>
+                <View style={styles.stateWrap}>
+                  <StateCard
+                    glyph="retry"
+                    title="Couldn't load your doubts"
+                    line={`${doubtsError} Nothing you've solved is lost.`}
+                    action={{ label: 'Try again', onPress: () => void fetchDoubts() }}
+                  />
                 </View>
               ) : showingDoubtSamples ? (
                 // Nothing snapped and no filter applied: the first day.
@@ -655,12 +802,17 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                 // and must not be replaced by the first-run invitation — "no
                 // Chemistry doubts yet" is true and the empty state would
                 // contradict it.
-                <View style={styles.stateBlock}>
-                  <Text style={styles.stateText}>
-                    {doubtsQuery.trim()
-                      ? 'No doubts match that search.'
-                      : `No ${doubtsFilterLabel} doubts yet.`}
-                  </Text>
+                <View style={styles.stateWrap}>
+                  {doubtsQuery.trim() ? (
+                    <StateLine
+                      glyph="search"
+                      emphasis={`“${doubtsQuery.trim()}”`}
+                      text="doesn't match any of your doubts."
+                      link={{ label: 'Snap it instead', onPress: () => router.push('/snap-capture') }}
+                    />
+                  ) : (
+                    <StateLine glyph="doubts" text={`No ${doubtsFilterLabel} doubts yet.`} />
+                  )}
                 </View>
               ) : (
                 <View style={styles.doubtsRows}>
@@ -708,6 +860,14 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                             <Text style={styles.doubtRowSubject} numberOfLines={1}>
                               {doubt.subject_label ?? doubt.subject ?? 'Doubt'}
                             </Text>
+                            {doubt.status === 'unsure' && (
+                              // The detail screen leads with why (solution-view's
+                              // `caution`); the row only has to say it is not a
+                              // checked answer before it is opened.
+                              <Text style={styles.doubtRowUnsure} numberOfLines={1}>
+                                Check the working
+                              </Text>
+                            )}
                             <Text style={styles.doubtRowTime}>
                               {formatRelativeTime(doubt.created_at)}
                             </Text>
@@ -719,6 +879,24 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                       </PressableScale>
                     </Erasable>
                   ))}
+                </View>
+              )}
+              {/* Older doubts, for as long as there are any. Shown under a
+                  searched-down list too: search runs over what is loaded, and
+                  "no match" is only the whole truth once all of it is. */}
+              {!doubtsLoading && !doubtsError && !showingDoubtSamples && doubtsMore && (
+                <View style={styles.moreRow}>
+                  {doubtsMoreLoading ? (
+                    <ActivityIndicator color={colors.slate} />
+                  ) : doubtsMoreError ? (
+                    <StateLine
+                      glyph="retry"
+                      text="Couldn't load older doubts."
+                      link={{ label: 'Try again', onPress: loadMoreDoubts }}
+                    />
+                  ) : (
+                    <QuietLink action={{ label: 'Show older doubts', onPress: loadMoreDoubts }} />
+                  )}
                 </View>
               )}
               {undoState && <UndoRow onUndo={undoRemoval} />}
@@ -821,33 +999,6 @@ function RotatingHint({
         ))}
       </Animated.View>
     </View>
-  );
-}
-
-/** The snap camera, from export-8a's search line. */
-function CameraIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d="M8.6 6.4 9.9 4.1h4.2l1.3 2.3"
-        stroke={colors.ink}
-        strokeWidth={1.7}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Rect
-        x={2.8}
-        y={6.4}
-        width={18.4}
-        height={13.5}
-        rx={3.2}
-        stroke={colors.ink}
-        strokeWidth={1.7}
-        strokeLinejoin="round"
-      />
-      <Circle cx={12} cy={13.2} r={3.6} stroke={colors.ink} strokeWidth={1.7} />
-      <Circle cx={17.6} cy={9.6} r={1.1} fill={colors.marigold} />
-    </Svg>
   );
 }
 
@@ -1042,6 +1193,16 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: '#9C988C',
     },
+    moreRow: {
+      alignItems: 'center',
+      paddingVertical: verticalScale(18),
+    },
+    doubtRowUnsure: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      color: colors.amberText,
+      flexShrink: 0,
+    },
     doubtRowTime: {
       fontFamily: 'Onest_500Medium',
       fontSize: scale(12),
@@ -1116,18 +1277,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       paddingVertical: verticalScale(14),
       paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(3),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(3), y: verticalScale(1), elevation: 2 }),
     },
     // Erase mode only: the card steps up very slightly so it sits above the
     // grey. The card colour itself must stay white — the rub paints paper.
     noteCardErasing: {
       borderColor: 'rgba(28,26,22,.16)',
-      shadowOpacity: 0.06,
-      shadowRadius: 5,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: 5, y: verticalScale(1), elevation: 2 }),
     },
     stateBlock: {
       alignItems: 'center',
@@ -1135,6 +1291,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingTop: verticalScale(40),
       paddingHorizontal: scale(20),
     },
+    /** Where a state sits in a list: under the search, the list's own gutter. */
+    stateWrap: { paddingTop: verticalScale(18) },
+    offline: { marginTop: verticalScale(14) },
     stateText: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),

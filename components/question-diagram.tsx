@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { DiagramFigure } from '@/lib/practice';
@@ -37,6 +38,7 @@ export function QuestionDiagram({
   total?: number;
 }) {
   const { scale, verticalScale } = useScale();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [ratio, setRatio] = useState<number>(
     figure.region && figure.region.h > 0 ? figure.region.w / figure.region.h : FALLBACK_ASPECT,
@@ -52,23 +54,13 @@ export function QuestionDiagram({
   // in the figure" — say so visibly and offer a retry, never a silent gap.
   if (failed) {
     return (
-      <View style={styles.frame} accessibilityRole="alert">
-        <View style={styles.failureBox}>
-          <Text style={styles.failureText}>
-            This figure could not be loaded, and the question refers to it.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading the figure"
-            style={styles.retryButton}
-            onPress={() => {
-              setFailed(false);
-              setRetryKey((k) => k + 1);
-            }}
-          >
-            <Text style={styles.retryText}>Retry</Text>
-          </Pressable>
-        </View>
+      <View style={styles.frame}>
+        <FigureLoadFailed
+          onRetry={() => {
+            setFailed(false);
+            setRetryKey((k) => k + 1);
+          }}
+        />
       </View>
     );
   }
@@ -120,7 +112,9 @@ export function QuestionDiagram({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close enlarged figure"
-            style={styles.closeButton}
+            // Clear of the status bar and camera: the Modal is drawn edge to
+            // edge, and a fixed 48 sat on the punch-hole on some Androids.
+            style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
             onPress={() => setOpen(false)}
           >
             <Text style={styles.closeText}>Close ✕</Text>
@@ -141,6 +135,37 @@ export function QuestionDiagram({
         </Pressable>
       </Modal>
     </>
+  );
+}
+
+/**
+ * What stands where a figure failed to load: says so, and offers Retry.
+ *
+ * Shared with the snap solution's figures and picture options
+ * (components/solution-screen.tsx), which had no failure state at all and
+ * showed an empty box where the circuit should have been.
+ */
+export function FigureLoadFailed({
+  message = 'This figure could not be loaded, and the question refers to it.',
+  onRetry,
+}: {
+  message?: string;
+  onRetry: () => void;
+}) {
+  const { scale, verticalScale } = useScale();
+  const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  return (
+    <View style={styles.failureBox} accessibilityRole="alert">
+      <Text style={styles.failureText}>{message}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Retry loading the figure"
+        style={styles.retryButton}
+        onPress={onRetry}
+      >
+        <Text style={styles.retryText}>Retry</Text>
+      </Pressable>
+    </View>
   );
 }
 

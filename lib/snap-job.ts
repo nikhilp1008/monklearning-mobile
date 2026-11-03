@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
 
 import { DoubtPhoto, SnapFailure, SnapResponse, readSnapFailure, snapDoubt } from '@/lib/doubts';
-import { ReadQuestion, snapDoubtStreaming } from '@/lib/snap-stream';
+import { ReadQuestion, StreamCut, snapDoubtStreaming } from '@/lib/snap-stream';
+import { LiveStep, upsertLiveStep } from '@/lib/live-steps';
 
 /**
  * The in-flight snap, held outside React so it can outlive the screen that
@@ -52,6 +53,12 @@ export type SnapJob =
       /** Questions already answered, so the screen can fill in as they land. */
       solved: SnapResponse['questions'];
       /**
+       * The working of each question still being solved, as it is written,
+       * keyed by question_index. Shown in place of the step placeholder from
+       * the first word of step 1; the answer still waits for `solved`.
+       */
+      live: Record<number, LiveStep[]>;
+      /**
        * The server's word about the photo as a whole — set when more questions
        * were visible than could be read. It arrives with the first frame, long
        * before any answer, and a student who photographed five questions and
@@ -75,6 +82,42 @@ let controller: AbortController | null = null;
  */
 let generation = 0;
 
+/**
+ * A stream that broke after the server had started on the photo.
+ *
+ * Whatever was answered is already saved, and charged, on the server, so it is
+ * shown — with a line saying the rest did not arrive. With nothing answered
+ * there is nothing to show, and that is a failure on our side, not the photo's.
+ * Neither goes back to `POST /doubts`: see `StreamCut`.
+ */
+export function afterStreamCut(cut: StreamCut): { response: SnapResponse } | { failure: SnapFailure } {
+  if (!cut.questions.length) {
+    return {
+      failure: {
+        message: 'The connection dropped before the answer arrived.',
+        stage: 'network',
+        remedy: 'our_side',
+        retake_helps: false,
+      },
+    };
+  }
+  const expected = Number(cut.meta.question_count ?? 0);
+  const missing = expected > cut.questions.length;
+  return {
+    response: {
+      ...(cut.meta as object),
+      submission_id: String(cut.meta.submission_id ?? ''),
+      solved_count: cut.questions.filter((q) => q.status === 'solved').length,
+      // `meta` can carry the server's own note about the photo; the cut is
+      // the newer and more useful thing to say.
+      note: missing
+        ? 'The connection dropped before every answer arrived. Snap the rest again to see them.'
+        : ((cut.meta.note as string | null | undefined) ?? null),
+      questions: cut.questions,
+    } as SnapResponse,
+  };
+}
+
 function emit(next: SnapJob) {
   job = next;
   for (const listener of listeners) listener();
@@ -89,6 +132,10 @@ function emit(next: SnapJob) {
  * event-streams, a device whose XHR does not report progress — the whole solve
  * still works through `POST /doubts`; the student just waits the way they did
  * before. A degraded snap is much worse than a late question.
+ *
+ * Only if it never started, though. Once a single frame has arrived the
+ * server is working on this photo and saving what it answers, so a stream
+ * that breaks after that is never retried on the other route.
  */
 export function startSnapJob(photo: DoubtPhoto): void {
   controller?.abort();
@@ -100,6 +147,7 @@ export function startSnapJob(photo: DoubtPhoto): void {
     streaming: true,
     read: [],
     solved: [],
+    live: {},
     note: null,
   });
 
@@ -131,6 +179,16 @@ export function startSnapJob(photo: DoubtPhoto): void {
           ...j,
           solved: [...j.solved, q].sort((a, b) => a.question_index - b.question_index),
         })),
+      onStep: (step) =>
+        patch((j) => ({
+          ...j,
+          live: {
+            ...j.live,
+            [step.questionIndex]: upsertLiveStep(j.live[step.questionIndex], step),
+          },
+        })),
+      onStepsReset: (questionIndex) =>
+        patch((j) => ({ ...j, live: { ...j.live, [questionIndex]: [] } })),
     },
     controller.signal
   )
@@ -142,6 +200,15 @@ export function startSnapJob(photo: DoubtPhoto): void {
       // same question twice and bill the student's quota for it.
       if ((err as { snapFailure?: unknown })?.snapFailure) {
         fail(err);
+        return;
+      }
+      // Frames arrived, so the server had the photo and was already saving
+      // and charging answers. Uploading it again would solve it twice.
+      const cut = (err as { streamCut?: StreamCut })?.streamCut;
+      if (cut?.framesReceived) {
+        const after = afterStreamCut(cut);
+        if ('response' in after) succeed(after.response);
+        else emit({ status: 'failed', photoUri: photo.uri, failure: after.failure });
         return;
       }
       patch((j) => ({ ...j, streaming: false }));

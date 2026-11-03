@@ -106,6 +106,15 @@ export interface ArrowGeom {
   x2: number;
   y2: number;
   angle_deg: number;
+  /**
+   * The way the arrow actually POINTS, when that is not `angle_deg`. A
+   * component that runs against its axis (the weight's component along an
+   * incline is down the slope, the axis is up it) used to be drawn with its
+   * head turned back toward the body, because the head took `angle_deg`. The
+   * label still sits where `angle_deg` puts it: moving it to the tip collides
+   * with the resolved force's own label on a pendulum (render gate, 343x236).
+   */
+  head_deg?: number;
   label: string;
 }
 
@@ -166,6 +175,36 @@ function laneOffsets(forces: readonly FbdForce[], bodyR: number): number[] {
     });
   }
   return lanes;
+}
+
+/**
+ * What a component's label says: `{along, perp}` as "cosθ" / "sinθ" / "cos 25°".
+ *
+ * IT IS NOT ALWAYS "cos along, sin across". The label's angle is the angle
+ * between the force and the resolution axis, and what a student reads as θ on
+ * an incline is the INCLINE's angle. For the weight, which is vertical, those
+ * are complements: the component along the slope is mg·sinθ and the one
+ * across it is mg·cosθ — the opposite of the old fixed labels, which taught
+ * the wrong formula on the most common free-body diagram in the syllabus.
+ *
+ *   incline, force vertical     sinθ along, cosθ across   (θ = the incline's)
+ *   incline, any other force    its own angle off the slope, in degrees
+ *   string (pendulum)           cosθ along, sinθ across   (θ = off the axis,
+ *                               the ch13 picture; unchanged)
+ */
+export function componentLabelFns(
+  context: string,
+  forceAngleDeg: number,
+  axisDeg: number
+): { along: string; perp: string } {
+  if (context !== 'incline') return { along: 'cosθ', perp: 'sinθ' };
+  const a = (((forceAngleDeg % 360) + 360) % 360);
+  const vertical = Math.abs(a - 270) < 1 || Math.abs(a - 90) < 1;
+  if (vertical) return { along: 'sinθ', perp: 'cosθ' };
+  // Acute angle between the force's line and the axis line, 0..90.
+  const rel = (((forceAngleDeg - axisDeg) % 180) + 180) % 180;
+  const psi = Math.round(Math.min(rel, 180 - rel));
+  return { along: `cos ${psi}°`, perp: `sin ${psi}°` };
 }
 
 export function layoutFbd(
@@ -271,6 +310,7 @@ export function layoutFbd(
       x2: src.x1 + alongLen * Math.cos(ax),
       y2: src.y1 - alongLen * Math.sin(ax),
       angle_deg: axis,
+      head_deg: alongLen >= 0 ? axis : axis + 180,
       label: 'cos',
     };
     const perp: ArrowGeom = {
@@ -279,6 +319,7 @@ export function layoutFbd(
       x2: src.x1 + perpLen * Math.cos(ax + Math.PI / 2),
       y2: src.y1 - perpLen * Math.sin(ax + Math.PI / 2),
       angle_deg: axis + 90,
+      head_deg: perpLen >= 0 ? axis + 90 : axis + 270,
       label: 'sin',
     };
     components = { along, perp };

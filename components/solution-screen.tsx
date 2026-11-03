@@ -1,7 +1,14 @@
-import { Image } from 'expo-image';
+import { Image, type ImageStyle } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+} from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -13,14 +20,25 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { footPadding } from '@/lib/foot-padding';
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { AskFollowUpBar } from '@/components/ask-follow-up';
 import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
+import { FigureLoadFailed } from '@/components/question-diagram';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
-import { DoubtSolution } from '@/components/doubt-solution';
+import { GridPaper } from '@/components/grid-paper';
+import { SolutionCards } from '@/components/solution-cards';
 import { DoubtOption } from '@/lib/doubts';
-import { ParsedStep } from '@/lib/solution-steps';
+import type { ResolveEvent } from '@/lib/doubt-followup';
+import { hapticTicked } from '@/lib/haptics';
+import { latexToText } from '@/lib/latex-text';
+import { LiveStep, upsertLiveStep } from '@/lib/live-steps';
+import { withTeacherName } from '@/lib/preferences';
+import { ParsedStep, parseSolutionSteps } from '@/lib/solution-steps';
+import { solutionView, type SolvedSource } from '@/lib/solution-view';
 import { PAGE_TITLE } from '@/constants/page-title';
+import { QUESTION_READ_LINE, QUESTION_READ_SIZE } from '@/constants/reading';
 
 /**
  * Snap It Out — solution screen, ported from snap-solution-6b/.
@@ -43,10 +61,8 @@ const INK_70 = '#4A463D';
 const INK_50 = '#8A8478';
 const INK_30 = '#B5B0A4';
 const PAPER = '#FFFFFF';
-const GRID = 'rgba(28,26,22,0.04)';
 const HAIR = 'rgba(28,26,22,0.12)';
-const GRID_SIZE = 26;
-// The same greens SolutionSteps closes the rail with, so the option the answer
+// The same greens as the solution's final answer, so the option the answer
 // landed on and the answer itself read as one statement.
 const GREEN = '#1C9B57';
 const GREEN_INK = '#14663A';
@@ -60,8 +76,9 @@ const AMBER_INK = '#7A5310';
 // keeps the handwriting, which is what marks it as an aside, and drops the
 // colour.
 const KEY_IDEA_INK = INK_70;
-const QUESTION_SIZE = 16;
-const QUESTION_LINE = QUESTION_SIZE * 1.6;
+/** The shared reading sizes (constants/reading.ts): the question at 16 on 26. */
+const QUESTION_SIZE = QUESTION_READ_SIZE;
+const QUESTION_LINE = QUESTION_READ_LINE;
 /**
  * How much of the question may stay pinned.
  *
@@ -131,8 +148,20 @@ export type SolutionQuestion = {
    * of an empty rail that reads as "no steps".
    */
   pending?: boolean;
+  /**
+   * The working of a pending question as it is being written, from the first
+   * word of step 1. Drawn exactly like finished steps, with no final answer:
+   * that still arrives only once the solve is checked.
+   */
+  liveSteps?: ParsedStep[];
   /** Shown in place of the working when this question could not be solved. */
   failureNote?: string | null;
+  /**
+   * Unsolved, but fixable by the student SAYING what the photo lost — the
+   * server reads a follow-up on it as a possible correction and solves it
+   * again (`onResolve` below). Shown as an invitation under the note.
+   */
+  canClarify?: boolean;
   /** Every printed choice, for an MCQ. Shown under the question. */
   options?: DoubtOption[] | null;
   /** The question before conversion, so its fractions stack like the steps'. */
@@ -199,45 +228,8 @@ function isStructureOnly(text: string): boolean {
   );
 }
 
-/** The graph paper the design lays everything on: 26px squares at 4% ink. */
-function GridPaper() {
-  const { width, height } = useWindowDimensions();
-  const rows = Math.ceil(height / GRID_SIZE);
-  const cols = Math.ceil(width / GRID_SIZE);
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {Array.from({ length: rows }, (_, i) => (
-        <View
-          key={`r${i}`}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: (i + 1) * GRID_SIZE,
-            height: 1,
-            backgroundColor: GRID,
-          }}
-        />
-      ))}
-      {Array.from({ length: cols }, (_, i) => (
-        <View
-          key={`c${i}`}
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: (i + 1) * GRID_SIZE,
-            width: 1,
-            backgroundColor: GRID,
-          }}
-        />
-      ))}
-    </View>
-  );
-}
-
 export function SolutionScreen({
-  questions,
+  questions: given,
   index,
   onSelect,
   onBack,
@@ -248,7 +240,63 @@ export function SolutionScreen({
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(), []);
   const scrollRef = useRef<ScrollView>(null);
+
+  /**
+   * An unsolved question the student has just fixed by saying what it says.
+   * Held here, by doubt id, over whatever the screen was given: the working
+   * streams into the space the "could not solve" note held, and the solution
+   * replaces it — the same place, not the follow-up board. The server has
+   * already stored it, so the next time this doubt is opened it simply loads
+   * solved.
+   */
+  const [fixed, setFixed] = useState<Record<string, Partial<SolutionQuestion>>>({});
+  const fixingRef = useRef<{ doubtId: string; id: string; steps: LiveStep[] } | null>(null);
+  const questions = useMemo(
+    () => given.map((q) => (q.doubtId && fixed[q.doubtId] ? { ...q, ...fixed[q.doubtId] } : q)),
+    [given, fixed]
+  );
   const question = questions[index];
+  const onResolve = useCallback(
+    (event: ResolveEvent) => {
+      const set = (doubtId: string, patch: Partial<SolutionQuestion>) =>
+        setFixed((f) => ({ ...f, [doubtId]: patch }));
+      if (event.kind === 'resolving') {
+        const target = given.find((q) => q.doubtId === event.doubtId) ?? question;
+        if (!target?.doubtId) return;
+        fixingRef.current = { doubtId: target.doubtId, id: target.id, steps: [] };
+        set(target.doubtId, { pending: true, liveSteps: [], failureNote: null, canClarify: false });
+        return;
+      }
+      const fixing = fixingRef.current;
+      if (!fixing) return;
+      if (event.kind === 'partial' || event.kind === 'step' || event.kind === 'reset') {
+        fixing.steps =
+          event.kind === 'reset'
+            ? []
+            : upsertLiveStep(fixing.steps, { ...event.step, final: event.kind === 'step' });
+        set(fixing.doubtId, {
+          pending: true,
+          liveSteps: parseSolutionSteps(fixing.steps),
+          failureNote: null,
+          canClarify: false,
+        });
+      } else if (event.kind === 'resolved') {
+        const view = solutionView(event.question as unknown as SolvedSource, fixing.id);
+        set(fixing.doubtId, { ...view, pending: false, liveSteps: undefined });
+        fixingRef.current = null;
+        hapticTicked();
+      } else if (event.kind === 'failed') {
+        set(fixing.doubtId, {
+          pending: false,
+          liveSteps: undefined,
+          failureNote: withTeacherName(latexToText(event.message)) || null,
+          canClarify: true,
+        });
+        fixingRef.current = null;
+      }
+    },
+    [given, question]
+  );
   /**
    * The exchange lives here, not in the bar, because its answer needs a sheet
    * at screen level — a view drawn outside its parent receives no touches on
@@ -426,12 +474,10 @@ export function SolutionScreen({
             {!!question.figureUrls?.length && !question.questionImageUrl && (
               <View style={styles.figures}>
                 {question.figureUrls.map((url) => (
-                  <Image
+                  <FigureImage
                     key={url}
-                    source={{ uri: url }}
+                    uri={url}
                     style={styles.figure}
-                    contentFit="contain"
-                    transition={120}
                     accessibilityLabel="Figure from the question"
                   />
                 ))}
@@ -468,12 +514,11 @@ export function SolutionScreen({
                             reasoned from and what a screen reader reads, and
                             it is the only thing left if the URL has expired. */}
                         {!!option.image_url && (
-                          <Image
-                            source={{ uri: option.image_url }}
+                          <FigureImage
+                            uri={option.image_url}
                             style={styles.optionFigure}
-                            contentFit="contain"
-                            transition={120}
                             accessibilityLabel={option.text}
+                            failedMessage="This option's picture could not be loaded."
                           />
                         )}
                         {/* A SMILES string is a caption for nobody: "structure:
@@ -519,7 +564,7 @@ export function SolutionScreen({
               photo rather than the question showing. */}
           {!!notice && (
             <View style={styles.notice}>
-              <Text style={styles.noticeText}>{notice}</Text>
+              <Text style={styles.noticeText}>{withTeacherName(notice)}</Text>
             </View>
           )}
 
@@ -545,24 +590,37 @@ export function SolutionScreen({
                 <PendingDot />
                 <Text style={styles.pendingText}>{PENDING_STAGES[stage]}</Text>
               </View>
-              <StepsPlaceholder />
+              {/* The working as it is written, once step 1 has begun; the
+                  placeholder only until then. No answer row — SolutionCards
+                  draws one only when given an answer, which a pending
+                  question never has. */}
+              {question.liveSteps?.length ? (
+                <SolutionCards steps={question.liveSteps} />
+              ) : (
+                <StepsPlaceholder />
+              )}
             </View>
           ) : question.failureNote ? (
             <View style={styles.failureBlock}>
               <Text style={styles.failureText}>{question.failureNote}</Text>
+              {question.canClarify ? (
+                <Text style={[styles.failureText, styles.clarifyHint]}>
+                  {withTeacherName(
+                    'Know what it says? Hold Ask follow-up and tell Monk — “the power is minus 8” — and it will be solved right here.'
+                  )}
+                </Text>
+              ) : null}
             </View>
           ) : (
             <View style={styles.stepsBlock}>
-              <DoubtSolution
+              <SolutionCards
                 steps={question.steps}
                 answer={question.answer}
                 answerRaw={question.answerRaw}
                 answerLabels={question.answerLabels}
                 footer={
-                  <Text style={styles.meta}>
-                    {question.steps.length} step{question.steps.length === 1 ? '' : 's'}
-                    {questions.length > 1 ? ' · tap a chip for the next question' : ''}
-                  </Text>
+                  // Each card already counts its step; only the hint is left.
+                  questions.length > 1 ? <Text style={styles.meta}>Tap a chip for the next question</Text> : null
                 }
               />
             </View>
@@ -603,12 +661,59 @@ export function SolutionScreen({
             disc. The bar owns the whole exchange — recording, asking and the
             spoken answer — because a follow-up is a question about the working
             on this screen and must not navigate away from it. */}
-        <View style={[styles.actionsInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
-          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} />
+        <View style={[styles.actionsInner, { paddingBottom: footPadding(insets.bottom, 16, 12) }]}>
+          <AskFollowUpBar doubtId={question?.doubtId} onReport={onReport} onResolve={onResolve} />
+          {/* The bar has a typed field now, and this footer is pinned to the
+              bottom of the screen with nothing else to lift it clear of the
+              keyboard — on either platform. */}
+          <KeyboardSpacer ios bottomInset={footPadding(insets.bottom, 16, 12)} />
         </View>
       </View>
 
     </View>
+  );
+}
+
+/**
+ * A figure from the question, or the picture that is an option — with the
+ * failure state QuestionDiagram has. These are short-lived signed URLs, and
+ * one that expired or failed left an empty box with nothing to say it should
+ * have held a circuit. Retry re-keys the image so it is fetched again.
+ */
+function FigureImage({
+  uri,
+  style,
+  accessibilityLabel,
+  failedMessage,
+}: {
+  uri: string;
+  style: StyleProp<ImageStyle>;
+  accessibilityLabel: string;
+  failedMessage?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  if (failed) {
+    return (
+      <FigureLoadFailed
+        message={failedMessage}
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
+  }
+  return (
+    <Image
+      key={attempt}
+      source={{ uri }}
+      style={style}
+      contentFit="contain"
+      transition={120}
+      accessibilityLabel={accessibilityLabel}
+      onError={() => setFailed(true)}
+    />
   );
 }
 
@@ -852,7 +957,6 @@ function createStyles() {
      *  step text, past the rail. */
     keyIdea: {
       marginTop: 26,
-      paddingLeft: 34,
     },
     keyIdeaText: {
       fontFamily: 'Onest_500Medium',
@@ -895,6 +999,7 @@ function createStyles() {
     },
     // Amber, not red: the working is sound and worth reading, only the final
     // answer is missing. Red would tell a student to discard the whole card.
+    clarifyHint: { marginTop: 10, opacity: 0.8 },
     failureText: {
       fontFamily: 'Onest_400Regular',
       fontSize: 16,
@@ -998,8 +1103,8 @@ function PendingDot() {
  * and bought a new problem: it states as fact that there will be three steps
  * and invites a student to read numbers that are not answers to anything.
  *
- * This is the third: the rail, a small open mark where each step will begin,
- * and two or three light bars for the words. No numbers before there are any.
+ * This is the third: the cards the solution will sit in, with two or three
+ * light bars for the words. No numbers before there are any.
  * Lighter fill than the app's default skeleton, fewer bars per step, and no
  * slab standing in for an equation — a page that is waiting should weigh less
  * than the page that arrives, not the same.
@@ -1008,14 +1113,12 @@ function StepsPlaceholder() {
   const skeleton = useMemo(() => createSkeletonStyles(), []);
   return (
     <View style={skeleton.steps}>
-      <View style={skeleton.rail} />
       {[0, 1, 2, 3].map((i) => (
         // The fourth is half-lit. A solve is usually five or six steps, so the
         // block has to reach down the page or it reads as "this is all there
         // is" and then jumps — but four steps at full weight is a grey page.
         // It fades out instead, which says "and more" without drawing it.
         <View key={i} style={[skeleton.step, i === 3 && skeleton.stepFading]}>
-          <View style={skeleton.mark} />
           <Skeleton delay={stagger(i, 150)} style={skeleton.stepTitle} />
           {i < 3 && (
             <SkeletonParagraph
@@ -1063,44 +1166,24 @@ export function SolutionScreenSkeleton({ onBack }: { onBack: () => void }) {
 }
 
 function createSkeletonStyles() {
-  const RAIL = 34;
   /** Lighter than SKELETON_FILL: this placeholder covers most of a page, and
    *  at the app's usual weight that much of it reads as a grey screen. */
   const FILL = 'rgba(28,26,22,.055)';
   return StyleSheet.create({
-    // DoubtSolution's own rail geometry, so the words land where these bars
-    // are and nothing shifts when the answer arrives.
+    // SolutionCards' own stack, so the words land where these bars are and
+    // nothing shifts when the answer arrives.
     steps: {
-      position: 'relative',
       marginTop: 6,
-      paddingLeft: RAIL,
-      gap: 30,
-    },
-    rail: {
-      position: 'absolute',
-      left: 10.5,
-      top: 8,
-      bottom: 16,
-      width: 1,
-      backgroundColor: 'rgba(28,26,22,.07)',
+      gap: 12,
     },
     step: {
-      position: 'relative',
       gap: 10,
       alignItems: 'flex-start',
       alignSelf: 'stretch',
-    },
-    /** Where the numbered marker will be, drawn as an open ring: it holds the
-     *  place without claiming to know what goes in it. */
-    mark: {
-      position: 'absolute',
-      left: -RAIL + 5,
-      top: 4,
-      width: 11,
-      height: 11,
-      borderRadius: 5.5,
+      padding: 16,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
+      borderColor: 'rgba(28,26,22,.10)',
       backgroundColor: '#FFFFFF',
     },
     stepFading: { opacity: 0.45 },

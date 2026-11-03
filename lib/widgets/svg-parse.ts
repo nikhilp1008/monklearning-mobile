@@ -53,3 +53,40 @@ export function utf8ByteLength(s: string): number {
   }
   return n;
 }
+
+/**
+ * XML CHARACTER REFERENCES IN TEXT, DECODED.
+ *
+ * react-native-svg's parser copies the text between tags verbatim — it never
+ * decodes `&lt;`, `&gt;`, `&amp;` or numeric references — so a figure labelled
+ * `λ/a &lt;&lt; 1` or `&#8594;` drew those characters literally on the phone
+ * while every browser drew `<<` and `→` (X1, 2026-09-29: 178 of 2,238 stored
+ * figures, and any live one with <, > or & in a label). The text cannot be
+ * decoded in the string (a raw `<` would open a tag), so it is decoded in the
+ * parsed tree, before the tree becomes elements: `parse`'s middleware.
+ *
+ * The textbook diagrams draw through it too (components/revise/
+ * diagram-card.tsx): their SVG escapes "&" as XML requires, so the phone
+ * showed "Current &amp; Ohm's law" on the chapter map (Android review of
+ * Physics 12 Ch 3, 2026-10-22). Decoding in the renderer covers every
+ * chapter's drawing, whichever escaper wrote it.
+ */
+const NAMED_ENTITIES: Record<string, string> = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" };
+
+export function decodeXmlEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|lt|gt|amp|quot|apos);/g, (whole, ref: string) => {
+    if (ref[0] !== '#') return NAMED_ENTITIES[ref] ?? whole;
+    const code = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+    return Number.isInteger(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+  });
+}
+
+type ParsedNode = { children: (ParsedNode | string)[] };
+
+/** `parse` middleware: decodes every text child in the tree, in place. */
+export function decodeTextNodes<T extends ParsedNode>(node: T): T {
+  node.children = node.children.map((child) =>
+    typeof child === 'string' ? decodeXmlEntities(child) : decodeTextNodes(child)
+  );
+  return node;
+}

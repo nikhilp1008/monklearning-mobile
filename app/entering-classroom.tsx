@@ -3,8 +3,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
+import { StateCard } from '@/components/states';
 import { EnteringCardScreen } from '@/components/entering-card';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
@@ -20,15 +22,23 @@ import { useStagedStatus } from '@/hooks/use-staged-status';
 import { getCatalogue, subjectForChapter } from '@/lib/drona';
 import {
   checkDronaTopic,
+  getResumableSession,
+  resumeDronaSession,
   scopeDronaSession,
+  classLimitOf,
   startDronaSession,
+  type ClassLimit,
+  type ResumableSession,
 } from '@/lib/drona-live';
 import { discardPrewarmedClient, prewarmDronaClient } from '@/lib/drona-prewarm';
 import { getLanguagePreference, getTeacherPreference, teacherToVoice } from '@/lib/preferences';
 import { supabase } from '@/lib/supabase';
 import { captureProof } from '@/lib/proof';
 
-type Stage = 'connecting' | 'scoping' | 'error';
+type Stage = 'connecting' | 'scoping' | 'resume' | 'error';
+
+/** How long the "left partway?" check may hold up a class. A slow answer means no offer. */
+const RESUME_CHECK_MS = 2500;
 
 // /drona/session/{id}/scope proxies to an upstream LLM provider and, when
 // that provider errors, the raw provider error string ends up verbatim in
@@ -46,14 +56,18 @@ function friendlyScopeError(err: unknown): string {
 
 export default function EnteringClassroomScreen() {
   const isPortrait = usePortraitLock();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     chapterId?: string;
     chapterTitle?: string;
     initialUtterance?: string;
+    /** '1' when the student typed the topic rather than tapping one. */
+    typed?: string;
   }>();
   const chapterTitle = params.chapterTitle || 'this chapter';
   const paramChapterId = params.chapterId ?? '';
   const initialUtterance = params.initialUtterance ?? '';
+  const typedTopic = params.typed === '1';
 
   /**
    * NAMING THE CHAPTER IS THIS SCREEN'S JOB, NOT THE CALLER'S.
@@ -147,6 +161,11 @@ export default function EnteringClassroomScreen() {
    */
   const [pendingOption, setPendingOption] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  /** The plan's class limit, when that is why the classroom would not open. */
+  const [classLimit, setClassLimit] = useState<ClassLimit | null>(null);
+  /** An unfinished class on this lesson, offered before a new one starts. */
+  const [offer, setOffer] = useState<ResumableSession | null>(null);
+  const [resuming, setResuming] = useState(false);
 
   /**
    * Which subject's loading copy this class gets. Null is an ordinary answer —
@@ -181,6 +200,8 @@ export default function EnteringClassroomScreen() {
   const autoSubmittedRef = useRef(false);
   /** The session is started exactly once, on the first render that has params. */
   const startedRef = useRef(false);
+  /** The new-class start, kept so "Start from the beginning" can run it after the offer. */
+  const beginRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     // `chapterResolved` joins `paramsSettled` for the same reason it exists:
@@ -193,6 +214,7 @@ export default function EnteringClassroomScreen() {
     // is measured against this. Fire-and-forget on purpose — the class must
     // not wait on it, and a missed baseline only costs one silent summary.
     captureProof();
+    const begin = () =>
     Promise.all([getTeacherPreference(), getLanguagePreference()])
       .then(([teacher, language]) => {
         if (cancelled) return Promise.reject(new Error('cancelled'));
@@ -225,14 +247,71 @@ export default function EnteringClassroomScreen() {
       })
       .catch((err) => {
         if (cancelled || (err instanceof Error && err.message === 'cancelled')) return;
-        setErrorMessage(friendlyScopeError(err) || 'Could not reach Drona right now.');
+        const limit = classLimitOf(err);
+        if (limit) setClassLimit(limit);
+        setErrorMessage(limit?.message ?? (friendlyScopeError(err) || 'Could not reach Drona right now.'));
         setStage('error');
       });
+    beginRef.current = begin;
+
+    // A subtopic tapped from the chapter's own list can have a class the
+    // student left partway: ask before starting a new one. Typed topics and
+    // chapter-only entries skip this, and any failure or slow answer means no
+    // offer, which is exactly the old behaviour.
+    if (initialUtterance && chapterId && !typedTopic) {
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), RESUME_CHECK_MS));
+      Promise.race([
+        getResumableSession({ chapter_id: chapterId, subtopic: initialUtterance }),
+        timeout,
+      ])
+        .catch(() => null)
+        .then((found) => {
+          if (cancelled) return;
+          if (found && found.resumable && found.session_id) {
+            setOffer(found);
+            setStage('resume');
+          } else {
+            void begin();
+          }
+        });
+    } else {
+      void begin();
+    }
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsSettled, chapterResolved]);
+
+  /** "Start from the beginning" (or a resume that could not be honoured): the normal new class. */
+  function startFresh() {
+    setOffer(null);
+    setStage('connecting');
+    void beginRef.current?.();
+  }
+
+  async function continueClass() {
+    if (!offer?.session_id || resuming) return;
+    setResuming(true);
+    try {
+      await resumeDronaSession(offer.session_id);
+      router.replace({
+        pathname: '/live-classroom',
+        params: {
+          sessionId: offer.session_id,
+          chapterTitle,
+          subtopic: offer.subtopic ?? initialUtterance,
+          subject: subject ?? '',
+          chapterId,
+        },
+      });
+    } catch {
+      // The class could not be re-opened (it moved on, or the network dropped):
+      // a new one is always available.
+      setResuming(false);
+      startFresh();
+    }
+  }
 
   /**
    * A student who backs out of scoping leaves a live socket behind, and the
@@ -322,13 +401,17 @@ export default function EnteringClassroomScreen() {
     }
   }
 
-  // If the student already picked/typed a topic on the previous screen,
+  // If the student already picked or typed a topic on the topics page,
   // fire the same submit real users trigger by hand, but as soon as the
   // session exists rather than waiting on the scoping UI to mount.
   useEffect(() => {
     if (sessionId && initialUtterance && !autoSubmittedRef.current) {
       autoSubmittedRef.current = true;
-      submit(initialUtterance, { skipCheck: true, fromPreselected: true });
+      // A topic tapped from the chapter's own list is on-topic by
+      // construction. One the student typed on the topics page is checked
+      // like any typed answer, and a failure brings them back to the
+      // conversation with the reason, where they can type again.
+      submit(initialUtterance, { skipCheck: !typedTopic, fromPreselected: !typedTopic });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, initialUtterance]);
@@ -362,17 +445,65 @@ export default function EnteringClassroomScreen() {
     );
   }
 
+  if (stage === 'resume' && offer) {
+    return (
+      <View style={styles.screen}>
+        <StatusBar style="light" />
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.scopingContent}>
+            <View style={styles.chapterChip}>
+              <View style={styles.chapterDot} />
+              <Text style={styles.chapterChipText}>{offer.subtopic ?? chapterTitle}</Text>
+            </View>
+            <Text style={styles.speechText}>
+              You were partway through this one. Want to carry on from where you left off?
+            </Text>
+            <View style={styles.optionsRow}>
+              <PressableScale style={styles.optionChip} disabled={resuming} onPress={continueClass}>
+                {resuming ? (
+                  <ActivityIndicator color={colors.ink} size="small" />
+                ) : (
+                  <Text style={styles.optionChipText}>Continue where I left off</Text>
+                )}
+              </PressableScale>
+              <PressableScale style={styles.optionChip} disabled={resuming} onPress={startFresh}>
+                <Text style={styles.optionChipText}>Start from the beginning</Text>
+              </PressableScale>
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   if (stage === 'error') {
     return (
       <View style={styles.screen}>
         <StatusBar style="light" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.errorBlock}>
-            <Text style={styles.errorTitle}>Couldn&apos;t enter the classroom</Text>
-            <Text style={styles.errorBody}>{errorMessage}</Text>
-            <Pressable style={styles.errorButton} onPress={() => router.back()}>
-              <Text style={styles.errorButtonText}>Go back</Text>
-            </Pressable>
+          <View style={styles.stateBlock}>
+            {classLimit ? (
+              <StateCard
+                tone="dark"
+                glyph="lock"
+                title="That's your classes for now"
+                line={classLimit.message}
+                action={
+                  classLimit.upgrade
+                    ? { label: 'See plans', onPress: () => router.replace('/plans') }
+                    : { label: 'Go back', onPress: () => router.back() }
+                }
+                quiet={classLimit.upgrade ? { label: 'Not now', onPress: () => router.back() } : undefined}
+              />
+            ) : (
+              <StateCard
+                tone="dark"
+                glyph="retry"
+                title="Couldn't enter the classroom"
+                line={errorMessage ?? undefined}
+                action={{ label: 'Go back', onPress: () => router.back() }}
+              />
+            )}
           </View>
         </SafeAreaView>
       </View>
@@ -448,6 +579,9 @@ export default function EnteringClassroomScreen() {
             Tip: you can interrupt Drona any time: just tap raise hand.
           </Text>
         </View>
+        {/* The typed request and its Go sit low on the page: lifted above
+            the keyboard, on both platforms (this screen had nothing for it). */}
+        <KeyboardSpacer ios bottomInset={insets.bottom} />
       </SafeAreaView>
     </Pressable>
   );
@@ -574,6 +708,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: '#938D80',
     },
+    stateBlock: { flex: 1, justifyContent: 'center', paddingHorizontal: scale(24) },
     errorBlock: {
       flex: 1,
       alignItems: 'center',

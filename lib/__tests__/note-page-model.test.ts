@@ -1,4 +1,4 @@
-import { parseNotePage, sentenceCase } from '@/lib/note-page-model';
+import { parseNotePage, placeFigures, sentenceCase } from '@/lib/note-page-model';
 
 /**
  * The server's note vocabulary, read as a page.
@@ -115,5 +115,119 @@ describe('sentenceCase', () => {
 
   it('lowercases a long acronym, which is the known cost of the narrow rule', () => {
     expect(sentenceCase('NCERT COLOUR TABLE')).toBe('Ncert colour table');
+  });
+});
+
+describe('the handwritten-notes marks', () => {
+  // From a real gpt-6-luna page (Wave Optics, 6 parts).
+  const PAGE = [
+    'SINGLE-SLIT MINIMA CONDITION',
+    'Condition',
+    '• m = 0 is excluded: θ = 0 is the central maximum.',
+    '★ Shrinking the opening to light’s wavelength makes light spread dramatically.',
+    '⚠ Never swap a, slit width, with d, slit separation.',
+    '⚠️ Light does diffract; its bending is microscopic.',
+    '✎ a is single-slit width; d is YDSE slit separation.',
+    'Quick check',
+    '→ λ = 600 nm and a = 0.2 mm',
+    '→ First minimum: sin θ = 3 × 10⁻³',
+    '$a \\sin \\theta = m\\lambda$',
+  ].join('\n');
+
+  it('reads each mark as its own kind, without the mark', () => {
+    const [sec] = parseNotePage(PAGE);
+    expect(sec.lines.map((l) => l.k)).toEqual([
+      'sub', 'bullet', 'key', 'trap', 'trap', 'tip', 'sub', 'step', 'step', 'formula',
+    ]);
+    const trap = sec.lines[4];
+    expect(trap.t).toBe('Light does diffract; its bending is microscopic.');
+    expect(sec.lines[7].t).toBe('λ = 600 nm and a = 0.2 mm');
+  });
+
+  it('a bare mark with nothing after it is not a mark', () => {
+    const [sec] = parseNotePage('HEADING\n★\n→');
+    expect(sec.lines.every((l) => l.k !== 'key' && l.k !== 'step')).toBe(true);
+  });
+});
+
+describe('placeFigures', () => {
+  const PAGE = [
+    'SPANNER EXAMPLE',
+    '• Torque turns the nut.',
+    'Worked example',
+    '→ F = 40 N at r = 0.25 m',
+    '→ τ = 10 N m',
+    '• Longer spanner, less force.',
+    'QUICK REVISION',
+    '• τ = r F sin θ',
+  ].join('\n');
+  const fig = (numbers: string[], caption = 'Part 2') => ({ svg: '<svg/>', numbers, caption });
+
+  it('goes after the line sharing its numbers, and after the steps that follow it', () => {
+    const [sec] = placeFigures(parseNotePage(PAGE), [fig(['0.25', '30', '40'])]);
+    expect(sec.lines.map((l) => l.k)).toEqual(['bullet', 'sub', 'step', 'step', 'figure', 'bullet']);
+  });
+
+  it('one shared number, or only small ones, is not a match', () => {
+    const out = placeFigures(parseNotePage(PAGE), [fig(['40', '99']), fig(['3', '4'])]);
+    const board = out.find((s) => s.title === 'From the board')!;
+    expect(board.lines).toHaveLength(2);
+    // before QUICK REVISION, which stays last
+    expect(out[out.length - 1].kind).toBe('revision');
+  });
+
+  it('no figures leaves the page alone', () => {
+    const page = parseNotePage(PAGE);
+    expect(placeFigures(page, [])).toBe(page);
+  });
+});
+
+describe('placeFigures: a figure the writer asked for', () => {
+  it('goes after the line it was asked for, whatever its numbers', () => {
+    const page = parseNotePage('LEVERS\n• A lever turns about a pivot.\n• Effort far from the pivot helps.');
+    const [sec] = placeFigures(page, [
+      { svg: '<svg/>', numbers: [], caption: 'Drawn for your notes', after: 'A lever turns about a pivot.' },
+    ]);
+    expect(sec.lines.map((l) => l.k)).toEqual(['bullet', 'figure', 'bullet']);
+  });
+});
+
+describe('placeFigures: a figure of an idea, with no numbers', () => {
+  it('ends the section about the same thing as its class part', () => {
+    const page = parseNotePage(
+      'WHY SOUND BENDS\n• Sound wavelength is comparable to a doorway.\n' +
+        'HUYGENS PRINCIPLE\n• Every point on the wavefront is a source of secondary wavelets.\n' +
+        'QUICK REVISION\n• a sin θ = mλ'
+    );
+    const out = placeFigures(page, [
+      {
+        svg: '<svg/>',
+        numbers: [],
+        caption: 'Huygens',
+        context: 'Huygens construction: secondary wavelets from every point of the wavefront',
+      },
+    ]);
+    expect(out[1].lines.map((l) => l.k)).toEqual(['bullet', 'figure']);
+    expect(out.some((s) => s.title === 'From the board')).toBe(false);
+  });
+});
+
+describe('placeFigures: the line that IS the example', () => {
+  it('beats an earlier line repeating two of its numbers', () => {
+    const page = parseNotePage(
+      'MINIMA\n• Quick check: λ = 600 nm, a = 0.2 mm.\n' +
+        'CENTRAL MAXIMUM\nWorked example\n→ λ = 600 nm, a = 0.2 mm, D = 1.5 m\n→ w = 9 mm'
+    );
+    const out = placeFigures(page, [{ svg: '<svg/>', numbers: ['0.2', '1.5', '600', '9'], caption: 'Width' }]);
+    expect(out[0].lines.map((l) => l.k)).toEqual(['bullet']);
+    expect(out[1].lines.map((l) => l.k)).toEqual(['sub', 'step', 'step', 'figure']);
+  });
+});
+
+describe('headings with symbols', () => {
+  it('reads "THE λ/a REFLEX" as a heading, and a sentence as a sentence', () => {
+    const out = parseNotePage('THE λ/a REFLEX\n• Compute λ/a once.\nA bullet-less line about a slit.');
+    expect(out[0].title).toBe('The λ/a reflex');
+    expect(out[0].lines.map((l) => l.k)).toEqual(['bullet', 'body']);
   });
 });

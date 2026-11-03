@@ -44,6 +44,8 @@ export type SolvedSource = {
   chapter?: string | null;
   concept?: string | null;
   remedy?: Remedy;
+  /** Unsolved, and the student can fix it by saying what the photo lost. */
+  can_clarify?: boolean;
 };
 
 export type SolutionView = SolutionQuestion & {
@@ -105,6 +107,7 @@ export function solutionView(
           ? withTeacherName(latexToText(source.failure_reason))
           : `${teacherNameNow()} could not stand behind an answer here. Read the working and check it yourself.`)
       : null,
+    canClarify: refused && !!source.can_clarify,
     failureNote: refused
       ? withTeacherName(
           latexToText(

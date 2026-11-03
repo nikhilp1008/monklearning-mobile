@@ -1,5 +1,5 @@
 import { Canvas, ColorMatrix, Fill, FractalNoise } from '@shopify/react-native-skia';
-import { StyleSheet, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 
 /**
  * GRAIN, GENERATED RATHER THAN ATTACHED.
@@ -79,6 +79,10 @@ export function Grain({
   strength: number;
   style?: ViewStyle;
 }) {
+  // Android draws blend modes from Android 10. Below that the overlay is laid
+  // on plainly, and grain laid on plainly is the grey haze described below,
+  // so those phones go without it: a clean card, not a filmy one.
+  if (Platform.OS === 'android' && Number(Platform.Version) < 29) return null;
   return (
     <Canvas style={[styles.canvas, style]} pointerEvents="none">
       <Fill>

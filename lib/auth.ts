@@ -1,11 +1,17 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
-import { clearProfile, getStoredName, hasCompletedOnboarding } from '@/lib/profile';
+import { clearProfile, hasCompletedOnboarding, onboardedOnThisDevice } from '@/lib/profile';
+import { clearAllMockProgress } from '@/lib/mock';
+import { clearSavedReports } from '@/lib/mock-report';
 import { clearPass } from '@/lib/pass';
 import { clearTodayPlan } from '@/lib/plan';
 import { clearPreferences } from '@/lib/preferences';
 import { clearProgressCache } from '@/lib/progress';
 import { clearProofState } from '@/lib/proof';
+import { unregisterPush } from '@/lib/push';
+import { isReviewerEmail } from '@/lib/reviewer';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -67,6 +73,9 @@ export function friendlyAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes('after') && m.includes('seconds')) {
     return 'Give it a few seconds before asking for another code.';
+  }
+  if (m.includes('login credentials')) {
+    return 'That password didn’t work. Check it and try again.';
   }
   if (m.includes('expired') || m.includes('invalid')) {
     return 'That code didn’t work. Check it, or ask for a new one.';
@@ -130,6 +139,23 @@ export async function verifyEmailOtp(email: string, token: string): Promise<void
 }
 
 /**
+ * The store-review account's way in: a password, for ONE address.
+ *
+ * Refuses any other address before it reaches the network, so this cannot
+ * become a second way into a student's account even if a screen calls it by
+ * mistake. The result is an ordinary Supabase session, which is all the root
+ * gate and the API look at.
+ */
+export async function signInWithReviewerPassword(email: string, password: string): Promise<void> {
+  if (!isReviewerEmail(email)) throw new Error('Password sign-in is not available for this address.');
+  const { error } = await supabase.auth.signInWithPassword({
+    email: normalizeEmail(email),
+    password,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
  * Ends the session *and* forgets the student.
  *
  * Everything the app keeps about a student outside Supabase is device-local:
@@ -141,6 +167,14 @@ export async function verifyEmailOtp(email: string, token: string): Promise<void
  * Supabase is signed out first so the gate flips even if a clear fails.
  */
 export async function signOut(): Promise<void> {
+  // FIRST, WHILE THE STUDENT CAN STILL BE NAMED. Their pass and their saved
+  // mock papers are kept under their account id, and once the session has
+  // ended there is no id to find them by — they used to stay behind, and the
+  // papers showed to the next account for a second or two on Mock tests.
+  await Promise.all([clearPass(), clearSavedReports(), clearAllMockProgress()]);
+  // Take this phone off the student before the session ends (the call needs
+  // it), but never hold sign-out for it: two seconds, then on.
+  await Promise.race([unregisterPush(), new Promise<void>((done) => setTimeout(done, 2000))]);
   await supabase.auth.signOut();
   clearProgressCache();
   await Promise.all([
@@ -148,9 +182,93 @@ export async function signOut(): Promise<void> {
     clearProofState(),
     clearTodayPlan(),
     clearPreferences(),
-    // A pass belongs to the student who bought it, not to the phone.
-    clearPass(),
   ]);
+}
+
+/**
+ * EVERYONE SIGNS IN AGAIN ONCE, WITH THE ONBOARDING UPDATE.
+ *
+ * The first launch of this version ends whatever session the phone had, so
+ * an existing student opens on the email screen (with the welcome behind it)
+ * and a new one on the welcome. It runs once per install: a fresh install sets the mark on its
+ * first launch with no session to end.
+ *
+ * Only the session ends. This is not `signOut`: the pass lives on the phone
+ * (lib/pass.ts) and `signOut` deletes it, which would lock a paying student
+ * out of what they paid for. Teacher, plan and progress stay too. The pass is
+ * keyed per account, so it comes back on its own when they sign in; the rest
+ * is cleared then only if a DIFFERENT account signs in (`afterSignIn`).
+ *
+ * Bump the version to ask everyone to sign in again in a later release.
+ * v2 is iPhone only (Nov 2026): TestFlight testers sign in again with the first
+ * iPhone build since 1.4.1. Android stays on v1, so nobody there is signed out.
+ */
+const RELOGIN_KEY = Platform.OS === 'ios' ? 'auth.relogin:v2' : 'auth.relogin:v1';
+const SIGNED_OUT_USER_KEY = 'auth.signedOutByUpdate';
+
+/** The access token of the session this launch ended, or null. Asked once
+ *  per launch; both the bootstrap and the first auth event wait on it. */
+let relogin: Promise<string | null> | null = null;
+
+export function endSessionFromBeforeUpdate(): Promise<string | null> {
+  relogin ??= (async () => {
+    try {
+      if (await AsyncStorage.getItem(RELOGIN_KEY)) return null;
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (session?.user && !session.user.is_anonymous) {
+        await AsyncStorage.setItem(SIGNED_OUT_USER_KEY, session.user.id);
+        // 'local': ends it on this phone without a network call, so it works
+        // offline and never fails half-way.
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+      await AsyncStorage.setItem(RELOGIN_KEY, '1');
+      return session?.access_token ?? null;
+    } catch {
+      // Not worth a broken launch. The mark is unset, so it tries again next time.
+      return null;
+    }
+  })();
+  return relogin;
+}
+
+/** Signed out by the update and not signed in since: the gate opens on the
+ *  email screen rather than the welcome. */
+export async function signedOutByUpdate(): Promise<boolean> {
+  try {
+    return !!(await AsyncStorage.getItem(SIGNED_OUT_USER_KEY));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Called right after a code is verified. If the update signed someone out
+ * and a different account has now signed in, the old student's details,
+ * teacher, plan and progress are cleared, as `signOut` would have. The pass
+ * needs nothing: it is kept per account.
+ */
+export async function afterSignIn(): Promise<void> {
+  try {
+    const before = await AsyncStorage.getItem(SIGNED_OUT_USER_KEY);
+    if (!before) return;
+    const { data } = await supabase.auth.getSession();
+    const now = data.session?.user?.id;
+    if (now && now !== before) {
+      clearProgressCache();
+      await Promise.all([
+        clearProfile(),
+        clearProofState(),
+        clearTodayPlan(),
+        clearPreferences(),
+        // A paper someone else left half-sat on this phone.
+        clearAllMockProgress(),
+      ]);
+    }
+    await AsyncStorage.removeItem(SIGNED_OUT_USER_KEY);
+  } catch {
+    // The worst case is the old student's plan showing; not worth a failed sign-in.
+  }
 }
 
 /** The address the student actually signed in with — not the stored profile. */
@@ -189,10 +307,29 @@ export function useAuthState(): AuthState {
 
   useEffect(() => {
     let cancelled = false;
+    /**
+     * ONE ANSWER AT A TIME, THE LATEST WINS. Every auth event re-runs this —
+     * the hourly token refresh, returning to the app — and the checks were not
+     * ordered, so an older, slower one could land last and overrule a newer
+     * one. A check that is no longer the latest is dropped.
+     */
+    let seq = 0;
+    /** The student this gate last let in, and whether it did. */
+    let signedInAs: string | null = null;
 
-    const resolve = async (session: { user?: { is_anonymous?: boolean } } | null) => {
+    const resolve = async (
+      session: { access_token?: string; user?: { id?: string; is_anonymous?: boolean } } | null
+    ) => {
       if (cancelled) return;
+      const mine = ++seq;
+      const stale = () => cancelled || mine !== seq;
+      // The session this launch ended for the update is not one to honour,
+      // even when an auth event reports it after the sign-out.
+      const ended = await endSessionFromBeforeUpdate();
+      if (ended && session?.access_token === ended) session = null;
+      if (stale()) return;
       if (!session?.user) {
+        signedInAs = null;
         setState('signed_out');
         return;
       }
@@ -220,18 +357,29 @@ export function useAuthState(): AuthState {
           timeout(SESSION_BOOTSTRAP_TIMEOUT_MS),
         ]);
       } catch {
+        // A RE-CHECK THAT FAILS CHANGES NOTHING. The same student, already let
+        // in, stays in: a slow or dropped check during a token refresh used to
+        // fall through to the device's record, and where that was missing the
+        // tabs blanked and the app jumped to onboarding's pass screen for a
+        // moment. Only a definite answer from the server moves them.
+        if (session.user.id && signedInAs === session.user.id) {
+          if (!stale()) setState('signed_in');
+          return;
+        }
         // The question could not be asked — offline, or the request timed
-        // out. The local profile is the right evidence for exactly this case:
-        // a student who has used this device before has a name stored, a new
-        // one does not.
+        // out. The device's own record is the right evidence for exactly this
+        // case (see `onboardedOnThisDevice` for why a stored name alone no
+        // longer is).
         //
         // This branch was previously unreachable for the common failure:
         // `hasCompletedOnboarding` swallowed postgrest's returned error and
         // answered `false`, so a signal drop threw an established student
         // into onboarding. It now throws, which is what makes this run.
-        done = !!(await getStoredName());
+        done = await onboardedOnThisDevice();
       }
-      if (!cancelled) setState(done ? 'signed_in' : 'needs_onboarding');
+      if (stale()) return;
+      signedInAs = done ? (session.user.id ?? null) : null;
+      setState(done ? 'signed_in' : 'needs_onboarding');
     };
 
     (async () => {
@@ -249,7 +397,10 @@ export function useAuthState(): AuthState {
 
     // Keeps the gate live after boot: verifying an OTP or signing out both
     // land here, so no screen has to tell the router what just happened.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // A refreshed token is the same student with a new key: nothing about
+      // where they belong has changed, so it is not asked again.
+      if (event === 'TOKEN_REFRESHED' && session?.user?.id && session.user.id === signedInAs) return;
       resolve(session);
     });
 

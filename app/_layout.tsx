@@ -1,9 +1,11 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, router, useRootNavigationState, usePathname, useSegments } from 'expo-router';
+import type { ErrorBoundaryProps } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -81,17 +83,49 @@ import { Inter_400Regular } from '@expo-google-fonts/inter';
 // spells Greek out the way the reference does.
 import { PatrickHand_400Regular } from '@expo-google-fonts/patrick-hand';
 import { Kalam_400Regular, Kalam_700Bold } from '@expo-google-fonts/kalam';
+// The textbook's revise screens (formula sheet, key points, diagrams) set what a
+// student learns from in STIX Two, the face printed maths uses; the app's own
+// words stay in Onest.
+import {
+  STIXTwoText_400Regular,
+  STIXTwoText_400Regular_Italic,
+  STIXTwoText_600SemiBold,
+  STIXTwoText_600SemiBold_Italic,
+} from '@expo-google-fonts/stix-two-text';
+// Its companion for the maths symbols the text face lacks (√ ≈ ⇒ ≠ …); see components/textbook/markup.tsx.
+import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
 
-import { AuthStateContext, useAuthState } from '@/lib/auth';
-import { passStatus } from '@/lib/pass';
+import { AuthStateContext, signedOutByUpdate, useAuthState } from '@/lib/auth';
+import { cachedPassStatus, passStatus } from '@/lib/pass';
+import { onPassRequired } from '@/lib/pass-events';
+import { getAnswers } from '@/lib/onboarding-answers';
+import { getProfile } from '@/lib/profile';
+import { installForegroundHandler, registerForPush, routeForNotification } from '@/lib/push';
+import type { PushData } from '@/lib/push';
 import { initTracking, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ErrorScreen } from '@/components/error-screen';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+/**
+ * A render error anywhere below the root lands here instead of closing the
+ * app. There is no crash reporter yet, so without this a production crash is
+ * simply the app vanishing — the student retries the same screen and churns.
+ * The error's own text stays in the log: it can carry internals, and "Try
+ * again" is the only thing a student can act on.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    console.error('[root error boundary]', error);
+  }, [error]);
+  // How it looks lives in components/error-screen.tsx.
+  return <ErrorScreen onRetry={retry} />;
+}
 
 // Holds the native splash screen up until hideAsync() is called explicitly
 // below, instead of relying on its (undocumented, easy to get wrong) default
@@ -102,6 +136,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // board could already have drawn a placeholder, which is the state it exists
 // to make impossible to miss. No-op unless __DEV__ and the value is empty.
 assertAssetsConfigured();
+
+// While the app is open a push is not shown over the screen the student is on.
+installForegroundHandler();
 
 // Absolute last resort, on top of every individual gate already having its
 // own bounded wait (useEnsureAnonymousSession's own 8s timeout, useFonts
@@ -140,6 +177,11 @@ export default function RootLayout() {
     PatrickHand_400Regular,
     Kalam_400Regular,
     Kalam_700Bold,
+    STIXTwoText_400Regular,
+    STIXTwoText_400Regular_Italic,
+    STIXTwoText_600SemiBold,
+    STIXTwoText_600SemiBold_Italic,
+    STIXTwoMath_400Regular,
   });
   if (fontsError) {
     console.error('[fonts] failed to load, continuing with system fallback:', fontsError);
@@ -183,9 +225,17 @@ export default function RootLayout() {
    */
   const segments = useSegments();
   const inOnboarding = segments[0] === '(onboarding)';
+  // Dev only: the diagnostic preview runs against canned answers with no
+  // student signed in, so the sign-in gate must let it be.
+  const onDevPreview = __DEV__ && segments[0] === 'dev-diagnostic-preview';
   // The promo screen is part of the takeover, not a way out of it: a gate that
   // fired there would bounce the student back mid-code.
-  const onPlans = segments[0] === 'plans' || segments[0] === 'plans-promo';
+  // The plans-page design preview (dev only) is the paywall too, so it is not
+  // sent to the paywall.
+  const onPlans =
+    segments[0] === 'plans' ||
+    segments[0] === 'plans-promo' ||
+    (__DEV__ && segments[0] === 'dev-plans-preview');
 
   /**
    * Telemetry, started once and deliberately outside every startup gate.
@@ -208,18 +258,62 @@ export default function RootLayout() {
     if (!navigatorReady || !pathname) return;
     trackScreen(pathname);
   }, [navigatorReady, pathname]);
+
+  /**
+   * PUSH. A student who has already allowed notifications has their phone's
+   * token refreshed (it can change) every time they are signed in at launch.
+   * This never asks: the prompt belongs to the moments a notification becomes
+   * useful (a snap starting, a class ending), see lib/push.ts.
+   */
+  useEffect(() => {
+    if (authState === 'signed_in') void registerForPush({ ask: false });
+  }, [authState]);
+
+  /**
+   * Tapping a notification opens what it is about. `useLastNotificationResponse`
+   * also reports the tap that launched the app from closed, which a listener
+   * added after launch would miss. Held until the navigator is up and the
+   * student is signed in, and each tap is acted on once.
+   */
+  const lastTap = Notifications.useLastNotificationResponse();
+  const handledTap = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lastTap || !navigatorReady || authState !== 'signed_in') return;
+    const id = lastTap.notification.request.identifier;
+    if (handledTap.current === id) return;
+    handledTap.current = id;
+    const target = routeForNotification(
+      lastTap.notification.request.content.data as PushData | undefined
+    );
+    if (target) router.push(target);
+  }, [lastTap, navigatorReady, authState]);
   const needsOnboardingFlow = authState === 'signed_out' || authState === 'needs_onboarding';
   const gateSettled =
-    ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding);
+    ready && navigatorReady && authState !== 'loading' && (!needsOnboardingFlow || inOnboarding || onDevPreview);
 
   useEffect(() => {
     if (!ready || !navigatorReady || !needsOnboardingFlow) return;
     // Already somewhere in onboarding — leave them where they are, mid-form.
-    if (inOnboarding) return;
+    if (inOnboarding || onDevPreview) return;
     // Signed out starts at the beginning; verified-but-unfinished resumes at
     // the first unanswered question rather than starting over.
-    router.replace(authState === 'signed_out' ? '/welcome' : '/details');
-  }, [ready, navigatorReady, needsOnboardingFlow, inOnboarding, authState]);
+    if (authState === 'signed_out') {
+      router.replace('/welcome');
+      // Signed out by the update: straight to sign-in, with the welcome
+      // behind it for a swipe back.
+      signedOutByUpdate().then((byUpdate) => {
+        if (byUpdate) router.push('/email');
+      });
+      return;
+    }
+    // Verified but unfinished. A student who got through the questions on
+    // this device resumes at the pass, with their exam; one who did not
+    // starts at the name, which keeps what they typed. A stored name alone is
+    // not enough: it is asked before the questions.
+    Promise.all([getAnswers(), getProfile()]).then(([a, p]) =>
+      router.replace(a.questionsDone ? { pathname: '/pass', params: { exam: p.exam } } : '/name')
+    );
+  }, [ready, navigatorReady, needsOnboardingFlow, inOnboarding, onDevPreview, authState]);
 
   /**
    * THE PASS GATE. A day after a one-day pass, the app stops being the app.
@@ -240,17 +334,49 @@ export default function RootLayout() {
    * notice.
    */
   const passGateReady = ready && navigatorReady && authState === 'signed_in' && !inOnboarding;
+  /**
+   * Whether the first pass check of this launch has an answer. The cover stays
+   * up until it does, so a student whose pass has ended never sees Home paint
+   * and then get replaced by the plans screen. A phone that already holds an
+   * answer for this student ("active") answers at once; only a phone with
+   * nothing cached waits on the server, and the startup failsafe still caps it.
+   */
+  const [passKnown, setPassKnown] = useState(false);
   useEffect(() => {
-    if (!passGateReady || onPlans) return;
+    if (!passGateReady) return;
+    if (onPlans) {
+      setPassKnown(true);
+      return;
+    }
     let cancelled = false;
-    const check = async () => {
-      const status = await passStatus();
-      if (cancelled || status.state === 'active') return;
-      router.replace('/plans');
+    let checking = false;
+    const check = async (first: boolean) => {
+      // One check at a time: foreground events arrive in bursts (a permission
+      // prompt, Face ID, coming back from a UPI app).
+      if (checking) return;
+      checking = true;
+      try {
+        if (first) {
+          const cached = await cachedPassStatus();
+          if (!cancelled && cached.state === 'active') setPassKnown(true);
+        }
+        const status = await passStatus();
+        if (cancelled) return;
+        // ONLY A REAL "NO PASS" SENDS A STUDENT TO THE PLANS SCREEN. "Could not
+        // tell" (no signal, a lapsed sign-in on a weak network) leaves them
+        // where they are; the next return to the app asks again. This was the
+        // plans screen appearing for students who had paid.
+        // The FREE tier: the server says this student is not paying but is let
+        // in, with limits. They meet the plans screen at a limit, not at launch.
+        if ((status.state === 'none' || status.state === 'expired') && !status.free) router.replace('/plans');
+        setPassKnown(true);
+      } finally {
+        checking = false;
+      }
     };
-    void check();
+    void check(true);
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') void check();
+      if (next === 'active') void check(false);
     });
     return () => {
       cancelled = true;
@@ -258,14 +384,25 @@ export default function RootLayout() {
     };
   }, [passGateReady, onPlans]);
 
+  /** The cover's own readiness: the gates above, and for a signed-in student
+   *  past onboarding, the first pass answer too. */
+  const coverReady = gateSettled && (authState !== 'signed_in' || inOnboarding || onDevPreview || passKnown);
+
+  // The server stopping the student mid-use (a 402 from any route, a 4402 on a
+  // live socket) is the same verdict the gate above reaches at launch.
+  useEffect(() => {
+    if (!passGateReady || onPlans) return;
+    return onPassRequired(() => router.replace('/plans'));
+  }, [passGateReady, onPlans]);
+
   useEffect(() => {
     // `failsafeTripped` overrides it. Waiting on the gate without that escape
     // would re-create the exact bug this file already carries a 15s failsafe
     // for: a splash screen nothing can dismiss.
-    if (gateSettled || failsafeTripped) {
+    if (coverReady || failsafeTripped) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [gateSettled, failsafeTripped]);
+  }, [coverReady, failsafeTripped]);
 
   /**
    * The cover comes down two frames after the gate settles.
@@ -276,7 +413,7 @@ export default function RootLayout() {
    */
   const [coverDown, setCoverDown] = useState(false);
   useEffect(() => {
-    if (!gateSettled && !failsafeTripped) return;
+    if (!coverReady && !failsafeTripped) return;
     let inner: number | undefined;
     const outer = requestAnimationFrame(() => {
       inner = requestAnimationFrame(() => setCoverDown(true));
@@ -285,7 +422,7 @@ export default function RootLayout() {
       cancelAnimationFrame(outer);
       if (inner !== undefined) cancelAnimationFrame(inner);
     };
-  }, [gateSettled, failsafeTripped]);
+  }, [coverReady, failsafeTripped]);
 
 
   if (!ready) {
@@ -324,15 +461,21 @@ export default function RootLayout() {
               `entering-classroom` and this screen so the student sees one
               continuous surface across the route change; the default push
               animation would slide the second copy in over the first. */}
+          {/* No swipe back out of a class: the End button is the only way
+              out, because ending is what saves the class and opens its
+              summary. A stray edge swipe used to drop the student out
+              mid-lesson. Android's back is held in the screen itself. */}
           <Stack.Screen
             name="live-classroom"
-            options={{ headerShown: false, animation: 'fade' }}
+            options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
           />
           <Stack.Screen name="session-summary" options={{ headerShown: false }} />
           {/* Dev only, reached by deep link: monklearningapp://dev-board-preview.
               Registered so it loses the router's own header, which stacked on
               top of the board's. */}
           <Stack.Screen name="dev-board-preview" options={{ headerShown: false }} />
+          <Stack.Screen name="dev-diagnostic-preview" options={{ headerShown: false }} />
+          <Stack.Screen name="dev-plans-preview" options={{ headerShown: false, gestureEnabled: false }} />
           {/* Pushed screens, not tabs. Both used to live in (tabs) behind
               href:null, which hid them from the bar but still wrapped them in
               it -- so picking a chapter or answering a question happened under
@@ -345,7 +488,9 @@ export default function RootLayout() {
               Practice got. */}
           <Stack.Screen name="progress" options={{ headerShown: false }} />
           <Stack.Screen name="practice" options={{ headerShown: false }} />
-          <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade' }} />
+          {/* No swipe back: the crop's side handles sit near the screen's
+              edge, and a drag there was taken for Back. ✕ closes. */}
+          <Stack.Screen name="snap-capture" options={{ headerShown: false, animation: 'fade', gestureEnabled: false }} />
           <Stack.Screen name="snap-solved" options={{ headerShown: false }} />
           <Stack.Screen
             name="practice-focus"
@@ -369,6 +514,7 @@ export default function RootLayout() {
           {/* No swipe-back off a freshly submitted paper: the gesture would
               land on the palette of a paper that no longer exists. */}
           <Stack.Screen name="mock-report" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="mock-review" options={{ headerShown: false }} />
           <Stack.Screen
             name="report-sheet"
             options={{
@@ -381,6 +527,11 @@ export default function RootLayout() {
           />
           <Stack.Screen name="textbook-chapters" options={{ headerShown: false }} />
           <Stack.Screen name="textbook-reader" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-chapter" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-part" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-formulas" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-keypoints" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-diagrams" options={{ headerShown: false }} />
           <Stack.Screen
             name="textbook-topics"
             options={{
@@ -395,7 +546,6 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="exam-scope" options={{ headerShown: false }} />
-          <Stack.Screen name="exam-scope-subject" options={{ headerShown: false }} />
           <Stack.Screen name="note-detail" options={{ headerShown: false }} />
           <Stack.Screen name="doubt-detail" options={{ headerShown: false }} />
           <Stack.Screen
@@ -407,8 +557,17 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
+          {/* Stated rather than inherited: the handoff asks for a slide in
+              from the right with the page underneath parallaxing, which is
+              what a native stack does on iOS by default and is NOT what
+              Android does. Naming it gives both platforms the same screen. */}
+          <Stack.Screen
+            name="select-teacher"
+            options={{ headerShown: false, animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="account" options={{ headerShown: false }} />
           <Stack.Screen name="subscription" options={{ headerShown: false }} />
+          <Stack.Screen name="class-locked" options={{ headerShown: false }} />
           {/* The takeover when a pass has ended: no header, and no gesture
               back to the screen it replaced. */}
           <Stack.Screen
@@ -420,7 +579,7 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="help" options={{ headerShown: false }} />
         </Stack>
       </PracticeFocusProvider>
       </AuthStateContext.Provider>

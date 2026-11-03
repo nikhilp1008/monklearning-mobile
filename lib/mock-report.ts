@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { supabase } from '@/lib/supabase';
+
 import type { MockSession, MockSubjectScore, MockSubmitResult } from '@/lib/mock';
+import type { DiagramFigure } from '@/lib/practice';
 
 /**
  * THE REPORT A STUDENT COMES BACK TO.
@@ -32,7 +35,25 @@ const KEY_PREFIX = 'monklearning.mock.report.';
  *  more for NEET's 180 questions; a dozen is years of mocks at one per 75
  *  correct practice answers, and bounds the storage either way. */
 const KEEP = 12;
+/**
+ * The list of saved papers, ONE PER STUDENT. It was one list for the phone:
+ * a new account opening Mock tests saw the last account's papers — scores,
+ * the chart — for the second or two before the server's own list arrived and
+ * filtered them out, and a tap in that window opened the other student's
+ * report. The papers themselves are keyed by run id, which the server makes
+ * unique, so only the list needed an owner.
+ */
 const INDEX_KEY = 'monklearning.mock.reports';
+const indexKeyFor = (userId: string) => `${INDEX_KEY}:${userId}`;
+
+async function currentUserId(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export interface MockReportQuestion {
   id: string;
@@ -42,6 +63,9 @@ export interface MockReportQuestion {
   type: 'single_correct' | 'numerical' | 'assertion_reason' | 'match_the_following';
   stem: string;
   options: Record<string, string> | null;
+  /** The figure the stem refers to, as the paper showed it. The server's
+   *  review has always sent it; absent on reports saved before it was kept. */
+  diagram?: DiagramFigure[] | null;
   chosen_option: string | null;
   chosen_value: number | null;
   correct_option: string | null;
@@ -58,9 +82,40 @@ export interface MockReportQuestion {
   chapter_name?: string | null;
 }
 
+/**
+ * THIS PAPER AGAINST THE ONE BEFORE IT, as the server works it out.
+ *
+ * Everything is a percentage of what each paper was worth, never raw marks:
+ * a 35-question starting point and a 75-question full paper are not on the
+ * same scale. Chapters appear only where both papers asked about them and the
+ * share answered right moved by at least a quarter either way.
+ */
+export interface MockPreviousChapter {
+  chapter_id: string;
+  name: string;
+  before: { correct: number; total: number };
+  after: { correct: number; total: number };
+}
+
+export interface MockPrevious {
+  run_id: string;
+  /** The earlier paper's kind; 'diagnostic' reads as "your starting point". */
+  kind: 'full' | 'diagnostic';
+  submitted_at: string;
+  before_percent: number;
+  after_percent: number;
+  delta_percent: number;
+  subjects: { subject: string; before: number; after: number }[];
+  improved: MockPreviousChapter[];
+  slipped: MockPreviousChapter[];
+}
+
 export interface MockReport {
   run_id: string;
   exam: 'jee' | 'neet';
+  /** 'diagnostic' for the free starting-point paper; absent on reports
+   *  saved before it existed, which are all full papers. */
+  kind?: 'full' | 'diagnostic';
   /** ISO, from the device clock at submit. */
   submitted_at: string;
   duration_minutes: number;
@@ -73,6 +128,9 @@ export interface MockReport {
   unanswered: number;
   per_subject: Record<string, MockSubjectScore>;
   questions: MockReportQuestion[];
+  /** Against the previous paper. null: this is the first. undefined: a copy
+   *  saved before comparisons existed, so the server is asked once. */
+  previous?: MockPrevious | null;
 }
 
 /** Everything the server said, plus everything only this device knows. */
@@ -81,6 +139,7 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
   return {
     run_id: result.mock_run_id,
     exam: session.paper.exam,
+    kind: session.paper.kind ?? 'full',
     submitted_at: new Date().toISOString(),
     duration_minutes: session.paper.duration_minutes,
     marks_correct: session.paper.marks_correct,
@@ -91,6 +150,7 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
     wrong: result.score.wrong,
     unanswered: result.score.unanswered,
     per_subject: result.score.per_subject,
+    previous: result.previous,
     questions: session.paper.questions.map((q) => {
       const r = review.get(q.id);
       return {
@@ -100,6 +160,7 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
         type: q.question_type,
         stem: q.question_text ?? '',
         options: q.options,
+        diagram: q.diagram ?? null,
         chosen_option: r?.chosen_option ?? session.answers.get(q.id)?.option ?? null,
         chosen_value: r?.chosen_value ?? null,
         correct_option: r?.correct_option ?? null,
@@ -116,24 +177,85 @@ export function buildReport(session: MockSession, result: MockSubmitResult): Moc
   };
 }
 
+/**
+ * A fetched report, back in the shape a submit answers with.
+ *
+ * For the submit whose response was lost (see `isAlreadySubmitted` in
+ * lib/mock.ts): the session then holds a result just as if the response had
+ * arrived, so the report and review screens open it as the fresh paper it is.
+ */
+export function submitResultFromReport(report: MockReport): MockSubmitResult {
+  return {
+    mock_run_id: report.run_id,
+    score: {
+      correct: report.correct,
+      wrong: report.wrong,
+      unanswered: report.unanswered,
+      marks: report.total_marks,
+      total_marks: report.total_marks,
+      max_marks: report.max_marks,
+      per_subject: report.per_subject,
+    },
+    previous: report.previous,
+    questions: report.questions.map((q) => ({
+      question_id: q.id,
+      answered: q.answered,
+      is_correct: q.is_correct,
+      chosen_option: q.chosen_option,
+      chosen_value: q.chosen_value,
+      correct_option: q.correct_option,
+      correct_value: q.correct_value,
+      solution: q.solution,
+      chapter_id: q.chapter_id ?? null,
+      chapter_name: q.chapter_name ?? null,
+    })),
+  };
+}
+
 export async function saveReport(report: MockReport): Promise<void> {
+  const userId = await currentUserId();
+  // No student, no owner: nothing is kept rather than kept for whoever is next.
+  if (!userId) return;
   await AsyncStorage.setItem(KEY_PREFIX + report.run_id, JSON.stringify(report));
-  const ids = await savedReportIds();
+  const ids = await savedReportIds(userId);
   const next = [report.run_id, ...ids.filter((id) => id !== report.run_id)];
-  await AsyncStorage.setItem(INDEX_KEY, JSON.stringify(next.slice(0, KEEP)));
+  await AsyncStorage.setItem(indexKeyFor(userId), JSON.stringify(next.slice(0, KEEP)));
   // The oldest papers keep their row in the list from the server; only their
   // detail is dropped, and only once a student has a dozen newer ones.
   const dropped = next.slice(KEEP);
   if (dropped.length) await AsyncStorage.multiRemove(dropped.map((id) => KEY_PREFIX + id));
 }
 
-export async function savedReportIds(): Promise<string[]> {
+export async function savedReportIds(userId?: string | null): Promise<string[]> {
   try {
-    const raw = await AsyncStorage.getItem(INDEX_KEY);
+    const id = userId ?? (await currentUserId());
+    if (!id) return [];
+    const raw = await AsyncStorage.getItem(indexKeyFor(id));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
   } catch {
     return [];
+  }
+}
+
+/**
+ * Forgets the signed-in student's saved papers on this phone, and the shared
+ * list from before lists had owners. Called on sign-out, before the session
+ * ends (there is no student to name the list after it).
+ */
+export async function clearSavedReports(): Promise<void> {
+  try {
+    const userId = await currentUserId();
+    const lists = userId ? [INDEX_KEY, indexKeyFor(userId)] : [INDEX_KEY];
+    const ids: string[] = [];
+    for (const key of lists) {
+      const raw = await AsyncStorage.getItem(key);
+      const parsed: unknown = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) ids.push(...parsed.filter((x): x is string => typeof x === 'string'));
+    }
+    await AsyncStorage.multiRemove([...lists, ...ids.map((id) => KEY_PREFIX + id)]);
+  } catch {
+    // Signing out is not blocked by a storage failure.
   }
 }
 

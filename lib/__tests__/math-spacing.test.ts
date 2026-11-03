@@ -34,6 +34,10 @@ describe('spaceOperators', () => {
     // An equation that starts or ends on a relation gets no stray space.
     ['=4', '= 4'],
     ['h=', 'h ='],
+    // A run that opens on a space and a relation follows a drawn script or
+    // fraction (θ_β = …, P_avg = …): its space is kept, or it reads "θβ=".
+    [' = V cosφ', ' = V cosφ'],
+    [' <= 5', ' <= 5'],
     // ASCII two-character relations are kept whole.
     ['x<=5', 'x <= 5'],
   ])('%s', (input, expected) => {

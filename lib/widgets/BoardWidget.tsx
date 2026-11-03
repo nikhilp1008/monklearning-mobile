@@ -7,6 +7,7 @@ import { validateSequence } from './board-sequence-validate';
 
 import { labelledFigure } from './labelled-figure';
 import type { FigureResolver } from './labelled-figure/figure-resolver';
+import { boldFace } from './chrome';
 import { lookup } from './registry';
 import { svgParseError, utf8ByteLength } from './svg-parse';
 import { useCueTrack } from './use-cue-track';
@@ -560,8 +561,7 @@ function SequenceStrip({ at, total, caption, width, theme }: {
         gap: 8, paddingHorizontal: 4,
       }}
     >
-      <Text style={{ fontSize: 11, fontWeight: '700', color: theme.accent,
-                     fontFamily: theme.fontFamily }}>
+      <Text style={{ fontSize: 11, color: theme.accent, ...boldFace(theme.fontFamily) }}>
         {`${at + 1}/${total}`}
       </Text>
       <Text

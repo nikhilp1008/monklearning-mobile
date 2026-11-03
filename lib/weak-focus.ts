@@ -1,4 +1,5 @@
-import { getCachedProgress, getProgress } from '@/lib/progress';
+import { getCachedAnswers } from '@/lib/onboarding-answers';
+import { getCachedProgress, getProgress, type ProgressChapter } from '@/lib/progress';
 
 /**
  * Headroom-weighted chapter sampling for Practice's "Weak areas first" mode.
@@ -15,6 +16,30 @@ import { getCachedProgress, getProgress } from '@/lib/progress';
 /** One background refresh at a time — the payload is ~130KB and every caller
  *  that finds an empty cache would otherwise fire its own. */
 let refreshInFlight = false;
+
+/** What a self-reported hard chapter is worth before any real result exists:
+ *  between "not started" and "flagged" in the server's question weights. */
+const SELF_REPORTED_HARD_BOOST = 2;
+
+const norm = (v: string) =>
+  v.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * Headroom with the student's own "this is hard" prior folded in.
+ *
+ * A PRIOR, not evidence: it applies only while the chapter has no measured
+ * result at all (`not_started`). The first real answer moves the chapter to a
+ * measured state and the boost falls away, so a student who is actually fine
+ * there is not kept on it. Only a typed name that equals a real chapter name
+ * counts; anything else the student typed matches nothing.
+ */
+export function effectiveHeadroom(ch: ProgressChapter, hardChapters: string[]): number {
+  if (ch.state !== 'not_started' || !hardChapters.length) return ch.headroom;
+  const name = norm(ch.name);
+  return hardChapters.some((h) => norm(h) === name)
+    ? ch.headroom * SELF_REPORTED_HARD_BOOST
+    : ch.headroom;
+}
 
 /**
  * Pick a chapter for the next weak-mode question, or null for "no filter".
@@ -53,9 +78,11 @@ export function sampleWeakChapterId(subject: string, exclude?: string[]): string
   );
   if (candidates.length === 0) return null;
 
-  let ticket = Math.random() * candidates.reduce((sum, ch) => sum + ch.headroom, 0);
+  const hard = getCachedAnswers()?.hardChapters ?? [];
+  const weight = (ch: ProgressChapter) => effectiveHeadroom(ch, hard);
+  let ticket = Math.random() * candidates.reduce((sum, ch) => sum + weight(ch), 0);
   for (const ch of candidates) {
-    ticket -= ch.headroom;
+    ticket -= weight(ch);
     if (ticket <= 0) return ch.chapter_id;
   }
   return candidates[candidates.length - 1].chapter_id;

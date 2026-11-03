@@ -1,245 +1,710 @@
-import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, Keyboard, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import Svg, { Circle, Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg';
 
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
+import { NightSky } from '@/components/night-sky';
 import { PressableScale } from '@/components/pressable-scale';
-import { SettingsPage } from '@/components/settings-page';
+import { SettingsHeader } from '@/components/settings-page';
 import { SlidingToggle } from '@/components/sliding-toggle';
 import { colors } from '@/constants/brand';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { useScale } from '@/constants/scale';
-import { EXAM_SCOPE, SCOPE_SOURCE_NOTE, SCOPE_TIMELINE, type ScopeExam } from '@/lib/exam-scope';
-import { subjectScope, subjectsFor } from '@/lib/exam-scope-chapters';
-import { getProfile } from '@/lib/profile';
+import { SKY_THEMES, START_ARROW } from '@/constants/teachers';
+import {
+  SCOPE_EXAMS,
+  SCOPE_SUBJECTS,
+  scopeUnit,
+  type ScopeExam,
+  type SubjectKey,
+} from '@/lib/exam-scope';
+import { askScope, type ScopeAnswerRow } from '@/lib/exam-scope-search';
 import { hapticSwitched } from '@/lib/haptics';
+import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
+import { getProfile } from '@/lib/profile';
+import { shadow } from '@/lib/shadow';
 
 /**
- * Exam scope — the page that answers "what is actually examined?".
+ * Exam scope: "Is it in your exam?".
  *
- * Standalone by design: nothing here navigates anywhere else. It opens from
- * one quiet row at the bottom of Home, is read, and is left.
+ * One page. The official units are always on it, under the search, and a unit
+ * drops down in place. A search answers inside its own key and marks the units
+ * it found; it never takes the list away.
  *
- * The two lists are deliberately framed differently, because the difference
- * is the whole point. Archived chapters are gone from the NCERT books and
- * from both exams — those a student can genuinely drop. Topic exceptions sit
- * inside live chapters and are still in the CBSE boards — those get weighted
- * lighter, never skipped. Saying "skip" about the second group would cost a
- * student board marks.
+ * Answers say one thing: in this exam, or not. Tapping an answer that is in
+ * opens that unit below. A No has nothing to open, so it has no arrow.
+ *
+ * NOTHING PUSHES THE LIST WITH AN ANIMATION. On an overloaded Android phone an
+ * animated grow fell to about 10-20 frames a second, because each frame lays out
+ * twenty rows again. So the page changes in one step and only the answer fades,
+ * which costs almost nothing. The sky's slow glow is a moving picture for the
+ * same reason.
  */
 
 const EXAM_OPTIONS = ['JEE Main', 'NEET UG'] as const;
+/** Long enough that a word being typed does not flip an answer, short enough to feel instant. */
+const ANSWER_PAUSE_MS = 250;
+const GREEN = '#157A45';
+/** A touch above the keyboard, so an answer never sits flush against it. */
+const KEYBOARD_GAP = 12;
 
-/**
- * THE CARD UNDER THE TOGGLE MOVES WITH IT — and nothing else does.
- *
- * Switching exam swapped the headline card in one frame while the thumb slid
- * above it, so the card now comes back in on the Textbooks rows' entrance.
- * Only that card: it sits right under the toggle and is what the toggle is
- * about. Every card below animating too made each switch read as the whole
- * page reshuffling, and flicking back and forth meant watching it again and
- * again. Those just update in place.
- */
-const HEADLINE_ENTER = FadeInDown.duration(320);
+type OpenUnit = number | 'older' | null;
 
 export default function ExamScopeScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
   const [exam, setExam] = useState<ScopeExam>('jee');
+  const [teacher, setTeacher] = useState<TeacherId>('drona');
+  const [subject, setSubject] = useState<SubjectKey>('physics');
+  const [query, setQuery] = useState('');
+  const [settled, setSettled] = useState('');
+  const [open, setOpen] = useState<OpenUnit>(null);
+  const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
 
-  // Opens on the student's own exam; 'both' entitlements start on JEE.
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+  const cardRef = useRef<View>(null);
+  const listY = useRef(0);
+  const unitY = useRef(new Map<number, number>());
+  const tabsHeight = useRef(0);
+  const pause = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const jump = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Opens on the student's own exam and in their teacher's light.
   useEffect(() => {
     let cancelled = false;
     getProfile().then((p) => {
-      if (!cancelled && p.exam === 'neet') setExam('neet');
+      if (!cancelled && p.exam === 'neet') {
+        setExam('neet');
+        setSubject('biology');
+      }
+    });
+    getTeacherPreference().then((t) => {
+      if (!cancelled) setTeacher(t);
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const scope = EXAM_SCOPE[exam];
-
-  // Counted from the chapter map rather than kept as a second list, so the
-  // headline can never drift from the per-subject pages it summarises.
-  const subjectDetails = subjectsFor(exam)
-    .map((key) => subjectScope(exam, key))
-    .filter(Boolean) as NonNullable<ReturnType<typeof subjectScope>>[];
-  const archivedCount = subjectDetails.reduce((n, s) => n + s.archived.length, 0);
-  const trimCount = subjectDetails.reduce(
-    (n, s) => n + s.chapters.filter((c) => c.trims?.length).length,
-    0
+  useEffect(
+    () => () => {
+      if (pause.current) clearTimeout(pause.current);
+      if (jump.current) clearTimeout(jump.current);
+    },
+    []
   );
 
+  const answer = useMemo(() => askScope(exam, settled), [exam, settled]);
+  const found = useMemo(() => (answer?.kind === 'rows' ? answer.all : []), [answer]);
+  // Only what is in the exam gets marked in the list: a ring on a unit a topic is
+  // missing from reads as though the topic were there.
+  const marked = useMemo(
+    () => found.filter((f) => f.yes && f.subject === subject && f.n).map((f) => f.n as number),
+    [found, subject]
+  );
+  const subjectsWithMatch = useMemo(
+    () => found.filter((f) => f.yes).map((f) => f.subject as SubjectKey),
+    [found]
+  );
+
+  const typed = (value: string) => {
+    setQuery(value);
+    if (pause.current) clearTimeout(pause.current);
+    pause.current = setTimeout(() => {
+      const next = askScope(exam, value);
+      const hits = next?.kind === 'rows' ? next.all.filter((f) => f.yes).map((f) => f.subject) : [];
+      if (hits.length && !hits.includes(subject)) setSubject(hits[0] as SubjectKey);
+      setSettled(value);
+      setOpen(null);
+    }, ANSWER_PAUSE_MS);
+  };
+
+  const clear = () => {
+    if (pause.current) clearTimeout(pause.current);
+    setQuery('');
+    setSettled('');
+  };
+
+  /**
+   * THE ANSWER STAYS ABOVE THE KEYBOARD. On a roomy phone this does nothing. On a
+   * small one, or with large text, the page rolls up just far enough to show the
+   * whole answer; the heading and the list stay where they are on the page.
+   */
+  useEffect(() => {
+    if (!answer || !Keyboard.isVisible()) return;
+    const frame = requestAnimationFrame(() => {
+      cardRef.current?.measureInWindow((_x, y, _w, height) => {
+        const keyboardTop = Keyboard.metrics()?.screenY ?? Dimensions.get('window').height;
+        const overlap = y + height + KEYBOARD_GAP - keyboardTop;
+        if (overlap > 0)
+          scrollRef.current?.scrollTo({
+            y: scrollY.value + overlap,
+            animated: true,
+          });
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [answer, scrollRef, scrollY]);
+
+  const openFromAnswer = (row: ScopeAnswerRow) => {
+    if (!row.yes || !row.subject) return;
+    Keyboard.dismiss();
+    setSubject(row.subject);
+    if (row.wholeSubject) return;
+    setOpen(row.n ?? null);
+    if (jump.current) clearTimeout(jump.current);
+    // Once the drop-down has laid out, so the distance is the real one.
+    jump.current = setTimeout(() => {
+      const y = unitY.current.get(row.n as number);
+      if (y !== undefined) {
+        scrollRef.current?.scrollTo({
+          y: listY.current + y - tabsHeight.current,
+          animated: true,
+        });
+      }
+    }, 120);
+  };
+
+  const onUnitLayout = useCallback((n: number, y: number) => {
+    unitY.current.set(n, y);
+  }, []);
+  const toggleOpen = useCallback((unit: OpenUnit) => {
+    setOpen((current) => (current === unit ? null : unit));
+  }, []);
+
+  const examInfo = SCOPE_EXAMS[exam];
+  const tabs = examInfo.subjects;
+
   return (
-    <SettingsPage title="Exam scope">
-      <Text style={styles.lede}>
-        Neither NTA nor NMC publishes a chapter list. They publish units, and every
-        &ldquo;chapter-wise syllabus&rdquo; you&apos;ve seen online is someone&apos;s
-        reconstruction. Here is ours, mapped onto the NCERT chapters you actually own.
-      </Text>
+    <View style={styles.screen}>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <SettingsHeader title="Exam scope" scrollY={scrollY} />
+        <Animated.ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          stickyHeaderIndices={[2]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}>
+          <View
+            ref={cardRef}
+            collapsable={false}
+            style={styles.card}
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              setCardSize((size) =>
+                size.width === width && size.height === height ? size : { width, height }
+              );
+            }}>
+            <CardSky width={cardSize.width} height={cardSize.height} teacher={teacher} />
 
-      <View style={styles.toggleWrap}>
-        <SlidingToggle
-          options={EXAM_OPTIONS}
-          value={exam === 'jee' ? 'JEE Main' : 'NEET UG'}
-          onChange={(value) => {
-            const next = value === 'NEET UG' ? 'neet' : 'jee';
-            if (next !== exam) hapticSwitched();
-            // No LayoutAnimation here. It animates EVERY layout change on the
-            // screen in the next frame, and one of those was the toggle's own
-            // thumb resizing — on an ease curve, while its position ran on a
-            // spring. The thumb stretched and lagged behind itself. The page
-            // below now swaps the way the Textbooks list does.
-            setExam(next);
-          }}
-          trackStyle={styles.toggleTrack}
-          thumbStyle={styles.toggleThumb}
-          pillStyle={styles.togglePill}
-          textStyle={styles.togglePillText}
-          textActiveStyle={styles.togglePillTextActive}
-        />
-      </View>
+            <Text style={styles.heading}>Is it in your exam?</Text>
+            <Text style={styles.subheading}>Type any topic or chapter.</Text>
 
-      {/* What's in */}
-      <Animated.View key={`in-${exam}`} entering={HEADLINE_ENTER} style={styles.card}>
-        <Text style={styles.overline}>In {scope.label}</Text>
-        <View style={styles.countRow}>
-          <Text style={styles.countValue}>{scope.totalChapters}</Text>
-          <Text style={styles.countUnit}>NCERT chapters</Text>
-        </View>
-        <View style={styles.subjectRow}>
-          {scope.subjects.map((subject) => (
-            <View key={subject.name} style={styles.subjectItem}>
-              <Text style={styles.subjectCount}>{subject.chapters}</Text>
-              <Text style={styles.subjectName}>{subject.name}</Text>
-            </View>
-          ))}
-        </View>
-        <Text style={styles.cardNote}>
-          Set by {scope.authority}. A chapter being in scope means it contains examinable
-          material, not that every line of it is examined.
-        </Text>
-      </Animated.View>
-
-      {/* The way in to the chapter-level map, one subject at a time. */}
-      <View style={styles.sectionHeadRow}>
-        <View style={styles.sectionDash} />
-        <Text style={styles.sectionTitle}>Chapter by chapter</Text>
-      </View>
-      <Text style={styles.answerLine}>
-        Open a subject to see every chapter you own: what&apos;s examined, what has a topic
-        quietly trimmed out, and what left the books in 2023.
-      </Text>
-      <View style={styles.subjectCards}>
-        {subjectDetails.map((detail) => {
-          const trims = detail.chapters.filter((c) => c.trims?.length).length;
-          return (
-            <PressableScale
-              key={detail.key}
-              style={styles.subjectCard}
-              onPress={() =>
-                router.push({
-                  pathname: '/exam-scope-subject',
-                  params: { subject: detail.key, exam },
-                })
-              }>
-              <View style={styles.subjectCardText}>
-                <Text style={styles.subjectCardName}>{detail.label}</Text>
-                <Text style={styles.subjectCardMeta}>
-                  {detail.chapters.length} chapters
-                  {trims > 0 ? ` · ${trims} with trims` : ''}
-                  {detail.archived.length > 0 ? ` · ${detail.archived.length} archived` : ''}
-                </Text>
-              </View>
-              <View style={styles.subjectCardMap}>
-                {detail.chapters.slice(0, 12).map((chapter, i) => (
-                  <View
-                    key={i}
-                    style={[styles.miniTile, !!chapter.trims?.length && styles.miniTileTrim]}
-                  />
-                ))}
-              </View>
-              <ChevronIcon color={colors.faint} />
-            </PressableScale>
-          );
-        })}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.overline}>What you can drop</Text>
-        <View style={styles.dropRow}>
-          <View style={styles.dropItem}>
-            <Text style={styles.dropValue}>{archivedCount}</Text>
-            <Text style={styles.dropLabel}>chapters gone{'\n'}from the books</Text>
-          </View>
-          <View style={styles.dropDivider} />
-          <View style={styles.dropItem}>
-            <Text style={styles.dropValue}>{trimCount}</Text>
-            <Text style={styles.dropLabel}>topics trimmed{'\n'}inside live chapters</Text>
-          </View>
-        </View>
-        <Text style={styles.cardNote}>
-          The first group left NCERT in 2023: not in either exam, not in your boards. The second
-          sits inside chapters you keep and is still board material, so weigh it lighter rather
-          than skipping it. Both are named per subject below.
-        </Text>
-      </View>
-
-      {scope.boardOnlyChapters.length > 0 && (
-        <View style={styles.noteCard}>
-          <Text style={styles.noteCardText}>
-            <Text style={styles.noteCardStrong}>{scope.boardOnlyChapters.join(', ')}</Text> is a
-            live NCERT chapter and a board topic, but it isn&apos;t in the {scope.label} syllabus.
-            Study it for school, not for the exam.
-          </Text>
-        </View>
-      )}
-
-      {/* The anxiety question */}
-      <View style={styles.sectionHeadRow}>
-        <View style={styles.sectionDash} />
-        <Text style={styles.sectionTitle}>Does it change every year?</Text>
-      </View>
-      <Text style={styles.answerLine}>
-        <Text style={styles.answerStrong}>No.</Text> Both syllabi only move when the NCERT books
-        move, and the books moved once, in 2023.
-      </Text>
-
-      <View style={styles.timeline}>
-        {SCOPE_TIMELINE.map((year, index) => (
-          <View key={year.period} style={styles.timelineRow}>
-            <View style={styles.timelineRail}>
-              <View
-                style={[
-                  styles.timelineDot,
-                  year.state === 'change' && styles.timelineDotChange,
-                  year.state === 'unknown' && styles.timelineDotUnknown,
-                ]}
+            <View style={styles.toggleWrap}>
+              <SlidingToggle
+                options={EXAM_OPTIONS}
+                value={exam === 'jee' ? 'JEE Main' : 'NEET UG'}
+                onChange={(value) => {
+                  const next = value === 'NEET UG' ? 'neet' : 'jee';
+                  if (next === exam) return;
+                  hapticSwitched();
+                  setExam(next);
+                  setOpen(null);
+                  if (!SCOPE_EXAMS[next].subjects.includes(subject))
+                    setSubject(SCOPE_EXAMS[next].subjects[0]);
+                }}
+                trackStyle={styles.toggleTrack}
+                thumbStyle={styles.toggleThumb}
+                pillStyle={styles.togglePill}
+                textStyle={styles.toggleText}
+                textActiveStyle={styles.toggleTextActive}
               />
-              {index < SCOPE_TIMELINE.length - 1 && <View style={styles.timelineLine} />}
             </View>
-            <View style={styles.timelineText}>
-              <Text style={styles.timelinePeriod}>{year.period}</Text>
-              <Text style={styles.timelineHeadline}>{year.headline}</Text>
-              <Text style={styles.timelineDetail}>{year.detail}</Text>
+
+            <View style={styles.key}>
+              <SearchField
+                value={query}
+                onChange={typed}
+                onClear={clear}
+                accent={START_ARROW[teacher]}
+                styles={styles}
+              />
+              {answer && (
+                <Animated.View entering={FadeIn.duration(180)} style={styles.answer}>
+                  {answer.kind === 'rows' &&
+                    answer.rows.map((row, index) => (
+                      <AnswerRow
+                        key={`${row.topic}-${row.subject}-${index}`}
+                        row={row}
+                        examLabel={examInfo.label}
+                        styles={styles}
+                        scale={scale}
+                        onPress={() => openFromAnswer(row)}
+                      />
+                    ))}
+                  {answer.kind === 'rows' && answer.more > 0 && (
+                    <Text style={styles.answerMore}>
+                      {answer.more} more marked in the list below
+                    </Text>
+                  )}
+                  {answer.kind === 'guess' && (
+                    <PressableScale style={styles.answerGuess} onPress={() => typed(answer.guess)}>
+                      <Text style={styles.answerTopic}>Did you mean {answer.guess}?</Text>
+                    </PressableScale>
+                  )}
+                  {answer.kind === 'none' && (
+                    <Text style={styles.answerNone}>
+                      Not found in the {examInfo.label} syllabus
+                    </Text>
+                  )}
+                </Animated.View>
+              )}
             </View>
           </View>
-        ))}
-      </View>
 
-      <Text style={styles.source}>{SCOPE_SOURCE_NOTE}</Text>
-    </SettingsPage>
+          <Text style={styles.lede}>
+            {examInfo.total} units in the {examInfo.label} {examInfo.year} syllabus
+          </Text>
+
+          <SubjectTabs
+            tabs={tabs}
+            subject={subject}
+            withMatch={subjectsWithMatch}
+            onPick={(key) => {
+              setSubject(key);
+              setOpen(null);
+            }}
+            onHeight={(height) => {
+              tabsHeight.current = height;
+            }}
+            styles={styles}
+            scale={scale}
+          />
+
+          <View
+            style={styles.list}
+            onLayout={(e) => {
+              listY.current = e.nativeEvent.layout.y;
+            }}>
+            <UnitList
+              exam={exam}
+              subject={subject}
+              open={open}
+              marked={marked}
+              settled={settled}
+              onToggle={toggleOpen}
+              onUnitLayout={onUnitLayout}
+              styles={styles}
+              scale={scale}
+            />
+            <Text style={styles.source}>{examInfo.source}</Text>
+          </View>
+
+          <KeyboardSpacer ios />
+        </Animated.ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
-function ChevronIcon({ color }: { color: string }) {
+/**
+ * THE SKY BEHIND THE SEARCH. The sky itself is the same still shader as Home's,
+ * drawn once for each size the card takes. Over it, one soft glow drifts and two
+ * stars breathe: a transform and an opacity on the UI thread, so no frame of it
+ * asks the page to lay anything out.
+ */
+const CardSky = memo(function CardSky({
+  width,
+  height,
+  teacher,
+}: {
+  width: number;
+  height: number;
+  teacher: TeacherId;
+}) {
+  const reduced = useReducedMotion();
+  const drift = useSharedValue(0);
+  const twinkle = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) return;
+    drift.value = withRepeat(
+      withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true
+    );
+    twinkle.value = withDelay(
+      600,
+      withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), -1, true)
+    );
+  }, [reduced, drift, twinkle]);
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: 0.72 + drift.value * 0.28,
+    transform: [
+      { translateX: (drift.value - 0.5) * width * 0.14 },
+      { scale: 1 + drift.value * 0.12 },
+    ],
+  }));
+  const starA = useAnimatedStyle(() => ({
+    opacity: 0.25 + twinkle.value * 0.7,
+  }));
+  const starB = useAnimatedStyle(() => ({
+    opacity: 0.95 - twinkle.value * 0.7,
+  }));
+
+  const theme = SKY_THEMES[teacher];
+  const glowHeight = Math.min(height * 0.7, width * 0.9);
   return (
-    <Svg viewBox="0 0 24 24" width={16} height={16} fill="none">
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <NightSky width={width} height={height} theme={theme} />
+      {width > 0 && (
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              left: -width * 0.2,
+              bottom: -glowHeight * 0.45,
+              width: width * 1.4,
+              height: glowHeight,
+            },
+            glowStyle,
+          ]}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <RadialGradient id="scope-glow" cx="50%" cy="50%" rx="50%" ry="50%">
+                <Stop offset="0%" stopColor={theme.gold} stopOpacity={0.55} />
+                <Stop offset="100%" stopColor={theme.mari} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            {/* An ellipse the size of its box, so the glow fades out before any edge. A
+                circle here is taller than the box and gets cut off in a hard line. */}
+            <Ellipse cx="50%" cy="50%" rx="50%" ry="50%" fill="url(#scope-glow)" />
+          </Svg>
+        </Animated.View>
+      )}
+      <Animated.View style={[localStyles.star, { left: width * 0.72, top: 24 }, starA]} />
+      <Animated.View style={[localStyles.star, { left: width * 0.88, top: 56 }, starB]} />
+    </View>
+  );
+});
+
+function SearchField({
+  value,
+  onChange,
+  onClear,
+  accent,
+  styles,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onClear: () => void;
+  accent: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.field}>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder="Search"
+        placeholderTextColor={colors.faint}
+        style={styles.input}
+        returnKeyType="search"
+        autoCorrect={false}
+        accessibilityLabel="Is it in your exam? Type any topic or chapter."
+      />
+      {value ? (
+        <PressableScale hitSlop={10} onPress={onClear} accessibilityLabel="Clear search">
+          <Svg viewBox="0 0 24 24" width={15} height={15} fill="none">
+            <Path
+              d="M6 6l12 12M18 6 6 18"
+              stroke={colors.faint}
+              strokeWidth={2.4}
+              strokeLinecap="round"
+            />
+          </Svg>
+        </PressableScale>
+      ) : (
+        <Svg viewBox="0 0 24 24" width={20} height={20} fill="none">
+          <Circle cx={11} cy={11} r={7} stroke={accent} strokeWidth={2.2} />
+          <Path d="m20 20-3.8-3.8" stroke={accent} strokeWidth={2.2} strokeLinecap="round" />
+        </Svg>
+      )}
+    </View>
+  );
+}
+
+function AnswerRow({
+  row,
+  examLabel,
+  styles,
+  scale,
+  onPress,
+}: {
+  row: ScopeAnswerRow;
+  examLabel: string;
+  styles: ReturnType<typeof createStyles>;
+  scale: (size: number) => number;
+  onPress: () => void;
+}) {
+  const subjectName = row.subject ? SCOPE_SUBJECTS[row.subject].name : '';
+  const line = row.yes
+    ? `In ${examLabel}${row.wholeSubject ? '' : ` · ${subjectName}`}`
+    : `Not in ${examLabel}`;
+  const detail =
+    row.yes && row.except?.length ? `Except ${row.except.join(', ')}` : row.yes ? row.note : '';
+
+  const content = (
+    <>
+      <Svg
+        viewBox="0 0 24 24"
+        width={scale(17)}
+        height={scale(17)}
+        fill="none"
+        style={styles.answerIcon}>
+        {row.yes ? (
+          <Path
+            d="m5 12.5 4.5 4.5L19 7.5"
+            stroke={GREEN}
+            strokeWidth={2.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ) : (
+          <Path
+            d="M6 6l12 12M18 6 6 18"
+            stroke={colors.amberText}
+            strokeWidth={3}
+            strokeLinecap="round"
+          />
+        )}
+      </Svg>
+      <View style={styles.answerText}>
+        <Text style={styles.answerTopic}>{row.topic}</Text>
+        <Text style={[styles.answerLine, { color: row.yes ? GREEN : colors.amberText }]}>
+          {line}
+        </Text>
+        {!!detail && <Text style={[styles.answerLine, { color: colors.amberText }]}>{detail}</Text>}
+      </View>
+      {row.yes && <Chevron scale={scale} direction="right" />}
+    </>
+  );
+
+  return row.yes ? (
+    <PressableScale style={styles.answerRow} onPress={onPress}>
+      {content}
+    </PressableScale>
+  ) : (
+    <View style={styles.answerRow}>{content}</View>
+  );
+}
+
+function SubjectTabs({
+  tabs,
+  subject,
+  withMatch,
+  onPick,
+  onHeight,
+  styles,
+  scale,
+}: {
+  tabs: SubjectKey[];
+  subject: SubjectKey;
+  withMatch: SubjectKey[];
+  onPick: (key: SubjectKey) => void;
+  onHeight: (height: number) => void;
+  styles: ReturnType<typeof createStyles>;
+  scale: (size: number) => number;
+}) {
+  const [width, setWidth] = useState(0);
+  const x = useSharedValue(0);
+  const index = Math.max(0, tabs.indexOf(subject));
+  useEffect(() => {
+    x.value = withTiming((index * width) / tabs.length, { duration: 240 });
+  }, [index, width, tabs.length, x]);
+  const lineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value }],
+  }));
+
+  return (
+    <View style={styles.tabsWrap} onLayout={(e) => onHeight(e.nativeEvent.layout.height)}>
+      <View style={styles.tabs} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        {tabs.map((key) => {
+          const on = key === subject;
+          return (
+            <PressableScale
+              key={key}
+              style={styles.tab}
+              onPress={() => onPick(key)}
+              accessibilityState={{ selected: on }}>
+              <Text
+                maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
+                style={[styles.tabText, on && styles.tabTextOn]}>
+                {SCOPE_SUBJECTS[key].name}
+              </Text>
+              {withMatch.includes(key) && <View style={styles.tabDot} />}
+            </PressableScale>
+          );
+        })}
+        <Animated.View
+          style={[styles.tabLine, { width: width / tabs.length || scale(1) }, lineStyle]}
+        />
+      </View>
+    </View>
+  );
+}
+
+/** Kept apart and memoised so a keystroke in the search never lays out these rows. */
+const UnitList = memo(function UnitList({
+  exam,
+  subject,
+  open,
+  marked,
+  settled,
+  onToggle,
+  onUnitLayout,
+  styles,
+  scale,
+}: {
+  exam: ScopeExam;
+  subject: SubjectKey;
+  open: OpenUnit;
+  marked: number[];
+  settled: string;
+  onToggle: (unit: OpenUnit) => void;
+  onUnitLayout: (n: number, y: number) => void;
+  styles: ReturnType<typeof createStyles>;
+  scale: (size: number) => number;
+}) {
+  const info = SCOPE_SUBJECTS[subject];
+  const searched = settled.trim().toLowerCase();
+
+  return (
+    <>
+      {info.themes.map((theme) => (
+        <Fragment key={theme.name}>
+          <Text style={styles.themeLabel}>{theme.name}</Text>
+          {theme.units.map((n) => {
+            const unit = scopeUnit(exam, subject, n);
+            if (!unit) return null;
+            const isOpen = open === n;
+            const isMarked = marked.includes(n);
+            return (
+              <View
+                key={n}
+                style={styles.unit}
+                onLayout={(e) => onUnitLayout(n, e.nativeEvent.layout.y)}>
+                <PressableScale
+                  style={styles.unitRow}
+                  onPress={() => onToggle(n)}
+                  accessibilityState={{ expanded: isOpen }}>
+                  {isMarked ? (
+                    <View style={styles.unitRing}>
+                      <Text style={styles.unitRingText}>{n}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.unitNumber}>{n}</Text>
+                  )}
+                  <Text style={styles.unitTitle}>{unit.t}</Text>
+                  <Chevron scale={scale} direction={isOpen ? 'up' : 'down'} />
+                </PressableScale>
+                {isOpen && (
+                  <Animated.View entering={FadeIn.duration(180)} style={styles.unitBody}>
+                    {unit.lines.map((line) => {
+                      const isHit = !!searched && line.toLowerCase().includes(searched);
+                      return (
+                        <Text key={line} style={[styles.unitLine, isHit && styles.unitLineHit]}>
+                          {line}
+                        </Text>
+                      );
+                    })}
+                    {!!unit.note && <Text style={styles.unitNote}>{unit.note}</Text>}
+                    {unit.out.length > 0 && (
+                      <>
+                        <Text style={styles.unitOutLabel}>Not in the syllabus</Text>
+                        {unit.out.map((item) => (
+                          <Text key={item} style={styles.unitOut}>
+                            {item}
+                          </Text>
+                        ))}
+                      </>
+                    )}
+                    <Text style={styles.unitBook}>{unit.book}</Text>
+                  </Animated.View>
+                )}
+              </View>
+            );
+          })}
+        </Fragment>
+      ))}
+
+      <View style={styles.older}>
+        <PressableScale
+          style={styles.unitRow}
+          onPress={() => onToggle('older')}
+          accessibilityState={{ expanded: open === 'older' }}>
+          <Text style={styles.olderTitle}>
+            {info.gone.length} older {info.gone.length === 1 ? 'chapter' : 'chapters'} not in the
+            syllabus
+          </Text>
+          <Chevron scale={scale} direction={open === 'older' ? 'up' : 'down'} />
+        </PressableScale>
+        {open === 'older' && (
+          <Animated.Text entering={FadeIn.duration(180)} style={styles.olderBody}>
+            {info.gone.join(', ')}
+          </Animated.Text>
+        )}
+      </View>
+    </>
+  );
+});
+
+function Chevron({
+  scale,
+  direction,
+}: {
+  scale: (size: number) => number;
+  direction: 'right' | 'down' | 'up';
+}) {
+  const path =
+    direction === 'right'
+      ? 'm9 6 6 6-6 6'
+      : direction === 'down'
+        ? 'm6 9 6 6 6-6'
+        : 'm6 15 6-6 6 6';
+  return (
+    <Svg
+      viewBox="0 0 24 24"
+      width={scale(16)}
+      height={scale(16)}
+      fill="none"
+      style={{ marginTop: scale(3) }}>
       <Path
-        d="m6 9 6 6 6-6"
-        stroke={color}
+        d={path}
+        stroke={colors.faint}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -248,417 +713,300 @@ function ChevronIcon({ color }: { color: string }) {
   );
 }
 
-const hairline = (alpha: number) => `rgba(28,26,22,${alpha})`;
+const localStyles = StyleSheet.create({
+  star: {
+    position: 'absolute',
+    width: 2,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: '#FFFDF8',
+  },
+});
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
-    lede: {
+    screen: { flex: 1, backgroundColor: '#fff' },
+    safeArea: { flex: 1 },
+    scroll: { flex: 1 },
+    scrollContent: { paddingBottom: verticalScale(36) },
+
+    card: {
+      marginHorizontal: scale(12),
+      marginTop: verticalScale(4),
+      paddingTop: verticalScale(26),
+      paddingHorizontal: scale(20),
+      paddingBottom: verticalScale(24),
+      borderRadius: scale(28),
+      overflow: 'hidden',
+      backgroundColor: colors.night,
+    },
+    /** Regular, because the page title just above it is the bold one. */
+    heading: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(30),
+      lineHeight: scale(36),
+      letterSpacing: scale(-0.6),
+      color: '#FFFDF8',
+    },
+    subheading: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
-      lineHeight: scale(22.5),
-      color: colors.slate,
-      marginTop: verticalScale(4),
-    },
-    toggleWrap: {
-      alignSelf: 'flex-start',
-      marginTop: verticalScale(20),
-    },
-    toggleTrack: {
-      gap: scale(3),
-      padding: scale(3),
-      backgroundColor: hairline(0.055),
-      borderRadius: scale(99),
-    },
-    /** Floats on a shadow, like the Textbooks thumb, rather than sitting in
-     *  the track on an outline — a raised thumb reads as the thing that moves. */
-    toggleThumb: {
-      backgroundColor: '#fff',
-      borderRadius: scale(99),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
-    },
-    /**
-     * FIXED WIDTH, and equal, which is what makes the slide smooth.
-     *
-     * These sized to their labels, and "JEE Main" and "NEET UG" are not the
-     * same width — so every switch made the thumb change size as well as
-     * place. Worse, the active label used to turn bold, which is wider:
-     * choosing NEET UG grew its pill, the toggle re-measured it and jumped the
-     * thumb to the new position mid-spring. Textbooks' "Class 11" / "Class 12"
-     * only escape this because their widths differ by about a pixel. A fixed
-     * box cannot reflow, so the thumb just slides.
-     */
-    togglePill: {
-      width: scale(98),
-      alignItems: 'center',
-      paddingVertical: verticalScale(7),
-      borderRadius: scale(99),
-    },
-    /** Bold on both sides, and only the colour changes — as on Textbooks. The
-     *  active label used to switch weight the instant it was tapped, so the
-     *  word jumped to bold before the thumb had arrived under it. */
-    togglePillText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.slate,
-    },
-    togglePillTextActive: {
-      color: colors.ink,
-    },
-    card: {
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(16),
-      padding: scale(20),
-      marginTop: verticalScale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
-    },
-    overline: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(0.9),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    countRow: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      gap: scale(8),
+      lineHeight: scale(22),
+      color: 'rgba(255,253,248,.82)',
       marginTop: verticalScale(6),
     },
-    countValue: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(40),
-      letterSpacing: scale(-1),
-      lineHeight: scale(44),
-      color: colors.ink,
+
+    toggleWrap: { marginTop: verticalScale(22) },
+    toggleTrack: {
+      backgroundColor: 'rgba(255,253,248,.09)',
+      borderRadius: scale(16),
     },
-    countUnit: {
+    toggleThumb: {
+      backgroundColor: 'rgba(255,253,248,.18)',
+      borderRadius: scale(16),
+      borderWidth: 1,
+      borderColor: 'rgba(255,253,248,.22)',
+    },
+    togglePill: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: verticalScale(13),
+      borderRadius: scale(16),
+    },
+    toggleText: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
-      color: colors.faint,
+      color: colors.paleGold,
     },
-    subjectRow: {
+    toggleTextActive: { color: '#FFFDF8' },
+
+    key: {
+      marginTop: verticalScale(12),
+      borderRadius: scale(16),
+      backgroundColor: '#FFFDF8',
+      overflow: 'hidden',
+      ...shadow({
+        color: '#000',
+        opacity: 0.25,
+        radius: scale(14),
+        y: verticalScale(8),
+        elevation: 3,
+      }),
+    },
+    field: {
       flexDirection: 'row',
-      marginTop: verticalScale(14),
-      paddingTop: verticalScale(14),
-      borderTopWidth: 1,
-      borderTopColor: hairline(0.1),
+      alignItems: 'center',
+      gap: scale(10),
+      minHeight: scale(56),
+      paddingHorizontal: scale(16),
     },
-    subjectItem: {
+    input: {
       flex: 1,
+      minWidth: 0,
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(16),
+      color: colors.ink,
+      paddingVertical: Platform.OS === 'android' ? 0 : undefined,
     },
-    subjectCount: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(18),
+    answer: {
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(28,26,22,.08)',
+      paddingHorizontal: scale(14),
+      paddingTop: verticalScale(4),
+      paddingBottom: verticalScale(6),
+    },
+    answerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: scale(9),
+      paddingVertical: verticalScale(8),
+      minHeight: scale(48),
+    },
+    answerIcon: { marginTop: scale(2) },
+    answerText: { flex: 1, minWidth: 0 },
+    answerTopic: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(15),
+      lineHeight: scale(20),
       color: colors.ink,
     },
-    subjectName: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      letterSpacing: scale(0.4),
-      textTransform: 'uppercase',
-      color: colors.faint,
-      marginTop: verticalScale(2),
+    answerLine: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      marginTop: 1,
     },
-    cardNote: {
+    answerMore: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.faint,
+      paddingLeft: scale(26),
+      paddingBottom: verticalScale(6),
+    },
+    answerGuess: { paddingVertical: verticalScale(12) },
+    answerNone: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.slate,
+      paddingVertical: verticalScale(10),
+    },
+
+    lede: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.slate,
+      paddingHorizontal: scale(24),
+      paddingTop: verticalScale(18),
+    },
+    tabsWrap: {
+      backgroundColor: '#fff',
+      paddingHorizontal: scale(24),
+      paddingTop: verticalScale(4),
+    },
+    tabs: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.hairline,
+    },
+    tab: {
+      flex: 1,
+      minHeight: scale(46),
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: scale(6),
+    },
+    tabText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(15),
+      color: colors.slate,
+    },
+    tabTextOn: { fontFamily: 'Onest_600SemiBold', color: colors.ink },
+    tabDot: {
+      width: scale(6),
+      height: scale(6),
+      borderRadius: scale(3),
+      backgroundColor: colors.marigold,
+    },
+    tabLine: {
+      position: 'absolute',
+      left: 0,
+      bottom: -1,
+      height: 2,
+      borderRadius: 2,
+      backgroundColor: colors.marigold,
+    },
+
+    list: { paddingHorizontal: scale(24) },
+    themeLabel: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      color: colors.faint,
+      marginTop: verticalScale(20),
+    },
+    unit: { borderBottomWidth: 1, borderBottomColor: 'rgba(28,26,22,.08)' },
+    unitRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: scale(10),
+      paddingVertical: verticalScale(13),
+    },
+    unitNumber: {
+      width: scale(24),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(14),
+      lineHeight: scale(22),
+      color: colors.faint,
+    },
+    unitRing: {
+      width: scale(24),
+      height: scale(24),
+      marginTop: -1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1.5,
+      borderColor: colors.marigold,
+      borderRadius: scale(12),
+    },
+    unitRingText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(12),
+      color: colors.ink,
+    },
+    unitTitle: {
+      flex: 1,
+      minWidth: 0,
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(16),
+      lineHeight: scale(22),
+      color: colors.ink,
+    },
+    unitBody: { paddingLeft: scale(34), paddingBottom: verticalScale(16) },
+    unitLine: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.slate,
+      paddingVertical: verticalScale(4),
+    },
+    unitLineHit: { fontFamily: 'Onest_600SemiBold', color: colors.ink },
+    unitNote: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(19),
+      color: colors.amberText,
+      paddingTop: verticalScale(7),
+    },
+    unitOutLabel: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      color: colors.faint,
+      marginTop: verticalScale(12),
+    },
+    unitOut: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      color: colors.amberText,
+      textDecorationLine: 'line-through',
+      paddingTop: verticalScale(4),
+    },
+    unitBook: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.faint,
+      marginTop: verticalScale(12),
+    },
+    older: {
+      marginTop: verticalScale(20),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,26,22,.08)',
+    },
+    olderTitle: {
+      flex: 1,
+      minWidth: 0,
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(15),
+      lineHeight: scale(22),
+      color: colors.slate,
+    },
+    olderBody: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(21),
+      color: colors.faint,
+      paddingBottom: verticalScale(16),
+    },
+    source: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(12),
       lineHeight: scale(18),
       color: colors.faint,
-      marginTop: verticalScale(14),
-    },
-    cardHeadRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: scale(10),
-    },
-    cardHeadText: {
-      flex: 1,
-      minWidth: 0,
-    },
-    cardTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(18),
-      color: colors.ink,
-      marginTop: verticalScale(3),
-    },
-    cardBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(19.5),
-      color: colors.slate,
-      marginTop: verticalScale(8),
-    },
-    chevronUp: {
-      transform: [{ rotate: '180deg' }],
-    },
-    list: {
-      marginTop: verticalScale(14),
-      paddingTop: verticalScale(12),
-      borderTopWidth: 1,
-      borderTopColor: hairline(0.1),
-      gap: verticalScale(10),
-    },
-    listRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-    },
-    strikeName: {
-      flex: 1,
-      minWidth: 0,
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      color: colors.faint,
-      textDecorationLine: 'line-through',
-    },
-    listTag: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.4),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    listSubhead: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(11),
-      lineHeight: scale(16),
-      color: colors.slate,
-      marginTop: verticalScale(6),
-    },
-    exceptionRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: scale(10),
-    },
-    outDot: {
-      width: scale(7),
-      height: scale(7),
-      borderRadius: scale(99),
-      backgroundColor: colors.marigold,
-      marginTop: verticalScale(6),
-    },
-    inDot: {
-      width: scale(7),
-      height: scale(7),
-      borderRadius: scale(99),
-      backgroundColor: colors.masteryStrong,
-      marginTop: verticalScale(6),
-    },
-    exceptionText: {
-      flex: 1,
-      minWidth: 0,
-    },
-    exceptionTopic: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
-      color: colors.ink,
-    },
-    exceptionChapter: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      color: colors.faint,
-      marginTop: verticalScale(1),
-    },
-    dropRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginTop: verticalScale(12),
-    },
-    dropItem: {
-      flex: 1,
-    },
-    dropDivider: {
-      width: 1,
-      alignSelf: 'stretch',
-      backgroundColor: hairline(0.1),
-      marginHorizontal: scale(16),
-    },
-    dropValue: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(30),
-      letterSpacing: scale(-0.6),
-      lineHeight: scale(34),
-      color: colors.ink,
-    },
-    dropLabel: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11.5),
-      lineHeight: scale(16),
-      color: colors.faint,
-      marginTop: verticalScale(2),
-    },
-    subjectCards: {
-      marginTop: verticalScale(14),
-      gap: verticalScale(10),
-    },
-    subjectCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      backgroundColor: '#fff',
-      borderWidth: 1,
-      borderColor: hairline(0.16),
-      borderRadius: scale(16),
-      paddingVertical: verticalScale(14),
-      paddingHorizontal: scale(16),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
-    },
-    subjectCardText: {
-      flex: 1,
-      minWidth: 0,
-    },
-    subjectCardName: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.ink,
-    },
-    subjectCardMeta: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(12),
-      color: colors.faint,
-      marginTop: verticalScale(2),
-    },
-    subjectCardMap: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      width: scale(46),
-      gap: scale(3),
-    },
-    miniTile: {
-      width: scale(8),
-      height: scale(8),
-      borderRadius: scale(2),
-      backgroundColor: hairline(0.75),
-    },
-    miniTileTrim: {
-      backgroundColor: colors.marigold,
-    },
-    noteCard: {
-      backgroundColor: '#FCF4E0',
-      borderWidth: 1,
-      borderColor: 'rgba(238,163,31,.45)',
-      borderRadius: scale(12),
-      paddingVertical: verticalScale(12),
-      paddingHorizontal: scale(14),
-      marginTop: verticalScale(16),
-    },
-    noteCardText: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(19.5),
-      color: colors.amberText,
-    },
-    noteCardStrong: {
-      fontFamily: 'Onest_700Bold',
-    },
-    sectionHeadRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-      marginTop: verticalScale(32),
-    },
-    sectionDash: {
-      width: scale(18),
-      height: verticalScale(2),
-      borderRadius: scale(2),
-      backgroundColor: colors.marigold,
-    },
-    sectionTitle: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.9),
-      letterSpacing: scale(1.16),
-      textTransform: 'uppercase',
-      color: colors.ink,
-    },
-    answerLine: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22.5),
-      color: colors.slate,
-      marginTop: verticalScale(12),
-    },
-    answerStrong: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.ink,
-    },
-    timeline: {
       marginTop: verticalScale(18),
-    },
-    timelineRow: {
-      flexDirection: 'row',
-      gap: scale(12),
-    },
-    timelineRail: {
-      alignItems: 'center',
-      width: scale(10),
-    },
-    timelineDot: {
-      width: scale(9),
-      height: scale(9),
-      borderRadius: scale(99),
-      backgroundColor: hairline(0.2),
-      marginTop: verticalScale(4),
-    },
-    timelineDotChange: {
-      backgroundColor: colors.marigold,
-    },
-    timelineDotUnknown: {
-      backgroundColor: '#fff',
-      borderWidth: scale(1.5),
-      borderColor: hairline(0.25),
-    },
-    timelineLine: {
-      flex: 1,
-      width: 1,
-      backgroundColor: hairline(0.12),
-      marginTop: verticalScale(3),
-      marginBottom: verticalScale(-2),
-    },
-    timelineText: {
-      flex: 1,
-      minWidth: 0,
-      paddingBottom: verticalScale(18),
-    },
-    timelinePeriod: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(0.6),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    timelineHeadline: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      color: colors.ink,
-      marginTop: verticalScale(1),
-    },
-    timelineDetail: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(19.5),
-      color: colors.slate,
-      marginTop: verticalScale(2),
-    },
-    source: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(11),
-      lineHeight: scale(16.5),
-      color: colors.faint,
-      marginTop: verticalScale(12),
     },
   });
 }

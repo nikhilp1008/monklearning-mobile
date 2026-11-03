@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -12,6 +11,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Path, RadialGradient, Stop } from 'react-native-svg';
+
+import { hapticSoft } from '@/lib/haptics';
 
 /**
  * Erase to remove — from handoff_erase_feature/ (README + MECHANICS + the
@@ -315,7 +316,7 @@ export function Erasable({
    *  below rise into the space rather than snapping into it. */
   const commit = useCallback(() => {
     setDust([]);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    hapticSoft();
     // The item leaves the data source at collapse + 80ms, per the spec —
     // removing the node first and animating afterwards is where a jump comes
     // from. This is a plain timer rather than the animation's completion

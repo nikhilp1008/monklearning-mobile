@@ -1,13 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { MathText } from '@/components/math-text';
-import { QuestionStem } from '@/components/question-stem';
-import { SolutionSteps } from '@/components/solution-steps';
+import { PageSkeleton } from '@/components/states';
+import { useAndroidBack } from '@/lib/android-back';
+import { MockKey, MockSection } from '@/components/mock/mock-kit';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
@@ -23,11 +23,10 @@ import {
   formatSpan,
   loadReport,
   mockInsights,
+  type MockPrevious,
   type MockReport,
-  type MockReportQuestion,
   formatDay,
 } from '@/lib/mock-report';
-import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -56,8 +55,6 @@ const SUBJECT_LABEL: Record<string, string> = {
   biology: 'Biology',
 };
 
-type Filter = 'all' | 'wrong' | 'skipped' | 'marked';
-
 export default function MockReportScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -68,8 +65,6 @@ export default function MockReportScreen() {
    *  still has its score, so the page shows that rather than nothing. */
   const [row, setRow] = useState<MockRunRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>('all');
-  const [open, setOpen] = useState<string | null>(null);
 
   /** Fresh out of the paper: this is the run still in memory. */
   const session = getMockSession();
@@ -97,12 +92,20 @@ export default function MockReportScreen() {
       // chapters to show; the server's copy does, so it replaces the saved
       // one (fetchReport saves it). Offline, the old copy still opens.
       const stale = !!saved && !saved.questions.some((q) => q.chapter_id);
-      const r =
-        saved && !stale
-          ? saved
-          : ((await fetchReport(runId).catch(() => null)) ?? saved);
+      const r = saved && !stale ? saved : ((await fetchReport(runId).catch(() => null)) ?? saved);
       if (cancelled) return;
       setReport(r);
+      // A copy saved before comparisons existed: ask the server once, and
+      // fill the card in when it answers. fetchReport saves what it gets, so
+      // this happens once per paper, not once per visit.
+      if (r && r.previous === undefined) {
+        fetchReport(runId)
+          .then((fresh) => {
+            if (!cancelled)
+              setReport((cur) => (cur ? { ...cur, previous: fresh.previous ?? null } : cur));
+          })
+          .catch(() => undefined);
+      }
       if (!r) {
         const runs = await listMockRuns().catch(() => []);
         if (!cancelled) setRow(runs.find((x) => x.id === runId) ?? null);
@@ -117,34 +120,38 @@ export default function MockReportScreen() {
 
   const insights = useMemo(() => (report ? mockInsights(report) : null), [report]);
 
-  const counts = useMemo(() => {
-    const qs = report?.questions ?? [];
-    return {
-      all: qs.length,
-      wrong: qs.filter((q) => q.answered && !q.is_correct).length,
-      skipped: qs.filter((q) => !q.answered).length,
-      marked: qs.filter((q) => q.marked).length,
-    };
-  }, [report]);
+  const paperExam = report?.exam ?? row?.exam;
+  const paperName =
+    (report?.kind ?? row?.kind) === 'diagnostic'
+      ? 'Starting point'
+      : paperExam === 'neet'
+        ? 'NEET UG paper'
+        : paperExam === 'jee'
+          ? 'JEE Main paper'
+          : 'Your paper';
+  const sat = report?.submitted_at ?? row?.submitted_at ?? row?.created_at;
+  /** Under the header, full width, as the Mock tests page's intro sits. */
+  const dateLine = sat ? (
+    <Text style={styles.dateLine}>Sat on {formatDay(sat)}</Text>
+  ) : null;
 
-  const shown = useMemo(() => {
-    const qs = report?.questions ?? [];
-    if (filter === 'wrong') return qs.filter((q) => q.answered && !q.is_correct);
-    if (filter === 'skipped') return qs.filter((q) => !q.answered);
-    if (filter === 'marked') return qs.filter((q) => q.marked);
-    return qs;
-  }, [report, filter]);
-
+  const { setFocus } = usePracticeFocus();
   const leave = () => {
     // Leaving the fresh report is what ends the session. Its report is on the
     // device by then, so nothing is lost by dropping the paper from memory.
     if (isFresh) {
       clearMockSession();
-      router.dismissTo('/progress');
+      router.dismissTo('/mocks');
       return;
     }
     router.back();
   };
+  // Android's Back does what the screen's own back does. Popped plainly, a
+  // fresh report revealed the submitted paper underneath, timer still running.
+  useAndroidBack(() => {
+    leave();
+    return true;
+  });
 
   return (
     <View style={styles.screen}>
@@ -156,23 +163,29 @@ export default function MockReportScreen() {
             hitSlop={10}
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            onPress={leave}>
+            onPress={leave}
+          >
             <BackArrowIcon size={scale(16)} />
           </Pressable>
-          <Text style={styles.title}>Your scorecard</Text>
+          {/* The date sits under the title it belongs to, on the title's own
+              left edge; it hung under the back button, out of line. */}
+          {/* The paper's name, once. The date has its own line below. */}
+          <Text style={styles.title} numberOfLines={1}>
+            {paperName}
+          </Text>
         </View>
 
         {loading ? (
-          <View style={styles.centre} />
+          // The report's shape while it loads; it was an empty view.
+          <View style={styles.listInner}>
+            <PageSkeleton />
+          </View>
         ) : !report ? (
           <ScrollView contentContainerStyle={styles.listInner}>
+            {dateLine}
             {row?.score ? (
               <>
-                <Text style={styles.subtitle}>
-                  {formatDay(row.submitted_at ?? row.created_at)} ·{' '}
-                  {row.exam === 'neet' ? 'NEET UG' : 'JEE Main'} pattern
-                </Text>
-                <View style={styles.card}>
+                <View style={[styles.card, styles.scoreCard]}>
                   <Text style={styles.scoreValue}>
                     {row.score.total_marks}
                     <Text style={styles.scoreCeiling}> / {row.score.max_marks}</Text>
@@ -195,15 +208,17 @@ export default function MockReportScreen() {
                     </View>
                   </View>
                 </View>
-                <View style={styles.card}>
-                  <Text style={styles.overline}>By subject</Text>
-                  {Object.entries(row.score.per_subject).map(([subject, st]) => (
-                    <View key={subject} style={styles.standRow}>
-                      <Text style={styles.standLabel}>{SUBJECT_LABEL[subject] ?? subject}</Text>
-                      <Text style={styles.standValue}>{st.marks}</Text>
-                    </View>
-                  ))}
-                </View>
+                <>
+                  <MockSection title="By subject" />
+                  <View style={styles.card}>
+                    {Object.entries(row.score.per_subject).map(([subject, st]) => (
+                      <View key={subject} style={styles.standRow}>
+                        <Text style={styles.standLabel}>{SUBJECT_LABEL[subject] ?? subject}</Text>
+                        <Text style={styles.standValue}>{st.marks}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
               </>
             ) : null}
             <Text style={styles.missingHead}>
@@ -217,55 +232,27 @@ export default function MockReportScreen() {
             </Text>
           </ScrollView>
         ) : (
-          <FlatList
-            style={styles.list}
-            contentContainerStyle={styles.listInner}
-            data={shown}
-            // FlatList re-renders rows only when `data` changes. Without this
-            // the open question never re-rendered, and "Why that is the
-            // answer" did nothing when tapped.
-            extraData={open}
-            keyExtractor={(q) => q.id}
-            initialNumToRender={6}
-            windowSize={7}
-            removeClippedSubviews
-            ListHeaderComponent={
-              <ReportHeader
-                report={report}
-                insights={insights!}
-                styles={styles}
-                counts={counts}
-                filter={filter}
-                setFilter={setFilter}
-                scale={scale}
-              />
-            }
-            ListEmptyComponent={
-              <Text style={styles.emptyLine}>
-                {filter === 'wrong'
-                  ? 'Nothing wrong in this paper.'
-                  : filter === 'skipped'
-                    ? 'You answered every question.'
-                    : 'You marked nothing for review.'}
-              </Text>
-            }
-            renderItem={({ item }) => (
-              <QuestionRow
-                q={item}
-                styles={styles}
-                scale={scale}
-                open={open === item.id}
-                onToggle={() => setOpen(open === item.id ? null : item.id)}
-              />
-            )}
-          />
+          <ScrollView style={styles.list} contentContainerStyle={styles.listInner}>
+            {dateLine}
+            <ReportHeader report={report} insights={insights!} styles={styles} scale={scale} />
+          </ScrollView>
         )}
 
         {isFresh && (
           <View style={styles.footer}>
-            <Pressable style={styles.key} onPress={leave}>
-              <Text style={styles.keyText}>Back to Progress</Text>
-            </Pressable>
+            {/* What to do with the result, then the way out. "Done" goes to
+                Mock tests, where this paper now heads the list; it said
+                "Back to Progress", a page the student did not come from. */}
+            <MockKey
+              label="Practise weak areas"
+              arrow
+              onPress={() => {
+                clearMockSession();
+                setFocus({ mode: 'weak', subject: null, chapterId: null, chapterName: null });
+                router.dismissTo('/practice');
+              }}
+            />
+            <MockKey label="Done" tone="white" onPress={leave} />
           </View>
         )}
       </SafeAreaView>
@@ -273,21 +260,88 @@ export default function MockReportScreen() {
   );
 }
 
+function SincePreviousCard({
+  previous,
+  styles,
+}: {
+  previous: MockPrevious;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const delta = Math.round(previous.delta_percent);
+  const word = delta > 0 ? 'Up' : delta < 0 ? 'Down' : 'Level';
+  const label = previous.kind === 'diagnostic' ? 'your starting point' : 'your last paper';
+  const chapterLine = (c: MockPrevious['improved'][number]) =>
+    `${c.before.correct} of ${c.before.total} → ${c.after.correct} of ${c.after.total}`;
+
+  return (
+    <>
+      <MockSection title={`Since ${label}`} />
+      <View style={styles.card}>
+        <Text
+          style={[
+            styles.deltaHead,
+            delta > 0 && styles.tallyCorrect,
+            delta < 0 && styles.tallyWrong,
+          ]}
+        >
+          {delta === 0 ? 'Level' : `${word} ${Math.abs(delta)} points`}
+        </Text>
+        <Text style={styles.deltaSub}>
+          {Math.round(previous.before_percent)}% → {Math.round(previous.after_percent)}% of the
+          marks, against your paper on {formatDay(previous.submitted_at)}.
+        </Text>
+
+        {previous.subjects.map((s) => (
+          <View key={s.subject} style={styles.standRow}>
+            <Text style={styles.standLabel}>{SUBJECT_LABEL[s.subject] ?? s.subject}</Text>
+            <Text style={styles.standValue}>
+              {s.before}% → {s.after}%
+            </Text>
+          </View>
+        ))}
+
+        {previous.improved.length > 0 && (
+          <>
+            <View style={styles.timeDivider} />
+            <Text style={styles.overline}>Moving up</Text>
+            {previous.improved.map((c) => (
+              <View key={c.chapter_id} style={styles.standRow}>
+                <Text style={styles.standLabel}>{c.name || 'A chapter'}</Text>
+                <Text style={[styles.standValue, styles.tallyCorrect]}>{chapterLine(c)}</Text>
+              </View>
+            ))}
+          </>
+        )}
+        {previous.slipped.length > 0 && (
+          <>
+            <View style={styles.timeDivider} />
+            <Text style={styles.overline}>Slipped</Text>
+            {previous.slipped.map((c) => (
+              <View key={c.chapter_id} style={styles.standRow}>
+                <Text style={styles.standLabel}>{c.name || 'A chapter'}</Text>
+                <Text style={[styles.standValue, styles.tallyWrong]}>{chapterLine(c)}</Text>
+              </View>
+            ))}
+          </>
+        )}
+        <Text style={styles.cardFootnote}>
+          Chapters are compared only where both papers asked about them. One or two questions in a
+          chapter is a first read, not a verdict.
+        </Text>
+      </View>
+    </>
+  );
+}
+
 function ReportHeader({
   report,
   insights,
   styles,
-  counts,
-  filter,
-  setFilter,
   scale,
 }: {
   report: MockReport;
   insights: ReturnType<typeof mockInsights>;
   styles: ReturnType<typeof createStyles>;
-  counts: Record<Filter, number>;
-  filter: Filter;
-  setFilter: (f: Filter) => void;
   scale: (n: number) => number;
 }) {
   const { setFocus } = usePracticeFocus();
@@ -300,26 +354,19 @@ function ReportHeader({
     setFocus({ mode: 'chapter', subject: c.subject, chapterId: c.chapterId, chapterName: c.name });
     router.push('/practice');
   };
-  const filters: { key: Filter; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'wrong', label: 'Wrong' },
-    { key: 'skipped', label: 'Skipped' },
-    { key: 'marked', label: 'Marked' },
-  ];
   const timed = insights.timeMs > 0;
 
   return (
     <>
-      <Text style={styles.subtitle}>
-        {formatDay(report.submitted_at)} · {report.exam === 'neet' ? 'NEET UG' : 'JEE Main'} pattern
-      </Text>
-
-      <View style={styles.card}>
+      <View style={[styles.card, styles.scoreCard]}>
         <Text style={styles.scoreValue}>
           {report.total_marks}
           <Text style={styles.scoreCeiling}> / {report.max_marks}</Text>
         </Text>
         <Text style={styles.scoreCaption}>marks</Text>
+        {report.kind === 'diagnostic' && (
+          <Text style={styles.scoreNote}>A first read: one or two questions per chapter.</Text>
+        )}
         <View style={styles.tallyRow}>
           <View style={styles.tallyChip}>
             <Text style={[styles.tallyValue, styles.tallyCorrect]}>{report.correct}</Text>
@@ -336,259 +383,248 @@ function ReportHeader({
         </View>
       </View>
 
+      {/* THE STARTING POINT IS A FIRST READ, AND SAYS SO.
+          A paper this short touches a chapter once or twice, so a miss here
+          is a place to start, not a verdict. The key goes straight to weak
+          mode — Practice already aims it by chapter — because the whole
+          reason this paper exists is to tell a new student where to go next. */}
+      {/* SINCE YOUR LAST PAPER. A score alone says little; against the paper
+          before it, it says whether practice is working. Percent of what each
+          paper was worth, so a short starting-point paper and a full one
+          compare; a first paper has nothing to compare and shows no card. */}
+      {report.previous && <SincePreviousCard previous={report.previous} styles={styles} />}
+
       {/* WHERE YOU STOOD. Ranked on accuracy, not marks — a subject with 40
           questions left blank can out-score the one you were better at. */}
-      <View style={styles.card}>
-        <Text style={styles.overline}>Where you stood</Text>
-        {insights.strongest && insights.weakest && (
-          <>
-            <View style={styles.standRow}>
-              <Text style={styles.standLabel}>Strongest</Text>
-              <Text style={styles.standValue}>
-                {SUBJECT_LABEL[insights.strongest.subject] ?? insights.strongest.subject}
-                <Text style={styles.standPct}>
-                  {'  '}
-                  {Math.round((insights.strongest.accuracy ?? 0) * 100)}%
+      <>
+        <MockSection title="Where you stood" />
+        <View style={styles.card}>
+          {insights.strongest && insights.weakest && (
+            <>
+              <View style={styles.standRow}>
+                <Text style={styles.standLabel}>Strongest</Text>
+                <Text style={styles.standValue}>
+                  {SUBJECT_LABEL[insights.strongest.subject] ?? insights.strongest.subject}
+                  <Text style={styles.standPct}>
+                    {'  '}
+                    {Math.round((insights.strongest.accuracy ?? 0) * 100)}%
+                  </Text>
                 </Text>
-              </Text>
-            </View>
-            <View style={styles.standRow}>
-              <Text style={styles.standLabel}>To improve</Text>
-              <Text style={styles.standValue}>
-                {SUBJECT_LABEL[insights.weakest.subject] ?? insights.weakest.subject}
-                <Text style={styles.standPct}>
-                  {'  '}
-                  {Math.round((insights.weakest.accuracy ?? 0) * 100)}%
+              </View>
+              <View style={styles.standRow}>
+                <Text style={styles.standLabel}>To improve</Text>
+                <Text style={styles.standValue}>
+                  {SUBJECT_LABEL[insights.weakest.subject] ?? insights.weakest.subject}
+                  <Text style={styles.standPct}>
+                    {'  '}
+                    {Math.round((insights.weakest.accuracy ?? 0) * 100)}%
+                  </Text>
                 </Text>
-              </Text>
-            </View>
-          </>
-        )}
-        <View style={styles.standRow}>
-          <Text style={styles.standLabel}>Lost to wrong answers</Text>
-          <Text style={styles.standValue}>
-            {insights.lostToWrong ? `−${insights.lostToWrong}` : '0'}
+              </View>
+            </>
+          )}
+          <View style={styles.standRow}>
+            <Text style={styles.standLabel}>Lost to wrong answers</Text>
+            <Text style={styles.standValue}>
+              {insights.lostToWrong ? `−${insights.lostToWrong}` : '0'}
+            </Text>
+          </View>
+          <View style={styles.standRow}>
+            <Text style={styles.standLabel}>Left on the table</Text>
+            <Text style={styles.standValue}>{insights.leftOnTable}</Text>
+          </View>
+          <Text style={styles.cardFootnote}>
+            Accuracy counts only the questions you attempted. &quot;Left on the table&quot; is what
+            the {report.unanswered} you skipped were worth.
           </Text>
         </View>
-        <View style={styles.standRow}>
-          <Text style={styles.standLabel}>Left on the table</Text>
-          <Text style={styles.standValue}>{insights.leftOnTable}</Text>
-        </View>
-        <Text style={styles.cardFootnote}>
-          Accuracy counts only the questions you attempted. &quot;Left on the table&quot; is what
-          the {report.unanswered} you skipped were worth.
-        </Text>
-      </View>
+      </>
 
       {/* CHAPTERS TO WORK ON. Below subject level, where a student can act:
           the chapters with wrong answers, worst first, each one tap from
           Practice on exactly that chapter. */}
       {weak.length > 0 && (
-        <View style={styles.card}>
-          <Text style={styles.overline}>Chapters to work on</Text>
-          {shownChapters.map((c) => (
-            <View key={c.chapterId} style={styles.chapterRow}>
-              <View style={styles.chapterMain}>
-                <Text style={styles.chapterName}>{c.name}</Text>
-                <Text style={styles.chapterDetail}>
-                  {SUBJECT_LABEL[c.subject] ?? c.subject} · {c.correct} of {c.questions} right
-                  {c.wrong ? ` · ${c.wrong} wrong` : ''}
-                  {c.skipped ? ` · ${c.skipped} skipped` : ''}
-                </Text>
+        <>
+          <MockSection title="Chapters to work on" />
+          <View style={styles.card}>
+            {shownChapters.map((c) => (
+              <View key={c.chapterId} style={styles.chapterRow}>
+                <View style={styles.chapterMain}>
+                  <Text style={styles.chapterName}>{c.name}</Text>
+                  <Text style={styles.chapterDetail}>
+                    {SUBJECT_LABEL[c.subject] ?? c.subject} · {c.correct} of {c.questions} right
+                    {c.wrong ? ` · ${c.wrong} wrong` : ''}
+                    {c.skipped ? ` · ${c.skipped} skipped` : ''}
+                  </Text>
+                </View>
+                <Pressable
+                  style={styles.chapterKey}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Practise ${c.name}`}
+                  onPress={() => practise(c)}
+                >
+                  <Text style={styles.chapterKeyText}>Practise</Text>
+                </Pressable>
               </View>
-              <Pressable
-                style={styles.chapterKey}
-                hitSlop={6}
-                accessibilityRole="button"
-                accessibilityLabel={`Practise ${c.name}`}
-                onPress={() => practise(c)}>
-                <Text style={styles.chapterKeyText}>Practise</Text>
+            ))}
+            {weak.length > 3 && (
+              <Pressable hitSlop={6} onPress={() => setAllChapters((v) => !v)}>
+                <Text style={styles.chapterMore}>
+                  {allChapters ? 'Show fewer' : `Show all ${weak.length}`}
+                </Text>
               </Pressable>
-            </View>
-          ))}
-          {weak.length > 3 && (
-            <Pressable hitSlop={6} onPress={() => setAllChapters((v) => !v)}>
-              <Text style={styles.chapterMore}>
-                {allChapters ? 'Show fewer' : `Show all ${weak.length}`}
-              </Text>
-            </Pressable>
-          )}
-          <Text style={styles.cardFootnote}>
-            Chapters where you got at least one answer wrong, the most wrong first.
-          </Text>
-        </View>
+            )}
+            <Text style={styles.cardFootnote}>
+              Chapters where you got at least one answer wrong, the most wrong first.
+            </Text>
+          </View>
+        </>
       )}
 
       {/* TIME. The device's own stopwatch — see lib/mock-report.ts. */}
       {timed && (
-        <View style={styles.card}>
-          <Text style={styles.overline}>Time</Text>
-          <View style={styles.standRow}>
-            <Text style={styles.standLabel}>On the paper</Text>
-            <Text style={styles.standValue}>{formatSpan(insights.timeMs)}</Text>
-          </View>
-          <View style={styles.standRow}>
-            <Text style={styles.standLabel}>Typical question</Text>
-            <Text style={styles.standValue}>
-              {insights.medianMs != null ? formatSpan(insights.medianMs) : '—'}
+        <>
+          <MockSection title="Time" />
+          <View style={styles.card}>
+            <View style={styles.standRow}>
+              <Text style={styles.standLabel}>On the paper</Text>
+              <Text style={styles.standValue}>{formatSpan(insights.timeMs)}</Text>
+            </View>
+            <View style={styles.standRow}>
+              <Text style={styles.standLabel}>Typical question</Text>
+              <Text style={styles.standValue}>
+                {insights.medianMs != null ? formatSpan(insights.medianMs) : '—'}
+              </Text>
+            </View>
+            <View style={styles.timeDivider} />
+            {insights.subjects.map((s) => {
+              const share = insights.timeMs ? s.timeMs / insights.timeMs : 0;
+              return (
+                <View key={s.subject} style={styles.timeRow}>
+                  <Text style={styles.timeSubject}>{SUBJECT_LABEL[s.subject] ?? s.subject}</Text>
+                  <View style={styles.timeTrack}>
+                    <View style={[styles.timeFill, { width: `${Math.round(share * 100)}%` }]} />
+                  </View>
+                  <Text style={styles.timeValue}>{formatSpan(s.timeMs)}</Text>
+                </View>
+              );
+            })}
+            <Text style={styles.cardFootnote}>
+              Measured on this phone while the paper was open, so a pause does not count against a
+              question.
             </Text>
           </View>
-          <View style={styles.timeDivider} />
-          {insights.subjects.map((s) => {
-            const share = insights.timeMs ? s.timeMs / insights.timeMs : 0;
-            return (
-              <View key={s.subject} style={styles.timeRow}>
-                <Text style={styles.timeSubject}>{SUBJECT_LABEL[s.subject] ?? s.subject}</Text>
-                <View style={styles.timeTrack}>
-                  <View style={[styles.timeFill, { width: `${Math.round(share * 100)}%` }]} />
-                </View>
-                <Text style={styles.timeValue}>{formatSpan(s.timeMs)}</Text>
-              </View>
-            );
-          })}
-          <Text style={styles.cardFootnote}>
-            Measured on this phone while the paper was open, so a pause does not count against a
-            question.
-          </Text>
-        </View>
+        </>
       )}
 
-      <View style={styles.sectionTitleRow}>
-        <View style={styles.sectionDash} />
-        <Text style={styles.sectionTitle}>Question by question</Text>
-      </View>
-
-      <View style={styles.filterRow}>
-        {filters.map((f) => {
-          const on = filter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              style={[styles.filterChip, on && styles.filterChipOn]}
-              onPress={() => setFilter(f.key)}>
-              <Text style={[styles.filterText, on && styles.filterTextOn]}>
-                {f.label} {counts[f.key]}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* EVERY QUESTION, as a grid to pick from rather than a scroll of
+          cards with no options in them. Each number opens that question on
+          its own page (app/mock-review.tsx): the question, every option with
+          yours and the right one marked, and the working. */}
+      <MockSection title="Questions" count="Tap one to see it" />
+      <QuestionGrid report={report} styles={styles} />
       <View style={{ height: scale(2) }} />
     </>
   );
 }
 
-function QuestionRow({
-  q,
+const GRID_COLUMNS = 7;
+
+/**
+ * THE PAPER'S QUESTIONS AS A GRID, by subject: green for right, red for
+ * wrong, grey for skipped, as a coloured number in a fine outline (never a
+ * tinted fill). A number opens that question's own page.
+ */
+function QuestionGrid({
+  report,
   styles,
-  scale,
-  open,
-  onToggle,
 }: {
-  q: MockReportQuestion;
+  report: MockReport;
   styles: ReturnType<typeof createStyles>;
-  scale: (n: number) => number;
-  open: boolean;
-  onToggle: () => void;
 }) {
-  const verdict = !q.answered ? 'skipped' : q.is_correct ? 'right' : 'wrong';
-  const steps = useMemo(
-    () => parseAnswerSolution(q.solution as AnswerResult['solution']),
-    [q.solution]
-  );
-  const yours =
-    q.type === 'numerical'
-      ? q.chosen_value != null
-        ? String(q.chosen_value)
-        : null
-      : q.chosen_option
-        ? `${q.chosen_option.toUpperCase()} · ${q.options?.[q.chosen_option] ?? ''}`
-        : null;
-  const right =
-    q.type === 'numerical'
-      ? q.correct_value != null
-        ? String(q.correct_value)
-        : null
-      : q.correct_option
-        ? `${q.correct_option.toUpperCase()} · ${q.options?.[q.correct_option] ?? ''}`
-        : null;
-
+  const subjects = [...new Set(report.questions.map((q) => q.subject))];
   return (
-    <View style={styles.qCard}>
-      <View style={styles.qTopRow}>
-        <Text style={styles.qMeta}>
-          Q{q.num} · {SUBJECT_LABEL[q.subject] ?? q.subject}
-        </Text>
-        {q.marked && <Text style={styles.qMarked}>⚑</Text>}
-        {q.elapsed_ms > 0 && <Text style={styles.qTime}>{formatSpan(q.elapsed_ms)}</Text>}
-        <View
-          style={[
-            styles.verdict,
-            verdict === 'right' && styles.verdictRight,
-            verdict === 'wrong' && styles.verdictWrong,
-          ]}>
-          <Text
-            style={[
-              styles.verdictText,
-              verdict === 'right' && styles.verdictTextRight,
-              verdict === 'wrong' && styles.verdictTextWrong,
-            ]}>
-            {verdict}
-          </Text>
-        </View>
+    <View style={styles.card}>
+      {subjects.map((subject, si) => {
+        const qs = report.questions
+          .map((q, i) => ({ q, i }))
+          .filter(({ q }) => q.subject === subject);
+        const rows: (typeof qs)[] = [];
+        for (let i = 0; i < qs.length; i += GRID_COLUMNS) rows.push(qs.slice(i, i + GRID_COLUMNS));
+        return (
+          <View key={subject} style={si > 0 && styles.gridGroup}>
+            <Text style={styles.gridSubject}>{SUBJECT_LABEL[subject] ?? subject}</Text>
+            {rows.map((line, r) => (
+              <View key={r} style={styles.gridRow}>
+                {line.map(({ q, i }) => {
+                  const verdict = !q.answered ? 'skipped' : q.is_correct ? 'right' : 'wrong';
+                  return (
+                    <Pressable
+                      key={q.id}
+                      style={({ pressed }) => [
+                        styles.gridCell,
+                        verdict === 'right' && styles.gridCellRight,
+                        verdict === 'wrong' && styles.gridCellWrong,
+                        pressed && styles.gridCellPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Question ${q.num}, ${verdict}`}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/mock-review',
+                          params: { run: report.run_id, i: String(i) },
+                        })
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.gridText,
+                          verdict === 'right' && styles.gridTextRight,
+                          verdict === 'wrong' && styles.gridTextWrong,
+                        ]}
+                      >
+                        {q.num}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                {Array.from({ length: GRID_COLUMNS - line.length }, (_, k) => (
+                  <View key={`pad${k}`} style={[styles.gridCell, styles.gridPad]} />
+                ))}
+              </View>
+            ))}
+          </View>
+        );
+      })}
+      <View style={styles.gridLegend}>
+        <Legend styles={styles} kind="right" label="Right" />
+        <Legend styles={styles} kind="wrong" label="Wrong" />
+        <Legend styles={styles} kind="skipped" label="Skipped" />
       </View>
+    </View>
+  );
+}
 
-      <QuestionStem
-        text={q.stem}
-        fontSize={scale(14)}
-        lineHeight={scale(21)}
-        style={styles.qStem}
+function Legend({
+  styles,
+  kind,
+  label,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  kind: 'right' | 'wrong' | 'skipped';
+  label: string;
+}) {
+  return (
+    <View style={styles.legendItem}>
+      <View
+        style={[
+          styles.legendSwatch,
+          kind === 'right' && styles.gridCellRight,
+          kind === 'wrong' && styles.gridCellWrong,
+        ]}
       />
-
-      <View style={styles.answerRow}>
-        <Text style={styles.answerLabel}>You put</Text>
-        {yours ? (
-          <MathText
-            text={yours}
-            fontSize={scale(13)}
-            lineHeight={scale(19)}
-            color={q.is_correct ? colors.masteryStrong : colors.red}
-            style={styles.answerValue}
-          />
-        ) : (
-          <Text style={[styles.answerValue, styles.answerNothing]}>nothing</Text>
-        )}
-      </View>
-      {!q.is_correct && (
-        <View style={styles.answerRow}>
-          <Text style={styles.answerLabel}>Right answer</Text>
-          {right ? (
-            <MathText
-              text={right}
-              fontSize={scale(13)}
-              lineHeight={scale(19)}
-              color={colors.masteryStrong}
-              style={styles.answerValue}
-            />
-          ) : (
-            <Text style={[styles.answerValue, styles.answerNothing]}>not given</Text>
-          )}
-        </View>
-      )}
-
-      {steps.length > 0 && (
-        <>
-          <Pressable style={styles.whyRow} hitSlop={8} onPress={onToggle}>
-            <Text style={styles.whyText}>{open ? 'Hide the working' : 'Why that is the answer'}</Text>
-            <ChevronIcon size={scale(13)} down={!open} />
-          </Pressable>
-          {open && (
-            <View style={styles.solution}>
-              <SolutionSteps size="compact" steps={steps} />
-            </View>
-          )}
-        </>
-      )}
+      <Text style={styles.legendText}>{label}</Text>
     </View>
   );
 }
@@ -600,20 +636,6 @@ function BackArrowIcon({ size }: { size: number }) {
         d="M15 5l-7 7 7 7"
         stroke={colors.ink}
         strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function ChevronIcon({ size, down }: { size: number; down: boolean }) {
-  return (
-    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
-      <Path
-        d={down ? 'M5 9l7 7 7-7' : 'M5 15l7-7 7 7'}
-        stroke={colors.slate}
-        strokeWidth={2.2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -644,6 +666,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     /** The app's one page-title tier — see constants/page-title.ts. */
     title: { flex: 1, minWidth: 0, ...pageTitle(scale) },
+    dateLine: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13.5),
+      lineHeight: scale(19),
+      color: colors.slate,
+      marginBottom: verticalScale(16),
+    },
     centre: {
       flex: 1,
       justifyContent: 'center',
@@ -669,28 +698,67 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     list: { flex: 1, minHeight: 0 },
     listInner: {
       paddingHorizontal: scale(20),
+      paddingTop: verticalScale(10),
       paddingBottom: verticalScale(24),
     },
-    subtitle: {
-      marginTop: verticalScale(2),
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.faint,
+    gridGroup: { marginTop: verticalScale(14) },
+    gridSubject: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(13),
+      color: colors.slate,
+      marginBottom: verticalScale(8),
     },
+    gridRow: { flexDirection: 'row', gap: scale(8), marginBottom: scale(8) },
+    gridCell: {
+      flex: 1,
+      flexBasis: 0,
+      aspectRatio: 1,
+      borderRadius: scale(9),
+      borderWidth: 1.4,
+      borderColor: 'rgba(28,26,22,.14)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    gridCellRight: { borderColor: 'rgba(28,155,87,.55)' },
+    gridCellWrong: { borderColor: 'rgba(221,68,51,.55)' },
+    gridCellPressed: { opacity: 0.5 },
+    gridPad: { borderWidth: 1.4, borderColor: 'transparent' },
+    gridText: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      color: colors.faint,
+      fontVariant: ['tabular-nums'],
+    },
+    gridTextRight: { color: '#157A45' },
+    gridTextWrong: { color: '#C53A2B' },
+    gridLegend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      columnGap: scale(14),
+      rowGap: verticalScale(6),
+      marginTop: verticalScale(6),
+    },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: scale(6) },
+    legendSwatch: {
+      width: scale(12),
+      height: scale(12),
+      borderRadius: scale(4),
+      borderWidth: 1.4,
+      borderColor: 'rgba(28,26,22,.14)',
+    },
+    legendText: { fontFamily: 'Onest_500Medium', fontSize: scale(12), color: colors.slate },
+    /** The one card: white, a fine border, 16 corners, no shadow. Its
+     *  heading sits above it (MockSection), 28 from the block before. */
     card: {
       backgroundColor: '#fff',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.08)',
+      borderColor: 'rgba(28,26,22,.10)',
       borderRadius: scale(16),
-      paddingVertical: verticalScale(16),
-      paddingHorizontal: scale(18),
-      marginTop: verticalScale(14),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(1.5) },
-      shadowOpacity: 0.05,
-      shadowRadius: scale(2),
-      elevation: 1,
+      paddingVertical: verticalScale(14),
+      paddingHorizontal: scale(16),
     },
+    scoreCard: { paddingBottom: 0, overflow: 'hidden' },
     overline: {
       fontFamily: 'Onest_800ExtraBold',
       fontSize: scale(9.0),
@@ -714,26 +782,41 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     scoreCaption: {
       textAlign: 'center',
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(12),
-      color: colors.faint,
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      color: colors.slate,
       marginTop: verticalScale(2),
+      paddingHorizontal: scale(8),
     },
+    scoreNote: {
+      textAlign: 'center',
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+      marginTop: verticalScale(6),
+    },
+    /** The three counts as a strip across the foot of the card, not three
+     *  boxes inside a box. */
     tallyRow: {
       flexDirection: 'row',
-      gap: scale(8),
       marginTop: verticalScale(14),
+      // One point further left than the card's inside, so the first count's
+      // divider is clipped under the card's own edge rather than doubling it.
+      marginLeft: scale(-16) - 1,
+      marginRight: scale(-16),
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(28,26,22,.08)',
     },
     tallyChip: {
       flex: 1,
       alignItems: 'center',
-      paddingVertical: verticalScale(10),
-      borderRadius: scale(12),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
+      paddingVertical: verticalScale(11),
+      borderLeftWidth: 1,
+      borderLeftColor: 'rgba(28,26,22,.08)',
     },
     tallyValue: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(17),
       color: colors.ink,
     },
@@ -768,6 +851,21 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: colors.faint,
     },
+    deltaHead: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(22),
+      letterSpacing: scale(-0.6),
+      color: colors.ink,
+      marginTop: verticalScale(2),
+    },
+    deltaSub: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(12.5),
+      lineHeight: scale(18),
+      color: colors.slate,
+      marginTop: verticalScale(4),
+      marginBottom: verticalScale(8),
+    },
     chapterKey: {
       paddingVertical: verticalScale(6),
       paddingHorizontal: scale(12),
@@ -776,13 +874,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: 'rgba(28,26,22,.16)',
     },
     chapterKeyText: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12),
       color: colors.ink,
     },
     chapterMore: {
       marginTop: verticalScale(8),
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(12.5),
       color: colors.ink,
     },
@@ -801,7 +899,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       color: colors.slate,
     },
     standValue: {
-      fontFamily: 'Onest_700Bold',
+      fontFamily: 'Onest_600SemiBold',
       fontSize: scale(14),
       color: colors.ink,
     },
@@ -853,173 +951,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       color: colors.slate,
     },
-    sectionTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-      marginTop: verticalScale(26),
-      marginBottom: verticalScale(12),
-    },
-    sectionDash: {
-      width: scale(18),
-      height: verticalScale(2),
-      borderRadius: scale(2),
-      backgroundColor: colors.marigold,
-    },
-    sectionTitle: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.ink,
-    },
-    filterRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: scale(7),
-      marginBottom: verticalScale(12),
-    },
-    filterChip: {
-      paddingVertical: verticalScale(7),
-      paddingHorizontal: scale(13),
-      borderRadius: scale(99),
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.14)',
-      backgroundColor: '#fff',
-    },
-    filterChipOn: {
-      backgroundColor: colors.ink,
-      borderColor: colors.ink,
-    },
-    filterText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
-      color: colors.slate,
-    },
-    filterTextOn: {
-      fontFamily: 'Onest_700Bold',
-      color: colors.paper,
-    },
-    emptyLine: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(19),
-      color: colors.faint,
-    },
-    qCard: {
-      borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.1)',
-      borderRadius: scale(14),
-      paddingVertical: verticalScale(13),
-      paddingHorizontal: scale(15),
-      marginBottom: verticalScale(10),
-      backgroundColor: '#fff',
-    },
-    qTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(8),
-      marginBottom: verticalScale(8),
-    },
-    qMeta: {
-      flex: 1,
-      minWidth: 0,
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.0),
-      letterSpacing: scale(1.05),
-      textTransform: 'uppercase',
-      color: colors.faint,
-    },
-    qMarked: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: '#9A6A12',
-    },
-    qTime: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(11),
-      color: colors.faint,
-    },
-    verdict: {
-      borderRadius: scale(99),
-      paddingVertical: verticalScale(3),
-      paddingHorizontal: scale(9),
-      backgroundColor: 'rgba(28,26,22,.05)',
-    },
-    verdictRight: { backgroundColor: 'rgba(28,155,87,.1)' },
-    verdictWrong: { backgroundColor: 'rgba(221,68,51,.08)' },
-    verdictText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(10),
-      letterSpacing: scale(0.2),
-      color: colors.faint,
-    },
-    verdictTextRight: { color: '#157A45' },
-    verdictTextWrong: { color: '#B5301F' },
-    qStem: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(21),
-      color: colors.ink,
-    },
-    answerRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: scale(10),
-      marginTop: verticalScale(8),
-    },
-    answerLabel: {
-      width: scale(86),
-      flexShrink: 0,
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(12),
-      lineHeight: scale(19),
-      color: colors.faint,
-    },
-    answerValue: {
-      flex: 1,
-      minWidth: 0,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(13),
-      lineHeight: scale(19),
-    },
-    answerNothing: {
-      color: colors.faint,
-      fontFamily: 'Onest_400Regular',
-    },
-    whyRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(6),
-      marginTop: verticalScale(11),
-    },
-    whyText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(12.5),
-      color: colors.slate,
-    },
-    solution: {
-      marginTop: verticalScale(10),
-    },
+    // #C53A2B, not a near-miss of it. The app has one red for text on a red
+    // tint — report-sheet, practice, the library list and the classroom all
+    // use it — and this screen shipped with its own, three shades off.
     footer: {
       flexShrink: 0,
+      gap: verticalScale(10),
       paddingTop: verticalScale(12),
-      paddingBottom: verticalScale(12),
-      paddingHorizontal: scale(24),
+      paddingBottom: verticalScale(8),
+      paddingHorizontal: scale(20),
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,26,22,.08)',
-    },
-    key: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-    },
-    keyText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      color: colors.paper,
     },
   });
 }

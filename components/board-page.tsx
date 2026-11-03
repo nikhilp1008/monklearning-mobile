@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { hasDrawnScripts, ScriptText } from '@/components/script-text';
 import {
   Pressable,
   ScrollView,
@@ -6,6 +7,7 @@ import {
   Text,
   View,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Polyline, Text as SvgText } from 'react-native-svg';
@@ -100,6 +102,8 @@ function MarkableText({ text, styles }: { text: string; styles: Styles }) {
 function Block({ block, styles }: { block: BoardBlock; styles: Styles }) {
   switch (block.kind) {
     case 'text':
+      // A line with a drawn script (v_{AB}) is drawn; highlighting is for prose.
+      if (hasDrawnScripts(block.raw)) return <ScriptText raw={block.raw} text={block.text} style={styles.text} />;
       return block.markable ? (
         <MarkableText text={block.text} styles={styles} />
       ) : (
@@ -118,7 +122,7 @@ function Block({ block, styles }: { block: BoardBlock; styles: Styles }) {
       // a full-width bar.
       return (
         <View style={[styles.mathWrap, block.result && styles.mathWrapResult]}>
-          <Text style={[styles.math, block.result && styles.mathResult]}>{block.text}</Text>
+          <ScriptText raw={block.raw} text={block.text} style={[styles.math, block.result && styles.mathResult]} />
         </View>
       );
     case 'problem':
@@ -386,7 +390,8 @@ function createStyles() {
       fontFamily: 'Onest_700Bold',
       fontSize: 29,
       letterSpacing: -0.04 * 29,
-      lineHeight: 29 * 1.06,
+      // Android clips glyphs past a line this tight; it gets room for them.
+      lineHeight: 29 * (Platform.OS === 'android' ? 1.2 : 1.06),
       color: INK,
     },
     subject: {

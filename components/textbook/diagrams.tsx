@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import {
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,14 +16,19 @@ import Svg, {
   Line,
   Path,
   Rect,
-  Text as SvgText,
+  // Animated labels stay on the raw component: Reanimated animates a native
+  // component, not the FigText wrapper. They are the six original Sets
+  // figures, which the pilot's face does not reach yet.
+  Text as SvgTextRaw,
   type CircleProps,
   type PathProps,
   type RectProps,
   type TextProps as SvgTextProps,
 } from 'react-native-svg';
 
-import { Markup } from '@/components/textbook/markup';
+import { FigText as SvgText, FigureFaceContext, useFigureFace } from '@/components/textbook/figure-face';
+import { Markup, type MarkupLook } from '@/components/textbook/markup';
+import { labelCase } from '@/lib/label-case';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import type { DiagramFrame } from '@/lib/textbooks';
@@ -37,6 +43,7 @@ import {
 } from '@/components/textbook/figures';
 import { Plot, UnitCircle } from '@/components/textbook/plot';
 import { useScale } from '@/constants/scale';
+import { hapticSwitched } from '@/lib/haptics';
 
 /**
  * The six interactive figures the Textbooks reader can drop into a chapter.
@@ -192,10 +199,16 @@ export function TextbookDiagram({
   captions,
   mathChips,
   frames,
+  look = 'current',
+  type,
 }: {
   kind: string;
   selected: number;
   onSelect: (i: number) => void;
+  /** 'pilot' is the rebuilt reading system on one topic; see pilot.ts. */
+  look?: MarkupLook;
+  /** The reader's text scale, so the pilot's caption grows with aA. */
+  type?: (n: number) => number;
   /** Authored by the chapter; falls back to the built-in text for the six. */
   chips?: string[];
   captions?: string[];
@@ -226,48 +239,72 @@ export function TextbookDiagram({
 
   const sel = Math.min(Math.max(selected, 0), config.chips.length - 1);
 
+  const figure = (
+    <View style={styles.figure} onLayout={onLayout}>
+      {kind === 'numsys' && <NumberSystems selected={sel} styles={styles} />}
+      {kind === 'lattice' && <Lattice selected={sel} styles={styles} />}
+      {kind === 'venn2' && <VennTwo selected={sel} width={figureWidth} />}
+      {kind === 'venn3' && <VennThree selected={sel} width={figureWidth} />}
+      {kind === 'family' && <IntervalFamily selected={sel} width={figureWidth} />}
+      {kind === 'grid' && <IncidenceGrid selected={sel} styles={styles} />}
+      {(kind === 'plot' || kind === 'numberline') && frames?.[sel] && (
+        <Plot frame={frames[sel]} width={figureWidth} kind={kind} />
+      )}
+      {kind === 'unitcircle' && frames?.[sel] && (
+        <UnitCircle frame={frames[sel]} width={figureWidth} />
+      )}
+      {kind === 'tree' && frames?.[sel] && (
+        <CountingTree frame={frames[sel]} width={figureWidth} />
+      )}
+      {kind === 'pascal' && frames?.[sel] && (
+        <PascalTriangle frame={frames[sel]} width={figureWidth} />
+      )}
+      {kind === 'axes3d' && frames?.[sel] && (
+        <Axes3D frame={frames[sel]} width={figureWidth} />
+      )}
+      {kind === 'flow' && frames?.[sel] && (
+        <FlowChart frame={frames[sel]} width={figureWidth} sans={look === 'pilot'} />
+      )}
+      {kind === 'levels' && frames?.[sel] && (
+        <EnergyLevels frame={frames[sel]} width={figureWidth} />
+      )}
+      {kind === 'circuit' && frames?.[sel] && (
+        <CircuitDiagram frame={frames[sel]} width={figureWidth} />
+      )}
+      {kind === 'optics' && frames?.[sel] && (
+        <RayDiagram frame={frames[sel]} width={figureWidth} />
+      )}
+    </View>
+  );
+
+  if (look === 'pilot') {
+    return (
+      <FigureFaceContext.Provider value={PILOT_FACE}>
+        <PilotFigure
+          figure={figure}
+          chips={config.chips}
+          caption={config.captions[sel] ?? ''}
+          mathChips={config.mathChips}
+          sel={sel}
+          onSelect={onSelect}
+          scale={scale}
+          type={type ?? scale}
+        />
+      </FigureFaceContext.Provider>
+    );
+  }
+
   return (
     <View>
-      <View style={styles.figure} onLayout={onLayout}>
-        {kind === 'numsys' && <NumberSystems selected={sel} styles={styles} />}
-        {kind === 'lattice' && <Lattice selected={sel} styles={styles} />}
-        {kind === 'venn2' && <VennTwo selected={sel} width={figureWidth} />}
-        {kind === 'venn3' && <VennThree selected={sel} width={figureWidth} />}
-        {kind === 'family' && <IntervalFamily selected={sel} width={figureWidth} />}
-        {kind === 'grid' && <IncidenceGrid selected={sel} styles={styles} />}
-        {(kind === 'plot' || kind === 'numberline') && frames?.[sel] && (
-          <Plot frame={frames[sel]} width={figureWidth} kind={kind} />
-        )}
-        {kind === 'unitcircle' && frames?.[sel] && (
-          <UnitCircle frame={frames[sel]} width={figureWidth} />
-        )}
-        {kind === 'tree' && frames?.[sel] && (
-          <CountingTree frame={frames[sel]} width={figureWidth} />
-        )}
-        {kind === 'pascal' && frames?.[sel] && (
-          <PascalTriangle frame={frames[sel]} width={figureWidth} />
-        )}
-        {kind === 'axes3d' && frames?.[sel] && (
-          <Axes3D frame={frames[sel]} width={figureWidth} />
-        )}
-        {kind === 'flow' && frames?.[sel] && (
-          <FlowChart frame={frames[sel]} width={figureWidth} />
-        )}
-        {kind === 'levels' && frames?.[sel] && (
-          <EnergyLevels frame={frames[sel]} width={figureWidth} />
-        )}
-        {kind === 'circuit' && frames?.[sel] && (
-          <CircuitDiagram frame={frames[sel]} width={figureWidth} />
-        )}
-        {kind === 'optics' && frames?.[sel] && (
-          <RayDiagram frame={frames[sel]} width={figureWidth} />
-        )}
-      </View>
+      {figure}
       <View style={styles.chipRow}>
         {config.chips.map((label, i) => (
           <PressableScale
             key={label}
-            onPress={() => onSelect(i)}
+            onPress={() => {
+              if (i !== sel) hapticSwitched();
+              onSelect(i);
+            }}
             accessibilityRole="button"
             accessibilityState={{ selected: sel === i }}
             style={[styles.chip, sel === i && styles.chipOn]}>
@@ -289,6 +326,115 @@ export function TextbookDiagram({
   );
 }
 
+const PILOT_FACE = { sans: true };
+
+/**
+ * THE PILOT'S FIGURE: the drawing, its views, and its caption.
+ *
+ * Views are square chips in ONE row under the drawing, which scrolls sideways
+ * rather than wrapping: a six-view figure was four rows of pills. Chosen over
+ * text tabs above the figure and a "‹ 2/6 ›" stepper, compared side by side
+ * on five real figures: chips keep every view visible and plainly tappable.
+ *
+ * One view is not a choice and is not drawn as one: its name sits over the
+ * caption as a line of text, where the current reader draws a lone selected
+ * pill. Labels are lowercase, like every label in the reader, and the
+ * caption is reading text that grows with aA.
+ */
+function PilotFigure({
+  figure,
+  chips,
+  caption,
+  mathChips,
+  sel,
+  onSelect,
+  scale,
+  type,
+}: {
+  figure: ReactNode;
+  chips: string[];
+  caption: string;
+  mathChips: boolean;
+  sel: number;
+  onSelect: (i: number) => void;
+  scale: (n: number) => number;
+  type: (n: number) => number;
+}) {
+  const s = useMemo(() => createPilotStyles(scale, type), [scale, type]);
+  const many = chips.length > 1;
+  const name = (label: string) => (mathChips ? label : labelCase(label));
+
+  const title = <Text style={[s.title, mathChips && s.titleMath]}>{name(chips[sel] ?? '')}</Text>;
+  const captionNode = <Markup html={caption} size={type(15)} style={s.caption} look="pilot" />;
+
+  return (
+    <View>
+      {figure}
+      <View style={s.rule} />
+      {many ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipsWrap} contentContainerStyle={s.chips}>
+          {chips.map((label, i) => (
+            <PressableScale
+              key={label}
+              onPress={() => {
+                if (i !== sel) hapticSwitched();
+                onSelect(i);
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sel === i }}
+              style={[s.chip, sel === i && s.chipOn]}>
+              <Text style={[mathChips ? s.chipMath : s.chipWord, sel === i && s.chipTextOn]}>{name(label)}</Text>
+            </PressableScale>
+          ))}
+        </ScrollView>
+      ) : (
+        title
+      )}
+      {captionNode}
+    </View>
+  );
+}
+
+function createPilotStyles(scale: (n: number) => number, type: (n: number) => number) {
+  return StyleSheet.create({
+    rule: { height: 1, backgroundColor: 'rgba(28,26,22,.08)', marginTop: scale(12), marginBottom: scale(14) },
+    title: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: type(15),
+      lineHeight: type(24),
+      color: colors.ink,
+      marginBottom: scale(4),
+      paddingHorizontal: scale(4),
+    },
+    titleMath: { fontFamily: SERIF, fontStyle: 'italic', fontSize: type(16) },
+    caption: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: type(15),
+      lineHeight: type(24),
+      color: colors.ink,
+      paddingHorizontal: scale(4),
+      paddingBottom: scale(2),
+    },
+    // chips: one row that scrolls, bleeding to the card's edges so a cut-off
+    // chip says "there is more this way".
+    chipsWrap: { marginHorizontal: -scale(16), marginBottom: scale(12) },
+    chips: { gap: scale(8), paddingHorizontal: scale(20) },
+    chip: {
+      minHeight: scale(34),
+      paddingHorizontal: scale(12),
+      borderRadius: scale(10),
+      borderWidth: 1,
+      borderColor: CHIP_BORDER,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chipOn: { borderColor: colors.ink, borderWidth: 1.5 },
+    chipWord: { fontFamily: 'Onest_600SemiBold', fontSize: type(13), color: colors.faint },
+    chipMath: { fontFamily: SERIF, fontStyle: 'italic', fontSize: type(14), color: colors.faint },
+    chipTextOn: { color: colors.ink },
+  });
+}
+
 /* -------------------------------------------------------------------------
  * Animated primitives
  *
@@ -301,7 +447,7 @@ export function TextbookDiagram({
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
-const AnimatedSvgText = Animated.createAnimatedComponent(SvgText);
+const AnimatedSvgText = Animated.createAnimatedComponent(SvgTextRaw);
 
 function useFadeProps(opacity: number) {
   return useAnimatedProps(() => ({ opacity: withTiming(opacity, TIMING) }));
@@ -372,8 +518,14 @@ function WashText({
   children: ReactNode;
 }) {
   const wash = useAnimatedStyle(() => ({ color: withTiming(color, TIMING) }));
+  // The pilot sets the label in Onest, as every other figure label in it is;
+  // the face carries the weight, so no fontWeight on top of it.
+  const { sans } = useFigureFace();
+  const face: TextStyle = sans
+    ? { fontFamily: bold ? 'Onest_600SemiBold' : 'Onest_500Medium', fontStyle: 'normal' }
+    : { fontWeight: bold ? '700' : '400' };
   return (
-    <Animated.Text style={[style, { fontWeight: bold ? '700' : '400' }, wash]}>
+    <Animated.Text style={[style, face, wash]}>
       {children}
     </Animated.Text>
   );

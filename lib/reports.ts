@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
@@ -27,7 +28,9 @@ import { apiFetch } from '@/lib/api';
  * is expected to say "couldn't send" rather than "thanks".
  */
 
-export type ReportSurface = 'snap' | 'live' | 'practice';
+/** `textbook` and `mock` need the API's migration 0098; an older server
+ *  refuses them with a 400, which the sheet shows as "couldn't send". */
+export type ReportSurface = 'snap' | 'live' | 'practice' | 'textbook' | 'mock';
 
 /** The five the sheet offers. Kept in one place so live, snap and practice
  *  cannot drift into three slightly different vocabularies — which would show
@@ -58,6 +61,39 @@ export type ReportInput = {
   quote?: string | null;
   context?: Record<string, unknown> | null;
 };
+
+/** What a flag hands the sheet. */
+export type ReportTarget = {
+  doubtId?: string | null;
+  /** A practice or mock-paper question instead of a doubt. */
+  questionId?: string | null;
+  sessionId?: string | null;
+  subject?: string | null;
+  chapter?: string | null;
+  quote?: string | null;
+  /** Which part of the app is reporting; defaults from whatever id arrived. */
+  surface?: ReportSurface;
+  /** Anything else worth sending with it (the classroom's phase, the
+   *  follow-up just asked, the textbook page, the mock run). */
+  context?: Record<string, unknown> | null;
+};
+
+/**
+ * Open the report sheet as a route. Route params are strings, so the context
+ * travels as JSON and app/report-sheet.tsx reads it back.
+ */
+export function openReportSheet(target: ReportTarget): void {
+  const params: Record<string, string> = {};
+  for (const key of ['doubtId', 'questionId', 'sessionId', 'subject', 'chapter', 'quote', 'surface'] as const) {
+    const v = target[key];
+    if (v) params[key] = String(v);
+  }
+  const context = target.context
+    ? Object.fromEntries(Object.entries(target.context).filter(([, v]) => v !== null && v !== undefined && v !== ''))
+    : null;
+  if (context && Object.keys(context).length) params.context = JSON.stringify(context);
+  router.push({ pathname: '/report-sheet', params });
+}
 
 const APP_VERSION =
   (Constants.expoConfig?.version as string | undefined) ??

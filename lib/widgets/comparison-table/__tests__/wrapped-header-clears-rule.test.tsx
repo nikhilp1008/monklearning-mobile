@@ -60,8 +60,11 @@ const num = (v: unknown) => Number(Array.isArray(v) ? v[0] : v);
 function parts(tree: unknown) {
   const els = walk(tree);
   const texts = els.filter((e) => e.type === 'RNSVGText').map((e) => {
-    const font = (e.props.font ?? {}) as { fontSize?: number; fontWeight?: string };
-    return { y: num(e.props.y), size: font.fontSize ?? 12, bold: font.fontWeight === '700' };
+    const font = (e.props.font ?? {}) as { fontSize?: number; fontWeight?: string; fontFamily?: string };
+    // A header is set bold: the face's own Bold cut where it has one
+    // (boldFace in chrome.ts), or a weight request where it does not.
+    const bold = font.fontWeight === '700' || /Bold$/.test(font.fontFamily ?? '');
+    return { y: num(e.props.y), size: font.fontSize ?? 12, bold };
   });
   // The header rule is the first Line drawn; the row separators come after it.
   const rule = els.find((e) => e.type === 'RNSVGLine');

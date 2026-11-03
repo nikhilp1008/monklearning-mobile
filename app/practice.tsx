@@ -13,16 +13,30 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { StateCard } from '@/components/states';
+import { openClass } from '@/lib/open-class';
+import { shadow } from '@/lib/shadow';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { footPadding } from '@/lib/foot-padding';
+import { useFreeTier } from '@/lib/free-tier';
+import { KeyboardSpacer, useScrollFocusedFieldAboveKeyboard } from '@/components/keyboard-spacer';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
-import { MathText } from '@/components/math-text';
+import { MathLine } from '@/components/math-line';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionDiagram } from '@/components/question-diagram';
 import { QuestionStem } from '@/components/question-stem';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
-import { SolutionSteps } from '@/components/solution-steps';
+import { SolutionCards } from '@/components/solution-cards';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
+import {
+  QUESTION_READ_LINE,
+  QUESTION_READ_SIZE,
+  READ_LINE,
+  READ_SIZE,
+  READING_GUTTER,
+} from '@/constants/reading';
 import { useScale } from '@/constants/scale';
 import {
   AnswerResult,
@@ -39,12 +53,15 @@ import {
   submitAnswer,
   takeQueuedQuestion,
 } from '@/lib/practice';
-import { ApiError } from '@/lib/api';
+import { ApiError, friendlyError } from '@/lib/api';
+import { isPassRequired } from '@/lib/pass-events';
 import { examSubjects } from '@/lib/drona';
 import { getProfile } from '@/lib/profile';
 import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-context';
 import { sampleWeakChapterId } from '@/lib/weak-focus';
-import { hapticSoft, hapticSwitched, hapticTicked } from '@/lib/haptics';
+import { hapticSoft, hapticSwitched, hapticTicked, hapticWarning } from '@/lib/haptics';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
 
 /**
  * Tabs follow the student's exam. Hardcoded PCM gave a NEET student a Maths
@@ -73,8 +90,13 @@ const SUBJECT_QUERY: Record<string, string> = {
 
 
 export default function PracticeScreen() {
+  const { free } = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
+  // The numeric answer box sits part-way down the page: scrolled above the
+  // keyboard on Android (iOS does it itself, see automaticallyAdjustKeyboardInsets).
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollFocusedFieldAboveKeyboard(scrollRef);
   // The mock gate reads the same /progress payload Progress renders — the
   // chapters it asks the student to clear are their real needs_revision
   // chapters, not an invented list.
@@ -111,7 +133,7 @@ export default function PracticeScreen() {
    * question is a question burned out of this student's pool for good.
    */
   const [scope, setScope] = useState<{
-    exam: 'jee' | 'neet' | 'both';
+    exam: 'jee' | 'neet';
     class_level: '11' | '12' | 'both';
   } | null>(null);
 
@@ -136,6 +158,16 @@ export default function PracticeScreen() {
 
   const [question, setQuestion] = useState<NextQuestion | null>(null);
   const [poolMessage, setPoolMessage] = useState<string | null>(null);
+  /** Why there is no next question: the day's limit, or nothing left in scope.
+   *  Two different states, said two different ways (they shared one card). */
+  const [poolReason, setPoolReason] = useState<'daily_limit' | 'pool_empty' | null>(null);
+  /** The day's limit was the FREE tier's: the card makes the case for a plan. */
+  const [poolUpgrade, setPoolUpgrade] = useState(false);
+  /** On pool_empty, how many questions the scope holds at all: 0 is a chapter
+   *  (or subject) with nothing added yet; more than 0 means the quality check
+   *  turned down this draw. Null when the server didn't say, which is read as
+   *  0 — an empty pool is the only case an older server reports. */
+  const [poolSize, setPoolSize] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -146,6 +178,14 @@ export default function PracticeScreen() {
   /** Not an error, but not something to do silently either — currently only
    *  the ungradeable-question swap below. */
   const [notice, setNotice] = useState<string | null>(null);
+  /** A submit that didn't reach the server, said under the Submit it came
+   *  from. The question and the answer stay on screen so Submit can be
+   *  pressed again — `loadError` only renders when there is no question, so
+   *  a dropped connection here used to just stop the spinner. */
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  /** The question can't be answered here at all (it is on a mock paper the
+   *  student is still sitting), so the way on is a different question. */
+  const [submitBlocked, setSubmitBlocked] = useState(false);
   /** Set while a question-scoped Drona session is being created. */
 
   /** Consecutive "I don't know"s in one chapter. At STUCK_RUN the screen stops
@@ -189,6 +229,12 @@ export default function PracticeScreen() {
   /** The pinned row clears the home indicator itself — this screen's
    *  SafeAreaView only takes the top edge. */
   const insets = useSafeAreaInsets();
+  const pinnedBottom = footPadding(insets.bottom, 16, 12);
+  /** The pinned row's own height: top padding, the 52pt bar, the 9pt gap and
+   *  the hint's line, and the bottom padding. The white is solid over this. */
+  const pinnedRow = verticalScale(14) + 52 + 9 + 14 + pinnedBottom;
+  /** How far above the row the working dissolves into it. */
+  const pinnedFade = verticalScale(40);
 
   /**
    * Drona routes carry a real chapterId whenever the catalogue (cached,
@@ -202,7 +248,7 @@ export default function PracticeScreen() {
     // catalogue the button was simply dead — no press state, no transition —
     // for the length of a network round trip. `entering-classroom` does that
     // lookup now, where there is a loading screen to look at while it happens.
-    router.push({
+    openClass({
       pathname: '/entering-classroom',
       params: { chapterTitle: chapterTitle ?? 'this topic' },
     });
@@ -238,7 +284,7 @@ export default function PracticeScreen() {
   const finalAnswer = answerResult ? solutionFinalAnswer(answerResult.solution) : null;
 
   const tally = useMemo(() => {
-    if (!lifetime) return null;
+    if (!lifetime || lifetime.locked) return null;
     const attempted = lifetime.attempted + sessionAttempted;
     if (!attempted) return null;
     const correct = lifetime.correct + sessionCorrect;
@@ -384,11 +430,16 @@ export default function PracticeScreen() {
    * locking onto one. `exclude` lets a retry skip a chapter that just came
    * back pool_empty.
    */
-  const nextChapterFilter = (exclude?: string[]): { chapter_id?: string } => {
+  const nextChapterFilter = (
+    exclude?: string[]
+  ): { chapter_id?: string; weak?: boolean } => {
     if (focusChapterId) return { chapter_id: focusChapterId };
     if (weakMode) {
       const id = sampleWeakChapterId(SUBJECT_QUERY[activeSubject], exclude);
-      if (id) return { chapter_id: id };
+      // `weak` asks the server to aim within the chapter too, at the
+      // student's weakest concepts — the chapter pick alone left the question
+      // inside it a uniform random draw.
+      if (id) return { chapter_id: id, weak: true };
     }
     return {};
   };
@@ -440,6 +491,21 @@ export default function PracticeScreen() {
    * app losing their answer, so it does both: swap, and say so.
    */
   async function handleSubmitError(err: unknown) {
+    // A question on a mock paper the student is still sitting: the server
+    // keeps its answer back until the paper is submitted, and says why in a
+    // sentence written for the student. Also a 409, but not an ungradeable
+    // row, so it is told apart by what it says. /practice/next leaves these
+    // questions out, so this should only reach a question queued before the
+    // paper started. Said as the server says it, with a way to another.
+    const detail =
+      err instanceof ApiError && typeof (err.data as { detail?: unknown } | null)?.detail === 'string'
+        ? (err.data as { detail: string }).detail
+        : null;
+    if (err instanceof ApiError && err.status === 409 && detail && /mock paper/i.test(detail)) {
+      setSubmitError(detail);
+      setSubmitBlocked(true);
+      return;
+    }
     if (err instanceof ApiError && err.status === 409) {
       await loadQuestion();
       setNotice(
@@ -447,16 +513,26 @@ export default function PracticeScreen() {
       );
       return;
     }
-    setLoadError(err instanceof Error ? err.message : 'Could not submit that answer.');
+    // The pass has ended: apiFetch has already told the app root, which takes
+    // the student to the plans page. A "couldn't submit" under it would only
+    // be a second, vaguer account of the same thing.
+    if (err instanceof ApiError && err.status === 402 && isPassRequired(err.data)) return;
+    hapticWarning();
+    setSubmitError(friendlyError(err, 'submit that answer'));
   }
 
   async function loadQuestion() {
     setLoadError(null);
     setPoolMessage(null);
+    setPoolReason(null);
+    setPoolUpgrade(false);
+    setPoolSize(null);
     setSelectedOption(null);
     setNumericInput('');
     setAnswerResult(null);
     setNotice(null);
+    setSubmitError(null);
+    setSubmitBlocked(false);
 
     // Already have the next one waiting — no spinner, no wait. This survives
     // leaving and re-entering Practice, so re-opening it is instant too.
@@ -518,7 +594,12 @@ export default function PracticeScreen() {
         if (result.questions_used_today != null && result.daily_limit != null) {
           setQuota({ used: result.questions_used_today, limit: result.daily_limit });
         }
+        // The day's questions are used up: felt as the refusal it is.
+        if (result.reason === 'daily_limit') hapticWarning();
+        setPoolReason(result.reason === 'daily_limit' ? 'daily_limit' : 'pool_empty');
+        setPoolUpgrade(result.reason === 'daily_limit' && result.upgrade === true);
         setPoolMessage(result.message);
+        setPoolSize(typeof result.pool_size === 'number' ? result.pool_size : null);
         setQuestion(null);
       } else {
         setQuestion(result);
@@ -529,7 +610,7 @@ export default function PracticeScreen() {
         setSeen((n) => n + 1);
       }
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Could not load a question.');
+      setLoadError(friendlyError(err, 'load a question'));
     } finally {
       setLoading(false);
     }
@@ -542,7 +623,11 @@ export default function PracticeScreen() {
   async function submitAnswerFor(key?: string) {
     if (!question || submitting) return;
     const gaveUp = key === undefined;
+    // What was picked before "I don't know" cleared it, so a failed give-up
+    // hands the student back the screen they had.
+    const picked = selectedOption;
     setSelectedOption(key ?? null);
+    setSubmitError(null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
@@ -552,6 +637,7 @@ export default function PracticeScreen() {
       });
       applyResult(result, { gaveUp, chapter: question.chapter_name });
     } catch (err) {
+      if (gaveUp) setSelectedOption(picked);
       await handleSubmitError(err);
     } finally {
       setSubmitting(false);
@@ -561,6 +647,7 @@ export default function PracticeScreen() {
   async function submitNumeric() {
     const value = parseFloat(numericInput);
     if (!question || submitting || Number.isNaN(value)) return;
+    setSubmitError(null);
     setSubmitting(true);
     try {
       const result = await submitAnswer({
@@ -639,9 +726,18 @@ export default function PracticeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Report a mistake in this question"
               onPress={() =>
-                router.push({
-                  pathname: '/report-sheet',
-                  params: { questionId: question.question_id },
+                // What they had done with it says which complaint this is: a
+                // wrong key before answering, a wrong verdict after, or the
+                // follow-up they had just asked.
+                openReportSheet({
+                  questionId: question.question_id,
+                  surface: 'practice',
+                  context: {
+                    picked: selectedOption ?? (numericInput.trim() || null),
+                    answered: !!answerResult,
+                    marked_correct: answerResult ? answerResult.is_correct : null,
+                    ...lastFollowUpContext(question.question_id),
+                  },
                 })
               }>
               <FlagIcon size={scale(16)} />
@@ -671,8 +767,11 @@ export default function PracticeScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={[styles.scrollContent, revealed && styles.scrollContentPinned]}
+          automaticallyAdjustKeyboardInsets
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <Pressable
             style={styles.focusRow}
@@ -705,26 +804,94 @@ export default function PracticeScreen() {
 
           {loading && !question ? (
             <QuestionSkeleton styles={styles} verticalScale={verticalScale} />
+          ) : poolMessage && poolReason === 'daily_limit' && poolUpgrade ? (
+            // A LIMIT WITH A WAY UP (the free tier's, or Pro's). Not "opens again
+            // tomorrow": the server's own sentence, which makes the case for a
+            // bigger plan, and a way to one.
+            <StateCard
+              style={styles.stateCard}
+              glyph="clock"
+              title={
+                free
+                  ? quota ? `You've done today's ${quota.limit} free questions` : "You've done today's free questions"
+                  : quota ? `That's today's ${quota.limit}` : "That's today's questions"
+              }
+              line={poolMessage}
+              action={{ label: 'See plans', onPress: () => router.push('/plans') }}
+              quiet={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
+            />
+          ) : poolMessage && poolReason === 'daily_limit' ? (
+            // THE DAY'S LIMIT, with somewhere to go: it used to share one card
+            // with "nothing left" and offer no way out.
+            <StateCard
+              style={styles.stateCard}
+              glyph="clock"
+              title={quota ? `That's today's ${quota.limit}` : "That's today's questions"}
+              line="Practice opens again tomorrow. Until then, read a chapter or open your notes."
+              action={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
+              quiet={{ label: 'See your progress', onPress: () => router.push('/progress') }}
+            />
+          ) : poolMessage && poolSize !== null && poolSize > 0 ? (
+            // THE SCOPE HAS QUESTIONS, BUT NONE PASSED THE QUALITY CHECK THIS
+            // TIME. Asking again draws different ones, and a pool_empty
+            // serves nothing, so it costs none of the day's questions.
+            <StateCard
+              style={styles.stateCard}
+              glyph="retry"
+              title="Couldn't find a good question right now"
+              line="Try again and another one will be picked."
+              action={{ label: 'Try again', onPress: () => void loadQuestion() }}
+            />
           ) : poolMessage ? (
-            <View style={styles.questionCard}>
-              <Text style={styles.questionOverline}>No questions left</Text>
-              <Text style={styles.questionBody}>{poolMessage}</Text>
-            </View>
+            // NOTHING HERE YET: the scope has no practice questions at all.
+            // `/practice/next` recycles questions already seen, so a
+            // pool_empty never means "you've done them all" — the card that
+            // said so congratulated students on chapters they had never been
+            // served. A server too old to send `pool_size` lands here too.
+            focus.mode === 'chapter' && focus.chapterName ? (
+              <StateCard
+                style={styles.stateCard}
+                glyph="paper"
+                title={`No practice questions for ${focus.chapterName} yet`}
+                line="We're still adding them. Pick another chapter, or practise across the whole subject."
+                action={{
+                  label: 'Choose a chapter',
+                  onPress: () =>
+                    router.push({
+                      pathname: '/practice-focus',
+                      params: { subject: SUBJECT_QUERY[activeSubject], subjectLabel: activeSubject },
+                    }),
+                }}
+                quiet={{
+                  label: `Practise all of ${activeSubject}`,
+                  onPress: () => setFocus(DEFAULT_PRACTICE_FOCUS),
+                }}
+              />
+            ) : (
+              <StateCard
+                style={styles.stateCard}
+                glyph="paper"
+                title={`No ${activeSubject} practice questions yet`}
+                line="We're still adding them. Try another subject in the meantime."
+                action={{ label: 'Choose a subject', onPress: () => setMenuOpen(true) }}
+              />
+            )
           ) : loadError && !question ? (
-            <View style={styles.questionCard}>
-              <Text style={styles.questionOverline}>Couldn&apos;t load a question</Text>
-              <Text style={styles.questionBody}>{loadError}</Text>
-              <Pressable style={styles.outlineButton} onPress={loadQuestion}>
-                <Text style={styles.outlineButtonText}>Try again</Text>
-              </Pressable>
-            </View>
+            <StateCard
+              style={styles.stateCard}
+              glyph="retry"
+              title="Couldn't load a question"
+              line="Check your connection and try again. Your answers so far are saved."
+              action={{ label: 'Try again', onPress: () => void loadQuestion() }}
+            />
           ) : question ? (
             <>
           <View style={styles.questionBlock}>
             <Text style={styles.questionMeta}>
               <Text style={styles.questionNumber}>Q{seen}</Text>
               {'  '}
-              {[activeSubject, question.chapter_name].filter(Boolean).join(' · ')}
+              {/* The chapter only: the subject is already the page's title. */}
+              {question.chapter_name ?? ''}
             </Text>
             {/* Not MathText directly: a stem can be a match-the-following
                 table, an Assertion/Reason pair or a numbered statement list,
@@ -734,8 +901,10 @@ export default function PracticeScreen() {
                 ordinary stem still renders as one paragraph. */}
             <QuestionStem
               text={question.question_text ?? ''}
-              fontSize={scale(15)}
-              lineHeight={scale(23)}
+              // The shared reading sizes (constants/reading.ts): the question
+              // is 16 on 26, a step above the working beneath it.
+              fontSize={QUESTION_READ_SIZE}
+              lineHeight={QUESTION_READ_LINE}
               style={styles.questionBody}
             />
             {/* The figure the question refers to. Without it a circuit or a
@@ -870,13 +1039,17 @@ export default function PracticeScreen() {
                       the badge already say which option this is; the text
                       does not need to say it a third time, and it is the
                       only one of the three that can reflow. */}
-                  <MathText
-                    text={text}
-                    fontSize={scale(15)}
-                    lineHeight={scale(21)}
-                    color={colors.ink}
-                    style={styles.optionText}
-                  />
+                  {/* MathLine, as the question above it: it draws a subscript
+                      Unicode has no character for (Yₛ, R_AB) small and low.
+                      MathText spelled those out as "Y_S". */}
+                  <View style={styles.optionText}>
+                    <MathLine
+                      text={text}
+                      fontSize={READ_SIZE}
+                      color={colors.ink}
+                      style={{ fontFamily: 'Onest_400Regular', fontSize: READ_SIZE, lineHeight: READ_LINE, color: colors.ink }}
+                    />
+                  </View>
                   {isYourWrongPick && <Text style={styles.optionTagWrong}>YOUR PICK</Text>}
                   {isCorrectReveal && <Text style={styles.optionTagCorrect}>CORRECT</Text>}
                 </Pressable>
@@ -954,6 +1127,20 @@ export default function PracticeScreen() {
                     stats and explain and nothing else, and a button that
                     silently does nothing is worse than an absent one. */}
               </View>
+              {submitError ? (
+                <Text style={styles.submitErrorText} accessibilityLiveRegion="polite">
+                  {submitError}
+                </Text>
+              ) : null}
+              {submitBlocked ? (
+                <Pressable
+                  onPress={() => void loadQuestion()}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  style={styles.blockedNext}>
+                  <Text style={styles.giveUpText}>Show another question</Text>
+                </Pressable>
+              ) : null}
             </>
           ) : (
             <>
@@ -969,8 +1156,7 @@ export default function PracticeScreen() {
                 </Text>
 
                 {solutionSteps.length > 0 ? (
-                  <SolutionSteps
-                    size="compact"
+                  <SolutionCards
                     steps={solutionSteps}
                     // A picked option already carries its own CORRECT tag, so
                     // repeating it here would only be noise. A numerical answer
@@ -999,6 +1185,7 @@ export default function PracticeScreen() {
               {Math.max(0, quota.limit - quota.used)} questions left today
             </Text>
           )}
+          <KeyboardSpacer />
         </ScrollView>
 
         {/*
@@ -1014,22 +1201,32 @@ export default function PracticeScreen() {
         */}
         {revealed && (
           <View style={styles.pinned} pointerEvents="box-none">
+            {/*
+              SOLID BEHIND THE ROW, FADING ONLY ABOVE IT. The fade used to
+              stretch over the whole pinned box and only reached white 38% of
+              the way down — part-way down the bar itself. The gap between the
+              bar and Next sat in the half-faded band, so a line of working
+              showed through between the two buttons. Now the fade lives
+              entirely above the row and everything behind the row is white.
+              Anchored to the bottom at a fixed height, so the board opening
+              above the bar does not stretch it.
+            */}
             <LinearGradient
               colors={['rgba(255,255,255,0)', '#fff', '#fff']}
-              locations={[0, 0.38, 1]}
-              style={StyleSheet.absoluteFill}
+              locations={[0, pinnedFade / (pinnedFade + pinnedRow), 1]}
+              style={[styles.pinnedFade, { height: pinnedFade + pinnedRow }]}
               pointerEvents="none"
             />
             <View
-              style={[styles.pinnedInner, { paddingBottom: Math.max(insets.bottom - 16, 12) }]}>
+              style={[styles.pinnedInner, { paddingBottom: pinnedBottom }]}>
               {question?.question_id ? (
                 <AskFollowUpBar
                   doubtId={question.question_id}
                   surface="practice"
-                  gutter={scale(20)}
+                  gutter={READING_GUTTER}
                   trailing={
                     <Pressable style={styles.nextButton} onPress={loadQuestion}>
-                      <Text style={styles.nextButtonText}>Next</Text>
+                      <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.nextButtonText}>Next</Text>
                       <ArrowRightIcon size={scale(14)} color={colors.paper} />
                     </Pressable>
                   }
@@ -1038,7 +1235,7 @@ export default function PracticeScreen() {
                 <Pressable
                   style={[styles.nextButton, styles.nextAlone]}
                   onPress={loadQuestion}>
-                  <Text style={styles.nextButtonText}>Next</Text>
+                  <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.nextButtonText}>Next</Text>
                   <ArrowRightIcon size={scale(14)} color={colors.paper} />
                 </Pressable>
               )}
@@ -1173,7 +1370,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flex: 1,
     },
     scrollContent: {
-      paddingHorizontal: scale(20),
+      paddingHorizontal: READING_GUTTER,
       paddingBottom: verticalScale(40),
     },
     // The title, and the subject inside it. 26/700 at -0.025em is the
@@ -1215,7 +1412,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       gap: scale(8),
       paddingTop: verticalScale(10),
       paddingBottom: verticalScale(4),
-      paddingHorizontal: scale(20),
+      paddingHorizontal: READING_GUTTER,
       zIndex: 8,
     },
     /** The app’s one page-title tier — see constants/page-title.ts. */
@@ -1250,11 +1447,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderRadius: scale(16),
       padding: scale(6),
       zIndex: 9,
-      shadowColor: '#1C1A16',
-      shadowOpacity: 0.22,
-      shadowRadius: scale(20),
-      shadowOffset: { width: 0, height: verticalScale(12) },
-      elevation: 8,
+      ...shadow({ color: '#1C1A16', opacity: 0.22, radius: scale(20), y: verticalScale(12), elevation: 8 }),
     },
     menuRow: {
       flexDirection: 'row',
@@ -1568,6 +1761,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12.5),
       color: colors.paper,
     },
+    stateCard: { marginTop: verticalScale(14) },
     quotaText: {
       fontFamily: 'Onest_500Medium',
       fontSize: scale(11.5),
@@ -1580,6 +1774,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       lineHeight: scale(17),
       color: colors.slate,
+      marginTop: verticalScale(10),
+    },
+    /** The notice's line, in the red the wrong-answer tag uses: this one did
+     *  not go through, and the student has to act on it. */
+    submitErrorText: {
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(12),
+      lineHeight: scale(17),
+      color: '#C53A2B',
       marginTop: verticalScale(10),
     },
     // Kept for the two states that are still a card: an empty pool and a
@@ -1730,6 +1933,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'center',
       paddingHorizontal: scale(4),
     },
+    blockedNext: { alignSelf: 'flex-start', marginTop: verticalScale(10) },
     giveUpText: {
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(13.5),
@@ -1807,21 +2011,19 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       backgroundColor: colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(6) },
-      shadowOpacity: 0.28,
-      shadowRadius: scale(10),
-      elevation: 4,
+      ...shadow({ color: colors.ink, opacity: 0.28, radius: scale(10), y: verticalScale(6), elevation: 4 }),
     },
     /** Pinned to the screen's foot, full width, over the scrolling page. */
     pinned: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    pinnedInner: { paddingHorizontal: scale(20), paddingTop: verticalScale(14) },
+    pinnedInner: { paddingHorizontal: READING_GUTTER, paddingTop: verticalScale(14) },
+    pinnedFade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
     /** Room under the solution so its last line and the day's tally can be
      *  scrolled clear of the pinned row instead of sitting beneath it. */
     scrollContentPinned: { paddingBottom: verticalScale(140) },
     /** Next on its own — a question with no id cannot be asked about. */
     nextAlone: { alignSelf: 'flex-end' },
     nextButtonText: {
+      includeFontPadding: false,
       fontFamily: 'Onest_700Bold',
       fontSize: scale(14),
       color: colors.paper,

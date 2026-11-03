@@ -1,4 +1,4 @@
-import { createFollowTracker, isFling } from '@/lib/board-follow';
+import { createFollowTracker, isFling, pageTarget } from '@/lib/board-follow';
 
 describe('board follow: a drag decides, a glide does not', () => {
   it("the board's own glide ending short of a grown board leaves following alone (X1)", () => {
@@ -52,5 +52,30 @@ describe('board follow: a drag decides, a glide does not', () => {
     expect(isFling(0.01)).toBe(false);
     expect(isFling(-1.2)).toBe(true);
     expect(isFling(undefined)).toBe(true);
+  });
+});
+
+describe('the board turns a page at 80% full', () => {
+  const H = 1000;
+  const at = (current: number, writingBottom: number, headingY = 0) =>
+    pageTarget({ current, writingBottom, boardHeight: H, readLine: 0.45, headingY });
+
+  it('stays still while the writing fills the board up to 80%', () => {
+    for (const bottom of [100, 400, 700, 800]) expect(at(0, bottom)).toBe(0);
+  });
+
+  it('moves once past 80%, putting the newest line back at 45%', () => {
+    expect(at(0, 820)).toBe(370);
+    // and is still again while the next stretch is written
+    for (const bottom of [900, 1000, 1170]) expect(at(370, bottom)).toBe(370);
+    expect(at(370, 1180)).toBe(730);
+  });
+
+  it('a new heading still turns the page to itself', () => {
+    expect(at(370, 1000, 900)).toBe(900);
+  });
+
+  it('writing above the top of the board is brought back into view', () => {
+    expect(at(2000, 900)).toBe(450);
   });
 });

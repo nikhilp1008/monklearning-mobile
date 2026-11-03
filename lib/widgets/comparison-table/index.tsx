@@ -23,7 +23,7 @@ import React, { useMemo } from 'react';
 import Svg, { Line, Rect } from 'react-native-svg';
 import { BoardText as SvgText } from '../board-text';
 
-import { PAD_EDGE } from '../chrome';
+import { PAD_EDGE, boldFace } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
   BAND_H, CAPTION_SIZE, CELL_SIZE, HEADER_SIZE, MAX_CAPTION, MAX_COLUMNS,
@@ -200,8 +200,8 @@ function ComparisonTable({ params, width, height, theme }:
           <SvgText
             key={`h${i}-${li}`} x={colX(i)}
             y={f.top + HEADER_SIZE + (li - (all.length - 1) / 2) * HEADER_SIZE * LINE_LEADING}
-            fill={theme.ink} fontSize={HEADER_SIZE} fontWeight="700"
-            fontFamily={theme.fontFamily} textAnchor="middle"
+            fill={theme.ink} fontSize={HEADER_SIZE}
+            {...boldFace(theme.fontFamily)} textAnchor="middle"
           >
             {ln}
           </SvgText>

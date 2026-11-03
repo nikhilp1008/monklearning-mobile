@@ -5,22 +5,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 
-import { Ring, Rise, Tick } from '@/components/confirm-motion';
 import { ObButton } from '@/components/onboarding-kit';
+import { PassConfirmation, activeTill } from '@/components/pass-confirmation';
 import { PressableScale } from '@/components/pressable-scale';
 import { SelectRow } from '@/components/select-row';
-import { hapticTicked } from '@/lib/haptics';
 import {
+  EXAMS,
   INCLUDED,
   ob,
   obFont,
-  promoDiscount,
   rupees,
   useDesignScale,
+  type ExamKey,
 } from '@/constants/onboarding';
 import { obPageTitle } from '@/constants/page-title';
-import { PASS_NAME, endsAtFor, type PassKind } from '@/lib/pass';
-import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans';
+import { PASS_NAME, type PassKind } from '@/lib/pass';
+import { getProfile } from '@/lib/profile';
+import { rupeesOf, usePromo } from '@/lib/promo';
+import { BEST, PLANS, perMonth, savedPercent, type Plan } from './plans';
 
 /**
  * THE PAYWALL — shown when a pass has ended, and the way back in.
@@ -53,10 +55,8 @@ import { BEST, PLANS, WINBACK, perMonth, savedPercent, type Plan } from './plans
  * A control whose whole purpose fails on one platform is worse than no
  * control: it invites the press and then does nothing.
  *
- * So the way out moved to where it belongs — the bottom of the page, under
- * the plans, as a smaller thing to buy rather than a door. A student who is
- * not ready scrolls past four prices and finds a week for ₹549. Nothing is
- * hidden behind a modal that only appears if you try to leave.
+ * (The smaller thing to buy at the foot of the page, the ₹249 "one more week"
+ * win-back, was dropped on 2026-10-23: the week pass itself is now ₹249.)
  */
 
 type S = (n: number) => number;
@@ -95,13 +95,18 @@ function Head({ title, ds, fs }: { title: string; ds: S; fs: S }) {
  */
 type Bought = { kind: PassKind; promo: string };
 
-/** A plan, or the week at the foot of the page. */
-export type Pick = Plan['id'] | 'week';
+export type Pick = Plan['id'];
 
 export type PaywallProps = {
   /** What the screen is for: the pass the student just took, and the code
    *  that made it free. Absent in the design previews. */
   onComplete?: (bought: Bought) => void;
+  /** Pays for the pick. Called when the total is more than zero; the screen
+   *  that owns the checkout decides what that means. Absent in the previews,
+   *  where the button waits as it always did. */
+  onPay?: (buying: { kind: PassKind; promo?: string }) => void;
+  /** A payment is open or being confirmed: the button holds until it is over. */
+  busy?: boolean;
   /** The plan chosen before the promo screen took over. That screen replaces
    *  this route rather than popping to it, so the choice has to come back. */
   pick?: Pick | null;
@@ -114,6 +119,8 @@ export type PaywallProps = {
 function Paywall({
   lead,
   onComplete,
+  onPay,
+  busy = false,
   pick: picked = null,
   promo = '',
   onPromo,
@@ -121,10 +128,7 @@ function Paywall({
   const { ds, fs, tracking } = useDesignScale();
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
-  /** The week at the foot of the page is a fifth thing to buy, so it is a
-   *  fifth thing to pick — the footer reads from one selection, not two.
-   *
-   *  NOTHING PRESELECTED, as on "Choose a pass". A highlighted row reads as an
+  /** NOTHING PRESELECTED, as on "Choose a pass". A highlighted row reads as an
    *  answer already given, and arriving on ₹43,999 asks the student to un-pick
    *  the most expensive plan rather than to choose one. */
   const [pick, setPick] = useState<Pick | null>(picked);
@@ -132,12 +136,15 @@ function Paywall({
   const [token, setToken] = useState(0);
 
   const plan = PLANS.find((p) => p.id === pick) ?? null;
-  const week = pick === 'week';
-  const price = week ? WINBACK.now : (plan?.price ?? 0);
-  const name = week ? WINBACK.name : plan?.name;
-  const discount = pick ? promoDiscount(promo, price) : 0;
-  const total = Math.max(0, price - discount);
-  const free = !!pick && total === 0 && discount > 0;
+  const price = plan?.price ?? 0;
+  const name = plan?.name;
+  // The server prices the code (typed, or made for this student) for the plan
+  // picked, and this shows its answer.
+  const promoState = usePromo(promo, pick ? (pick as PassKind) : null);
+  const quote = promoState.quote;
+  const discount = quote ? rupeesOf(quote.discountPaise) : 0;
+  const total = quote ? rupeesOf(quote.finalPaise) : price;
+  const free = !!pick && !!quote?.free;
 
   return (
     <View style={styles.screen}>
@@ -185,7 +192,7 @@ function Paywall({
               <PressableScale style={styles.promoLink} hitSlop={10} onPress={() => onPromo?.(pick)}>
                 <Text style={styles.promoLinkText}>
                   {discount
-                    ? `${promo.toUpperCase()} applied · −${rupees(discount)}`
+                    ? `${quote?.code ?? promoState.code} applied · −${rupees(discount)}`
                     : 'Have a promo code?'}
                 </Text>
                 <ArrowGlyph size={ds(13)} />
@@ -200,42 +207,6 @@ function Paywall({
                   <Text style={styles.includedValue}>{value}</Text>
                 </View>
               ))}
-              {/* One price for both exams, said once — the case most likely to
-                  be assumed to cost more. */}
-              <Text style={styles.unified}>JEE Main and NEET UG, both covered. One price.</Text>
-            </View>
-
-            {/*
-              THE SMALLER THING TO BUY, at the foot of the page.
-              This was a modal that only appeared if you tried to leave, which
-              made the one honest option on the screen the hardest to find. Here
-              it is simply the last thing, under four prices: a student who is
-              not ready scrolls to it, and one who is never has to dismiss it.
-              It is set as a link rather than a second button on purpose — an ink
-              button beside the Pay button would be two primaries arguing.
-            */}
-            <View style={styles.offer}>
-              <Text style={styles.overline}>NOT READY FOR A PLAN?</Text>
-              <View style={styles.offerPrice}>
-                <Text style={styles.offerNow}>{rupees(WINBACK.now)}</Text>
-                <Text style={styles.offerWas}>{rupees(WINBACK.was)}</Text>
-                <Text style={styles.offerFor}>· {WINBACK.name}</Text>
-              </View>
-              <Text style={styles.offerLine}>
-                Seven more days with your teacher, at ₹200 off. Nothing renews.
-              </Text>
-              <PressableScale
-                style={styles.promoLink}
-                hitSlop={10}
-                onPress={() => {
-                  setPick('week');
-                  setToken((n) => n + 1);
-                }}>
-                <Text style={[styles.promoLinkText, week && styles.promoLinkOn]}>
-                  {week ? '7 days selected' : 'Get 7 days'}
-                </Text>
-                <ArrowGlyph size={ds(13)} />
-              </PressableScale>
             </View>
           </ScrollView>
 
@@ -253,23 +224,24 @@ function Paywall({
         <View style={styles.footer}>
           {/*
             Says what is owed, not what will happen — "Choose a plan" until
-            there is one to pay for. Dead until a code brings the total to
-            zero: there is no provider, and a live "Pay ₹43,999" that silently
-            does nothing is worse than a button that plainly waits. Whoever
-            wires a gateway here takes that rule out.
+            there is one to pay for. With no gateway wired (the design previews)
+            a priced total leaves the button dead rather than silently doing
+            nothing; with `onPay` it opens the checkout.
           */}
           <ObButton
             label={!pick ? 'Choose a plan' : free ? 'Complete for ₹0' : `Pay ${rupees(total)}`}
             trailing={name}
             withArrow={free}
-            disabled={!onComplete || !free}
+            disabled={busy || !pick || promoState.checking || (free ? !onComplete : !onPay)}
             onPress={() => {
-              if (!onComplete || !free || !pick) return;
-              onComplete({ kind: week ? 'week' : (pick as PassKind), promo });
+              if (!pick || busy) return;
+              const kind = pick as PassKind;
+              if (free) onComplete?.({ kind, promo: quote?.code ?? '' });
+              else onPay?.({ kind, promo: quote?.code });
             }}
           />
           <Text style={styles.footNote}>
-            {free
+            {free || onPay
               ? 'One payment. Nothing renews on its own.'
               : 'Payments open soon. A promo code works today.'}
           </Text>
@@ -339,92 +311,55 @@ function Lead({ hero }: { hero: Plan }) {
 }
 
 /**
- * THE CONFIRMATION — `pass-active`, for a plan.
- *
- * Same dark ground, same tick popping to 1.08 out of two amber rings, same
- * 14pt rise staggered down the receipt, same cream button. That screen marks
- * the seam between signing up and being a student; this one marks the seam
- * between a trial and a year, and there is no reason for them to look
- * different. The motion is imported rather than copied — see
- * `components/confirm-motion.tsx`.
+ * THE CONFIRMATION, for a pass taken on the plans page: the same screen a new
+ * student sees at the end of onboarding (components/pass-confirmation.tsx),
+ * with this moment's words. It used to be its own copy — flat dark ground,
+ * "You're in.", and a "Start learning" button that did nothing while the page
+ * left on its own after 1.4s — and had drifted from the onboarding one.
  */
 export function PaywallSuccess({
   kind = BEST,
   paid = 0,
+  endsAt,
+  onDone,
 }: {
-  /** What was actually taken — a plan, or the week at the foot of the page. */
+  /** What was actually taken. */
   kind?: PassKind;
   /** What it actually cost. Zero, while a promo code is the only way through:
    *  a receipt reading ₹43,999 for a free pass is a receipt that lies. */
   paid?: number;
+  /** When ALL the paid time ends, as the server states it. Absent for a pass
+   *  that has just started, where today plus its length is right. */
+  endsAt?: Date | null;
+  /** "Start learning". */
+  onDone: () => void;
 }) {
-  const { ds, fs, tracking } = useDesignScale();
-  // Same moment as the pass screen's receipt, so the same Success tap.
+  const isPlan = kind === 'pro_1m' || kind === 'max_1m';
+  // The student's own exam: a plan is for one, JEE Main or NEET UG.
+  const [exam, setExam] = useState<ExamKey | null>(null);
   useEffect(() => {
-    const t = setTimeout(hapticTicked, 140);
-    return () => clearTimeout(t);
+    let live = true;
+    getProfile().then((p) => {
+      if (live) setExam(p.exam);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
-  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
-  /** Read off the same clock the rest of the app reads, rather than counted
-   *  again here — two answers to "when does this end" is one too many. */
-  const till = useMemo(
-    () =>
-      endsAtFor({ kind, startedAt: new Date().toISOString() }).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
-    [kind]
-  );
-
-  const rows: [string, string][] = [
-    ['Plan', PASS_NAME[kind]],
-    ['Covers', 'JEE Main + NEET UG'],
-    ['Active till', till],
-    ['Paid', rupees(paid)],
-  ];
 
   return (
-    <View style={styles.nightScreen}>
-      <StatusBar style="light" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.nightBody}>
-          <View style={styles.tickWrap}>
-            <Ring size={ds(64)} delay={160} />
-            <Ring size={ds(64)} delay={620} />
-            <Tick size={ds(64)} />
-          </View>
-
-          <View style={styles.headBlock}>
-            <Rise delay={300}>
-              <Text style={styles.nightHead}>You&apos;re in.</Text>
-            </Rise>
-            <Rise delay={420}>
-              <Text style={styles.nightSub}>
-                Drona and Vedha are at the board. Pick a chapter and the class begins.
-              </Text>
-            </Rise>
-          </View>
-
-          <View style={styles.ledger}>
-            {rows.map(([label, value], i) => (
-              <Rise key={label} delay={560 + i * 80}>
-                <View style={[styles.nightRow, i === rows.length - 1 && styles.nightRowLast]}>
-                  <Text style={styles.nightRowLabel}>{label}</Text>
-                  <Text style={styles.nightRowValue}>{value}</Text>
-                </View>
-              </Rise>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.nightFooter}>
-          <Rise delay={900}>
-            <ObButton label="Start learning" variant="cream" withArrow onPress={() => {}} />
-          </Rise>
-        </View>
-      </SafeAreaView>
-    </View>
+    <PassConfirmation
+      headline={isPlan ? `You're on ${PASS_NAME[kind]}.` : undefined}
+      sub={isPlan ? 'Pick a chapter and the class begins.' : `${PASS_NAME[kind]} of live classes, doubts and practice. Pick a chapter and the class begins.`}
+      rows={[
+        [isPlan ? 'Plan' : 'Pass', isPlan ? `${PASS_NAME[kind]} · 1 month` : PASS_NAME[kind]],
+        ['Exam', exam ? EXAMS[exam].name : '—'],
+        ['Active till', activeTill(kind, endsAt)],
+        ['Paid', rupees(paid)],
+      ]}
+      buttonLabel="Start learning"
+      onPress={onDone}
+    />
   );
 }
 
@@ -451,7 +386,6 @@ function createStyles(ds: S, fs: S, tracking: T) {
       paddingVertical: ds(6),
     },
     promoLinkText: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.link },
-    /** The week, once it is the thing being bought. */
     promoLinkOn: { color: ob.ink },
     included: { marginTop: ds(26) },
     overline: {
@@ -472,13 +406,6 @@ function createStyles(ds: S, fs: S, tracking: T) {
     includedRowLast: { borderBottomWidth: 1, borderBottomColor: ob.rule },
     includedLabel: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink80 },
     includedValue: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink },
-    unified: {
-      marginTop: ds(12),
-      fontFamily: obFont.r400,
-      fontSize: fs(13),
-      lineHeight: fs(19),
-      color: ob.amberDark,
-    },
     /** Separated by a rule and real air, so it reads as an aside to the
      *  plans rather than a fifth one. */
     offer: {
@@ -526,31 +453,5 @@ function createStyles(ds: S, fs: S, tracking: T) {
       textAlign: 'center',
       color: ob.ink55,
     },
-
-    // The confirmation's dark ground.
-    nightScreen: { flex: 1, backgroundColor: ob.night },
-    nightBody: { flex: 1, paddingHorizontal: ds(30), paddingTop: ds(56) },
-    tickWrap: { width: ds(64), height: ds(64), alignItems: 'center', justifyContent: 'center' },
-    headBlock: { marginTop: ds(30), gap: ds(14) },
-    nightHead: {
-      fontFamily: obFont.r400,
-      fontSize: fs(32),
-      lineHeight: fs(36),
-      letterSpacing: tracking(-0.03, 32),
-      color: ob.cream,
-    },
-    nightSub: { fontFamily: obFont.r400, fontSize: fs(17), lineHeight: fs(25), color: ob.onNight },
-    ledger: { marginTop: ds(42) },
-    nightRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: ds(14),
-      borderTopWidth: 1,
-      borderTopColor: ob.nightRule,
-    },
-    nightRowLast: { borderBottomWidth: 1, borderBottomColor: ob.nightRule },
-    nightRowLabel: { fontFamily: obFont.r400, fontSize: fs(15), color: ob.onNightDim },
-    nightRowValue: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.cream },
-    nightFooter: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(12) },
   });
 }

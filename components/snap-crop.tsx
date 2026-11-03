@@ -1,12 +1,13 @@
 import { Image } from 'expo-image';
-import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
+import { Action, ImageManipulator, SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image as RNImage, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image as RNImage, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors } from '@/constants/brand';
+import { ObButton } from '@/components/onboarding-kit';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { useScale } from '@/constants/scale';
 import { DoubtPhoto } from '@/lib/doubts';
 import { hapticCommitted } from '@/lib/haptics';
@@ -28,6 +29,16 @@ import { hapticCommitted } from '@/lib/haptics';
 const MIN_SIDE = 64;
 /** How far outside a corner still counts as grabbing it. */
 const HANDLE_TOUCH = 44;
+/**
+ * Longest side of the photo that is sent, in pixels.
+ *
+ * A full camera frame reached the server at 1-3 MB, and the upload from India
+ * plus the OCR on it (3.5 s on the 3 MB one, against ~0.6 s normally) was time
+ * the student spent waiting before anything was read. 2400 px keeps what the
+ * readers can use: the figure model looks at no more than 768 px on a figure's
+ * short side, and a figure a third of the page wide still has ~800 px here.
+ */
+const SEND_MAX_EDGE = 2400;
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Corner = 'tl' | 'tr' | 'bl' | 'br';
@@ -54,12 +65,37 @@ export function SnapCrop({
   const [crop, setCrop] = useState<Rect | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /**
+   * THE PHOTO'S REAL SIZE, ASKED OF THE TOOL THAT WILL CROP IT.
+   *
+   * It was read with Image.getSize, which on Android can answer with the size
+   * of the copy it decoded for display: a large camera photo comes back at a
+   * fraction of its pixels. The crop was then worked out against that smaller
+   * size and applied to the full photo, so it cut the top-left corner (15 to
+   * 20% of the page, half a question) and the solve failed. iOS reported the
+   * true size, which is why only Android broke.
+   *
+   * The manipulator loads the photo exactly as it will crop it (full size,
+   * turned upright), so its width and height are the ones the crop is in.
+   * getSize stays as the fallback if that load fails.
+   */
   useEffect(() => {
-    RNImage.getSize(
-      photo.uri,
-      (w, h) => setSource({ w, h }),
-      () => setSource(null)
-    );
+    let live = true;
+    ImageManipulator.manipulate(photo.uri)
+      .renderAsync()
+      .then((image) => {
+        if (live) setSource({ w: image.width, h: image.height });
+      })
+      .catch(() => {
+        RNImage.getSize(
+          photo.uri,
+          (w, h) => live && setSource({ w, h }),
+          () => live && setSource(null)
+        );
+      });
+    return () => {
+      live = false;
+    };
   }, [photo.uri]);
 
   /** The rotated image's aspect, which is what the stage has to fit. */
@@ -207,11 +243,17 @@ export function SnapCrop({
       px.width = Math.min(px.width, shown.w - px.originX);
       px.height = Math.min(px.height, shown.h - px.originY);
 
-      const result = await manipulateAsync(
-        photo.uri,
-        rotation ? [{ rotate: rotation }, { crop: px }] : [{ crop: px }],
-        { compress: 0.9, format: SaveFormat.JPEG }
-      );
+      const actions: Action[] = rotation ? [{ rotate: rotation }, { crop: px }] : [{ crop: px }];
+      // Giving only the long side keeps the aspect ratio.
+      if (Math.max(px.width, px.height) > SEND_MAX_EDGE) {
+        actions.push({
+          resize: px.width >= px.height ? { width: SEND_MAX_EDGE } : { height: SEND_MAX_EDGE },
+        });
+      }
+      const result = await manipulateAsync(photo.uri, actions, {
+        compress: 0.85,
+        format: SaveFormat.JPEG,
+      });
       onDone({
         uri: result.uri,
         fileName: photo.fileName ?? 'doubt.jpg',
@@ -228,11 +270,27 @@ export function SnapCrop({
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        {/* No title. The button at the bottom already says what this is, and
-            saying it twice cost the photo a band of height. */}
+        {/* Close on the left, as on every other screen; what to do in the
+            middle; rotate on the right, beside the photo it turns. */}
         <View style={styles.bar}>
-          <Pressable style={styles.close} onPress={onCancel} accessibilityLabel="Cancel" hitSlop={10}>
-            <Text style={styles.closeGlyph}>✕</Text>
+          <Pressable style={styles.round} onPress={onCancel} accessibilityLabel="Back to the camera" hitSlop={10}>
+            <Svg width={16} height={16} viewBox="0 0 16 16">
+              <Path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="#FFFDF8" strokeWidth={1.9} strokeLinecap="round" />
+            </Svg>
+          </Pressable>
+          <Text style={styles.title} maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}>
+            Crop to the question
+          </Text>
+          <Pressable style={styles.round} onPress={rotate} accessibilityLabel="Rotate" hitSlop={10}>
+            <Svg viewBox="0 0 24 24" width={19} height={19} fill="none">
+              <Path
+                d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M5.5 3v3.4h3.4"
+                stroke="#FFFDF8"
+                strokeWidth={1.9}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
           </Pressable>
         </View>
 
@@ -312,20 +370,11 @@ export function SnapCrop({
         </View>
 
         <View style={styles.footer}>
-          <Pressable style={styles.rotate} onPress={rotate} accessibilityLabel="Rotate">
-            <Svg viewBox="0 0 24 24" width={20} height={20} fill="none">
-              <Path
-                d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M5.5 3v3.4h3.4"
-                stroke="#FFFFFF"
-                strokeWidth={1.9}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </Pressable>
-          <Pressable style={styles.cta} onPress={confirm} disabled={busy}>
-            <Text style={styles.ctaText}>{busy ? 'Cropping…' : 'Crop & continue'}</Text>
-          </Pressable>
+          <Text style={styles.hint} maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}>
+            Drag the corners around the one you want solved.
+          </Text>
+          {/* The app's own key, as everywhere else: it was a white pill. */}
+          <ObButton label="Solve this" variant="cream" withArrow busy={busy} onPress={confirm} />
         </View>
       </SafeAreaView>
     </View>
@@ -405,6 +454,25 @@ function CornerHandle({
   );
 }
 
+/**
+ * The dark halo that keeps the white guides visible over a white page. iOS
+ * draws it from the shadow props; Android ignores those without `elevation`,
+ * so the guides lost their edge there and vanished over paper. Android gets
+ * the same halo as a boxShadow (Android 9 and up). The bracket keeps the iOS
+ * props only: it is a box drawn with two borders, and a boxShadow would
+ * shade the whole box rather than the two lines.
+ */
+function edgeShadow(opacity: number, radius: number) {
+  return Platform.OS === 'android'
+    ? { boxShadow: [{ offsetX: 0, offsetY: 0, blurRadius: radius * 2, color: `rgba(0,0,0,${opacity})` }] }
+    : {
+        shadowColor: '#000000',
+        shadowOpacity: opacity,
+        shadowRadius: radius,
+        shadowOffset: { width: 0, height: 0 },
+      };
+}
+
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   const BRACKET = scale(26);
   const THICK = scale(3);
@@ -414,23 +482,42 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     bar: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'flex-end',
+      justifyContent: 'space-between',
       paddingTop: verticalScale(6),
-      paddingBottom: verticalScale(10),
+      paddingBottom: verticalScale(14),
     },
-    close: {
-      width: scale(34),
-      height: scale(34),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(255,255,255,.12)',
+    round: {
+      width: scale(44),
+      height: scale(44),
+      borderRadius: scale(22),
+      backgroundColor: 'rgba(26,24,20,.45)',
+      borderWidth: StyleSheet.hairlineWidth * 2,
+      borderColor: 'rgba(255,253,248,.18)',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    closeGlyph: { fontFamily: 'Onest_600SemiBold', fontSize: scale(15), color: '#FFFFFF' },
+    title: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(17),
+      color: '#FFFDF8',
+      includeFontPadding: false,
+    },
+    hint: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(14),
+      lineHeight: scale(20),
+      textAlign: 'center',
+      color: 'rgba(255,253,248,.72)',
+    },
     // No overflow clip: a crop corner sits ON the image edge, so half of its
     // touch target and half of its bracket are outside the stage by design.
     // Clipping them turned every bracket into a dot.
-    stage: { flex: 1, position: 'relative' },
+    //
+    // AWAY FROM THE SCREEN'S EDGES. Android's back gesture starts at either
+    // edge, and with the photo running to the gutter, dragging a side handle
+    // was read as Back and closed the crop. The stage keeps a wider margin
+    // there (iOS's swipe is turned off for this screen instead, in _layout).
+    stage: { flex: 1, position: 'relative', marginHorizontal: Platform.OS === 'android' ? scale(22) : scale(8) },
     shade: { position: 'absolute', backgroundColor: 'rgba(14,12,9,.62)' },
     // Over a photographed page the guides compete with white paper, so they
     // carry a dark edge as well: legible on both.
@@ -440,10 +527,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       bottom: 0,
       width: 1,
       backgroundColor: 'rgba(255,255,255,.5)',
-      shadowColor: '#000000',
-      shadowOpacity: 0.35,
-      shadowRadius: 1,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.35, 1),
     },
     gridH: {
       position: 'absolute',
@@ -451,10 +535,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       right: 0,
       height: 1,
       backgroundColor: 'rgba(255,255,255,.5)',
-      shadowColor: '#000000',
-      shadowOpacity: 0.35,
-      shadowRadius: 1,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.35, 1),
     },
     // Short bars, half a bracket long, so they read as grips rather than as
     // more frame.
@@ -463,20 +544,14 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       height: scale(3),
       borderRadius: scale(2),
       backgroundColor: '#FFFFFF',
-      shadowColor: '#000000',
-      shadowOpacity: 0.4,
-      shadowRadius: 2,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.4, 2),
     },
     edgeBarV: {
       width: scale(3),
       height: BRACKET,
       borderRadius: scale(2),
       backgroundColor: '#FFFFFF',
-      shadowColor: '#000000',
-      shadowOpacity: 0.4,
-      shadowRadius: 2,
-      shadowOffset: { width: 0, height: 0 },
+      ...edgeShadow(0.4, 2),
     },
     bracket: {
       width: BRACKET,
@@ -492,26 +567,9 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     bracketT: { borderTopWidth: THICK },
     bracketB: { borderBottomWidth: THICK },
     footer: {
-      paddingTop: verticalScale(16),
+      paddingTop: verticalScale(18),
       paddingBottom: verticalScale(8),
-      alignItems: 'center',
       gap: verticalScale(14),
     },
-    rotate: {
-      width: scale(46),
-      height: scale(46),
-      borderRadius: scale(99),
-      backgroundColor: 'rgba(255,255,255,.12)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    cta: {
-      alignSelf: 'stretch',
-      paddingVertical: verticalScale(15),
-      borderRadius: scale(99),
-      alignItems: 'center',
-      backgroundColor: '#FFFFFF',
-    },
-    ctaText: { fontFamily: 'Onest_700Bold', fontSize: scale(16), color: colors.ink },
   });
 }

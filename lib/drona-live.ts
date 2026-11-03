@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from '@/lib/api';
 
 /** Verified live against monk-learning-api-production 2026-08-13 — GitHub source for
  *  this router is stale and was not trusted for these shapes. */
@@ -9,7 +9,7 @@ export interface DronaSessionStart {
   speech: string;
   language: string;
   tutor_voice: string;
-  /** Live-verified as "Veda" (no h) — differs from "Vedha" used elsewhere in the app's copy. */
+  /** "Drona" or "Vedha" — the server now spells it the way the app does. */
   tutor_name: string;
 }
 
@@ -73,12 +73,35 @@ export interface DronaSessionEnd {
   too_short_for_summary?: boolean;
   segments_completed?: number;
   segments_needed_for_summary?: number;
+  /**
+   * The class's notes are written by the server when the class ends: "writing"
+   * (in Notes shortly) or "too_short" (fewer finished parts than notes need).
+   * Absent on a server from before that, where the Save button still works.
+   */
+  note?: 'writing' | 'too_short';
+}
+
+/**
+ * A class the student's plan will not start: Pro and Max have a number of live
+ * classes a month and a few a day, and the server says so with a 429 whose body
+ * names `class_start`. `message` is written for the student; `upgrade` says a
+ * bigger plan would let them in, so the screen offers the plans page.
+ */
+export type ClassLimit = { message: string; upgrade: boolean };
+
+export function classLimitOf(err: unknown): ClassLimit | null {
+  if (!(err instanceof ApiError) || err.status !== 429) return null;
+  const detail = (err.data as { detail?: unknown } | null | undefined)?.detail;
+  if (!detail || typeof detail !== 'object') return null;
+  const d = detail as { endpoint?: unknown; message?: unknown; upgrade?: unknown };
+  if (d.endpoint !== 'class_start' || typeof d.message !== 'string' || !d.message) return null;
+  return { message: d.message, upgrade: d.upgrade === true };
 }
 
 export function startDronaSession(params: {
   chapter_id?: string;
   language?: 'hinglish' | 'english' | string;
-  /** 'male' -> "Drona", 'female' -> "Veda" — see app/drona/persona.py in the
+  /** 'male' -> "Drona", 'female' -> "Vedha" — see app/drona/persona.py in the
    *  backend repo, the single source of truth for this mapping. */
   voice?: 'male' | 'female' | string;
 } = {}): Promise<DronaSessionStart> {
@@ -121,4 +144,31 @@ export function scopeDronaSession(
 
 export function endDronaSession(sessionId: string): Promise<DronaSessionEnd> {
   return apiFetch(`/drona/session/${sessionId}/end`, { method: 'POST', body: JSON.stringify({}) });
+}
+
+/** An unfinished class on one lesson, from GET /drona/session/resumable. */
+export interface ResumableSession {
+  resumable: boolean;
+  session_id?: string;
+  segment?: number;
+  total_segments?: number;
+  subtopic?: string;
+}
+
+/** Is there a class on this lesson the student left partway? Exact lesson
+ *  name only (the server matches it exactly); never throws into the caller's
+ *  start-up path without them choosing to catch it. */
+export function getResumableSession(params: {
+  chapter_id: string;
+  subtopic: string;
+}): Promise<ResumableSession> {
+  const query = `chapter_id=${encodeURIComponent(params.chapter_id)}&subtopic=${encodeURIComponent(params.subtopic)}`;
+  return apiFetch(`/drona/session/resumable?${query}`);
+}
+
+/** Re-opens that class at the segment it stopped on. */
+export function resumeDronaSession(
+  sessionId: string
+): Promise<{ session_id: string; segment: number; total_segments: number }> {
+  return apiFetch(`/drona/session/${sessionId}/resume`, { method: 'POST', body: JSON.stringify({}) });
 }

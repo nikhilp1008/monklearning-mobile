@@ -1,4 +1,6 @@
-import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
+
+import { FigText as SvgText } from '@/components/textbook/figure-face';
 
 import type { DiagramFrame } from '@/lib/textbooks';
 
@@ -402,7 +404,17 @@ function head(x1: number, y1: number, x2: number, y2: number, h = 6.5): string {
  * in and the renderer sizes and connects them. Links leave and enter at the
  * nearest edge, so an arrow never starts inside the box it comes from.
  */
-export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number }) {
+export function FlowChart({
+  frame,
+  width,
+  sans = false,
+}: {
+  frame: DiagramFrame;
+  width: number;
+  /** The pilot reader look: box text in Onest, the first line of each box
+   *  as its name and the rest in dark grey, rather than all of it in Georgia. */
+  sans?: boolean;
+}) {
   const f = frame.flow;
   const height = Math.round(width * (frame.aspect ?? 0.62));
   if (!f?.boxes?.length) return <Svg width={width} height={height} />;
@@ -495,8 +507,8 @@ export function FlowChart({ frame, width }: { frame: DiagramFrame; width: number
                 x={cx}
                 y={cy + 4 - ((all.length - 1) * LINE) / 2 + k * LINE}
                 fontSize={10}
-                fill={INK}
-                fontFamily={SERIF}
+                fill={sans && k > 0 ? '#4A463D' : INK}
+                fontFamily={sans ? (k === 0 ? 'Onest_600SemiBold' : 'Onest_400Regular') : SERIF}
                 textAnchor="middle">
                 {line}
               </SvgText>

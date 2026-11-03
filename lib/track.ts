@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Crypto from 'expo-crypto';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { AppState, Platform } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
@@ -73,6 +74,82 @@ const APP_VERSION =
   (Constants.manifest2?.extra?.expoClient?.version as string | undefined) ??
   null;
 
+type Device = {
+  brand: string | null;
+  model: string | null;
+  os_version: string | null;
+  device_type: string | null;
+};
+
+const DEVICE_TYPES: Record<number, string> = { 1: 'phone', 2: 'tablet', 3: 'desktop', 4: 'tv' };
+
+function text(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s ? s : null;
+}
+
+/**
+ * The phone's own description of itself: brand, model, OS version, phone or
+ * tablet. Nothing that identifies the handset — no serial, no advertising ID —
+ * and nothing that needs a permission prompt. Sent once per batch beside the
+ * events rather than on each one: a batch is one phone, and repeating it per
+ * tap is bytes on a student's data plan.
+ *
+ * expo-device is loaded defensively. A dev client built before it was added
+ * has no native module, and tracking must not be what breaks there; the
+ * Platform constants fill in what they can without it (everything but the
+ * iPhone model name).
+ *
+ * Location is not collected here. The server works out the state from the
+ * request itself, so the app asks for no location permission.
+ */
+function describeDevice(): Device | null {
+  try {
+    let D: any = null;
+    // Asked first, quietly. `require` on a build without the native half
+    // throws, and the catch below did keep tracking alive — but in a dev
+    // build the throw was still reported as a red "Uncaught Error" screen
+    // on every launch. The optional lookup answers null instead of throwing.
+    if (requireOptionalNativeModule('ExpoDevice')) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        D = require('expo-device');
+      } catch {
+        D = null;
+      }
+    }
+    const c: any = (Platform as any).constants ?? {};
+    const ios = Platform.OS === 'ios';
+
+    const rawBrand = text(D?.brand) ?? text(c.Brand) ?? text(D?.manufacturer)
+      ?? text(c.Manufacturer) ?? (ios ? 'Apple' : null);
+    // Android reports brands as the maker typed them: "samsung", "xiaomi".
+    const brand = rawBrand ? rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1) : null;
+    const model = text(D?.modelName) ?? text(c.Model);
+    const os_version = text(D?.osVersion) ?? text(ios ? c.osVersion : c.Release);
+
+    let device_type: string | null =
+      typeof D?.deviceType === 'number' ? DEVICE_TYPES[D.deviceType] ?? null : null;
+    if (!device_type && ios) {
+      device_type = c.interfaceIdiom === 'pad' ? 'tablet'
+        : c.interfaceIdiom === 'phone' ? 'phone' : null;
+    }
+    if (!brand && !model && !os_version) return null;
+    return { brand, model, os_version, device_type };
+  } catch {
+    return null;
+  }
+}
+
+let device: Device | null | undefined;
+
+/** Worked out once per launch; a phone does not change mid-session. */
+function currentDevice(): Device | null {
+  if (device === undefined) device = describeDevice();
+  return device;
+}
+
 function newId(): string {
   try {
     return Crypto.randomUUID();
@@ -110,7 +187,7 @@ export async function flush(): Promise<void> {
     await apiFetch('/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ events: batch }),
+      body: JSON.stringify({ events: batch, device: currentDevice() }),
       timeoutMs: 10000,
     });
     await persist();

@@ -220,7 +220,11 @@ function readScript(src: string, at: number): Script {
   const kind = src[at] as '^' | '_';
   let i = at + 1;
   while (src[i] === ' ') i++;
-  const group = readGroup(src, i);
+  // A run of digits, with its sign, is the whole script: `10^-7`, `K^-1`, `10^23`, `a_12`. Read one
+  // character at a time, the minus alone was raised and the digits stayed on the line ("10⁻7", "10²3"):
+  // 272 stored board lines and takeaways write exponents this way.
+  const run = src[i] === '{' ? null : /^[-−+]?\d+/.exec(src.slice(i));
+  const group = run ? { body: run[0], next: i + run[0].length } : readGroup(src, i);
   return { kind, inner: convertMath(group.body), next: group.next };
 }
 
@@ -475,6 +479,9 @@ function fractionNeedsGuard(rendered: string, src: string, next: number): boolea
   return /[A-Za-z0-9\\(]/.test(src[next] ?? '');
 }
 
+/** A piece of a fraction's half: plain text, or a script to draw lowered/raised. */
+export type ScriptPart = { text: string; script?: 'sub' | 'sup' };
+
 /** One run of a converted line. */
 export type MathSegment =
   /** Prose. `bold` marks a `<b>…</b>` run the solution author emphasised. */
@@ -484,7 +491,16 @@ export type MathSegment =
   /** A sub- or superscript with no Unicode character to spell it. */
   | { kind: 'sub'; text: string }
   | { kind: 'sup'; text: string }
-  | { kind: 'fraction'; numerator: string; denominator: string }
+  | {
+      kind: 'fraction';
+      numerator: string;
+      denominator: string;
+      /** Present only when that half carries a script Unicode cannot spell
+       *  (R_T, R_{AB}); the half is then drawn from these pieces. Without them
+       *  `numerator` has the script's markers stripped and reads "RT". */
+      numeratorParts?: ScriptPart[];
+      denominatorParts?: ScriptPart[];
+    }
   /** A grid, with the delimiters it is written between. */
   | { kind: 'matrix'; rows: string[][]; open: string; close: string };
 
@@ -585,10 +601,14 @@ export function latexToSegments(raw: string): MathSegment[] {
         continue;
       }
       flush();
+      const numeratorParts = scriptParts(marked.slice(i + 1, sep));
+      const denominatorParts = scriptParts(marked.slice(sep + 1, close));
       segments.push({
         kind: 'fraction',
         numerator: strip(marked.slice(i + 1, sep)),
         denominator: strip(marked.slice(sep + 1, close)),
+        ...(numeratorParts ? { numeratorParts } : {}),
+        ...(denominatorParts ? { denominatorParts } : {}),
       });
       i = close;
       continue;
@@ -597,6 +617,35 @@ export function latexToSegments(raw: string): MathSegment[] {
   }
   flush();
   return segments;
+}
+
+/**
+ * A fraction half split into text and scripts, or undefined when it has no script
+ * to draw. A half used to be flattened with `strip`, which drops the script
+ * markers and jams the script onto its base: `\\dfrac{R_T - R_0}{R_0}` read "RT − R₀"
+ * over "R₀", on 201 stored board formulas.
+ */
+function scriptParts(marked: string): ScriptPart[] | undefined {
+  const parts: ScriptPart[] = [];
+  let buffer = '';
+  let any = false;
+  for (let i = 0; i < marked.length; i += 1) {
+    const ch = marked[i];
+    if (ch === SUB_OPEN || ch === SUP_OPEN) {
+      const close = marked.indexOf(SCRIPT_CLOSE, i);
+      if (close !== -1) {
+        if (buffer) parts.push({ text: strip(buffer) });
+        buffer = '';
+        parts.push({ text: strip(marked.slice(i + 1, close)), script: ch === SUB_OPEN ? 'sub' : 'sup' });
+        any = true;
+        i = close;
+        continue;
+      }
+    }
+    buffer += ch;
+  }
+  if (buffer) parts.push({ text: strip(buffer) });
+  return any ? parts : undefined;
 }
 
 /** A fraction's halves are rendered as plain text, so any marker that rode
@@ -637,7 +686,23 @@ function strip(text: string): string {
 }
 
 /** Converts the body of one math segment (already stripped of its `$`). */
+/**
+ * SPACES AROUND A SCRIPT ARE TYPING, NOT SPACING. Question banks often write a
+ * power as `10 ^ { - 7 }`: in LaTeX the spaces are meaningless and it sets as
+ * 10⁻⁷, but read literally they left "10 ⁻⁷" — a gap between the number and
+ * its power, in every option a student had to compare. Spaces before a caret
+ * or an underscore, after it, and just inside the braces that follow it are
+ * dropped; a sign and its digits inside the braces are closed up.
+ */
+function tightenScripts(src: string): string {
+  return src
+    .replace(/([A-Za-z0-9)}\]])\s+([\^_])/g, '$1$2')
+    .replace(/([\^_])\s+/g, '$1')
+    .replace(/([\^_])\{\s*([+\-−]?)\s*([^{}]*?)\s*\}/g, '$1{$2$3}');
+}
+
 export function convertMath(src: string): string {
+  src = tightenScripts(src);
   let out = '';
   let i = 0;
 
@@ -1011,7 +1076,7 @@ export function convertMath(src: string): string {
  * The "nothing word-like after it" is what keeps prose safe: `v_y=` is a
  * subscript, `snake_case` is not, because its `c` is followed by more word.
  */
-const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
+const BARE_SCRIPT = /[\^_](?:\{[^{}]*\}|[+\-−]?[0-9]+|[+\-−]|[A-Za-z](?![A-Za-z0-9]))/g;
 
 /**
  * `t^\wedge 2` — Mathpix transcribing a caret twice.
@@ -1040,8 +1105,13 @@ const BARE_COMMAND = /\\[a-zA-Z]+/;
  *
  * A subscript is a SINGLE character with nothing word-like after it: `v_y=`
  * subscripts, `snake_case` does not, because the `c` is followed by more word.
+ *
+ * And a backslash straight after the underscore is always a script: `S_\infty`,
+ * `r_\alpha`, `\theta_\beta` are maths, and no identifier or filename has a
+ * backslash there. Held as prose, 18 stored board formulas showed "S_∞" and
+ * "θ_β" beside the same symbols' braced spelling (`S_{\infty}`) drawn properly.
  */
-const PROSE_UNDERSCORE = /_(?!\{|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
+const PROSE_UNDERSCORE = /_(?!\{|\\|[0-9+\-]|[A-Za-z0-9](?![A-Za-z0-9]))/g;
 const UNDERSCORE_HOLD = '\u0000US\u0000';
 
 /**
@@ -1101,6 +1171,46 @@ function unwrapSmiles(text: string): string {
  * breaks ("mag-\nnetic") and single-word-per-line wrapping are artifacts of
  * PDF extraction, not real paragraph breaks.
  */
+/**
+ * `\hat{i}`, `\hat j`, `\hat{k}` — unit vectors — as î, ĵ, k̂ rather than
+ * dropped. Dropping them turned an option's (2î + 1.5ĵ) into "(2 i + 1.5 j)",
+ * which is not the same quantity. î and ĵ have precomposed glyphs (the dot
+ * goes, as it should under a hat); any other letter takes U+0302, which
+ * MathLine sets in the system font so the mark lands on the letter.
+ */
+const HAT_GLYPH: Record<string, string> = { i: 'î', j: 'ĵ', '\\imath': 'î', '\\jmath': 'ĵ' };
+function hatsAsAccents(text: string): string {
+  return text.replace(
+    /\\(?:hat|widehat)\s*(?:\{\s*(\\[ij]math|[A-Za-z])\s*\}|(\\[ij]math|[A-Za-z])(?![A-Za-z]))/g,
+    (_m, braced?: string, bare?: string) => {
+      const letter = (braced ?? bare) as string;
+      return HAT_GLYPH[letter] ?? `${letter}\u0302`;
+    }
+  );
+}
+
+/**
+ * A compound unit as one word: "kg · m / s" → "kg·m/s", "N ·  m" → "N·m".
+ *
+ * Sources write units as `\mathrm{kg} \cdot \mathrm{m} / \mathrm{s}` or
+ * `\mathrm{~N} \cdot \mathrm{~m}`, and each piece came through with its own
+ * spacing — a unit spread across the line, sometimes wrapping mid-unit.
+ * Only between known unit symbols, so `a · b` in a dot product is untouched.
+ */
+const UNIT_SYMBOL = '(?:kg|g|mg|km|cm|mm|m|s|ms|min|h|N|J|kJ|W|kW|V|A|mA|C|K|Pa|Hz|mol|L|mL|rad|eV|T|Ω)';
+const UNIT_JOIN = new RegExp(`(?<![A-Za-z])(${UNIT_SYMBOL})\\s*([·⋅/])\\s*(?=${UNIT_SYMBOL}(?![A-Za-z]))`, 'g');
+function tightenUnits(text: string): string {
+  let prev = '';
+  let out = text;
+  // Repeated so a chain — kg · m / s — closes up link by link.
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(UNIT_JOIN, (_m, unit: string, op: string) => `${unit}${op}`);
+  }
+  // `\\mathrm{~N}` leaves a doubled space in front of the unit.
+  return out.replace(new RegExp(`(\\S)[ \\u00a0]{2,}(?=${UNIT_SYMBOL}(?![A-Za-z]))`, 'g'), '$1 ');
+}
+
 export function latexToText(raw: string): string {
   // Emphasis first, before anything can touch the angle brackets. When the
   // caller wants segments the tags become markers the scanner reads; for plain
@@ -1109,7 +1219,7 @@ export function latexToText(raw: string): string {
   const emphasised = raw.replace(/<\/?b>/gi, (tag) =>
     markSegments ? (tag.length === 3 ? BOLD_OPEN : BOLD_CLOSE) : '',
   );
-  const arrowsResolved = unwrapSmiles(emphasised)
+  const arrowsResolved = unwrapSmiles(hatsAsAccents(emphasised))
     .replace(
       // The OPTIONAL [below] argument is why this has a `(?:\[…\])?` in it.
       // LaTeX writes `\xrightarrow[below]{above}`, and the previous pattern
@@ -1234,5 +1344,5 @@ export function latexToText(raw: string): string {
     i += 1;
   }
   flush();
-  return out;
+  return tightenUnits(out);
 }

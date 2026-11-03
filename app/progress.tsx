@@ -4,8 +4,10 @@ import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { FirstDayCard } from '@/components/first-day-card';
+import { shadow } from '@/lib/shadow';
+import { StateCard } from '@/components/states';
 import { ProgressGlyph } from '@/components/monk-icons';
+import { ProgressLocked } from '@/components/progress-locked';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -29,6 +31,7 @@ import {
   ProgressSummary,
   getCachedProgress,
   getProgress,
+  ProgressLockedError,
 } from '@/lib/progress';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
@@ -142,6 +145,8 @@ function paceGeometry(actual: number, target: number) {
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'ready'; data: ProgressSummary }
+  /** A free student: their numbers are not shown, a sample is (components/progress-locked). */
+  | { kind: 'locked'; message: string }
   | { kind: 'error' };
 
 function BackArrowIcon({ size }: { size: number }) {
@@ -234,8 +239,12 @@ export default function ProgressScreen() {
             })
             .catch(() => undefined);
         })
-        .catch(() => {
+        .catch((err) => {
           if (cancelled) return;
+          if (err instanceof ProgressLockedError) {
+            setState({ kind: 'locked', message: err.message });
+            return;
+          }
           const c = getCachedProgress();
           setState(c ? { kind: 'ready', data: c } : { kind: 'error' });
         });
@@ -249,7 +258,11 @@ export default function ProgressScreen() {
     setState({ kind: 'loading' });
     getProgress()
       .then((data) => setState({ kind: 'ready', data }))
-      .catch(() => {
+      .catch((err) => {
+        if (err instanceof ProgressLockedError) {
+          setState({ kind: 'locked', message: err.message });
+          return;
+        }
         const c = getCachedProgress();
         setState(c ? { kind: 'ready', data: c } : { kind: 'error' });
       });
@@ -359,23 +372,24 @@ export default function ProgressScreen() {
   return (
     <View style={styles.screen}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View>
-            {/* Pushed screen, no tab bar under it, so the way out is here.
-                Same 36pt round button Practice and the chapter selector use. */}
-            <View style={styles.headerRow}>
-              <Pressable
-                style={styles.backButton}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-                onPress={() => router.back()}>
-                <BackArrowIcon size={scale(16)} />
-              </Pressable>
-              <Text style={styles.heading}>Progress</Text>
-            </View>
-            <Text style={styles.subtitle}>One number, and everything that explains it.</Text>
+        {/* PINNED: the way out stays on screen however far the page scrolls.
+            It scrolled away with everything else, so at the foot of Progress
+            there was no back button. */}
+        <View style={styles.pinned}>
+          <View style={styles.headerRow}>
+            <Pressable
+              style={styles.backButton}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}>
+              <BackArrowIcon size={scale(16)} />
+            </Pressable>
+            <Text style={styles.heading}>Progress</Text>
           </View>
+        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Text style={styles.subtitle}>One number, and everything that explains it.</Text>
 
           {state.kind === 'loading' && (
             <View style={styles.card}>
@@ -391,16 +405,15 @@ export default function ProgressScreen() {
             </View>
           )}
 
+          {state.kind === 'locked' && <ProgressLocked message={state.message} />}
+
           {state.kind === 'error' && (
-            <View style={styles.card}>
-              <Text style={styles.errorTitle}>Couldn&apos;t load your progress</Text>
-              <Text style={styles.errorBody}>
-                Check your connection and try again. Your score is safe on the server.
-              </Text>
-              <PressableScale style={styles.retryButton} onPress={retry}>
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </PressableScale>
-            </View>
+            <StateCard
+              glyph="retry"
+              title="Couldn't load your progress"
+              line="Check your connection and try again. Your score is safe on the server."
+              action={{ label: 'Try again', onPress: retry }}
+            />
           )}
 
           {/*
@@ -411,10 +424,12 @@ export default function ProgressScreen() {
             every piece above returns the moment there is something to say.
           */}
           {data && !started && (
-            <FirstDayCard
-              glyph={(size, color) => <ProgressGlyph size={size} color={color} accent={color} />}
-              head="No score yet"
-              line="Take a class, solve a doubt, answer a few questions. Your score shows up after that."
+            <StateCard
+              glyph="progress"
+              icon={(size, color) => <ProgressGlyph size={size} color={color} accent={color} />}
+              title="No score yet"
+              line="Answer a few questions in Practice and your score and pace show up here."
+              action={{ label: 'Start practising', onPress: () => router.push('/practice') }}
             />
           )}
 
@@ -658,13 +673,15 @@ export default function ProgressScreen() {
             )}
           </View>
 
-          {data && data.recommendations.length > 0 && (
+          {data && data.recommendations.some((rec) => rec.role !== 'exam_craft') && (
             <View>
               <View style={styles.sectionTitleRow}>
                 <View style={styles.sectionTitleDash} />
                 <Text style={styles.sectionTitle}>What moves it next</Text>
               </View>
-              {data.recommendations.map((rec) => {
+              {/* Mock tests have one way in now, the card on Home; the
+                  exam_craft card is left out here. */}
+              {data.recommendations.filter((rec) => rec.role !== 'exam_craft').map((rec) => {
                 const resolved = chapterName(rec.chapter_id);
                 // The lever card follows the subject pill; every other card
                 // keeps the server's own words.
@@ -944,11 +961,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     scrollContent: {
       paddingHorizontal: scale(24),
-      paddingTop: verticalScale(8),
+      paddingTop: 0,
       // 130 was clearance for the floating tab bar. There is no bar under this
       // screen any more, so this is just the last card's breathing room.
       paddingBottom: verticalScale(40),
       gap: verticalScale(32),
+    },
+    pinned: {
+      paddingHorizontal: scale(24),
+      paddingTop: verticalScale(8),
+      paddingBottom: verticalScale(6),
+      backgroundColor: '#fff',
     },
     headerRow: {
       flexDirection: 'row',
@@ -980,11 +1003,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: hairline(0.16),
       borderRadius: scale(16),
       padding: scale(20),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(12), y: verticalScale(4), elevation: 2 }),
     },
     overline: {
       fontFamily: 'Onest_800ExtraBold',
@@ -1116,11 +1135,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingHorizontal: scale(10),
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(4) },
-      shadowOpacity: 0.06,
-      shadowRadius: scale(12),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.06, radius: scale(12), y: verticalScale(4), elevation: 2 }),
     },
     subjectCardSelected: {
       borderWidth: scale(1.5),

@@ -29,6 +29,15 @@ const UNITS = new Set([
   'mol', 'L', 'mL', 'ml', 'rad', 'eV', 'C', 'T', 'min', 'h', 'm/s', 'km/h', 'cm/s',
 ]);
 
+/** A unit, simple or compound: every factor between `·`, `⋅` and `/`, once
+ *  its power is stripped, is a known unit. */
+function isUnit(token: string): boolean {
+  if (UNITS.has(token)) return true;
+  const factors = token.split(/[·⋅/]/);
+  if (factors.length < 2 && !/[²³⁻¹^]/.test(token)) return false;
+  return factors.every((f) => UNITS.has(f.replace(/(\^?-?[0-9]+|[²³⁻¹]+)$/, '')));
+}
+
 export function isDisplayWorthy(tex: string): boolean {
   // A unit set in \mathrm or \text is not working: `u=29.4\,\mathrm{m/s}`
   // is a quantity, and its slash is a unit's slash, not a division.
@@ -36,7 +45,7 @@ export function isDisplayWorthy(tex: string): boolean {
     .replace(/\\(?:mathrm|text|textrm|rm|operatorname)\s*\{[^{}]*\}/g, 'U')
     .replace(/\\[,;!: ]|\s+/g, '');
   if (!RELATION.test(t)) return false;
-  if (/\\frac|\\int|\\sum|\\sqrt/.test(t)) return true;
+  if (/\\[dt]?frac|\\int|\\sum|\\sqrt/.test(t)) return true;
   if (ASSIGNMENT.test(t)) return false;
   return WORKING.test(t) && t.length >= 6;
 }
@@ -71,11 +80,24 @@ export function splitDisplay(
   spans.forEach((m, k) => {
     if (!pick(k, spans.length)) return;
     const start = m.index!;
+    // AN EQUATION IN THE MIDDLE OF A SENTENCE STAYS IN IT. "The displacement
+    // function is $s(t)=…$ (taking $s(0)=0$)." was lifted out with its "is",
+    // which left "The displacement function" stranded on a line of its own
+    // and "is s(t) = …" indented beneath it — one sentence in three pieces.
+    // When the words before end on a linking verb and words carry on after
+    // it, the equation is part of the sentence's grammar, not working set
+    // out under it. "Factor the velocity: $…$" still lifts.
+    const before = raw.slice(at, start);
+    const after = raw.slice(start + m[0].length).split(/(?<=[.!?])\s/)[0];
+    if (LINKING.test(before) && /[A-Za-z]{2,}/.test(after.replace(MATH_SPAN, ''))) return;
     let end = start + m[0].length;
     let display = m[0];
     // The unit written after the number goes with it.
-    const unit = /^\s+([A-Za-zΩ/]{1,5})(?=[\s.,;:)]|$)/.exec(raw.slice(end));
-    if (unit && UNITS.has(unit[1])) {
+    // Compound units too — "J·s", "N·m", "kg·m/s", "m/s²", "J mol⁻¹" — whose
+    // middle dot and powers the plain pattern missed, which dropped them onto
+    // a line of their own under the number they belong to.
+    const unit = /^\s+([A-Za-zΩμ°][A-Za-zΩμ°·⋅/^²³⁻¹0-9-]{0,13})(?=[\s.,;:)]|$)/.exec(raw.slice(end));
+    if (unit && isUnit(unit[1])) {
       display += ' ' + unit[1];
       end += unit[0].length;
     }
@@ -87,12 +109,19 @@ export function splitDisplay(
   return tidy(pieces.length ? pieces : [{ kind: 'text', raw }]);
 }
 
+/** "is", "are" … ending the words before an equation: the sentence is
+ *  defining something, and the equation is its object. ("gives", "so" are
+ *  working — a chain of steps — and still lift.) */
+const LINKING = /\b(?:is|are|was|were)\s*$/i;
+
 /** A word or two joining two equations — "so", "which gives" — is not a line
  *  of prose. It rides on the equation it introduces. */
 const CONNECTIVE = /^[a-z][\w' ]{0,14}$/;
 /** The same, left dangling at the end of the words above: "Reading a point:
  *  at". The preposition belongs to the equation, not to the line it ends. */
-const TRAILING = /\s+((?:at|of|is|to|by|as|with|so|and|then|where)\s*)$/i;
+// Not "is": "The answer is" is a clause that reads whole above its equation,
+// where "is x = …" set on its own line is a fragment.
+const TRAILING = /\s+((?:at|of|to|by|as|with|so|and|then|where)\s*)$/i;
 
 function tidy(pieces: Piece[]): Piece[] {
   const out: Piece[] = [];

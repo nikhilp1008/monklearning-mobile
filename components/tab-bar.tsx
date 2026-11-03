@@ -13,6 +13,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
+import { shadow } from '@/lib/shadow';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 
@@ -203,7 +205,7 @@ function TabItem({
           <Icon color={colors.ink} size={size} />
         </Animated.View>
       </Animated.View>
-      <Animated.Text style={[styles.label, focused && styles.labelOn, labelColor]}>
+      <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={[styles.label, focused && styles.labelOn, labelColor]}>
         {label}
       </Animated.Text>
     </Pressable>
@@ -287,11 +289,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       // a point off the inside of the pill.
       borderWidth: 1,
       borderColor: 'rgba(28,26,22,.06)',
-      shadowColor: colors.ink,
-      shadowOpacity: 0.14,
-      shadowOffset: { width: 0, height: verticalScale(8) },
-      shadowRadius: scale(22),
-      elevation: 12,
+      ...shadow({ color: colors.ink, opacity: 0.14, radius: scale(22), y: verticalScale(8), elevation: 12 }),
     },
     item: {
       flex: 1,
@@ -300,6 +298,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       gap: verticalScale(4),
     },
     label: {
+      includeFontPadding: false,
       fontFamily: 'Onest_600SemiBold',
       fontSize: scale(10),
       lineHeight: scale(12),

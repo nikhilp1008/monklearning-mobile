@@ -17,6 +17,9 @@ export interface NoteBoardGroup {
    *  the note carries the full lesson either way, this just marks the line. */
   covered: boolean;
   items: NoteBoardItem[];
+  /** The segment's figure as the class drew it, and the numbers printed in
+   *  its labels (where the note page puts it: lib/note-page-model.ts). */
+  figure?: { svg: string; numbers: string[]; after?: string };
 }
 
 export interface NoteSummary {
@@ -73,6 +76,15 @@ export function getNote(noteId: string): Promise<NoteDetail> {
  *  little content to assemble a note from. */
 export function saveNote(sessionId: string): Promise<NoteDetail> {
   return apiFetch('/notes', { method: 'POST', body: JSON.stringify({ session_id: sessionId }) });
+}
+
+/** GET /notes/for-session/{id} — whether the note class end is writing is
+ *  ready yet. `id` is the topic's note: this class's own, or an earlier
+ *  class's that got further (one note per topic, never made thinner). */
+export function noteForSession(
+  sessionId: string
+): Promise<{ ready: boolean; id?: string; segments_covered?: number }> {
+  return apiFetch(`/notes/for-session/${sessionId}`);
 }
 
 /** DELETE /notes/{id} — user-scoped on the server, so a note can only ever be

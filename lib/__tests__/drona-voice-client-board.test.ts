@@ -201,6 +201,12 @@ const say = (sentenceId: string, boardEvent: BoardEvent | null = null) => ({
 // The two lines the simulator showed twice, verbatim.
 const GENERAL_TERM =
   'The symbol aₙ denotes the general term or nth term. Feed in the position n, get out the term aₙ.';
+// Written step by step (lib/board-steps.ts): its two sentences are two rows,
+// each still written exactly once.
+const GENERAL_TERM_ROWS = [
+  'The symbol aₙ denotes the general term or nth term.',
+  'Feed in the position n, get out the term aₙ.',
+];
 const ORDER_MATTERS =
   'Order matters: 1, 1, 2 is a valid sequence. As a set it would collapse to {1, 2}.';
 
@@ -227,7 +233,7 @@ describe('one board event is one line on the board', () => {
     expect(c.lines()).toEqual([
       'A sequence is a list of numbers in a definite order.',
       'Each number in the list is called a term.',
-      GENERAL_TERM,
+      ...GENERAL_TERM_ROWS,
     ]);
   });
 
@@ -254,7 +260,7 @@ describe('one board event is one line on the board', () => {
     // Written where its FIRST carrier played. Which sentence should carry
     // seq 6 is the server's pairing to fix; the board's job is to hold it once.
     expect(c.lines()).toEqual([
-      GENERAL_TERM,
+      ...GENERAL_TERM_ROWS,
       ORDER_MATTERS,
       'A recursive definition gives the first term and a rule for the next.',
     ]);
@@ -357,7 +363,9 @@ describe('the end-of-turn flush', () => {
     c.send({ type: 'turn_complete' });
     c.queue.playToEnd();
 
-    expect(c.lines()).toEqual(['Line B', 'Line A']);
+    // A's sentence opened the speech, so A went up on arrival; B by the
+    // safety net. Each once, and now in the board's own order.
+    expect(c.lines()).toEqual(['Line A', 'Line B']);
   });
 });
 
@@ -428,7 +436,8 @@ describe('a board replay', () => {
     c.send(say('t_1_s3', turn[2]));
     c.queue.startNext();
     c.queue.startNext();
-    expect(c.lines()).toEqual(['Line A', 'Line B']);
+    // The board leads by one sentence: s3's line is up while s2 is spoken.
+    expect(c.lines()).toEqual(['Line A', 'Line B', 'Line C']);
 
     // The phone drops and comes back. The new connection replays every turn
     // the server has saved (live_session_ws.py:416-435) — including this one.
@@ -514,12 +523,14 @@ describe('a chunk that carries several lines', () => {
     c.send(sayMany('t_7_s5', [turn[3]]));
     c.send({ type: 'turn_complete' });
 
-    c.queue.startNext();
-    expect(c.lines()).toEqual(['a : N -> R']);
+    // The opening sentence's line is up on arrival, and the next sentence's
+    // two lines go up as the first is spoken: the board leads the voice.
     c.queue.startNext();
     expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3']);
+    c.queue.startNext();
+    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', ...GENERAL_TERM_ROWS]);
     c.queue.playToEnd();
-    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', GENERAL_TERM]);
+    expect(c.lines()).toEqual(['a : N -> R', 'Formally, a function', 'a1, a2, a3', ...GENERAL_TERM_ROWS]);
   });
 
   it('writes a silent chunk\'s lines at once, with its text', async () => {
@@ -556,7 +567,8 @@ describe('a chunk that carries several lines', () => {
     c.send(sayMany('t_10_s1', [turn[0], turn[1]]));
     c.send(say('t_10_s2', turn[2])); // no `board_events`: a server before V4
     c.queue.startNext();
-    expect(c.lines()).toEqual(['Line B', 'Line C']);
+    // B and C on arrival (they open the speech), D one sentence ahead.
+    expect(c.lines()).toEqual(['Line B', 'Line C', 'Line D']);
     c.queue.startNext();
     expect(c.lines()).toEqual(['Line B', 'Line C', 'Line D']);
   });
@@ -611,7 +623,8 @@ describe('the reveal probe', () => {
     for (const seq of [4, 5]) {
       expect(revealed).toContainEqual(
         expect.stringMatching(
-          new RegExp(`REVEALED seq=${seq} .* sentence=t_1_s2 audioRecvAt=1000000 audioStartAt=1000250 revealedAt=1000250 gapMs=0`)
+          // The sentence opened the speech: its lines went up on arrival.
+          new RegExp(`REVEALED seq=${seq} .*carriedBy=opens\\(t_1_s2\\) sentence=t_1_s2 audioRecvAt=1000000 audioStartAt=1000000 revealedAt=1000000 gapMs=0`)
         )
       );
     }

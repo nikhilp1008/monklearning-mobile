@@ -96,6 +96,9 @@ const probe = (line: string) => {
   if (PROBE) console.log(`[pcm-queue] ${Date.now()} ${line}`);
 };
 
+/** How far ahead of the heard audio a part's board lines are revealed. */
+const REVEAL_LEAD_S = 0.5;
+
 type Held = { id: string; pcm: Uint8Array; startSec: number; durSec: number };
 type Reason = 'jump' | 'frozen';
 
@@ -106,6 +109,8 @@ export class PcmPlaybackQueue {
   onRecovered?: (info: { reason: Reason; heardUpTo: number; replayed: number }) => void;
 
   private started = false;
+  /** Set by destroy(): a destroyed queue never starts the player again. */
+  private destroyed = false;
   private fedSec = 0;
   private pending: { id: string; startSec: number }[] = [];
   /** Every fed part whose audio has not been fully heard — kept so a rebuilt
@@ -134,6 +139,9 @@ export class PcmPlaybackQueue {
   }
 
   enqueue(item: QueueItem) {
+    // After End: a late chunk must not rebuild the engine (pcmStart below)
+    // and talk on a screen that no longer exists.
+    if (this.destroyed) return;
     const durSec = item.pcm.length / 2 / item.sampleRate;
     if (this.restartTimer) {
       // Mid-rebuild: the restart feeds `held` in order, this included.
@@ -143,7 +151,7 @@ export class PcmPlaybackQueue {
       return;
     }
     if (!this.started) {
-      // 1x, deliberately — NOT the follow-up's 1.15. A live class is paced
+      // 1x, deliberately (the follow-up was 1.15 until 2026-10-17). A live class is paced
       // by the teacher's own plan, and the founder heard 1.15 as rushed
       // here. It also keeps the reveal clock honest: offsets are recorded
       // in fed (real-time) seconds and compared against played seconds, so
@@ -153,6 +161,9 @@ export class PcmPlaybackQueue {
       this.started = true;
       this.fedSec = 0;
       this.lastPlayed = 0;
+      // Pressed Pause before the first audio of a turn: starting the player
+      // clears its pause, and the class spoke over a paused screen.
+      if (this.paused) pcmPause();
     }
     // Audio arriving at an empty queue restarts the stall clock: the time
     // between turns is silence nobody is waiting on.
@@ -209,7 +220,14 @@ export class PcmPlaybackQueue {
       this.lastMoveAt = now;
     }
 
-    while (this.pending.length && this.pending[0].startSec <= played) {
+    // Fired a little AHEAD of the playhead: `played` trails the sound (it
+    // counts buffers reported played back, polled every TICK_MS), so firing
+    // at `startSec <= played` put a sentence's board lines up after the
+    // student had already heard it. The board should lead the voice.
+    // Never while paused: the playhead stands still, so a sentence that arrives
+    // during a pause is already "due" and would write its lines and caption on
+    // a stopped class.
+    while (!this.paused && this.pending.length && this.pending[0].startSec <= played + REVEAL_LEAD_S) {
       const item = this.pending.shift()!;
       this.onItemStart?.(item.id);
     }
@@ -341,6 +359,7 @@ export class PcmPlaybackQueue {
   }
 
   destroy() {
+    this.destroyed = true;
     this.clear();
     if (this.ticker) {
       clearInterval(this.ticker);

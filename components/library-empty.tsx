@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 
-import { FirstDayCard } from '@/components/first-day-card';
+import { StateCard } from '@/components/states';
 import { DoubtsIcon, NotesIcon } from '@/components/tab-bar';
 import { StyleSheet, View } from 'react-native';
 import { useScale } from '@/constants/scale';
@@ -19,8 +19,8 @@ import { useScale } from '@/constants/scale';
  * card has the same glyph lit in the bar at the bottom of the screen, so the
  * card names the tab rather than introducing a picture of it.
  *
- * The card itself is shared with Progress and today's plan: see
- * components/first-day-card.tsx.
+ * The card is the app's one StateCard (components/states): the tab's icon on
+ * the teacher's sky, a title, one line, one key.
  */
 
 type Kind = 'notes' | 'doubts';
@@ -29,13 +29,13 @@ type S = (n: number) => number;
 const COPY: Record<Kind, { head: string; line: string; cta: string; go: string }> = {
   doubts: {
     head: 'Stuck on a question?',
-    line: 'You get the steps, not just the answer.',
+    line: 'Snap it and get every step, not just the answer.',
     cta: 'Snap a question',
     go: '/snap-capture',
   },
   notes: {
     head: 'Your notes start with a class.',
-    line: 'When a class ends, save the board and those notes are kept here.',
+    line: 'When a class ends, save the board and it stays here, ready to revise.',
     cta: 'Start a live class',
     go: '/drona',
   },
@@ -49,12 +49,12 @@ export function EmptyState({ kind }: { kind: Kind }) {
 
   return (
     <View style={s.wrap}>
-      <FirstDayCard
-        glyph={(size, color) => <Glyph color={color} size={size} />}
-        head={copy.head}
+      <StateCard
+        glyph={kind}
+        icon={(size, color) => <Glyph color={color} size={size} />}
+        title={copy.head}
         line={copy.line}
-        cta={copy.cta}
-        onPress={() => router.push(copy.go as never)}
+        action={{ label: copy.cta, onPress: () => router.push(copy.go as never) }}
       />
     </View>
   );

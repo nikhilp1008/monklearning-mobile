@@ -9,7 +9,7 @@ const SECTIONS = [
   },
   {
     title: 'What monklearning is',
-    body: 'An AI teaching platform for JEE Main and NEET UG: live classroom sessions, a lesson library, Snap-a-doubt, unlimited practice, mock tests that unlock as you’re ready, and progress tracking. Every plan includes both AI teachers, in English or Hinglish.',
+    body: 'An AI teaching platform for JEE Main and NEET UG: live classroom sessions, a lesson library, Snap-a-doubt, daily practice, mock tests that unlock as you’re ready, and progress tracking. Every plan includes both AI teachers, in English or Hinglish.',
   },
   {
     title: 'Your account',
@@ -17,7 +17,7 @@ const SECTIONS = [
   },
   {
     title: 'Pricing & payment',
-    body: 'Payments are one-time, not subscriptions, and nothing auto-renews. You choose a duration (1, 3, 6 or 11 months) per exam track, or a ₹249 Day Pass for 24 hours of full access from your first class. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST and are processed through RBI-regulated payment gateways.',
+    body: 'Payments are one-time, not subscriptions, and nothing auto-renews. You choose a Pro (₹499) or Max (₹899) plan for one month, or try the app with a ₹7 day pass or a ₹39 7-day pass (one of each per account). Each plan has its own daily limits, shown on the plans page before you pay. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST and are processed through RBI-regulated payment gateways.',
   },
   {
     title: 'Acceptable use',
@@ -29,15 +29,15 @@ const SECTIONS = [
   },
   {
     title: 'Who owns what',
-    body: 'monklearning owns the platform itself: lessons, questions, and our teachers’ voices. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
+    body: 'monklearning owns the platform itself: lessons, questions, and the voices of Drona and Vedha. Your notes and doubt submissions are yours, and stay exportable even after your access ends. If you send us feedback, we may use it without owing you anything for it.',
   },
   {
     title: 'Changes & availability',
-    body: 'We do routine maintenance and occasionally have outages. If significant downtime affects a short plan or Day Pass, we’ll extend your access to make up for it. Features we describe as “coming soon,” like JEE Advanced, are plans, not something your current purchase guarantees.',
+    body: 'We do routine maintenance and occasionally have outages. If significant downtime affects a day or 7-day pass, we’ll extend your access to make up for it. Features we describe as “coming soon,” like JEE Advanced, are plans, not something your current purchase guarantees.',
   },
   {
     title: 'What we don’t guarantee',
-    body: 'monklearning is a study tool, not a promise of marks, rank, or admission. Our AI teachers can make mistakes, and every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
+    body: 'monklearning is a study tool, not a promise of marks, rank, or admission. Drona and Vedha are AI and can make mistakes, and every screen has a way to report one. Where our content and the official NTA or NMC syllabus disagree, the official syllabus wins.',
   },
   {
     title: 'Suspension & account deletion',

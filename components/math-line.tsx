@@ -1,7 +1,7 @@
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, type ReactElement, type ReactNode } from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 
-import { MathSegment, latexToSegments } from '@/lib/latex-text';
+import { MathSegment, ScriptPart, latexToSegments } from '@/lib/latex-text';
 import { spaceOperators } from '@/lib/math-spacing';
 
 /**
@@ -33,9 +33,16 @@ type MathLineProps = {
   color: string;
   /** Applied to every maths run — inline or on its own line. */
   mathStyle?: StyleProp<TextStyle>;
+  /**
+   * Where a laid-out line sits. `textAlign` in `style` centres the one-Text
+   * paths, but a line with something drawn in it is a row of words, which
+   * `textAlign` cannot move — the board's boxed formula is centred, so it
+   * says so here.
+   */
+  align?: 'start' | 'center';
 };
 
-export function MathLine({ text, style, fontSize, color, mathStyle }: MathLineProps) {
+export function MathLine({ text, style, fontSize, color, mathStyle, align = 'start' }: MathLineProps) {
   // Maths gets spaces round its operators before anything else sees it — see
   // `spaceOperators`. Prose segments are never touched.
   const segments = useMemo(
@@ -160,13 +167,13 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
   });
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, align === 'center' && styles.rowCentred]}>
       {items.map((item, i) => {
         if (!Array.isArray(item)) return item;
         if (item.length === 1) {
           return (
             <Text key={`w${i}`} style={[item[0].voice, styles.word]}>
-              {item[0].text}
+              {withAccents(item[0].text)}
             </Text>
           );
         }
@@ -175,13 +182,38 @@ export function MathLine({ text, style, fontSize, color, mathStyle }: MathLinePr
           <Text key={`w${i}`} style={[item[0].voice, styles.word]}>
             {item.map((run, j) => (
               <Text key={j} style={run.voice}>
-                {run.text}
+                {withAccents(run.text)}
               </Text>
             ))}
           </Text>
         );
       })}
     </View>
+  );
+}
+
+/**
+ * A letter carrying a combining accent with no precomposed form — k̂, the
+ * unit vector, most of all — set in the system font.
+ *
+ * Onest has î and ĵ as single glyphs but nothing for k̂, so k̂ is a k plus
+ * U+0302, and Onest places that mark wrongly: the hat floated above and to
+ * the side of the k, next to an î and ĵ drawn correctly. The system font
+ * positions combining marks properly. Precomposed letters never match here,
+ * so î and ĵ keep Onest.
+ */
+const ACCENTED = /(\p{L}[\u0300-\u036f]+)/u;
+const accentStyle = { fontFamily: 'System' } as const;
+function withAccents(text: string): ReactNode {
+  if (!ACCENTED.test(text)) return text;
+  return text.split(ACCENTED).map((piece, k) =>
+    k % 2 === 1 ? (
+      <Text key={k} style={accentStyle}>
+        {piece}
+      </Text>
+    ) : (
+      piece
+    )
   );
 }
 
@@ -199,9 +231,43 @@ function Fraction({
 }) {
   return (
     <View style={styles.fraction}>
-      <Text style={[style, styles.half]}>{segment.numerator}</Text>
+      <FractionHalf text={segment.numerator} parts={segment.numeratorParts} styles={styles} style={style} />
       <View style={styles.rule} />
-      <Text style={[style, styles.half]}>{segment.denominator}</Text>
+      <FractionHalf text={segment.denominator} parts={segment.denominatorParts} styles={styles} style={style} />
+    </View>
+  );
+}
+
+/** One half of a fraction. Plain text stays one Text; a half with a script Unicode cannot
+ *  spell (R_T, R_{AB}) is a row of pieces, the script set small and shifted as at the
+ *  top level, so it does not read "RT". */
+function FractionHalf({
+  text,
+  parts,
+  styles,
+  style,
+}: {
+  text: string;
+  parts?: ScriptPart[];
+  styles: ReturnType<typeof createStyles>;
+  style?: StyleProp<TextStyle>;
+}) {
+  if (!parts) return <Text style={[style, styles.half]}>{text}</Text>;
+  return (
+    <View style={styles.halfRow}>
+      {parts.map((part, i) => (
+        <Text
+          key={i}
+          style={[
+            style,
+            styles.half,
+            part.script && styles.halfScript,
+            part.script === 'sub' && styles.halfDown,
+            part.script === 'sup' && styles.halfUp,
+          ]}>
+          {part.text}
+        </Text>
+      ))}
     </View>
   );
 }
@@ -251,6 +317,9 @@ function createStyles(fontSize: number, color: string) {
       flexWrap: 'wrap',
       alignItems: 'center',
       alignSelf: 'stretch',
+    },
+    rowCentred: {
+      justifyContent: 'center',
     },
     word: {
       // The row centres its children, so the line-height that would space a
@@ -311,6 +380,20 @@ function createStyles(fontSize: number, color: string) {
       fontSize: fontSize * 0.82,
       lineHeight: fontSize * 0.98,
       textAlign: 'center',
+    },
+    halfRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    halfScript: {
+      fontSize: fontSize * 0.82 * 0.68,
+    },
+    halfDown: {
+      transform: [{ translateY: fontSize * 0.1 }],
+    },
+    halfUp: {
+      transform: [{ translateY: -fontSize * 0.16 }],
     },
     rule: {
       alignSelf: 'stretch',

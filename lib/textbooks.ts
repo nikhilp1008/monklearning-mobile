@@ -1,3 +1,4 @@
+import { diagramById } from '@/lib/diagrams';
 import { examSubjects } from '@/lib/drona';
 import type { ExamKey } from '@/constants/onboarding';
 
@@ -504,7 +505,15 @@ export type Block =
        */
       frames?: DiagramFrame[];
     }
-  | { t: 'ex'; tag: string; q: string; steps: string[]; ans: string }
+  | {
+      t: 'ex';
+      tag: string;
+      q: string;
+      steps: string[];
+      ans: string;
+      /** A redrawn diagram (lib/diagrams) the book prints inside this example, shown under its question. */
+      fig?: string;
+    }
   // `nudge` is null, not absent, on the correct option: there is no trap to
   // name. The spec asks for one on every wrong option and nothing on the right
   // one, and null is how the content says "deliberately none".
@@ -518,7 +527,19 @@ export type Block =
   | { t: 'practice'; items: { q: string; a: string }[] }
   | { t: 'mistakes'; items: string[] }
   | { t: 'protip'; html: string }
-  | { t: 'snapshot'; rows: { f: string; note: string }[]; aids: string[] };
+  | { t: 'snapshot'; rows: { f: string; note: string }[]; aids: string[] }
+  /**
+   * THE BOOK'S OWN SECTIONS, for chapters written from the Master Reference
+   * books (Physics 11 Ch 1 and 2 first). A `part` starts a new reading page
+   * named `title`, and everything up to the next one is on it, in the book's
+   * order: nothing is filtered out or moved. Topics without any `part` are
+   * still split by length, as before (lib/chapter-essentials.ts).
+   */
+  | { t: 'part'; title: string }
+  /** One of the redrawn diagrams (lib/diagrams), by its id, drawn in place. */
+  | { t: 'fig'; id: string }
+  /** A table with any number of columns; `head` names them. Stacked on a phone. */
+  | { t: 'table'; title?: string | null; head: string[]; rows: string[][]; note?: string | null };
 
 export interface Topic {
   /** Two-digit display number. */
@@ -534,8 +555,49 @@ export interface Topic {
   chip?: string;
   /** Same story as `chip`: authored per topic, rendered by nothing. */
   kalam?: string;
+  /**
+   * One of the book's "Additional Topics" that follow the chapter: what JEE
+   * tests beyond the board syllabus. Listed after the topics under their own
+   * heading, numbered by letter (`n` is "A", "B", …).
+   */
+  extra?: boolean;
   blocks: Block[];
 }
+
+/**
+ * A topic's name for lists and headers. The older chapters wrote "Name,
+ * subtitle" and showed only the name; the book's titles carry their own commas
+ * ("Pursuit, Crossing Under Acceleration, and the Catch Condition") and are
+ * shown whole.
+ */
+export function topicName(t: Pick<Topic, 'title' | 'blocks'>): string {
+  return t.blocks[0]?.t === 'part' ? t.title : t.title.split(',')[0];
+}
+
+/**
+ * A chapter's opening section (`n` "00"): the book's own map of the chapter
+ * (Chapter 3) or its experimental foundations (Chapter 6), read before Topic
+ * 01 but not one of its numbered topics, so it never shifts the numbers the
+ * book's cross-references use ("Topic 03").
+ */
+export const isGuide = (t: Pick<Topic, 'n'>): boolean => t.n === '00';
+
+/**
+ * How a topic is named in headers and lists: "Topic 3", "Additional B", or
+ * "Start here" for the opening section. Counted from the chapter's regular
+ * topics, so an opening before Topic 01 leaves the numbers as the book prints
+ * them.
+ */
+export function topicMark(c: Pick<Chapter, 'topics'>, ti: number): { kind: 'topic' | 'extra' | 'guide'; label: string; n: string } {
+  const t = c.topics[ti];
+  if (t && isGuide(t)) return { kind: 'guide', label: 'Start here', n: '' };
+  if (t?.extra) return { kind: 'extra', label: `Additional ${t.n}`, n: t.n };
+  const n = c.topics.slice(0, ti + 1).filter((x) => !x.extra && !isGuide(x)).length;
+  return { kind: 'topic', label: `Topic ${n}`, n: String(n) };
+}
+
+/** The regular, numbered topics of a chapter (no guide, no additional topics). */
+export const numberedTopics = (c: Pick<Chapter, 'topics'>): Topic[] => c.topics.filter((t) => !t.extra && !isGuide(t));
 
 export interface Chapter {
   chapter: string;
@@ -694,6 +756,27 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // appears the moment an exam scope carries it.
   'mathematics|12|linear programming': () =>
     import('@/content/textbooks/math-12-12-linear-programming'),
+
+  // Chemistry. Keys are the catalogue's titles (the shelf's names), not the
+  // book's: the book's "Structure of Atom" is the catalogue's "Atomic Structure".
+  'chemistry|11|some basic concepts': () =>
+    import('@/content/textbooks/chem-11-01-basic-concepts'),
+  'chemistry|11|atomic structure': () =>
+    import('@/content/textbooks/chem-11-02-structure-of-atom'),
+  'chemistry|11|classification of elements': () =>
+    import('@/content/textbooks/chem-11-03-classification'),
+  'chemistry|11|chemical bonding': () =>
+    import('@/content/textbooks/chem-11-04-chemical-bonding'),
+  'chemistry|11|thermodynamics': () =>
+    import('@/content/textbooks/chem-11-05-thermodynamics'),
+  'chemistry|11|equilibrium': () => import('@/content/textbooks/chem-11-06-equilibrium'),
+  'chemistry|11|redox reactions': () => import('@/content/textbooks/chem-11-07-redox'),
+  'chemistry|11|general organic chemistry': () =>
+    import('@/content/textbooks/chem-11-08-organic-basics'),
+  'chemistry|11|hydrocarbons': () => import('@/content/textbooks/chem-11-09-hydrocarbons'),
+  // Not on the shelf until the server's chapters table has a Class 11 p-Block
+  // row (founder's decision, 2026-10-31); the key follows that row's name.
+  'chemistry|11|p block elements': () => import('@/content/textbooks/chem-11-10-p-block'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {
@@ -744,4 +827,180 @@ export function textbookSubjects(exam: ExamKey): string[] {
 export function readyChapterCount(subject: string): number {
   const prefix = `${subject.trim().toLowerCase()}|`;
   return Object.keys(CHAPTERS).filter((k) => k.startsWith(prefix)).length;
+}
+
+const strip = (html: string) =>
+  html
+    .replace(/<br\s*\/?>/gi, '\n')
+    // 10<sup>11</sup> must not reach the teacher as "1011".
+    .replace(/<sup>(.*?)<\/sup>/gi, '^($1)')
+    .replace(/<sub>(.*?)<\/sub>/gi, '_($1)')
+    .replace(/<\/?[a-zA-Z][^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+
+/** One block as plain text, in reading order, without the markup. */
+export function blockText(b: Block): string {
+  const out: string[] = [];
+  switch (b.t) {
+    case 'hook':
+    case 'p':
+    case 'think':
+    case 'protip':
+      out.push(strip(b.html));
+      break;
+    case 'def':
+      out.push(`${b.term}: ${strip(b.html)}`);
+      break;
+    case 'defgrid':
+      out.push(b.title, ...b.rows.map((r) => `${r.k}: ${strip(r.v)}`));
+      break;
+    case 'formula':
+      out.push(`${b.kicker}: ${b.main}`, ...b.legend.map(strip), b.note ? strip(b.note) : '');
+      break;
+    case 'proc':
+      out.push(b.title, ...b.steps.map((s, i) => `${i + 1}. ${strip(s)}`));
+      break;
+    case 'deriv':
+      out.push(b.kicker, ...b.steps.map((s) => `${s.eq} (${strip(s.why)})`));
+      break;
+    case 'diagram':
+      out.push(`Figure: ${b.kicker}`, ...(b.captions ?? []).map(strip));
+      break;
+    case 'ex':
+      out.push(`Example ${b.tag}: ${strip(b.q)}`, ...b.steps.map(strip), ...(b.ans ? [`Answer: ${strip(b.ans)}`] : []));
+      break;
+    case 'mcq':
+      out.push(`Question: ${strip(b.q)}`, ...b.opts.map((o, i) => `(${i + 1}) ${strip(o.label)}`));
+      break;
+    case 'practice':
+      out.push(...b.items.map((it) => `Practice: ${strip(it.q)}`));
+      break;
+    case 'mistakes':
+      out.push('Common mistakes:', ...b.items.map(strip));
+      break;
+    case 'table':
+      out.push(
+        b.title ?? '',
+        b.head.map(strip).join(' | '),
+        ...b.rows.map((row) => row.map(strip).join(' | ')),
+        b.note ? strip(b.note) : '',
+      );
+      break;
+    case 'fig': {
+      // The drawing is not text; its name and captions are.
+      const d = diagramById(b.id);
+      if (d) out.push(`Figure: ${d.name}`, ...d.cases.map((c) => strip(c.cap)));
+      break;
+    }
+    case 'part':
+      out.push(b.title);
+      break;
+    case 'snapshot':
+      out.push('Snapshot:', ...b.rows.map((r) => `${r.f} — ${strip(r.note)}`));
+      break;
+  }
+  return out.filter(Boolean).join('\n');
+}
+
+/**
+ * A block as the reader draws it: a group of examples or questions is one.
+ *
+ * Examples, questions and practice are a row of cards showing one at a time.
+ * Given the card on screen (`state.page` of the block), it goes first, marked,
+ * so "this example" means the one the student is looking at; the rest follow.
+ */
+export function renderBlockText(b: RenderBlock, card?: number): string {
+  let items: string[];
+  if (b.t === 'exGroup' || b.t === 'mcqGroup') items = b.items.map(blockText);
+  else if (b.t === 'practice') items = b.items.map((it) => `Practice: ${strip(it.q)}`);
+  else return blockText(b);
+  if (card === undefined || items.length < 2 || card < 0 || card >= items.length) {
+    return items.filter(Boolean).join('\n');
+  }
+  return [
+    `[The card on the student's screen, ${card + 1} of ${items.length}: "this example" or "this question" means this one]`,
+    items[card],
+    '[The other cards in this set, not on screen]',
+    ...items.filter((_, i) => i !== card),
+  ].join('\n');
+}
+
+/**
+ * A topic page as plain text, for Ask teacher.
+ *
+ * What the student is looking at, in reading order, without the markup: the
+ * server hands this to the teacher as "the page they are reading", so a
+ * question about "this example" or "the second formula" has something to
+ * point at. Diagrams contribute their names and captions; the drawing itself
+ * is not text. Capped well under the server's 6,000 characters — from the
+ * top, so use `pageTextAround` when what is on screen is known.
+ */
+export function topicPlainText(topic: Topic, cap = 5500): string {
+  const text = [topic.title, ...topic.blocks.map(blockText)].filter(Boolean).join('\n');
+  return text.length > cap ? text.slice(0, cap) : text;
+}
+
+export const ON_SCREEN_START = '[On the student\'s screen as they ask: "this" and "here" mean this part]';
+export const ON_SCREEN_END = '[End of what is on the student\'s screen]';
+
+/**
+ * The page Ask teacher sends, built round what is on screen.
+ *
+ * 317 of 329 topics are longer than the server takes, and cut from the top a
+ * student halfway down a topic asked about an example the teacher was never
+ * shown. So: the blocks on screen when the hold began, marked as such, then
+ * the blocks either side — the one above first, since a question is usually
+ * about what was just read — until the cap. `units` is the page's blocks as
+ * drawn, `seen` the first and last of them on screen (null when not known:
+ * the page from its top, unmarked).
+ */
+export function pageTextAround(
+  title: string,
+  units: string[],
+  seen: [number, number] | null,
+  cap = 5500,
+): string {
+  const n = units.length;
+  if (!seen || n === 0) {
+    const text = [title, ...units].filter(Boolean).join('\n');
+    return text.length > cap ? text.slice(0, cap) : text;
+  }
+  const first = Math.max(0, Math.min(n - 1, seen[0]));
+  const last = Math.max(first, Math.min(n - 1, seen[1]));
+  const cost = (t: string) => (t ? t.length + 1 : 0);
+  let budget = cap - cost(title) - cost(ON_SCREEN_START) - cost(ON_SCREEN_END) - 4;
+  let shown = units.slice(first, last + 1).filter(Boolean).join('\n');
+  if (shown.length > budget) shown = shown.slice(0, Math.max(0, budget));
+  budget -= cost(shown);
+  let lo = first;
+  let hi = last;
+  let up = true;
+  let down = true;
+  while (up || down) {
+    if (up) {
+      if (lo > 0 && cost(units[lo - 1]) <= budget) budget -= cost(units[--lo]);
+      else up = false;
+    }
+    if (down) {
+      if (hi < n - 1 && cost(units[hi + 1]) <= budget) budget -= cost(units[++hi]);
+      else down = false;
+    }
+  }
+  return [
+    title,
+    lo > 0 ? '…' : '',
+    ...units.slice(lo, first),
+    ON_SCREEN_START,
+    shown,
+    ON_SCREEN_END,
+    ...units.slice(last + 1, hi + 1),
+    hi < n - 1 ? '…' : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

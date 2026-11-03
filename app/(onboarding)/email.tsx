@@ -1,4 +1,5 @@
-// 03a "Email address" + 03b "Same page — OTP slides in".
+// 03a "Email address" + 03b "Same page — OTP slides in". (Rebuilt 2026-10-08
+// to stay one page in look as well as in code: see the OTP branch below.)
 //
 // These are ONE screen in the handoff, not two routes: the OTP block is
 // revealed below the address and the entry card collapses into a recap card
@@ -8,9 +9,13 @@
 // Was the phone screen. Phone/SMS auth needs an Indian sender and the legal
 // work that goes with it, and early users can't wait for that — so the same
 // screen now takes an email address and a six-digit code from Supabase
-// (delivered by Resend). A phone number is still collected on the next
-// screen, unverified. Every measurement below is unchanged from the original
-// design handoff.
+// (delivered by Resend). Every measurement below is unchanged from the
+// original design handoff.
+//
+// THE FRONT DOOR, FOR EVERYONE. New and returning students both start here,
+// straight from the welcome: the code tells us which they are. A returning
+// one goes to Home; a new one to the name (and optional phone), then the
+// questions. One heading serves both.
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -20,6 +25,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -27,13 +33,31 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ObButton, ObHeader } from '@/components/onboarding-kit';
+import { shadow } from '@/lib/shadow';
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
+import { ObButton } from '@/components/onboarding-kit';
+import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
-import { friendlyAuthError, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
-import { hapticCodeComplete, hapticDigit } from '@/lib/haptics';
-import { getStoredName, hasCompletedOnboarding, pullProfile } from '@/lib/profile';
+import {
+  afterSignIn,
+  friendlyAuthError,
+  sendEmailOtp,
+  signInWithReviewerPassword,
+  verifyEmailOtp,
+} from '@/lib/auth';
+import { hapticCodeComplete, hapticDigit, hapticSwitched, hapticWarning } from '@/lib/haptics';
+import { saveAnswers } from '@/lib/onboarding-answers';
+import {
+  hasCompletedOnboarding,
+  onboardedOnThisDevice,
+  pullProfile,
+  saveProfile,
+} from '@/lib/profile';
+
+import { isReviewerEmail } from '@/lib/reviewer';
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 24;
@@ -50,30 +74,33 @@ function onlyDigits(text: string, max: number) {
   return text.replace(/[^0-9]/g, '').slice(0, max);
 }
 
-type Stage = 'email' | 'otp';
+/** `password` is the store-review account only (lib/reviewer.ts); every other
+ *  address goes email -> otp. */
+type Stage = 'email' | 'otp' | 'password';
 
 export default function EmailScreen() {
   const { ds, fs, tracking } = useDesignScale();
+  const insets = useSafeAreaInsets();
   const s = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const [stage, setStage] = useState<Stage>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const emailInput = useRef<TextInput>(null);
   const codeInput = useRef<TextInput>(null);
+  const passwordInput = useRef<TextInput>(null);
 
   // `pop` runs per box as its digit appears. The handoff staggers the four
   // revealed digits 50/130/210/290ms, i.e. 50ms + 80ms per digit *in that
   // batch* — so a pasted / autofilled code reproduces the mockup exactly
   // while a hand-typed digit pops after a flat 50ms instead of waiting out
   // its index.
-  const popAnims = useRef(
-    Array.from({ length: CODE_LENGTH }, () => new Animated.Value(1)),
-  ).current;
+  const popAnims = useRef(Array.from({ length: CODE_LENGTH }, () => new Animated.Value(1))).current;
   const prevCodeLength = useRef(0);
   /** Taps waiting on their digit's pop, dropped if the screen goes first. */
   const tickTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -83,6 +110,7 @@ export default function EmailScreen() {
   useEffect(() => {
     const id = setTimeout(() => {
       if (stage === 'email') emailInput.current?.focus();
+      else if (stage === 'password') passwordInput.current?.focus();
       else codeInput.current?.focus();
     }, 260);
     return () => clearTimeout(id);
@@ -126,6 +154,14 @@ export default function EmailScreen() {
 
   const sendOtp = async () => {
     if (busy) return;
+    // The store-review account has no inbox anyone reads: ask for its password
+    // and send nothing (a code to that address would only bounce).
+    if (isReviewerEmail(email)) {
+      setPassword('');
+      setError(null);
+      setStage('password');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -135,6 +171,7 @@ export default function EmailScreen() {
       setSecondsLeft(RESEND_SECONDS);
       setStage('otp');
     } catch (err) {
+      hapticWarning();
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
     } finally {
       setBusy(false);
@@ -142,6 +179,7 @@ export default function EmailScreen() {
   };
 
   const changeEmail = () => {
+    setPassword('');
     setCode('');
     prevCodeLength.current = 0;
     setError(null);
@@ -150,6 +188,7 @@ export default function EmailScreen() {
 
   const resend = async () => {
     if (secondsLeft > 0 || busy) return;
+    hapticSwitched();
     setBusy(true);
     setError(null);
     try {
@@ -159,6 +198,54 @@ export default function EmailScreen() {
       setSecondsLeft(RESEND_SECONDS);
       codeInput.current?.focus();
     } catch (err) {
+      hapticWarning();
+      setError(friendlyAuthError(err instanceof Error ? err.message : ''));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * Everything after a session exists, whichever door it came through (a code,
+   * or the store-review password): clear a previous student's leftovers, then
+   * ask the server where this account is up to.
+   */
+  const finishSignIn = async () => {
+    await afterSignIn();
+    let known: boolean;
+    try {
+      known = await hasCompletedOnboarding();
+    } catch {
+      // Verified, but we cannot reach the profile table. Falling back to
+      // local evidence rather than assuming "new": guessing new would send
+      // a returning student through onboarding, and the push at the end of
+      // it would overwrite their real name and exam with retyped ones.
+      known = await onboardedOnThisDevice();
+    }
+    if (known) {
+      // Their details live on the server; bring them back to this device.
+      await pullProfile().catch(() => {
+        // Offline — the local copy stands until the next successful pull.
+      });
+      await saveAnswers({ finished: true });
+      router.replace('/(tabs)');
+    } else {
+      saveProfile({ email: email.trim(), emailVerified: true });
+      // A new account: the name next. Replaced, not pushed, so a swipe back
+      // cannot land on a code that has already been used.
+      router.replace('/name');
+    }
+  };
+
+  const submitPassword = async () => {
+    if (busy || !password) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await signInWithReviewerPassword(email, password);
+      await finishSignIn();
+    } catch (err) {
+      hapticWarning();
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
     } finally {
       setBusy(false);
@@ -181,26 +268,10 @@ export default function EmailScreen() {
     setError(null);
     try {
       await verifyEmailOtp(email, code);
-      let known: boolean;
-      try {
-        known = await hasCompletedOnboarding();
-      } catch {
-        // Verified, but we cannot reach the profile table. Falling back to
-        // local evidence rather than assuming "new": guessing new would send
-        // a returning student through onboarding, and the push at the end of
-        // it would overwrite their real name and exam with retyped ones.
-        known = !!(await getStoredName());
-      }
-      if (known) {
-        // Their details live on the server; bring them back to this device.
-        await pullProfile().catch(() => {
-          // Offline — the local copy stands until the next successful pull.
-        });
-        router.replace('/(tabs)');
-      } else {
-        router.push({ pathname: '/details', params: { email: email.trim() } });
-      }
+      await finishSignIn();
     } catch (err) {
+      // A wrong or expired code: felt as well as read.
+      hapticWarning();
       setError(friendlyAuthError(err instanceof Error ? err.message : ''));
     } finally {
       // Always cleared: this screen stays mounted behind `details` now, and
@@ -216,48 +287,55 @@ export default function EmailScreen() {
   return (
     <SafeAreaView style={s.screen} edges={['top', 'bottom']}>
       <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        style={s.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* Each stage scrolls above a fixed button, so on a small phone with
+            the keyboard up the button is never pushed under it. */}
         {stage === 'email' ? (
           <>
-            <ObHeader title="Your email" />
-            <Text style={s.sub}>No password. We send a code instead.</Text>
+            <ScrollView
+              style={s.flex}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              showsVerticalScrollIndicator={false}>
+              <OnbTitle
+                title="What’s your email?"
+                sub="We’ll send you a code. No password."
+              />
 
-            <View style={s.cardBlock}>
-              {/* CSS `box-shadow:0 0 0 5px rgba(238,163,31,.18)`. RN has no
+              <View style={s.cardBlock}>
+                {/* CSS `box-shadow:0 0 0 5px rgba(238,163,31,.18)`. RN has no
                   shadow spread, so the ring is a padded wrapper behind the
                   card — radius 20 + 5 so the corners stay concentric. */}
-              <Pressable style={s.focusRing} onPress={() => emailInput.current?.focus()}>
-                <View style={s.fieldCard}>
-                  <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
-                  <View style={s.valueRow}>
-                    <TextInput
-                      ref={emailInput}
-                      style={s.emailInput}
-                      value={email}
-                      onChangeText={(t) => {
-                        setEmail(t);
-                        setError(null);
-                      }}
-                      placeholder="you@example.com"
-                      placeholderTextColor={ob.placeholder}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      autoComplete="email"
-                      textContentType="emailAddress"
-                      selectionColor={ob.amber}
-                      returnKeyType="go"
-                      onSubmitEditing={sendOtp}
-                    />
+                <Pressable style={s.focusRing} onPress={() => emailInput.current?.focus()}>
+                  <View style={s.fieldCard}>
+                    <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                    <View style={s.valueRow}>
+                      <TextInput
+                        ref={emailInput}
+                        style={s.emailInput}
+                        value={email}
+                        onChangeText={(t) => {
+                          setEmail(t);
+                          setError(null);
+                        }}
+                        placeholder="you@example.com"
+                        placeholderTextColor={ob.placeholder}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoComplete="email"
+                        textContentType="emailAddress"
+                        selectionColor={ob.amber}
+                        returnKeyType="go"
+                        onSubmitEditing={sendOtp}
+                      />
+                    </View>
                   </View>
-                </View>
-              </Pressable>
+                </Pressable>
 
-              {!!error && <Text style={s.error}>{error}</Text>}
+                {!!error && <Text style={s.error}>{error}</Text>}
 
-              {/* Dynamic, but not on whether the address is registered.
+                {/* Dynamic, but not on whether the address is registered.
                   Asking that would mean a lookup anyone could use to discover
                   who has an account here — the reason the industry standard
                   is "if an account exists, we've sent a code". So the line
@@ -265,7 +343,8 @@ export default function EmailScreen() {
                   finished typing, and therefore what the button is about to
                   do. Before that it answers the question a returning student
                   actually has, which is whether they're in the right box. */}
-            </View>
+              </View>
+            </ScrollView>
 
             <View style={s.footer}>
               <ObButton
@@ -283,73 +362,174 @@ export default function EmailScreen() {
               />
             </View>
           </>
+        ) : stage === 'password' ? (
+          <>
+            {/* The store-review account only. Same page as the other stages: the
+                address recaps with its Change button, a password field below. */}
+            <ScrollView
+              style={s.flex}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              showsVerticalScrollIndicator={false}>
+              <OnbTitle title="What’s your email?" sub="Enter your password to continue." />
+
+              <View style={s.recapBlock}>
+                <View style={s.recapCard}>
+                  <View style={s.recapText}>
+                    <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                    <Text style={s.recapValue} numberOfLines={1}>
+                      {email.trim()}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={changeEmail}
+                    hitSlop={ds(14)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change email address"
+                    style={({ pressed }) => [s.changeButton, pressed && s.changePressed]}>
+                    <Text style={s.changeLink}>Change</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={s.cardBlock}>
+                <Pressable style={s.focusRing} onPress={() => passwordInput.current?.focus()}>
+                  <View style={s.fieldCard}>
+                    <Text style={s.fieldLabel}>PASSWORD</Text>
+                    <View style={s.valueRow}>
+                      <TextInput
+                        ref={passwordInput}
+                        testID="reviewer-password"
+                        style={s.emailInput}
+                        value={password}
+                        onChangeText={(t) => {
+                          setPassword(t);
+                          setError(null);
+                        }}
+                        placeholder="Password"
+                        placeholderTextColor={ob.placeholder}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoComplete="current-password"
+                        textContentType="password"
+                        selectionColor={ob.amber}
+                        returnKeyType="go"
+                        onSubmitEditing={submitPassword}
+                      />
+                    </View>
+                  </View>
+                </Pressable>
+                {!!error && <Text style={s.error}>{error}</Text>}
+              </View>
+            </ScrollView>
+
+            <View style={s.footer}>
+              <ObButton
+                label={busy ? 'Signing in…' : 'Sign in'}
+                variant="ink"
+                withArrow
+                disabled={!password}
+                busy={busy}
+                onPress={submitPassword}
+              />
+            </View>
+          </>
         ) : (
           <>
-            <ObHeader title="Enter the code" />
-            {/* The handoff puts the address and its escape hatch on one line
-                under the title, in place of the recap card. The card was a
-                second field-shaped object directly above six more, which read
-                as another thing to fill in. */}
-            <Text style={s.sub} numberOfLines={2}>
-              Sent to {email.trim()} ·{' '}
-              <Text style={s.changeLink} onPress={changeEmail}>
-                Change
-              </Text>
-            </Text>
+            {/* ONE PAGE, NOT TWO. Sending the code used to swap everything: a
+                new title, the email box gone, the address shrunk to a line —
+                it read as a second screen. Now the title stays, the email box
+                stays where it was (filled, in the same weight it was typed
+                in), and the code rises in beneath it. */}
+            <ScrollView
+              style={s.flex}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              showsVerticalScrollIndicator={false}>
+              <OnbTitle
+                title="What’s your email?"
+                sub="We sent a 6-digit code to your inbox."
+              />
 
-            <Rise delay={160} distance={ds(14)} style={s.boxesBlock}>
-              <View style={s.boxesRow}>
-                {Array.from({ length: CODE_LENGTH }).map((_, i) => {
-                  const digit = code[i];
-                  const isActive = i === activeBox;
-                  return (
-                    <View key={i} style={s.boxCell}>
-                      {/* The active cell lifts and carries the caret; filled
+              <View style={s.recapBlock}>
+                <View style={s.recapCard}>
+                  <View style={s.recapText}>
+                    <Text style={s.fieldLabel}>EMAIL ADDRESS</Text>
+                    <Text style={s.recapValue} numberOfLines={1}>
+                      {email.trim()}
+                    </Text>
+                  </View>
+                  {/* A real button with room around it. It was a few letters
+                    of inline text inside a sentence — a small target, and
+                    the one students reported not working. */}
+                  <Pressable
+                    onPress={changeEmail}
+                    hitSlop={ds(14)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change email address"
+                    style={({ pressed }) => [s.changeButton, pressed && s.changePressed]}>
+                    <Text style={s.changeLink}>Change</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <Text style={s.codeLabel}>ENTER THE CODE</Text>
+
+              <Rise delay={160} distance={ds(14)} style={s.boxesBlock}>
+                <View style={s.boxesRow}>
+                  {Array.from({ length: CODE_LENGTH }).map((_, i) => {
+                    const digit = code[i];
+                    const isActive = i === activeBox;
+                    return (
+                      <View key={i} style={s.boxCell}>
+                        {/* The active cell lifts and carries the caret; filled
                           cells settle back onto a tint. No ring -- a wash is
                           this app's mark for a choice made, and a cell waiting
                           for a digit has not made one. */}
-                      <View
-                        style={[
-                          s.box,
-                          digit ? s.boxFilled : null,
-                          isActive ? s.boxActive : null,
-                        ]}>
-                        {digit ? (
-                          <Animated.Text style={[s.boxDigit, popStyle(popAnims[i])]}>
-                            {digit}
-                          </Animated.Text>
-                        ) : isActive ? (
-                          <Caret width={2} height={ds(26)} />
-                        ) : null}
+                        <View
+                          style={[
+                            s.box,
+                            digit ? s.boxFilled : null,
+                            isActive ? s.boxActive : null,
+                          ]}>
+                          {digit ? (
+                            <Animated.Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={[s.boxDigit, popStyle(popAnims[i])]}>
+                              {digit}
+                            </Animated.Text>
+                          ) : isActive ? (
+                            <Caret width={2} height={ds(26)} />
+                          ) : null}
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
-                <TextInput
-                  ref={codeInput}
-                  style={s.hiddenInput}
-                  value={code}
-                  onChangeText={handleCodeChange}
-                  keyboardType="number-pad"
-                  maxLength={CODE_LENGTH}
-                  caretHidden
-                  autoComplete="one-time-code"
-                  textContentType="oneTimeCode"
-                />
+                    );
+                  })}
+                  <TextInput
+                    ref={codeInput}
+                    style={s.hiddenInput}
+                    value={code}
+                    onChangeText={handleCodeChange}
+                    keyboardType="number-pad"
+                    maxLength={CODE_LENGTH}
+                    caretHidden
+                    autoComplete="one-time-code"
+                    textContentType="oneTimeCode"
+                  />
+                </View>
+              </Rise>
+
+              {!!error && <Text style={[s.error, s.errorOtp]}>{error}</Text>}
+
+              <View style={s.resendBlock}>
+                <Pressable onPress={resend} disabled={secondsLeft > 0 || busy} hitSlop={ds(10)}>
+                  <Text style={s.resendText}>
+                    {secondsLeft > 0
+                      ? `Resend 0:${String(secondsLeft).padStart(2, '0')}`
+                      : 'Resend'}
+                  </Text>
+                </Pressable>
               </View>
-            </Rise>
-
-            {!!error && <Text style={[s.error, s.errorOtp]}>{error}</Text>}
-
-            <View style={s.resendBlock}>
-              <Pressable onPress={resend} disabled={secondsLeft > 0 || busy} hitSlop={ds(10)}>
-                <Text style={s.resendText}>
-                  {secondsLeft > 0
-                    ? `Resend 0:${String(secondsLeft).padStart(2, '0')}`
-                    : 'Resend'}
-                </Text>
-              </Pressable>
-            </View>
+            </ScrollView>
 
             <View style={s.footer}>
               <ObButton
@@ -366,6 +546,7 @@ export default function EmailScreen() {
             </View>
           </>
         )}
+        <KeyboardSpacer bottomInset={insets.bottom} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -374,7 +555,10 @@ export default function EmailScreen() {
 /** `pop` — scale .72 -> 1.06 -> 1 with fade, .35s. */
 function popStyle(anim: Animated.Value) {
   return {
-    opacity: anim.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 1, 1] }),
+    opacity: anim.interpolate({
+      inputRange: [0, 0.35, 1],
+      outputRange: [0, 1, 1],
+    }),
     transform: [
       {
         scale: anim.interpolate({
@@ -419,7 +603,12 @@ function Rise({
         {
           opacity: anim,
           transform: [
-            { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) },
+            {
+              translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [distance, 0],
+              }),
+            },
           ],
         },
       ]}>
@@ -437,18 +626,24 @@ function Caret({ width, height }: { width: number; height: number }) {
       Animated.sequence([
         Animated.delay(550),
         // duration 0 == the hard switch of `steps(1)`, no easing ramp.
-        Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
         Animated.delay(550),
-        Animated.timing(anim, { toValue: 1, duration: 0, useNativeDriver: true }),
-      ]),
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
     );
     loop.start();
     return () => loop.stop();
   }, [anim]);
 
-  return (
-    <Animated.View style={{ width, height, backgroundColor: ob.amber, opacity: anim }} />
-  );
+  return <Animated.View style={{ width, height, backgroundColor: ob.amber, opacity: anim }} />;
 }
 
 function createStyles(
@@ -497,7 +692,12 @@ function createStyles(
       letterSpacing: tracking(0.14, 10),
       color: ob.ink55,
     },
-    valueRow: { marginTop: ds(6), flexDirection: 'row', alignItems: 'center', gap: ds(12) },
+    valueRow: {
+      marginTop: ds(6),
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: ds(12),
+    },
     // Typed straight into the card rather than behind a hidden input: an
     // address is variable-length and proportional, so the per-character
     // caret trick the phone digits used has nothing to align to.
@@ -540,29 +740,44 @@ function createStyles(
     recognition: { marginTop: ds(18) },
 
     // padding:30px 26px 0
-    recapBlock: { paddingTop: ds(30), paddingHorizontal: ds(26) },
+    /** The email box, settled: the field's own box and padding, on the
+     *  filled tint, so it is the same object it was a moment ago. */
+    recapBlock: { paddingTop: ds(34), paddingHorizontal: ds(30) },
     recapCard: {
-      borderRadius: ds(20),
-      backgroundColor: ob.surface,
+      borderRadius: ds(14),
+      backgroundColor: ob.fieldMuted,
       borderWidth: 1,
-      borderColor: ob.hairline14,
+      borderColor: ob.fieldBorder,
       paddingVertical: ds(16),
-      paddingHorizontal: ds(24),
+      paddingHorizontal: ds(18),
       flexDirection: 'row',
+      // On the address's line, not the middle of label-plus-address.
       alignItems: 'flex-end',
       justifyContent: 'space-between',
     },
+    /** The typed address's own weight and size — never bold. */
     recapValue: {
       marginTop: ds(6),
-      fontFamily: obFont.sb600,
-      fontSize: fs(24),
-      letterSpacing: tracking(-0.01, 24),
+      fontFamily: obFont.r400,
+      fontSize: fs(19),
+      minHeight: ds(34),
+      lineHeight: ds(34),
       color: ob.ink,
     },
+    changeButton: { paddingVertical: ds(8), paddingHorizontal: ds(4) },
+    changePressed: { opacity: 0.55 },
     changeLink: { fontFamily: obFont.b700, fontSize: fs(16), color: ob.link },
+    codeLabel: {
+      paddingTop: ds(26),
+      paddingHorizontal: ds(30),
+      fontFamily: obFont.sb600,
+      fontSize: fs(10),
+      letterSpacing: tracking(0.14, 10),
+      color: ob.ink55,
+    },
 
     // padding:24px 26px 0
-    boxesBlock: { paddingTop: ds(26), paddingHorizontal: ds(30) },
+    boxesBlock: { paddingTop: ds(10), paddingHorizontal: ds(30) },
     boxesRow: { flexDirection: 'row', gap: ds(9) },
     boxCell: { flex: 1 },
     box: {
@@ -581,13 +796,9 @@ function createStyles(
       borderWidth: 1.5,
       borderColor: ob.ink80,
       transform: [{ translateY: -2 }, { scale: 1.04 }],
-      shadowColor: ob.ink,
-      shadowOpacity: 0.2,
-      shadowOffset: { width: 0, height: 6 },
-      shadowRadius: 10,
-      elevation: 4,
+      ...shadow({ color: ob.ink, opacity: 0.2, radius: 10, y: 6, elevation: 4 }),
     },
-    boxDigit: { fontFamily: obFont.r400, fontSize: fs(26), color: ob.ink },
+    boxDigit: { fontFamily: obFont.r400, fontSize: fs(26), color: ob.ink, includeFontPadding: false },
 
     // One 20pt row under the cells: the resend clock sits right, and the
     // "Checking the code" spinner takes the left when it appears.
@@ -603,8 +814,10 @@ function createStyles(
     footer: {
       marginTop: 'auto',
       paddingTop: ds(22),
-      paddingHorizontal: ds(34),
-      paddingBottom: ds(34),
+      // 30 and 14, as on every other onboarding screen, so the button does not
+      // jump narrower and higher on the one screen with a text field.
+      paddingHorizontal: ds(30),
+      paddingBottom: ds(14),
     },
   });
 }

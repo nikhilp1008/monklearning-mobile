@@ -48,6 +48,24 @@ export const colors = {
   masteryStrong: '#1C9B57',
   masteryBuilding: '#EEA31F',
   masteryWeak: '#DD4433',
+
+  // --- the night ground ---
+  //
+  // Home's header is the only full-bleed dark surface in the app, and the
+  // Select Teacher screen stands on the same ground. The sky itself is a
+  // shader (see components/night-sky.tsx) and most of its colours live inside
+  // it, where nothing else can reach them. These three are the parts that
+  // surface as real UI and therefore have to be tokens.
+  //
+  // `night` is also the flat colour the header shows for the frame before the
+  // shader has drawn, which is why it has to match the sky's mid tone rather
+  // than being merely dark.
+  night: '#2E2A24',
+  nightDeep: '#1A1814',   // the Select Teacher page's ground
+  // Ink for a link or an active state reversed out of either of the above.
+  // Marigold is the accent on paper; on this ground it is too close in value
+  // to the sky's own glow to read as a control.
+  paleGold: '#FBDDA0',
 };
 
 export const spacing = {

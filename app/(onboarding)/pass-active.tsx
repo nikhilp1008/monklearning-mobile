@@ -1,198 +1,103 @@
-// 10 "Your pass is active" — the last screen of onboarding.
-//
-// This is where the whole profile reaches the server, not the year screen it
-// used to be. The pass screens were inserted after that step, so finishing on
-// `class` would have written `display_name` and flipped the gate to
-// "onboarded" while the student still had three screens to go — a reload
-// mid-flow would have dropped them on Home with no pass.
-//
-// The dark ground is deliberate and unique: it is the only dark screen in
-// onboarding, and it marks the seam between signing up and being a student.
+// "Your pass is active", for a new student: the receipt after the pass is
+// taken in onboarding. Its button starts the pass's clock and leads on to the
+// teacher. The screen itself is components/pass-confirmation.tsx, shared with
+// the plans page so a pass looks the same however it was bought.
 import { router, useLocalSearchParams } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 
-import { Ring, Rise, Tick } from '@/components/confirm-motion';
-import { ObButton } from '@/components/onboarding-kit';
+import { useAndroidBack } from '@/lib/android-back';
+import { PassConfirmation, activeTill } from '@/components/pass-confirmation';
+import { PLANS } from '@/components/paywall/plans';
 import {
   EXAMS,
   PASSES,
-  ob,
-  obFont,
-  promoDiscount,
   rupees,
-  useDesignScale,
   type ExamKey,
-  type PassKey,
 } from '@/constants/onboarding';
-import { startPass } from '@/lib/pass';
-import { hapticTicked } from '@/lib/haptics';
+import { ApiError } from '@/lib/api';
+import { startPass, type PassKind } from '@/lib/pass';
+import { payErrorMessage } from '@/lib/payments';
+import { getProfile } from '@/lib/profile';
 
 export default function PassActiveScreen() {
-  const { ds, fs, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
-
-  const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
-  const passId = (PASSES.some((p) => p.id === params.pass) ? params.pass : 'week') as PassKey;
-  const pass = PASSES.find((p) => p.id === passId) ?? PASSES[1];
-  const exam = EXAMS[(params.exam as ExamKey) ?? 'jee'] ?? EXAMS.jee;
-  const paid = Math.max(0, pass.price - promoDiscount(params.promo ?? '', pass.price));
+  const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string; paid?: string; amount?: string }>();
+  const plan = PLANS.find((p) => p.id === params.pass) ?? null;
+  const starter = PASSES.find((p) => p.id === params.pass) ?? PASSES[1];
+  const passId = (plan?.id ?? starter.id) as PassKind;
+  // The profile, not the param: a student who resumes after the app was
+  // closed reaches the pass with no param, and a NEET receipt must not say JEE.
+  const [examKey, setExamKey] = useState<ExamKey>(params.exam === 'neet' ? 'neet' : 'jee');
+  useEffect(() => {
+    let live = true;
+    getProfile().then((p) => {
+      if (live) setExamKey(p.exam);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const exam = EXAMS[examKey];
+  // What was actually charged, as the server priced it: the amount rides in
+  // from the payment. The only other way here is a code that made it free.
+  const charged = Number(params.amount);
+  const paid = params.paid === '1' && Number.isFinite(charged) ? charged : 0;
 
   const [saving, setSaving] = useState(false);
+  // Paid: Back would return to the price list. Held, as the swipe is (see
+  // (onboarding)/_layout).
+  useAndroidBack(() => true);
   const [error, setError] = useState<string | null>(null);
-
-  /**
-   * The Success tap, landing with the tick.
-   *
-   * The tick pops 60ms in and settles over the next 620 (see `Tick` in
-   * components/confirm-motion.tsx), so the tap waits for the pop itself
-   * rather than firing on mount, before there is anything on screen to feel
-   * it about. Once — this is a moment, not a loop.
-   */
-  useEffect(() => {
-    const t = setTimeout(hapticTicked, 140);
-    return () => clearTimeout(t);
-  }, []);
-
-
-  const till = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + (passId === 'day' ? 1 : 7));
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  }, [passId]);
 
   /**
    * THE RECEIPT IS NOT THE END OF THE FLOW ANY MORE.
    *
-   * This screen used to write the profile and drop the student on Home. Two
-   * screens follow it now — the teacher they will hear, and what the pass
-   * opens — so the button reads "Continue" and this does the one thing that
-   * belongs to the purchase: start the pass's clock, where it was bought.
-   * The profile write and the handover to the app moved to the last of those
-   * screens; see app/(onboarding)/inside.tsx.
+   * Two screens follow it — the teacher they will hear, and the starting-point
+   * paper — so the button leads on and this does the one thing that belongs
+   * to the purchase: start the pass's clock, where it was bought. The profile
+   * write and the handover to the app happen on the last of those screens.
    */
   const finish = async () => {
     if (saving) return;
     setSaving(true);
     setError(null);
     try {
-      await startPass(passId, params.promo ?? null);
-    } catch {
+      // A paid pass was made when the payment was verified; only a free one
+      // (a promo code) is started here, and the server decides if the code is good.
+      if (params.paid !== '1') await startPass(passId, params.promo ?? '');
+    } catch (err) {
       setSaving(false);
+      // THE SERVER SAID NO TO THE CODE (already used, run out): say so, in its
+      // words, and take the student back to choose a pass. This screen holds
+      // Back, so "check your connection" used to leave them nowhere to go.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        Alert.alert("Couldn't use this code", payErrorMessage(err), [
+          { text: 'Choose a pass', onPress: () => router.replace({ pathname: '/pass', params: { exam: params.exam ?? '' } }) },
+        ]);
+        return;
+      }
       setError('Couldn’t start your pass. Check your connection and try again.');
       return;
     }
     router.push('/teacher');
   };
 
-  const rows: [string, string][] = [
-    ['Pass', `${pass.name}`],
-    ['Exam', exam.name],
-    ['Active till', till],
-    ['Paid', rupees(paid)],
-  ];
-
   return (
-    <View style={styles.screen}>
-      <StatusBar style="light" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.body}>
-          <View style={styles.tickWrap}>
-            <Ring size={ds(64)} delay={160} />
-            <Ring size={ds(64)} delay={620} />
-            <Tick size={ds(64)} />
-          </View>
-
-          <View style={styles.headBlock}>
-            <Rise delay={300}>
-              <Text style={styles.headline}>Your pass is active.</Text>
-            </Rise>
-            <Rise delay={420}>
-              <Text style={styles.sub}>
-                {exam.name === 'Both' ? 'Drona' : 'Drona'} is at the board. Pick a chapter and the
-                class begins.
-              </Text>
-            </Rise>
-          </View>
-
-          <View style={styles.ledger}>
-            {rows.map(([label, value], i) => (
-              <Rise key={label} delay={560 + i * 80}>
-                <View style={[styles.row, i === rows.length - 1 && styles.rowLast]}>
-                  <Text style={styles.rowLabel}>{label}</Text>
-                  <Text style={styles.rowValue}>{value}</Text>
-                </View>
-              </Rise>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          {!!error && <Text style={styles.error}>{error}</Text>}
-          <Rise delay={900}>
-            {/* `busy`, not `disabled`. The label holds and the fill holds;
-                the arrow becomes a spinner and a second tap does nothing.
-                `disabled` empties the button to an outline, which on this dark
-                ground meant the cream button turned black the instant it was
-                tapped. */}
-            <ObButton
-              label="Continue"
-              variant="cream"
-              withArrow
-              busy={saving}
-              onPress={finish}
-            />
-          </Rise>
-        </View>
-      </SafeAreaView>
-    </View>
+    <PassConfirmation
+      // No teacher named: the student has not chosen one yet. That is the
+      // very next screen, so this line points at it.
+      headline={plan ? `You're on ${plan.name}.` : undefined}
+      sub={plan ? 'Next, choose who teaches you.' : `${starter.name} of live classes, doubts and practice. Next, choose who teaches you.`}
+      rows={[
+        [plan ? 'Plan' : 'Pass', plan ? `${plan.name} · 1 month` : starter.name],
+        ['Exam', exam.name],
+        ['Active till', activeTill(passId)],
+        ['Paid', rupees(paid)],
+      ]}
+      buttonLabel="Choose Drona or Vedha"
+      onPress={finish}
+      busy={saving}
+      error={error}
+    />
   );
-}
-
-function createStyles(
-  ds: (size: number) => number,
-  fs: (size: number) => number,
-  tracking: (em: number, fontSize: number) => number
-) {
-  return StyleSheet.create({
-    screen: { flex: 1, backgroundColor: ob.night },
-    safeArea: { flex: 1 },
-    body: { flex: 1, paddingHorizontal: ds(30), paddingTop: ds(56) },
-    tickWrap: { width: ds(64), height: ds(64), alignItems: 'center', justifyContent: 'center' },
-    headBlock: { marginTop: ds(30), gap: ds(14) },
-    headline: {
-      fontFamily: obFont.r400,
-      fontSize: fs(32),
-      lineHeight: fs(36),
-      letterSpacing: tracking(-0.03, 32),
-      color: ob.cream,
-    },
-    sub: {
-      fontFamily: obFont.r400,
-      fontSize: fs(17),
-      lineHeight: fs(25),
-      color: ob.onNight,
-    },
-    ledger: { marginTop: ds(42) },
-    row: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingVertical: ds(14),
-      borderTopWidth: 1,
-      borderTopColor: ob.nightRule,
-    },
-    rowLast: { borderBottomWidth: 1, borderBottomColor: ob.nightRule },
-    rowLabel: { fontFamily: obFont.r400, fontSize: fs(15), color: ob.onNightDim },
-    rowValue: { fontFamily: obFont.m500, fontSize: fs(15), color: ob.cream },
-    footer: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(12) },
-    error: {
-      fontFamily: obFont.r400,
-      fontSize: fs(13),
-      lineHeight: fs(19),
-      textAlign: 'center',
-      color: '#F3A6A0',
-    },
-  });
 }

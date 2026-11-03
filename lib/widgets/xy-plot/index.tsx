@@ -223,7 +223,7 @@ ROUTES-FROM-COLUMN:END */
  *                     by the product of the partitions for no syllabus gain.
  */
 import React, { useMemo } from 'react';
-import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
 import { BoardText as SvgText } from '../board-text';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 
@@ -277,6 +277,8 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
  */
 const TICK_LABEL_SIZE = LABEL_SIZE;
 const AXIS_TITLE_SIZE = LABEL_SIZE;
+/** The Δ labels of a chord_with_deltas. */
+const DELTA_SIZE = 11;
 const GRIDLINE_STROKE = HAIRLINE_STROKE;
 const AXIS_STROKE = LINE_STROKE;
 const CURVE_STROKE = EMPHASIS_STROKE;
@@ -1808,6 +1810,36 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, frame]);
 
+  /**
+   * The two Δ labels of a chord_with_deltas, and the plate behind each. All
+   * from params and the frame (never from motion), so scaffolding holds still
+   * while the chord slides. Plate = text box plus 2pt each side and 2pt under
+   * the baseline; the width is measured with the same model the gate uses.
+   */
+  const deltaLabels = useMemo(() => {
+    if (!secantStatic || params.secant !== 'chord_with_deltas') return [];
+    const run = `Δ${params.x_label} ${fmtShort(secantStatic.dx)}`;
+    const rise = `Δ${params.y_label} ${fmtShort(secantStatic.dy)}`;
+    const place = (
+      key: string, text: string, x: number, y: number, anchor: 'start' | 'middle' | 'end'
+    ) => {
+      const w = textWidth(text, DELTA_SIZE, theme.monoFontFamily);
+      const left = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
+      return {
+        key, text, x, y, anchor,
+        plate: { x: left - 2, y: y - DELTA_SIZE + 1, w: w + 4, h: DELTA_SIZE + 3 },
+      };
+    };
+    const riserOnRight = secantStatic.C.x > (frame.left + frame.right) / 2;
+    return [
+      place('run', run, (secantStatic.A.x + secantStatic.C.x) / 2,
+            secantStatic.A.y + (secantStatic.C.y >= secantStatic.A.y ? 14 : -6), 'middle'),
+      place('rise', rise, secantStatic.C.x + (riserOnRight ? -6 : 6),
+            (secantStatic.C.y + secantStatic.B.y) / 2 + 4, riserOnRight ? 'end' : 'start'),
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secantStatic, params.secant, params.x_label, params.y_label, frame, theme.monoFontFamily]);
+
   const isArea = params.mode === 'area' || params.mode === 'area_between';
 
   /*
@@ -1962,26 +1994,6 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
                 strokeWidth={HAIRLINE_STROKE}
                 strokeDasharray="4 3"
               />
-              <SvgText
-                x={(secantStatic.A.x + secantStatic.C.x) / 2}
-                y={secantStatic.A.y + (secantStatic.C.y >= secantStatic.A.y ? 14 : -6)}
-                fill={theme.inkMuted}
-                fontSize={11}
-                fontFamily={theme.monoFontFamily}
-                textAnchor="middle"
-              >
-                {`Δ${params.x_label} ${fmtShort(secantStatic.dx)}`}
-              </SvgText>
-              <SvgText
-                x={secantStatic.C.x + (secantStatic.C.x > (frame.left + frame.right) / 2 ? -6 : 6)}
-                y={(secantStatic.C.y + secantStatic.B.y) / 2 + 4}
-                fill={theme.inkMuted}
-                fontSize={11}
-                fontFamily={theme.monoFontFamily}
-                textAnchor={secantStatic.C.x > (frame.left + frame.right) / 2 ? 'end' : 'start'}
-              >
-                {`Δ${params.y_label} ${fmtShort(secantStatic.dy)}`}
-              </SvgText>
             </G>
           )}
         </G>
@@ -2048,6 +2060,32 @@ function XyPlot({ params, motion, width, height, theme }: WidgetRenderProps<XyPl
           />
         </>
       )}
+
+      {/* A PLATE UNDER EACH Δ LABEL (chrome.ts: "draw a filled Rect plate
+          behind it ... fill only, no stroke"), drawn AFTER THE AXES so it can
+          mask them. Both labels sit where lines already are: the run label is
+          just under the chord's foot, which is on the x axis whenever the
+          chord starts near zero (x = 2t² from t = 1 puts the axis through
+          "Δt 2"), and the rise label is at the middle of the riser, where the
+          tangent at A crosses it for EVERY parabola — the tangent's value at
+          x2 is exactly halfway up the chord's riser. Axes are painted last on
+          purpose (the baseline must read as the boundary), so the plates are
+          painted after them. Params-derived, like the labels. */}
+      {deltaLabels.map((d) => (
+        <G key={d.key}>
+          <Rect x={d.plate.x} y={d.plate.y} width={d.plate.w} height={d.plate.h} fill={theme.surface} />
+          <SvgText
+            x={d.x}
+            y={d.y}
+            fill={theme.inkMuted}
+            fontSize={DELTA_SIZE}
+            fontFamily={theme.monoFontFamily}
+            textAnchor={d.anchor}
+          >
+            {d.text}
+          </SvgText>
+        </G>
+      ))}
 
       <SvgText
         x={frame.right} y={frame.bottom + TICK_LABEL_SIZE * 3.0}

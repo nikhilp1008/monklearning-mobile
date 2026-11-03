@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -16,14 +17,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
+import { insetLine } from '@/lib/inset-line';
 import { ob, obFont, useDesignScale } from '@/constants/onboarding';
 import { hapticKey } from '@/lib/haptics';
 
 type ObButtonProps = {
   label: string;
   onPress: () => void;
-  /** Cream on the photographic welcome screens, ink everywhere else. */
-  variant?: 'ink' | 'cream';
+  /** Cream on the photographic welcome screens, ink everywhere else.
+   *  `outline` is the second button under an ink one: same shape and size,
+   *  white with a hairline, so it reads as a button without competing. */
+  variant?: 'ink' | 'cream' | 'outline';
   /** The white-flow buttons carry a trailing arrow; the welcome ones don't. */
   withArrow?: boolean;
   disabled?: boolean;
@@ -87,6 +92,7 @@ export function ObButton({
 }: ObButtonProps) {
   const { ds, fs, tracking } = useDesignScale();
   const isCream = variant === 'cream';
+  const isOutline = variant === 'outline';
   const height = compact ? ds(48) : ds(60);
   const radius = compact ? ds(15) : ds(18);
   const labelSize = compact ? 15.5 : 18;
@@ -101,33 +107,48 @@ export function ObButton({
     paddingHorizontal: trailing ? ds(22) : compact ? ds(26) : 0,
     gap: ds(10),
     transform: [{ translateY: held ? ds(3) : 0 }],
-    boxShadow: [
-      { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,255,255,.22)', inset: true },
-      { offsetX: 0, offsetY: -1.5, blurRadius: 0, color: 'rgba(0,0,0,.4)', inset: true },
-      // The ledge, and what is left of it once the key is down.
-      { offsetX: 0, offsetY: held ? 0 : ds(3), blurRadius: 0, color: 'rgba(28,26,22,.35)' },
-      held
-        ? { offsetX: 0, offsetY: ds(3), blurRadius: ds(8), color: 'rgba(28,26,22,.2)' }
-        : { offsetX: 0, offsetY: ds(8), blurRadius: ds(18), color: 'rgba(28,26,22,.22)' },
-    ],
+    boxShadow:
+      Platform.OS === 'android'
+        ? // ANDROID GETS THE SOFT SHADOW ONLY. The key's 3D edge is two hairline
+          // inner shadows and a hard 3pt ledge, which iOS draws as a crisp dark
+          // lip. Android draws the same ledge as a flat grey slab under the
+          // button, and its inner shadows only on some versions, so the key
+          // read as a failed attempt at 3D there. The press still sinks it.
+          [
+            held
+              ? { offsetX: 0, offsetY: ds(2), blurRadius: ds(6), color: 'rgba(28,26,22,.18)' }
+              : { offsetX: 0, offsetY: ds(6), blurRadius: ds(14), color: 'rgba(28,26,22,.2)' },
+          ]
+        : [
+            { offsetX: 0, offsetY: 1, blurRadius: 0, color: 'rgba(255,255,255,.22)', inset: true },
+            { offsetX: 0, offsetY: -1.5, blurRadius: 0, color: 'rgba(0,0,0,.4)', inset: true },
+            // The ledge, and what is left of it once the key is down.
+            { offsetX: 0, offsetY: held ? 0 : ds(3), blurRadius: 0, color: 'rgba(28,26,22,.35)' },
+            held
+              ? { offsetX: 0, offsetY: ds(3), blurRadius: ds(8), color: 'rgba(28,26,22,.2)' }
+              : { offsetX: 0, offsetY: ds(8), blurRadius: ds(18), color: 'rgba(28,26,22,.22)' },
+          ],
   });
 
   const labelColor = disabled
     ? isCream
       ? ob.creamDim
       : ob.ink40
-    : isCream
+    : isCream || isOutline
       ? ob.ink
       : ob.cream;
 
   const body = (
     <>
-      <Text
+      <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
         style={{
           fontFamily: obFont.sb600,
           fontSize: fs(labelSize),
           letterSpacing: tracking(-0.01, labelSize),
           color: labelColor,
+          // Android pads text above and below by default, which sat every
+          // button label a little low; iOS has no such padding.
+          includeFontPadding: false,
         }}>
         {label}
       </Text>
@@ -140,10 +161,10 @@ export function ObButton({
         />
       )}
       {withArrow && !busy && (
-        <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: labelColor }}>→</Text>
+        <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={{ fontFamily: obFont.m500, fontSize: fs(15), color: labelColor }}>→</Text>
       )}
       {!!trailing && (
-        <Text
+        <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}
           style={{
             flex: 1,
             textAlign: 'right',
@@ -172,6 +193,9 @@ export function ObButton({
         if (!disabled && !busy) hapticKey();
       }}
       disabled={disabled || busy}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled, busy: !!busy }}
       style={[compact ? { alignSelf: 'center' } : { width: '100%' }, style]}>
       {({ pressed }) => {
         const held = pressed && !disabled;
@@ -192,6 +216,21 @@ export function ObButton({
                 gap: ds(10),
                 borderWidth: 1.5,
                 borderColor: isCream ? ob.creamRule : ob.hairline18,
+              }}>
+              {body}
+            </View>
+          );
+        }
+        if (isOutline) {
+          return (
+            <View
+              style={{
+                ...face(held),
+                backgroundColor: '#FFFFFF',
+                // A hairline instead of the ledge: the second button sits flat.
+                ...insetLine(1.5, ob.hairline18),
+                transform: [{ translateY: held ? ds(1) : 0 }],
+                opacity: held ? 0.7 : 1,
               }}>
               {body}
             </View>

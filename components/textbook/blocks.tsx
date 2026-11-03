@@ -20,6 +20,7 @@ import {
 import { labelCase } from '@/lib/label-case';
 import { splitProse } from '@/lib/prose-paragraphs';
 import type { Block, RenderBlock } from '@/lib/textbooks';
+import { hapticSoft, hapticSuccess, hapticSwitched } from '@/lib/haptics';
 
 /**
  * Every content block, rendered.
@@ -50,7 +51,7 @@ export const EMPTY_BLOCK_STATE: BlockState = {
   practice: {},
 };
 
-interface Ctx {
+export interface BlockCtx {
   uid: string;
   /** Device scale. Boxes, radii, pads, icons, figure viewports. */
   scale: (n: number) => number;
@@ -59,6 +60,8 @@ interface Ctx {
   state: BlockState;
   set: <K extends keyof BlockState>(key: K, id: string, value: BlockState[K][string]) => void;
   topicNumber: string;
+  /** Topics in the chapter: the pilot's exam briefing splits by them. */
+  topicCount?: number;
 }
 
 function Chevron({ open, scale }: { open: boolean; scale: (n: number) => number }) {
@@ -99,7 +102,7 @@ function Kicker({
   return <Text style={[kicker(type), style]}>{labelCase(children)}</Text>;
 }
 
-export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) {
+export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: BlockCtx }) {
   const { scale, type } = ctx;
   const s = makeBlockStyles(scale, type);
   const st = makeStyles(scale, type);
@@ -277,7 +280,10 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
         <Carousel
           count={block.items.length}
           page={page}
-          onPage={(i) => ctx.set('page', ctx.uid, i)}
+          onPage={(i) => {
+            hapticSwitched();
+            ctx.set('page', ctx.uid, i);
+          }}
           scale={scale}>
           {(offset, step) =>
             block.items.map((ex, i) => (
@@ -313,7 +319,10 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
         <Carousel
           count={block.items.length}
           page={page}
-          onPage={(i) => ctx.set('page', ctx.uid, i)}
+          onPage={(i) => {
+            hapticSwitched();
+            ctx.set('page', ctx.uid, i);
+          }}
           scale={scale}>
           {(offset, step) =>
             block.items.map((q, i) => {
@@ -334,9 +343,11 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                         <Pressable
                           key={oi}
                           disabled={answer.solved}
-                          onPress={() =>
-                            ctx.set('mcq', key, { pick: oi, solved: oi === q.correct })
-                          }
+                          onPress={() => {
+                            if (oi === q.correct) hapticSuccess();
+                            else hapticSoft();
+                            ctx.set('mcq', key, { pick: oi, solved: oi === q.correct });
+                          }}
                           style={({ pressed }) => [
                             st.opt,
                             right && st.optRight,
@@ -381,7 +392,10 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
         <Carousel
           count={block.items.length}
           page={page}
-          onPage={(i) => ctx.set('page', ctx.uid, i)}
+          onPage={(i) => {
+            hapticSwitched();
+            ctx.set('page', ctx.uid, i);
+          }}
           scale={scale}>
           {(offset, step) =>
             block.items.map((item, i) => {
@@ -401,7 +415,10 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: Ctx }) 
                     <Markup html={item.a} size={type(13.5)} style={[s.tintPanel, st.exAns]} />
                   ) : (
                     <Pressable
-                      onPress={() => ctx.set('practice', key, true)}
+                      onPress={() => {
+                        hapticSwitched();
+                        ctx.set('practice', key, true);
+                      }}
                       style={({ pressed }) => [st.checkBtn, pressed && st.checkBtnPressed]}>
                       <Text style={st.checkBtnText}>Check answer</Text>
                     </Pressable>

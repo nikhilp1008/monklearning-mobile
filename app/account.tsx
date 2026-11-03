@@ -6,8 +6,9 @@ import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
 import { EXAMS, YEARS, type YearKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, friendlyError } from '@/lib/api';
 import { getSessionEmail, signOut } from '@/lib/auth';
+import { isReviewerSession } from '@/lib/reviewer';
 import { StudentProfile, getProfile, pullProfile, saveProfile } from '@/lib/profile';
 
 /**
@@ -75,6 +76,20 @@ export default function AccountScreen() {
 
   const email = profile?.email ?? '';
 
+  // The store-review account is never deleted: the stores demand this button, a
+  // reviewer will find it, and the next review needs the account to exist. The
+  // server refuses it too (POST /account/erase); this only says so up front.
+  const [reviewer, setReviewer] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void isReviewerSession().then((yes) => {
+      if (live) setReviewer(yes);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
   // ── Delete account ────────────────────────────────────────────────────────
   // App Store 5.1.1(v): deletion must be reachable in the app. The server
   // (POST /account/erase) is the authority — it re-checks the typed email and
@@ -86,10 +101,14 @@ export default function AccountScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const confirmMatches = confirmText.trim().toLowerCase() === email.trim().toLowerCase();
+  // Non-empty on both sides: before the profile loads, email is '' and so is
+  // an untouched field, and '' === '' armed the button.
+  const confirmMatches =
+    email.trim().length > 0 &&
+    confirmText.trim().toLowerCase() === email.trim().toLowerCase();
 
   const deleteForever = useCallback(async () => {
-    if (deleting) return;
+    if (deleting || reviewer) return;
     setDeleting(true);
     setDeleteError(null);
     try {
@@ -107,12 +126,12 @@ export default function AccountScreen() {
       // lands on onboarding — nothing to navigate to from here.
       await signOut();
     } catch (err) {
-      setDeleteError(err instanceof Error && err.message
-        ? err.message
-        : 'Deletion didn’t finish. Please try again.');
+      // The student's words, not the server's: friendlyError keeps the raw
+      // message for the console.
+      setDeleteError(friendlyError(err, 'delete your account'));
       setDeleting(false);
     }
-  }, [deleting, email]);
+  }, [deleting, email, reviewer]);
 
   return (
     <SettingsPage title="Personal information" keyboardAware>
@@ -227,6 +246,17 @@ export default function AccountScreen() {
         </View>
       </View>
 
+      {reviewer ? (
+        <View style={styles.dangerCard}>
+          <Text style={styles.fieldLabel}>DELETE ACCOUNT</Text>
+          <View style={styles.rowValue}>
+            <Text style={styles.dangerTitle}>Delete my account</Text>
+          </View>
+          <Text style={styles.fieldNote}>
+            This is the demo account used for app review, so it can’t be deleted.
+          </Text>
+        </View>
+      ) : (
       <View style={styles.dangerCard}>
         <Pressable
           disabled={deleting}
@@ -276,6 +306,7 @@ export default function AccountScreen() {
           </View>
         )}
       </View>
+      )}
 
     </SettingsPage>
   );

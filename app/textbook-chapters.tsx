@@ -1,15 +1,19 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { ListSkeleton, StateCard, StateLine } from '@/components/states';
+import { shadow } from '@/lib/shadow';
 import { colors } from '@/constants/brand';
+import { opensOnChoice } from '@/lib/chapter-essentials';
 import { useScale } from '@/constants/scale';
 import { friendlyLoadError } from '@/lib/api';
 import { CatalogueSubject, getCatalogue } from '@/lib/drona';
+import { getProfile, startingClass } from '@/lib/profile';
 import { isChapterReady } from '@/lib/textbooks';
 import { PressableScale } from '@/components/pressable-scale';
 import { SlidingToggle } from '@/components/sliding-toggle';
@@ -42,10 +46,23 @@ export default function TextbookChaptersScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [activeClass, setActiveClass] = useState<ClassOption>('Class 11');
+  const [activeClass, setActiveClass] = useState<ClassOption>(() => startingClass());
+  /** Set once the student flips the toggle, so the profile never overrides them. */
+  const pickedClass = useRef(false);
   const classLevel = CLASS_LEVEL[activeClass];
   const [catalogue, setCatalogue] = useState<CatalogueSubject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Opens on the student's own class (a dropper starts at 11).
+  useEffect(() => {
+    let cancelled = false;
+    getProfile().then(({ year }) => {
+      if (!cancelled && !pickedClass.current) setActiveClass(startingClass(year));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +109,7 @@ export default function TextbookChaptersScreen() {
             value={activeClass}
             onChange={(next) => {
               if (next !== activeClass) hapticSwitched();
+              pickedClass.current = true;
               setActiveClass(next);
             }}
             trackStyle={styles.classToggle}
@@ -106,15 +124,20 @@ export default function TextbookChaptersScreen() {
 
         {error ? (
           <View style={styles.state}>
-            <Text style={styles.stateText}>{error}</Text>
+            <StateCard
+              glyph="retry"
+              title="Couldn't load the chapters"
+              line={error}
+              action={{ label: 'Go back', onPress: () => router.back() }}
+            />
           </View>
         ) : !catalogue ? (
           <View style={styles.state}>
-            <ActivityIndicator color={colors.faint} />
+            <ListSkeleton rows={6} thumb={false} />
           </View>
         ) : chapters.length === 0 ? (
           <View style={styles.state}>
-            <Text style={styles.stateText}>No chapters here yet.</Text>
+            <StateLine glyph="book" text="No chapters here yet. They're being written." />
           </View>
         ) : (
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
@@ -126,7 +149,7 @@ export default function TextbookChaptersScreen() {
                     disabled={!ready}
                     onPress={() =>
                       router.push({
-                        pathname: '/textbook-reader',
+                        pathname: opensOnChoice(subject, classLevel, index) ? '/textbook-chapter' : '/textbook-reader',
                         params: {
                           subject,
                           classLevel: String(classLevel),
@@ -209,11 +232,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     classThumb: {
       backgroundColor: '#fff',
       borderRadius: scale(99),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: verticalScale(2) },
-      shadowOpacity: 0.12,
-      shadowRadius: scale(6),
-      elevation: 2,
+      ...shadow({ color: colors.ink, opacity: 0.12, radius: scale(6), y: verticalScale(2), elevation: 2 }),
     },
     classPill: {
       paddingVertical: verticalScale(6),

@@ -7,11 +7,11 @@ import { NoteBoardGroup } from '@/lib/notes';
  * so richer content needs no new plumbing.
  */
 export type BoardBlock =
-  | { kind: 'text'; text: string; markable?: boolean }
+  | { kind: 'text'; text: string; markable?: boolean; raw?: string }
   | { kind: 'hand'; text: string }
   | { kind: 'caption'; text: string }
   | { kind: 'foot'; text: string }
-  | { kind: 'math'; text: string; result?: boolean }
+  | { kind: 'math'; text: string; result?: boolean; raw?: string }
   | { kind: 'note'; text: string }
   | { kind: 'steps'; steps: { title: string; lines: BoardStepLine[] }[] }
   /** A question worked through in class: the question, the working, the answer. */
@@ -72,12 +72,12 @@ function fromBoardItems(groups: NoteBoardGroup[]): BoardSection[] {
         if (!raw) continue;
         const text = latexToText(raw);
         if (item.latex || STANDALONE_FORMULA.test(raw)) {
-          blocks.push({ kind: 'math', text, result: !!item.emphasis });
+          blocks.push({ kind: 'math', text, result: !!item.emphasis, raw });
         } else if (item.type === 'note') {
           // The teacher's aside — the design's handwritten red line.
           blocks.push({ kind: 'hand', text });
         } else {
-          blocks.push({ kind: 'text', text, markable: true });
+          blocks.push({ kind: 'text', text, markable: true, raw });
         }
       }
       const label = (group.segment_title || `Part ${i + 1}`).toUpperCase();
@@ -138,11 +138,11 @@ function fromContent(content: string): BoardSection[] {
     if (!current) current = push('Class notes');
 
     if (STANDALONE_FORMULA.test(line)) {
-      current.blocks.push({ kind: 'math', text: latexToText(line) });
+      current.blocks.push({ kind: 'math', text: latexToText(line), raw: line });
     } else if (line.startsWith('• ')) {
       current.blocks.push({ kind: 'text', text: latexToText(line.slice(2).trim()), markable: true });
     } else {
-      current.blocks.push({ kind: 'text', text: latexToText(line), markable: true });
+      current.blocks.push({ kind: 'text', text: latexToText(line), markable: true, raw: line });
     }
   }
 

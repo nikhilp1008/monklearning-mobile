@@ -54,8 +54,18 @@ function splitSentences(prose: string): string[] {
  *  what it looked like before this guard existed. */
 const WHOLE_LINE_MATH = /^\s*(?:\$\$?[^$]+\$\$?|\\\([^)]*\\\)|\\\[[^\]]*\\\])\s*[.:]?\s*$/;
 
+/**
+ * A `$$…$$` or `\\[…\\]` equation, on a line of its own as one `$…$`. The solver
+ * often writes it across three lines, and splitting on newlines first put a
+ * literal "$$" above and below the equation on screen.
+ */
+export function normaliseDisplayMath(raw: string): string {
+  const ownLine = (_: string, tex: string) => `\n$${tex.replace(/\s+/g, ' ').trim()}$\n`;
+  return raw.replace(/\$\$([\s\S]+?)\$\$/g, ownLine).replace(/\\\[([\s\S]+?)\\\]/g, ownLine);
+}
+
 export function parseSolutionStep(raw: string): ParsedStep {
-  const source = (raw ?? '').replace(STEP_PREFIX, '').trim();
+  const source = normaliseDisplayMath((raw ?? '').replace(STEP_PREFIX, '')).trim();
   if (!source) return { title: '', lines: [] };
 
   // Break into candidate lines first — explicit newlines, then sentences — so
@@ -64,7 +74,8 @@ export function parseSolutionStep(raw: string): ParsedStep {
     .split('\n')
     .flatMap((block) => splitSentences(block.trim()))
     .map((c) => c.trim())
-    .filter(Boolean);
+    // A full stop written after a `$$` block is left alone on its line.
+    .filter((c) => c && !/^[.,;:]+$/.test(c));
 
   const lines: SolutionLine[] = candidates.map((candidate) => {
     // Only an explicitly-delimited, whole-line segment gets the wash. Guessing

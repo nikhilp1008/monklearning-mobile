@@ -11,7 +11,7 @@
 // past the footer on devices with larger insets (Dynamic Island phones).
 import { useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaFrame, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const REFERENCE_WIDTH = 390;
 const REFERENCE_HEIGHT = 844;
@@ -27,7 +27,13 @@ const LANDSCAPE_REFERENCE_WIDTH = 844;
 const LANDSCAPE_REFERENCE_HEIGHT = 390;
 
 function useScaleFns(referenceWidth: number, referenceContentHeight: number) {
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
+  // The height comes from the same place the insets do. On Android the
+  // window's height can leave out the navigation bar while `insets.bottom`
+  // includes it, which took the bar off twice and shrank every vertical
+  // measure on phones with the 3-button bar. The safe-area frame is the root
+  // view's own size, so the two always agree; on iOS it equals the window.
+  const { height } = useSafeAreaFrame();
   const insets = useSafeAreaInsets();
   const availableHeight = height - insets.top - insets.bottom;
 

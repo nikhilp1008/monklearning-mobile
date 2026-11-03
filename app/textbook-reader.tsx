@@ -3,7 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -28,6 +27,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { PageSkeleton } from '@/components/states';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { useReadingSize } from '@/hooks/use-reading-size';
@@ -37,9 +37,18 @@ import {
   readingMultiplier,
 } from '@/lib/reading-size';
 import { BlockState, EMPTY_BLOCK_STATE, TextbookBlock } from '@/components/textbook/blocks';
-import { Chapter, groupBlocks, loadChapter } from '@/lib/textbooks';
+import { TextbookBlockPilot } from '@/components/textbook/blocks-pilot';
+import { AskFollowUpBar, FlagIcon } from '@/components/ask-follow-up';
+import { isPilotTopic } from '@/components/textbook/pilot';
+import { pageTitle } from '@/constants/page-title';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
+import { Chapter, groupBlocks, loadChapter, pageTextAround, renderBlockText, topicPlainText } from '@/lib/textbooks';
+import { useOnScreenBlocks } from '@/lib/textbook-on-screen';
+import type { TextbookPageContext } from '@/lib/doubt-followup';
 import { setReaderActive, setReaderTopics, useReaderJump } from '@/lib/textbook-reader-state';
 import { hapticSwitched } from '@/lib/haptics';
+import { getTeacherPreference, type TeacherId, teacherNameNow } from '@/lib/preferences';
 
 /**
  * HOW LONG A TOPIC TAKES TO CHANGE: the page leaving and the next arriving move
@@ -154,7 +163,21 @@ export default function TextbookReaderScreen() {
   const moveId = useRef(0);
   const { width: pageWidth } = useWindowDimensions();
   const [state, setState] = useState<BlockState>(EMPTY_BLOCK_STATE);
+  /** The student's teacher, whose orb is Ask teacher's face. */
+  const [teacher, setTeacher] = useState<TeacherId>('drona');
+  useEffect(() => {
+    getTeacherPreference().then(setTeacher).catch(() => {});
+  }, []);
+  /** True while Ask teacher is held: the page stops scrolling. */
+  const [asking, setAsking] = useState(false);
+  const freeze = useSharedValue(0);
+  useEffect(() => {
+    freeze.value = withTiming(asking ? 1 : 0, { duration: 180 });
+  }, [asking, freeze]);
+  const freezeStyle = useAnimatedStyle(() => ({ opacity: freeze.value }));
   const scrollRef = useRef<ScrollView>(null);
+  /** Which blocks are on screen when Ask teacher is held. */
+  const onScreen = useOnScreenBlocks();
 
   useEffect(() => {
     let cancelled = false;
@@ -257,6 +280,7 @@ export default function TextbookReaderScreen() {
         setActiveSlot(to);
         setActive(index);
         scrollRef.current?.scrollTo({ y: 0, animated: false });
+        onScreen.resetScroll();
         if (returning) requestAnimationFrame(onArrived);
       });
       // And if a layout or a release never comes for any other reason, the
@@ -270,7 +294,7 @@ export default function TextbookReaderScreen() {
         slideIfReady();
       }, 900);
     },
-    [slotA, slotB, pageWidth, onArrived, slideIfReady]
+    [slotA, slotB, pageWidth, onArrived, slideIfReady, onScreen]
   );
 
   useReaderJump(goTo, onRelease);
@@ -284,6 +308,31 @@ export default function TextbookReaderScreen() {
 
   const topic = chapter?.topics[active];
   const blocks = useMemo(() => (topic ? groupBlocks(topic.blocks) : []), [topic]);
+  /**
+   * The page Ask teacher asks about: this topic, as text. The book lives in
+   * the app, so the page travels with the question; the key only names it
+   * for the server's logs.
+   */
+  const askPage: TextbookPageContext | undefined = useMemo(
+    () =>
+      chapter && topic
+        ? {
+            subject: chapter.subject,
+            klass: chapter.klass,
+            chapter: chapter.title,
+            topic: topic.title,
+            text: topicPlainText(topic),
+          }
+        : undefined,
+    [chapter, topic]
+  );
+  const askKey = useMemo(
+    () =>
+      encodeURIComponent(
+        `${subject}-${classLevel}-${title}-${topic?.n ?? ''}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 80)
+      ),
+    [subject, classLevel, title, topic]
+  );
   const leavingTopic = leaving ? chapter?.topics[leaving.index] : undefined;
   const leavingBlocks = useMemo(
     () => (leavingTopic ? groupBlocks(leavingTopic.blocks) : []),
@@ -310,6 +359,7 @@ export default function TextbookReaderScreen() {
   const lastY = useRef(0);
   const onScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      onScreen.trackScroll(event);
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
       const y = contentOffset.y;
       const dy = y - lastY.current;
@@ -320,7 +370,7 @@ export default function TextbookReaderScreen() {
       const hide = dy > 0 && !nearTop && !nearEnd;
       navAway.value = withTiming(hide ? 1 : 0, { duration: 220 });
     },
-    [navAway, verticalScale]
+    [navAway, verticalScale, onScreen]
   );
   /**
    * The distance is computed HERE, not in the worklet. `useAnimatedStyle` runs
@@ -328,7 +378,10 @@ export default function TextbookReaderScreen() {
    * callable — calling it there took the screen down on the first scroll. A
    * captured number is fine; a captured function is not.
    */
-  const navTravel = verticalScale(110);
+  // The row is the pill, its hint and the safe area, so it travels further
+  // than the old bar to leave the screen entirely.
+  const navTravel = verticalScale(150);
+  const navFadeStyle = useAnimatedStyle(() => ({ opacity: 1 - navAway.value }));
   const navStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: navAway.value * navTravel }],
     opacity: 1 - navAway.value,
@@ -367,6 +420,20 @@ export default function TextbookReaderScreen() {
     lastY.current = 0;
     navAway.value = withTiming(0, { duration: 160 });
   }, [active, navAway]);
+  /**
+   * The page Ask teacher sends, taken when the hold begins: the blocks on
+   * screen then, and as much either side as the server takes. The head
+   * covers the top of the view unless it has slid away; the foot, which the
+   * student has just pressed, covers the bottom.
+   */
+  const getAskPage = useCallback((): TextbookPageContext | undefined => {
+    if (!askPage || !topic) return askPage;
+    const seen = onScreen.seen(String(active), blocks.length, headSpace * (1 - navAway.value), verticalScale(110));
+    // Only a row of cards on screen has a card the student is looking at.
+    const inView = (i: number) => !!seen && i >= seen[0] && i <= seen[1];
+    const units = blocks.map((b, i) => renderBlockText(b, inView(i) ? (state.page[`${active}-${i}`] ?? 0) : undefined));
+    return { ...askPage, text: pageTextAround(topic.title, units, seen) };
+  }, [askPage, topic, onScreen, active, blocks, headSpace, navAway, verticalScale, state]);
 
 
   if (missing) {
@@ -392,7 +459,7 @@ export default function TextbookReaderScreen() {
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={styles.state}>
-            <ActivityIndicator color={colors.faint} />
+            <PageSkeleton />
           </View>
         </SafeAreaView>
       </View>
@@ -408,9 +475,13 @@ export default function TextbookReaderScreen() {
     limit?: number
   ) => {
     const pageBlocks = limit === undefined ? allBlocks : allBlocks.slice(0, limit);
+    // The rebuilt reading system, on one topic only, for comparison. See
+    // components/textbook/pilot.ts.
+    const pilot = isPilotTopic(chapter, pageIndex);
+    const Block = pilot ? TextbookBlockPilot : TextbookBlock;
     return (
     <>
-      <View style={styles.topicHead}>
+      <View style={pilot ? styles.topicHeadPilot : styles.topicHead}>
         {/* No "TOPIC 01 / 05" overline. The bar at the foot of the page
             carries 1/5 and is on screen the whole time, so the heading
             was announcing its position twice — and an all-caps label
@@ -421,28 +492,58 @@ export default function TextbookReaderScreen() {
             chapter title in the bar above is chrome and does not: a
             control that resized the furniture would read as zooming the
             app rather than setting the text. */}
-        <Text style={[styles.topicTitle, { fontSize: type(25), lineHeight: type(30) }]}>
+        <Text
+          style={
+            pilot
+              ? pageTitle(type)
+              : [styles.topicTitle, { fontSize: type(25), lineHeight: type(30) }]
+          }>
           {pageTopic.title}
         </Text>
       </View>
-      {pageBlocks.map((block, index) => (
-        <TextbookBlock
-          key={`${pageIndex}-${index}`}
-          block={block}
-          ctx={{
-            uid: `${pageIndex}-${index}`,
-            scale,
-            type,
-            state,
-            set,
-            topicNumber: pageTopic.n,
-          }}
-        />
-      ))}
+      {pageBlocks.map((block, index) => {
+        const node = (
+          <Block
+            key={`${pageIndex}-${index}`}
+            block={block}
+            ctx={{
+              uid: `${pageIndex}-${index}`,
+              scale,
+              type,
+              state,
+              set,
+              topicNumber: pageTopic.n,
+              topicCount: chapter.topics.length,
+            }}
+          />
+        );
+        // Wrapped to be measured: which blocks are on screen is what Ask
+        // teacher sends.
+        if (!pilot)
+          return (
+            <View key={`${pageIndex}-${index}`} onLayout={onScreen.onBlockLayout(String(pageIndex), index)}>
+              {node}
+            </View>
+          );
+        // The pilot spaces by what meets what: 24 under the title, 16 where
+        // one paragraph runs into the next (the same gap as inside one), and
+        // 32 everywhere a new kind of block begins.
+        const prev = index > 0 ? pageBlocks[index - 1].t : null;
+        const gap = prev === null ? 24 : prev === 'p' && block.t === 'p' ? 16 : 32;
+        return (
+          <View
+            key={`${pageIndex}-${index}`}
+            style={{ marginTop: scale(gap) }}
+            onLayout={onScreen.onBlockLayout(String(pageIndex), index)}>
+            {node}
+          </View>
+        );
+      })}
     </>
     );
   };
 
+  const activePilot = isPilotTopic(chapter, active);
   const atFirst = active === 0;
   const atLast = active === chapter.topics.length - 1;
 
@@ -504,6 +605,32 @@ export default function TextbookReaderScreen() {
               already see what it is set to. Nothing to indicate.
               `aA` because it is the glyph everything from Safari to Kindle
               uses for text size, so it needs no explaining. */}
+          {/* REPORT, beside text size: a wrong line on this page. The book is
+              bundled in the app, so the page is named by its key and the
+              topic's opening travels as the quote. */}
+          {askPage ? (
+            <Pressable
+              onPress={() =>
+                openReportSheet({
+                  surface: 'textbook',
+                  subject: askPage.subject,
+                  chapter: askPage.chapter,
+                  quote: askPage.text.slice(0, 600),
+                  context: {
+                    page_key: decodeURIComponent(askKey),
+                    topic: askPage.topic,
+                    klass: askPage.klass,
+                    ...lastFollowUpContext(askKey),
+                  },
+                })
+              }
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Report a mistake on this page"
+              style={styles.reportButton}>
+              <FlagIcon size={scale(16)} />
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() => {
               hapticSwitched();
@@ -521,19 +648,25 @@ export default function TextbookReaderScreen() {
 
         <ScrollView
           ref={scrollRef}
+          scrollEnabled={!asking}
           style={styles.scroll}
           contentContainerStyle={[styles.scrollContent, { paddingTop: headSpace + verticalScale(4) }]}
           onScroll={onScroll}
+          onLayout={onScreen.onViewLayout}
           scrollEventThrottle={16}>
           {/* Both pages share one box, so the leaving page can sit on top of
               where it already was while the new one takes the flow. */}
-          <View>
+          <View onLayout={onScreen.onBaseLayout}>
             {leaving && leavingTopic ? (
               <TopicPage
                 key={leaving.index}
                 x={leaving.slot === 0 ? slotA : slotB}
                 leaving
-                style={styles.topicBody}>
+                style={
+                  isPilotTopic(chapter, leaving.index)
+                    ? styles.topicBodyPilot
+                    : styles.topicBody
+                }>
                 {renderPage(leaving.index, leavingTopic, leavingBlocks)}
               </TopicPage>
             ) : null}
@@ -541,75 +674,116 @@ export default function TextbookReaderScreen() {
               key={active}
               x={activeSlot === 0 ? slotA : slotB}
               onLayout={onArrived}
-              style={styles.topicBody}>
+              style={activePilot ? styles.topicBodyPilot : styles.topicBody}>
               {renderPage(active, topic, blocks, settled ? undefined : FIRST_PAINT_BLOCKS)}
             </TopicPage>
           </View>
         </ScrollView>
       </View>
 
+      {/* THE PAGE IS FROZEN WHILE ASK TEACHER IS HELD: scrolling stops, and
+          a thin marigold frame round the screen and a chip above the bar say
+          the teacher is looking at exactly what is on it. */}
+      <Animated.View pointerEvents="none" style={[styles.freezeFrame, freezeStyle]} />
       <SafeAreaView edges={['bottom']} style={styles.navWrap} pointerEvents="box-none">
-        <Animated.View style={[styles.nav, navStyle]}>
-          <Pressable style={styles.topicsButton} onPress={() => router.push('/textbook-topics')}>
-            <Svg viewBox="0 0 16 16" width={scale(14)} height={scale(14)} fill="none">
-              <Path
-                d="M2.5 4h11M2.5 8h11M2.5 12h7"
-                stroke={colors.ink}
-                strokeWidth={1.8}
-                strokeLinecap="round"
-              />
-            </Svg>
-            <Text style={styles.topicsLabel}>Topics</Text>
-          </Pressable>
-
-          <View style={styles.navCentre}>
-            <Pressable
-              disabled={atFirst}
-              onPress={() => {
-                hapticSwitched();
-                goTo(active - 1);
-              }}
-              hitSlop={6}
-              style={styles.navArrow}>
-              <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                <Path
-                  d="M10 3.5 5.5 8 10 12.5"
-                  stroke={atFirst ? colors.disabled : colors.ink}
-                  strokeWidth={1.9}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </Pressable>
-            <Pressable style={styles.position} onPress={() => router.push('/textbook-topics')}>
-              <Text style={styles.positionText}>
-                {active + 1}
-                <Text style={styles.positionTotal}>/{chapter.topics.length}</Text>
-              </Text>
-            </Pressable>
-            <Pressable
-              disabled={atLast}
-              onPress={() => {
-                hapticSwitched();
-                goTo(active + 1);
-              }}
-              hitSlop={6}
-              style={styles.navArrow}>
-              <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
-                <Path
-                  d="M6 3.5 10.5 8 6 12.5"
-                  stroke={atLast ? colors.disabled : colors.ink}
-                  strokeWidth={1.9}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </Pressable>
-          </View>
-
-          {/* Balances the Topics button so the position pill sits optically
-              centred rather than being pushed right by it. */}
-          <View style={styles.navSpacer} />
+        {/* Paper under the row. The old bar was one floating pill; this row
+            has a line of words under its pill, and over a paragraph those
+            words read as part of it. So the page fades to white behind the
+            row, and moves with it. */}
+        <Animated.View style={[styles.navFade, navFadeStyle]} pointerEvents="none">
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', colors.reading, colors.reading]}
+            locations={[0, 0.45, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+        <Animated.View style={[styles.freezeChip, freezeStyle]} pointerEvents="none">
+          <View style={styles.freezeDot} />
+          <Text style={styles.freezeText}>{`${teacherNameNow()} is looking at this page`}</Text>
+        </Animated.View>
+        {/* ASK TEACHER ON THE LEFT, TOPICS ON THE RIGHT, as Practice puts Ask
+            follow-up left and Next right: the thumb that turns the pages holds
+            the right side of the phone. The topics pill is
+            the list icon and the arrows round the count: the icon (or the
+            count) opens the topic list, the arrows step a topic either way.
+            No "Topics" word, so the pill is narrow enough to sit beside Ask
+            teacher. The whole row slides away on a scroll down and back on a
+            scroll up, as the bar did alone. */}
+        <Animated.View style={[styles.navRow, navStyle]} pointerEvents="box-none">
+          {/* Ask teacher is Ask follow-up's own bar, wearing the teacher's orb:
+              the same hold, voice, board and answer, about this page. The
+              topics pill rides in the bar's row so the board can span it. */}
+          <AskFollowUpBar
+            surface="textbooks"
+            doubtId={askPage ? askKey : null}
+            page={askPage}
+            getPage={getAskPage}
+            teacherFace={teacher}
+            onBusyChange={setAsking}
+            gutter={scale(16)}
+            trailing={
+            <View style={[styles.topicsPill, asking && styles.dimmed]} pointerEvents={asking ? 'none' : 'auto'}>
+              <Pressable
+                onPress={() => router.push('/textbook-topics')}
+                hitSlop={4}
+                style={styles.pillButton}
+                accessibilityLabel="All topics">
+                <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                  <Path
+                    d="M2.5 4h11M2.5 8h11M2.5 12h7"
+                    stroke={colors.ink}
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                  />
+                </Svg>
+              </Pressable>
+              <Pressable
+                disabled={atFirst}
+                onPress={() => {
+                  hapticSwitched();
+                  goTo(active - 1);
+                }}
+                style={styles.pillButton}
+                accessibilityLabel="Previous topic">
+                <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                  <Path
+                    d="M10 3.5 5.5 8 10 12.5"
+                    stroke={atFirst ? colors.disabled : colors.ink}
+                    strokeWidth={1.9}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/textbook-topics')}
+                accessibilityLabel={`Topic ${active + 1} of ${chapter.topics.length}`}>
+                <Text style={styles.positionText}>
+                  {active + 1}
+                  <Text style={styles.positionTotal}>/{chapter.topics.length}</Text>
+                </Text>
+              </Pressable>
+              <Pressable
+                disabled={atLast}
+                onPress={() => {
+                  hapticSwitched();
+                  goTo(active + 1);
+                }}
+                style={styles.pillButton}
+                accessibilityLabel="Next topic">
+                <Svg viewBox="0 0 16 16" width={scale(15)} height={scale(15)} fill="none">
+                  <Path
+                    d="M6 3.5 10.5 8 6 12.5"
+                    stroke={atLast ? colors.disabled : colors.ink}
+                    strokeWidth={1.9}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Pressable>
+            </View>
+            }
+          />
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -690,6 +864,10 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     /** Baseline-aligned, and no frame. A pill here would out-shout the
      *  chapter title beside it; two letters are legible on their own and the
      *  touch target comes from hit-slop rather than from chrome. */
+    reportButton: {
+      paddingHorizontal: scale(6),
+      paddingVertical: verticalScale(4),
+    },
     sizeButton: {
       flexDirection: 'row',
       alignItems: 'baseline',
@@ -700,9 +878,13 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     sizeSmall: { fontFamily: 'Onest_600SemiBold', fontSize: scale(11), color: colors.ink },
     sizeBig: { fontFamily: 'Onest_600SemiBold', fontSize: scale(16), color: colors.ink },
     scroll: { flex: 1 },
-    scrollContent: { paddingBottom: verticalScale(120) },
+    scrollContent: { paddingBottom: verticalScale(160) },
     topicBody: { paddingHorizontal: scale(24), paddingTop: verticalScale(18), gap: verticalScale(20) },
     topicHead: { borderBottomWidth: 1, borderBottomColor: 'rgba(28,26,22,.1)', paddingBottom: verticalScale(14) },
+    /** The pilot: no rule under the title, and no flat gap; each block sets
+     *  its own space above it (see renderPage). components/textbook/pilot.ts. */
+    topicBodyPilot: { paddingHorizontal: scale(24), paddingTop: verticalScale(18) },
+    topicHeadPilot: {},
     /**
      * MEDIUM, NOT BOLD. A bold 25pt heading over a column of 16.5pt prose is
      * the shape of an essay title, and it shouts at a reader who has already
@@ -719,39 +901,63 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       color: colors.ink,
     },
     navWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-    nav: {
+    navFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: verticalScale(170) },
+    // A column, so the bar inside stretches the full width. As a row it was
+    // only as wide as its own contents: on a wide iPhone that left a gap right
+    // of "Ask teacher", and the board above, which takes the bar's width, grew
+    // whenever a long line was written on it.
+    navRow: {
+      marginHorizontal: scale(16),
+      marginBottom: verticalScale(6),
+    },
+    /** The topics pill: the dock's height and material, so the two pills in
+     *  the row are one family. */
+    topicsPill: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginHorizontal: scale(16),
-      marginBottom: verticalScale(10),
+      height: 52,
+      // Spread across the pill, not packed left. The row gives the pill
+      // whatever width Ask leaves, which on a narrower Android screen is
+      // more than its controls need, so packed left it left a wide gap
+      // after the last arrow.
+      justifyContent: 'space-between',
+      paddingHorizontal: scale(8),
+      borderRadius: 99,
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
-      borderColor: 'rgba(28,26,22,.12)',
-      borderRadius: scale(99),
-      paddingVertical: scale(6),
-      paddingHorizontal: scale(8),
-      shadowColor: colors.ink,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 26,
-      elevation: 8,
+      borderColor: 'rgba(28,26,22,.10)',
+      boxShadow: [
+        { offsetX: 0, offsetY: 18, blurRadius: 36, spreadDistance: -20, color: 'rgba(28,26,22,0.5)' },
+        { offsetX: 0, offsetY: 2, blurRadius: 6, spreadDistance: -2, color: 'rgba(28,26,22,0.12)' },
+      ],
     },
-    topicsButton: { flexDirection: 'row', alignItems: 'center', gap: scale(7), height: scale(40), paddingHorizontal: scale(8) },
-    topicsLabel: { fontFamily: 'Onest_700Bold', fontSize: scale(13.5), color: colors.ink },
-    navCentre: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: scale(4) },
-    navArrow: { width: scale(40), height: scale(40), alignItems: 'center', justifyContent: 'center' },
-    position: {
-      minWidth: scale(64),
-      height: scale(30),
+    /** A 40pt target for each of the pill's icons. */
+    pillButton: { width: scale(40), height: scale(44), alignItems: 'center', justifyContent: 'center' },
+    dimmed: { opacity: 0.45 },
+    freezeFrame: {
+      ...StyleSheet.absoluteFillObject,
+      borderWidth: 3,
+      borderColor: 'rgba(238,163,31,.6)',
+      zIndex: 3,
+    },
+    freezeChip: {
+      alignSelf: 'center',
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: scale(99),
-      backgroundColor: colors.tint,
-      paddingHorizontal: scale(10),
+      gap: scale(7),
+      marginBottom: verticalScale(12),
+      paddingVertical: scale(7),
+      paddingHorizontal: scale(12),
+      borderRadius: 16,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      boxShadow: [{ offsetX: 0, offsetY: 6, blurRadius: 18, color: 'rgba(28,26,22,0.14)' }],
     },
-    positionText: { fontFamily: 'Onest_700Bold', fontSize: scale(14.5), color: colors.ink },
+    freezeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.marigold },
+    freezeText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(12.5), color: colors.ink },
+    positionText: { fontFamily: 'Onest_700Bold', fontSize: scale(14.5), color: colors.ink, minWidth: scale(28), textAlign: 'center' },
     positionTotal: { fontFamily: 'Onest_600SemiBold', color: colors.faint },
-    navSpacer: { width: scale(86) },
     state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: verticalScale(8), paddingHorizontal: scale(32) },
     stateTitle: { fontFamily: 'Onest_700Bold', fontSize: scale(19), color: colors.ink },
     stateBody: {

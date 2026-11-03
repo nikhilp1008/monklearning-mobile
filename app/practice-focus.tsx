@@ -5,6 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { StateLine } from '@/components/states';
+import { friendlyError } from '@/lib/api';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -48,6 +50,8 @@ export default function PracticeFocusScreen() {
   const [chapters, setChapters] = useState<CatalogueChapter[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Bumped by Try again, which re-runs the load below. */
+  const [attempt, setAttempt] = useState(0);
 
   const appliedChapterId =
     focus.mode === 'chapter' && focus.subject === subjectQuery ? focus.chapterId : null;
@@ -92,7 +96,7 @@ export default function PracticeFocusScreen() {
       })
       .catch((err) => {
         if (!cancelled)
-          setLoadError(err instanceof Error ? err.message : 'Could not load chapters.');
+          setLoadError(friendlyError(err, 'load the chapters'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -100,7 +104,7 @@ export default function PracticeFocusScreen() {
     return () => {
       cancelled = true;
     };
-  }, [subjectQuery]);
+  }, [subjectQuery, attempt]);
 
   /** A mode is always applicable; a chapter needs the list it is looked up in. */
   const canApply = pending.kind === 'mode' || !!chapters;
@@ -180,7 +184,15 @@ export default function PracticeFocusScreen() {
               ))}
             </View>
           ) : loadError ? (
-            <Text style={styles.chapterErrorText}>{loadError}</Text>
+            <StateLine
+              glyph="offline"
+              text={loadError}
+              link={{ label: 'Try again', onPress: () => setAttempt((n) => n + 1) }}
+            />
+          ) : !chapterGroups?.length ? (
+            // Nothing to focus on: said, rather than an empty space under
+            // "or focus on one chapter".
+            <StateLine glyph="book" text="No chapters to focus on in this subject yet." />
           ) : (
             chapterGroups?.map((group) => (
               <View key={group.key}>

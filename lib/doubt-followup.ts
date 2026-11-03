@@ -1,8 +1,10 @@
 import { File, Paths } from 'expo-file-system';
 
 import { base64ToBytes } from '@/lib/audio-pcm';
+import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { pcmAvailable } from '@/lib/pcm-player';
 import { supabase } from '@/lib/supabase';
+import { teacherNameNow } from '@/lib/preferences';
 
 /**
  * Asking about a solution that is already on screen.
@@ -59,10 +61,127 @@ export type FollowUpHandlers = {
    * re-encoding there.
    */
   onPcm?: (b64: string) => void;
+  /**
+   * An UNSOLVED snap being solved again from what the student just said —
+   * "it's ten to the power minus eight" (the API's
+   * _resolve_from_clarification). Its working belongs on the main screen in
+   * place of the "could not solve" note, not on the follow-up board, so it
+   * arrives here and never through `onStep`.
+   */
+  onResolve?: (event: ResolveEvent) => void;
 };
 
+/** The re-solve of an unsolved snap, as it happens. `resolved` carries the
+ *  same shape as the snap stream's `question` event. */
+export type ResolveEvent =
+  | { kind: 'resolving'; doubtId: string }
+  | { kind: 'partial'; step: FollowUpStep }
+  | { kind: 'step'; step: FollowUpStep }
+  | { kind: 'reset' }
+  | { kind: 'resolved'; question: Record<string, unknown> }
+  | { kind: 'failed'; doubtId: string; message: string };
+
+/**
+ * Why a follow-up got no answer, in the terms the bar can act on.
+ *
+ * `retry`: pressing again may well work. `pass`: the student's pass has ended
+ * — the app root has already been told and is opening Plans, so "Try again"
+ * would only loop. `quota`: the day's follow-ups are used up (the API's
+ * FOLLOWUP_DAILY_LIMIT, app/rate_limit.py), and nothing works until they free
+ * up, so there is nothing to try again either.
+ */
+export type FollowUpFailure = 'retry' | 'pass' | 'quota';
+
+/** Whether an error body or frame is the API's daily-limit refusal. */
+export function isFollowUpQuota(status: number | undefined, payload: unknown): boolean {
+  if (!payload || typeof payload !== 'object') return status === 429;
+  const p = payload as { stage?: unknown; status?: unknown; detail?: unknown };
+  const detail = (p.detail && typeof p.detail === 'object' ? p.detail : p) as { stage?: unknown };
+  return detail.stage === 'quota' || status === 429 || p.status === 429;
+}
+
+export class FollowUpError extends Error {
+  kind: FollowUpFailure;
+  /**
+   * The limit was the FREE tier's: `message` is then the server's own sentence,
+   * written to make the case for a plan, and the bar shows it with a button to
+   * the plans screen instead of "opens again tomorrow".
+   */
+  upgrade: boolean;
+  constructor(message: string, kind: FollowUpFailure, upgrade = false) {
+    super(message);
+    this.name = 'FollowUpError';
+    this.kind = kind;
+    this.upgrade = upgrade;
+  }
+}
+
+/** The server's persuasive sentence when a refusal is the free tier's limit. */
+export function upgradeMessageOf(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as { detail?: unknown; upgrade?: unknown; message?: unknown };
+  const d = (p.detail && typeof p.detail === 'object' ? p.detail : p) as { upgrade?: unknown; message?: unknown };
+  return d.upgrade === true && typeof d.message === 'string' && d.message ? d.message : null;
+}
+
+/** The kind of any rejection from the ask routes; anything unknown is `retry`. */
+export function followUpFailureOf(err: unknown): FollowUpFailure {
+  return err instanceof FollowUpError ? err.kind : 'retry';
+}
+
+/**
+ * A refused ask, read the way `apiFetch` reads one.
+ *
+ * These routes go through XHR, not `apiFetch`, so nothing else would notice a
+ * 402: the pass gate never heard about it and the bar said "Try again" to a
+ * student whose every attempt would be refused the same way.
+ */
+export function followUpRefusal(status: number, responseText: string): FollowUpError {
+  let body: unknown = null;
+  try {
+    body = JSON.parse(responseText || 'null');
+  } catch {
+    // An infra page, not the API's JSON: an ordinary failure.
+  }
+  if (status === 402 && isPassRequired(body)) {
+    signalPassRequired();
+    return new FollowUpError('You need a pass to continue.', 'pass');
+  }
+  if (status === 429 && isFollowUpQuota(status, body)) {
+    const upgrade = upgradeMessageOf(body);
+    return new FollowUpError(upgrade ?? 'You have used today’s follow-ups.', 'quota', upgrade !== null);
+  }
+  return new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry');
+}
+
+/**
+ * How long an ask may go without a byte before it is given up on.
+ *
+ * None of these requests had a ceiling, so a connection that stalled left the
+ * bar on "One moment" for as long as the student was willing to look at it.
+ * An idle limit rather than a total one: a long answer with its voice behind
+ * it can stream for well over a minute, but never goes quiet for this long.
+ */
+export const FOLLOWUP_IDLE_MS = 90000;
+
+/** A restartable idle clock: `touch` on every arrival, `stop` when settled. */
+export function idleClock(ms: number, onIdle: () => void): { touch: () => void; stop: () => void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const stop = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  return {
+    touch: () => {
+      stop();
+      timer = setTimeout(onIdle, ms);
+    },
+    stop,
+  };
+}
+
 /** Everything after the last complete `\n\n`, left for the next chunk. */
-function parseFrames(chunk: string): { event: string; data: unknown }[] {
+export function parseFrames(chunk: string): { event: string; data: unknown }[] {
   const out: { event: string; data: unknown }[] = [];
   for (const block of chunk.split('\n\n')) {
     let event = 'message';
@@ -98,7 +217,21 @@ function parseFrames(chunk: string): { event: string; data: unknown }[] {
  * the prefix rather than branching on it keeps every caller honest about which
  * one it means.
  */
-export type FollowUpSurface = 'doubts' | 'practice';
+export type FollowUpSurface = 'doubts' | 'practice' | 'textbooks';
+
+/**
+ * The textbook page a student is reading, sent with an Ask teacher question.
+ * The book lives in the app, not on the server, so — unlike a doubt or a
+ * practice question, which the server looks up by id — the page travels with
+ * the request. The server caps it (app/routers/textbooks.py).
+ */
+export type TextbookPageContext = {
+  subject: string;
+  klass: string;
+  chapter: string;
+  topic: string;
+  text: string;
+};
 
 export function askAboutDoubtAloud(
   doubtId: string,
@@ -106,18 +239,22 @@ export function askAboutDoubtAloud(
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
   signal?: AbortSignal,
-  surface: FollowUpSurface = 'doubts'
+  surface: FollowUpSurface = 'doubts',
+  page?: TextbookPageContext,
+  /** The live path's fallback hands over a WAV, not the usual m4a. */
+  format: 'm4a' | 'wav' = 'm4a'
 ): Promise<void> {
   const body = new FormData();
   body.append('audio', {
     uri: recordingUri,
-    name: 'question.m4a',
-    type: 'audio/m4a',
+    name: `question.${format}`,
+    type: format === 'wav' ? 'audio/wav' : 'audio/m4a',
   } as unknown as Blob);
   body.append('history', JSON.stringify(history));
   // Which audio dialect this build can play. Declared per request, so a JS
   // reload on an old binary keeps getting WAVs it can handle.
   body.append('pcm', pcmAvailable ? '1' : '0');
+  if (page) body.append('page', JSON.stringify(page));
   return streamAsk(doubtId, 'ask-voice', body, handlers, signal, surface);
 }
 
@@ -127,9 +264,13 @@ export function askAboutDoubt(
   history: FollowUpTurn[],
   handlers: FollowUpHandlers,
   signal?: AbortSignal,
-  surface: FollowUpSurface = 'doubts'
+  surface: FollowUpSurface = 'doubts',
+  page?: TextbookPageContext
 ): Promise<void> {
-  return streamAsk(doubtId, 'ask', JSON.stringify({ question, history }),
+  // `pcm` as the spoken route declares it (FollowUpRequest.pcm on the API), so
+  // a typed question's voice arrives in the dialect this build plays best.
+  return streamAsk(doubtId, 'ask',
+                   JSON.stringify({ question, history, pcm: pcmAvailable, ...(page ? { page } : {}) }),
                    handlers, signal, surface);
 }
 
@@ -214,9 +355,16 @@ export function speakFollowUpStreaming(
       const xhr = new XMLHttpRequest();
       let consumed = 0;
       let done = false;
+      // A voice that stalls ends quietly, like one that fails: the bar would
+      // otherwise sit on "Answering…" with nothing coming.
+      const idle = idleClock(FOLLOWUP_IDLE_MS, () => {
+        xhr.abort();
+        finish();
+      });
       const finish = () => {
         if (done) return;
         done = true;
+        idle.stop();
         signal?.removeEventListener('abort', onAbort);
         resolve();
       };
@@ -255,16 +403,77 @@ export function speakFollowUpStreaming(
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Accept', 'text/event-stream');
-      xhr.onprogress = drain;
+      xhr.onprogress = () => {
+        idle.touch();
+        drain();
+      };
       xhr.onerror = finish;
       xhr.ontimeout = finish;
       xhr.onload = () => {
         drain();
         finish();
       };
+      idle.touch();
       xhr.send(JSON.stringify({ text: spoken }));
     })().catch(() => resolve());
   });
+}
+
+/**
+ * One answer frame, handed to its handler. Returns the message of an `error`
+ * frame, null otherwise. Shared by the upload route below and the live socket
+ * (lib/followup-live.ts), which carries the same frames.
+ */
+export function dispatchFollowUpFrame(
+  frame: { event: string; data: unknown },
+  handlers: FollowUpHandlers
+): string | null {
+  const payload = (frame.data ?? {}) as Record<string, unknown>;
+  if (frame.event === 'transcript') {
+    handlers.onTranscript?.(String(payload.text ?? ''));
+  } else if (frame.event === 'step') {
+    handlers.onStep({
+      n: Number(payload.n ?? 0),
+      text: String(payload.text ?? ''),
+    });
+  } else if (frame.event === 'spoken') {
+    handlers.onSpoken?.(String(payload.text ?? ''), payload.voice === 'inline');
+  } else if (frame.event === 'step_partial') {
+    handlers.onStepPartial?.({
+      n: Number(payload.n ?? 0),
+      text: String(payload.text ?? ''),
+    });
+  } else if (frame.event === 'pcm') {
+    const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
+    if (b64) handlers.onPcm?.(b64);
+  } else if (frame.event === 'audio') {
+    const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
+    if (b64) handlers.onAudio?.(base64ToBytes(b64), Number(payload.n) || 0);
+  } else if (frame.event === 'answered') {
+    handlers.onAnswered?.();
+  } else if (frame.event === 'voice_done') {
+    handlers.onVoiceDone?.(Number(payload.chunks) || 0);
+  } else if (frame.event === 'resolving') {
+    handlers.onResolve?.({ kind: 'resolving', doubtId: String(payload.doubt_id ?? '') });
+  } else if (frame.event === 'resolve_step_partial' || frame.event === 'resolve_step') {
+    handlers.onResolve?.({
+      kind: frame.event === 'resolve_step' ? 'step' : 'partial',
+      step: { n: Number(payload.n ?? 0), text: String(payload.text ?? '') },
+    });
+  } else if (frame.event === 'resolve_steps_reset') {
+    handlers.onResolve?.({ kind: 'reset' });
+  } else if (frame.event === 'resolved') {
+    handlers.onResolve?.({ kind: 'resolved', question: payload });
+  } else if (frame.event === 'resolve_failed') {
+    handlers.onResolve?.({
+      kind: 'failed',
+      doubtId: String(payload.doubt_id ?? ''),
+      message: String(payload.message ?? ''),
+    });
+  } else if (frame.event === 'error') {
+    return String(payload.message ?? '');
+  }
+  return null;
 }
 
 /** One reader for both routes: same frames, different body. */
@@ -296,10 +505,17 @@ function streamAsk(
       let consumed = 0;
       let settled = false;
       let failure: string | null = null;
+      const idle = idleClock(FOLLOWUP_IDLE_MS, () => {
+        xhr.abort();
+        finish(() =>
+          reject(new FollowUpError(`${teacherNameNow()} could not answer that just now. Try again in a moment.`, 'retry'))
+        );
+      });
 
       const finish = (fn: () => void) => {
         if (settled) return;
         settled = true;
+        idle.stop();
         signal?.removeEventListener('abort', onAbort);
         fn();
       };
@@ -317,34 +533,8 @@ function streamAsk(
         const chunk = text.slice(consumed, boundary + 2);
         consumed = boundary + 2;
         for (const frame of parseFrames(chunk)) {
-          const payload = (frame.data ?? {}) as Record<string, unknown>;
-          if (frame.event === 'transcript') {
-            handlers.onTranscript?.(String(payload.text ?? ''));
-          } else if (frame.event === 'step') {
-            handlers.onStep({
-              n: Number(payload.n ?? 0),
-              text: String(payload.text ?? ''),
-            });
-          } else if (frame.event === 'spoken') {
-            handlers.onSpoken?.(String(payload.text ?? ''), payload.voice === 'inline');
-          } else if (frame.event === 'step_partial') {
-            handlers.onStepPartial?.({
-              n: Number(payload.n ?? 0),
-              text: String(payload.text ?? ''),
-            });
-          } else if (frame.event === 'pcm') {
-            const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
-            if (b64) handlers.onPcm?.(b64);
-          } else if (frame.event === 'audio') {
-            const b64 = typeof payload.b64 === 'string' ? payload.b64 : '';
-            if (b64) handlers.onAudio?.(base64ToBytes(b64), Number(payload.n) || 0);
-          } else if (frame.event === 'answered') {
-            handlers.onAnswered?.();
-          } else if (frame.event === 'voice_done') {
-            handlers.onVoiceDone?.(Number(payload.chunks) || 0);
-          } else if (frame.event === 'error') {
-            failure = String(payload.message ?? '');
-          }
+          const err = dispatchFollowUpFrame(frame, handlers);
+          if (err !== null) failure = err;
         }
       };
 
@@ -355,13 +545,12 @@ function streamAsk(
         xhr.setRequestHeader('Content-Type', 'application/json');
       }
       xhr.onreadystatechange = () => {
+        idle.touch();
         if (xhr.readyState >= 3) drain();
         if (xhr.readyState !== 4) return;
         drain();
         if (xhr.status >= 400) {
-          finish(() =>
-            reject(new Error('Monk could not answer that just now. Try again in a moment.'))
-          );
+          finish(() => reject(followUpRefusal(xhr.status, xhr.responseText ?? '')));
           return;
         }
         if (failure) {
@@ -372,6 +561,9 @@ function streamAsk(
       };
       xhr.onerror = () =>
         finish(() => reject(new Error('Couldn’t reach the server. Check your connection.')));
+      // A spoken question's upload counts as the request moving.
+      if (xhr.upload) xhr.upload.onprogress = idle.touch;
+      idle.touch();
       xhr.send(body as XMLHttpRequestBodyInit);
     })().catch((err) => reject(err));
   });

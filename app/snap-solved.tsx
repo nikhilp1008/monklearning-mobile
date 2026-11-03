@@ -1,18 +1,24 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { StateCard } from '@/components/states';
+import { stageCopy } from '@/components/snap-loading';
 import { SolutionScreen, SolutionScreenSkeleton } from '@/components/solution-screen';
 import { colors } from '@/constants/brand';
-import { hapticSoft, hapticTicked } from '@/lib/haptics';
+import { useFreeTier } from '@/lib/free-tier';
+import { hapticSoft, hapticTicked, hapticWarning } from '@/lib/haptics';
 import { useScale } from '@/constants/scale';
 import { SnapResponse, SnappedQuestion } from '@/lib/doubts';
 import { clearFinishedSnapJob, useSnapJob } from '@/lib/snap-job';
 import { latexToText } from '@/lib/latex-text';
+import { parseSolutionSteps } from '@/lib/solution-steps';
 import { withTeacherName } from '@/lib/preferences';
 import { SolutionView, remedyCopy, solutionView } from '@/lib/solution-view';
+import { lastFollowUpContext } from '@/lib/last-followup';
+import { openReportSheet } from '@/lib/reports';
 
 /**
  * The day's count, shown only once the whole page has come back solved.
@@ -33,6 +39,7 @@ function quotaNote(response: SnapResponse | null): string | null {
 }
 
 export default function SnapSolvedScreen() {
+  const { free } = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const [index, setIndex] = useState(0);
@@ -44,6 +51,14 @@ export default function SnapSolvedScreen() {
   // screen is the one that waits. See lib/snap-job.ts.
   const job = useSnapJob();
   const response = job.status === 'solved' ? job.response : null;
+
+  /**
+   * The way out of a state card. These screens have no header — the card is
+   * the whole page — so a failed or empty solve had no visible way back but
+   * the system gesture. The quiet link under the card is the one snap-capture's
+   * limit card already offers.
+   */
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   // Dropped on the way out so coming back never shows a stale answer. A solve
   // still running is deliberately left alone — see clearFinishedSnapJob.
@@ -77,6 +92,12 @@ export default function SnapSolvedScreen() {
     announced.current = true;
     hapticTicked();
   }, [solvedCount]);
+
+  /** And a solve that failed is felt too, once, beside the words that say so. */
+  const failed = job.status === 'failed';
+  useEffect(() => {
+    if (failed) hapticWarning();
+  }, [failed]);
 
   // One mapper for both screens, so Snap and the Library's doubt detail cannot
   // drift apart again — which is how both came to drop the MCQ options and the
@@ -115,6 +136,8 @@ export default function SnapSolvedScreen() {
         // so it is on screen while the solve is still running.
         questionImageUrl: r.question_image_url ?? null,
         steps: [],
+        // Step 1 onward as it is written; the placeholder until it starts.
+        liveSteps: parseSolutionSteps(job.live[r.question_index]),
         answer: null,
         pending: true,
       };
@@ -153,19 +176,50 @@ export default function SnapSolvedScreen() {
       <View style={styles.screen}>
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Couldn&apos;t solve this one</Text>
-            <Text style={styles.emptyBody}>
-              {/* Quota is not a remedy — nothing about the photo or a retry
-                  changes it, and the server's message carries the count. */}
-              {job.failure.stage === 'quota'
-                ? withTeacherName(job.failure.message)
-                : ((job.failure.remedy ? remedyCopy()[job.failure.remedy] : null) ??
-                  withTeacherName(job.failure.message))}
-            </Text>
-            <Pressable style={styles.ctaButton} onPress={() => router.replace('/snap-capture')}>
-              <Text style={styles.ctaButtonText}>Try another photo</Text>
-            </Pressable>
+          <View style={styles.stateBlock}>
+            {job.failure.stage === 'quota' && job.failure.upgrade ? (
+              // A limit with a way up (the free tier's, or Pro's): the server's sentence, and a way to a plan.
+              <StateCard
+                glyph="clock"
+                title={free ? "You've used your free snaps" : "You've used today's snaps"}
+                line={job.failure.message}
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+              />
+            ) : job.failure.stage === 'quota' ? (
+              // The day's limit, said as the camera screen says it. It was
+              // "Couldn't solve this one" with a "Try another photo" button
+              // that could not work until tomorrow.
+              <StateCard
+                glyph="clock"
+                title="You've used today's snaps"
+                line="Snaps open again tomorrow. Everything you've solved is in Doubts."
+                action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                quiet={{ label: 'Close', onPress: close }}
+              />
+            ) : job.failure.stage === 'pass' ? (
+              // The app root is already opening Plans; this is what shows if
+              // it has not. "Try another photo" would be refused the same way.
+              <StateCard
+                glyph="clock"
+                title="Your pass has ended"
+                line="Pick a plan to keep snapping. Everything you've solved is still in Doubts."
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Close', onPress: close }}
+              />
+            ) : (
+              <StateCard
+                glyph="retry"
+                title={stageCopy(job.failure.stage, job.failure.message)?.title ?? "Couldn't solve this one"}
+                line={
+                  stageCopy(job.failure.stage, job.failure.message)?.body ??
+                  (job.failure.remedy ? remedyCopy()[job.failure.remedy] : null) ??
+                  withTeacherName(job.failure.message)
+                }
+                action={{ label: 'Try another photo', onPress: () => router.replace('/snap-capture') }}
+                quiet={{ label: 'Close', onPress: close }}
+              />
+            )}
           </View>
         </SafeAreaView>
       </View>
@@ -177,12 +231,14 @@ export default function SnapSolvedScreen() {
       <View style={styles.screen}>
         <StatusBar style="dark" />
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Nothing to show</Text>
-            <Text style={styles.emptyBody}>Snap a doubt first and it&apos;ll land here once solved.</Text>
-            <Pressable style={styles.ctaButton} onPress={() => router.replace('/snap-capture')}>
-              <Text style={styles.ctaButtonText}>Snap a doubt</Text>
-            </Pressable>
+          <View style={styles.stateBlock}>
+            <StateCard
+              glyph="doubts"
+              title="Nothing solved yet"
+              line="Snap a question and it'll land here once it's solved."
+              action={{ label: 'Snap a question', onPress: () => router.replace('/snap-capture') }}
+              quiet={{ label: 'Close', onPress: close }}
+            />
           </View>
         </SafeAreaView>
       </View>
@@ -206,12 +262,10 @@ export default function SnapSolvedScreen() {
         // follow-up is a question ABOUT the working on screen, and sending the
         // The id of the question being looked at, which report-sheet requires
         // to send anything at all — without it its Send button stays disabled.
-        onReport={() =>
-          router.push({
-            pathname: '/report-sheet',
-            params: { doubtId: questions[index]?.doubtId ?? '' },
-          })
-        }
+        onReport={() => {
+          const doubtId = questions[index]?.doubtId ?? '';
+          openReportSheet({ doubtId, context: lastFollowUpContext(doubtId) });
+        }}
       />
     </>
   );
@@ -219,6 +273,8 @@ export default function SnapSolvedScreen() {
 
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
+    /** Where a state card sits: centred in the page, in the page's gutter. */
+    stateBlock: { flex: 1, justifyContent: 'center', paddingHorizontal: scale(24) },
     screen: {
       flex: 1,
       backgroundColor: colors.paper,

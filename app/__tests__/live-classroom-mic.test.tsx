@@ -61,6 +61,9 @@ const HEALTHY_MIC = {
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), back: jest.fn() },
   useLocalSearchParams: () => ({ sessionId: 'session-1', chapterTitle: 'Laws of Motion', subject: 'physics' }),
+  // The screen is always focused here: run the effect once, like a mount.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]),
 }));
 
 const mockImpact = jest.fn();
@@ -123,9 +126,23 @@ jest.mock('@/hooks/use-landscape-lock', () => ({
   // `true` means "the window already matches", which is what lets it paint.
   useOrientation: () => true,
 }));
+// The dock's light and face are drawn with Skia, which does not load under
+// Jest. These tests are about the mic, not the drawing.
+jest.mock('@shopify/react-native-skia', () => ({ useClock: () => ({ value: 0 }), useTypeface: () => null, vec: (x: number, y: number) => ({ x, y }) }));
+// The loading card draws with Skia, which does not load under Jest.
+jest.mock('@/components/entering-card', () => ({ EnteringCardScreen: () => null }));
+jest.mock('@/components/classroom-dock-face', () => ({
+  MicDisc: () => null,
+  ThinkingRing: () => null,
+  DockEdge: () => null,
+}));
+jest.mock('@/components/dock-face', () => ({ DockBars: () => null, MarigoldDisc: () => null }));
+// The Ask control wears the teacher's orb, a Skia drawing; Skia is mocked above.
+jest.mock('@/components/teacher-orb-poster', () => ({ TeacherOrbPoster: () => null }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  useSafeAreaFrame: () => ({ x: 0, y: 0, width: 402, height: 874 }),
 }));
 
 /** Every string rendered anywhere in the tree. */
@@ -279,7 +296,7 @@ describe('entering the live classroom without a usable microphone', () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
     expect(text).toContain('Mic off');
-    expect(text).not.toContain('Hold mic to speak');
+    expect(text).not.toContain('Hold to speak');
   });
 });
 
@@ -322,7 +339,7 @@ describe('entering the live classroom with a working microphone', () => {
   });
 
   /**
-   * The resting copy is "Hold mic to speak", not "Interrupt" — the word went
+   * The resting copy is "Hold to speak", not "Interrupt" — the word went
    * with the command dock redesign, along with the label it used to sit in.
    * What this test is actually for is unchanged: a student whose mic works must
    * not be shown the mic-off state.
@@ -330,7 +347,7 @@ describe('entering the live classroom with a working microphone', () => {
   it('leaves the dock in its normal resting state', async () => {
     renderer = await enterClassroom();
     const text = allText(renderer.toJSON());
-    expect(text).toContain('Hold mic to speak');
+    expect(text).toContain('Hold to speak');
     expect(text).not.toContain('Mic off');
   });
 

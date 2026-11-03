@@ -42,9 +42,18 @@ export interface NextQuestion {
 export interface PoolExhausted {
   exhausted: true;
   message: string;
+  /** The limit was the FREE tier's: `message` is written to make the case for a
+   *  plan, and the screen offers Plans where a paying student's says "tomorrow". */
+  upgrade?: boolean;
   /** `daily_limit` when the 150 are spent, `pool_empty` when this filter has
    *  nothing left. They need different words and different advice. */
   reason?: 'daily_limit' | 'pool_empty';
+  /** On `pool_empty`: how many practice questions this filter holds at all.
+   *  0 means none have been added yet; more than 0 means the quality check
+   *  rejected this draw and asking again can serve one. Seen questions are
+   *  recycled, so it never means "you have done them all". Absent from API
+   *  builds before it existed. */
+  pool_size?: number;
   questions_used_today?: number;
   daily_limit?: number;
 }
@@ -130,16 +139,23 @@ export interface PracticeStats {
   attempted: number;
   correct: number;
   accuracy: number;
+  /** The free tier does not see its own tally (it is still recorded). */
+  locked?: boolean;
 }
 
 export function getNextQuestion(params: {
-  exam?: 'jee' | 'neet' | 'both';
+  exam?: 'jee' | 'neet';
+  /** 'both' here is both class years (a dropper), not both exams. */
   class_level?: '11' | '12' | 'both';
   subject?: string;
   /** Focus mode. Restricts the pool to one chapter — and, because a chapter
    *  is tens of rows where a subject is hundreds, it is also the fastest this
    *  endpoint gets. */
   chapter_id?: string;
+  /** Weak mode: with `chapter_id`, the server also aims INSIDE the chapter,
+   *  weighting questions toward the concepts this student is weakest on.
+   *  Ignored without a chapter. */
+  weak?: boolean;
 }): Promise<NextQuestion | PoolExhausted> {
   return apiFetch('/practice/next', {
     method: 'POST',

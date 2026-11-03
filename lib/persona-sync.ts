@@ -9,6 +9,8 @@
  * Both calls are best-effort: the screen never blocks on them, and a failed
  * sync leaves the local cache standing.
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { LanguageId, TeacherId, setLanguagePreference, setTeacherPreference } from '@/lib/preferences';
 import { supabase } from '@/lib/supabase';
 
@@ -56,11 +58,47 @@ export async function pushPersona(change: { teacher?: TeacherId; language?: Lang
   }
 }
 
+/**
+ * EVERYONE STARTS AGAIN IN ENGLISH, ONCE (1.3.0).
+ *
+ * Until 2026-10-08 a new account was given Hinglish without being asked, and
+ * the server kept it. Every pull since has handed it back, so students who
+ * never chose a language still heard Hinglish while the app's default was
+ * English. Nikhil's call: reset every account to English once; anyone who
+ * really wants Hinglish switches back in Profile, and that choice then
+ * stands, because this never runs again on that phone.
+ *
+ * Marked done only once the server has taken it. Offline, it waits for the
+ * next pull rather than leaving the server and the phone disagreeing.
+ */
+const ENGLISH_RESET_KEY = 'persona.englishReset:v1';
+
+async function resetToEnglishOnce(): Promise<void> {
+  try {
+    if (await AsyncStorage.getItem(ENGLISH_RESET_KEY)) return;
+    const auth = await authed();
+    if (!auth) return;
+    const res = await fetch(`${auth.base}/drona/persona`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: 'english' }),
+    });
+    if (!res.ok) return;
+    await setLanguagePreference('english');
+    await AsyncStorage.setItem(ENGLISH_RESET_KEY, '1');
+  } catch {
+    // Tried again on the next pull.
+  }
+}
+
 /** Pulls the canonical choice and refreshes the local cache from it — except
  *  for any field the student has chosen since the pull began (see `chosen`),
  *  which comes back null so the screen leaves it alone too. */
 export async function pullPersona(): Promise<{ teacher: TeacherId | null; language: LanguageId | null } | null> {
+  // Noted before the reset's round trip, so a tap made during it still
+  // counts as newer than this pull's answer.
   const asked = { ...chosen };
+  await resetToEnglishOnce();
   try {
     const auth = await authed();
     if (!auth) return null;

@@ -170,3 +170,19 @@ describe('every view and corner, through the REAL gate at five frames', () => {
       .toBe(strip(renderWidgetTreeAt(fluxSurface, en.params, {}, 343, 236)));
   });
 });
+
+describe('the flux readout keeps a whole number whole', () => {
+  test.each([
+    // E A cos θ = 5000 × 0.04 × cos 60° = 100, which used to print as "1"
+    [{ e_field: 5000, area: 0.04, theta_deg: 60 }, 'Φ 100 '],
+    [{ e_field: 2000, area: 0.5, theta_deg: 0 }, 'Φ 1000 '],
+    [{ e_field: 1000, area: 0.05, theta_deg: 60 }, 'Φ 25 '],
+    [{ e_field: 100, area: 0.1, theta_deg: 60 }, 'Φ 5 '],
+  ])('%j reads %p', (over, want) => {
+    const v = validate({ ...fluxSurface.defaults, view: 'patch', ...over });
+    expect(v.ok).toBe(true);
+    if (!v.ok) return;
+    const json = JSON.stringify(renderWidgetTreeAt(fluxSurface, v.params, {}, 343, 236));
+    expect(json).toContain(want);
+  });
+});

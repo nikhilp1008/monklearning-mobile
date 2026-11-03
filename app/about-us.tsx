@@ -16,7 +16,7 @@ const SECTIONS = [
     body: 'Four things, every session: speaking it out loud on a real board, writing out each step as it’s said, listening for when you interrupt with a question, and remembering exactly where you got stuck so tomorrow picks up from there.',
   },
   {
-    title: 'Two teachers, one plan',
+    title: 'Drona and Vedha, one plan',
     body: 'Drona is methodical and exacting: he builds every answer up from first principles. Vedha is encouraging and energetic, built for momentum on the days you need it. Both teach in English or Hinglish, and you can switch between them anytime.',
   },
   {
@@ -53,7 +53,7 @@ export default function AboutUsScreen() {
             style={styles.link}
             onPress={() => Linking.openURL('mailto:support@monklearning.com')}>
             support@monklearning.com
-          </Text>. We reply within 24 hours. Stuck on a subject? Just ask your AI teacher inside the
+          </Text>. We reply within 24 hours. Stuck on a subject? Just ask Drona or Vedha inside the
           classroom instead.
         </Text>
         <View style={styles.chipRow}>

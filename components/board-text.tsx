@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
+import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { BoardDiagram, diagramVerdict, svgInvalidDetail } from '@/components/board-diagram';
 import { DEEP_AMBER, INK, INK_MUTED } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
-import { latexToText } from '@/lib/latex-text';
+import { MathLine } from '@/components/math-line';
+import { latexToSegments, latexToText } from '@/lib/latex-text';
 import { BoardWidget } from '@/lib/widgets/BoardWidget';
 import type { FigureResolver } from '@/lib/widgets/labelled-figure/figure-resolver';
 import type { WidgetServices, WidgetTheme } from '@/lib/widgets/types';
@@ -89,10 +91,18 @@ export function BoardBlockView({
   event,
   diagramBox,
   widgetHost,
+  progress = 1,
+  grid = false,
 }: {
   event: BoardEvent;
   diagramBox: { availableWidth: number; maxHeight: number };
   widgetHost?: BoardWidgetHost;
+  /** 0..1 of the line written so far (see `WrittenText`). 1, the default, is
+   *  the whole line at once, which is every surface but the live class. */
+  progress?: number;
+  /** The live class sets the gap between blocks itself, on the ruled lines;
+   *  every block's own top margin goes. */
+  grid?: boolean;
 }) {
   /**
    * WHAT MAKES AN EVENT A FIGURE IS WHAT IT CARRIES, NOT WHAT IT IS CALLED.
@@ -122,6 +132,19 @@ export function BoardBlockView({
    * also missing (`10^5 m/s` reads as 10⁵ m/s now).
    */
   const text = useMemo(() => latexToText(raw), [raw]);
+  /**
+   * DRAWN WHERE UNICODE RUNS OUT.
+   *
+   * `latexToText` spells a script in Unicode when every character has one, and
+   * otherwise writes it out flat: there is no subscript c, q, g or β, so
+   * Ampère's law reached the board as "μ₀ I_(enc)", a fringe width as "θ_β",
+   * a limit as "lim_(h → 0⁺)" — 1,032 of the stored formula lines on
+   * 2026-10-02, with every \dfrac flattened to "a/b" besides. MathLine draws
+   * exactly those pieces (a script set small and shifted, a fraction stacked),
+   * as it already does for every solution. A line with nothing to draw keeps
+   * its one <Text> below, so most of the board renders as it did.
+   */
+  const drawn = useMemo(() => hasDrawnParts(raw), [raw]);
   /**
    * U5. Whether `BoardDiagram` could draw this event's svg, asked HERE, before
    * it is mounted, because only this component knows what else the event
@@ -299,17 +322,55 @@ export function BoardBlockView({
     return null;
   }
   if (event.type === 'heading') {
-    return <Text style={styles.boardHeading}>{text}</Text>;
+    return (
+      <WrittenText
+        text={text}
+        progress={progress}
+        style={[styles.boardHeading, grid && styles.gridHeading]}
+        ink={DEEP_AMBER}
+        settled={DEEP_AMBER}
+      />
+    );
+  }
+  if (event.type === 'formula' && event.step) {
+    // One step of a derivation: no box, the steps stack under each other.
+    return (
+      <View style={[event.step === 'first' ? styles.boardStepFirst : styles.boardStepCont, grid && styles.gridFlush]}>
+        {drawn ? (
+          <MathLine text={raw} style={styles.boardEquation} fontSize={18} color={INK} align="center" />
+        ) : (
+          <Text style={styles.boardEquation}>{text}</Text>
+        )}
+      </View>
+    );
   }
   if (event.type === 'formula') {
     return (
-      <View style={styles.boardFormulaRow}>
-        <Text style={styles.boardEquation}>{text}</Text>
+      <View style={[styles.boardFormulaRow, grid && styles.gridFlush]}>
+        {drawn ? (
+          <MathLine text={raw} style={styles.boardEquation} fontSize={18} color={INK} align="center" />
+        ) : (
+          <Text style={styles.boardEquation}>{text}</Text>
+        )}
       </View>
     );
   }
   if (event.type === 'note') {
-    return <Text style={styles.boardNote}>{text}</Text>;
+    // MathLine sets its style on every word of a drawn line, so the note's
+    // indent and spacing go on a box round it rather than on the words.
+    return drawn ? (
+      <View style={[styles.boardNoteBox, grid && styles.gridFlush]}>
+        <MathLine text={raw} style={styles.boardNoteText} fontSize={13.5} color={INK_MUTED} />
+      </View>
+    ) : (
+      <WrittenText
+        text={text}
+        progress={progress}
+        style={[styles.boardNote, grid && styles.gridFlush]}
+        ink={INK}
+        settled={INK_MUTED}
+      />
+    );
   }
   /*
    * A type with no branch of its own, carrying words rather than a picture.
@@ -336,7 +397,93 @@ export function BoardBlockView({
    * has always made.
    */
   const emphasised = event.emphasis === 'key' || event.emphasis === 'high';
-  return <Text style={[styles.boardBody, emphasised && styles.boardBodyBold]}>{text}</Text>;
+  if (drawn) {
+    return (
+      <View style={[styles.boardBodyBox, grid && styles.gridFlush]}>
+        <MathLine
+          text={raw}
+          style={[styles.boardBodyText, emphasised && styles.boardBodyBold]}
+          fontSize={16}
+          color={emphasised ? INK : INK_MUTED}
+        />
+      </View>
+    );
+  }
+  return (
+    <WrittenText
+      text={text}
+      progress={progress}
+      style={[styles.boardBody, emphasised && styles.boardBodyBold, grid && styles.gridFlush]}
+      ink={INK}
+      settled={emphasised ? INK : INK_MUTED}
+    />
+  );
+}
+
+/**
+ * A LINE WRITTEN WHILE IT IS SAID.
+ *
+ * The whole line is laid out from the first frame, its unwritten words in
+ * transparent ink, so the block never changes height as it fills and the board
+ * scrolls to it once rather than every time a word wraps. `progress` (0..1)
+ * says how much of it is written; the caller's clock paces it to the sentence.
+ *
+ * While it is being written it is full ink; written, it settles to the
+ * board's grey, so the line the teacher is on is the darkest on the page.
+ * A heading and a `key` line are the same colour either way.
+ */
+function WrittenText({
+  text,
+  progress,
+  style,
+  ink,
+  settled,
+}: {
+  text: string;
+  progress: number;
+  style: StyleProp<TextStyle>;
+  ink: string;
+  settled: string;
+}) {
+  const tokens = useMemo(() => text.split(/(\s+)/), [text]);
+  const wordCount = useMemo(() => tokens.filter((t) => t.trim()).length, [tokens]);
+  const done = progress >= 1;
+  const settle = useSharedValue(done ? 1 : 0);
+  useEffect(() => {
+    settle.value = done ? withTiming(1, { duration: 700 }) : 0;
+  }, [done, settle]);
+  const colour = useAnimatedStyle(() => ({
+    color: interpolateColor(settle.value, [0, 1], [ink, settled]),
+  }));
+
+  if (done) {
+    return <Animated.Text style={[style, colour]}>{text}</Animated.Text>;
+  }
+  let words = Math.ceil(Math.max(0, progress) * wordCount);
+  let cut = tokens.length;
+  for (let i = 0; i < tokens.length; i++) {
+    if (!tokens[i].trim()) continue;
+    if (words === 0) {
+      cut = i;
+      break;
+    }
+    words--;
+  }
+  return (
+    <Animated.Text style={[style, colour]}>
+      {tokens.slice(0, cut).join('')}
+      <Text style={styles.unwritten}>{tokens.slice(cut).join('')}</Text>
+    </Animated.Text>
+  );
+}
+
+/** Whether a line has a piece `latexToText` can only flatten: a fraction, a grid,
+ *  or a script with no Unicode characters to spell it. */
+function hasDrawnParts(raw: string): boolean {
+  if (!raw) return false;
+  return latexToSegments(raw).some(
+    (s) => s.kind === 'fraction' || s.kind === 'sub' || s.kind === 'sup' || s.kind === 'matrix',
+  );
 }
 /**
  * SPACING AND SIZE, NOT THE RULE GRID.
@@ -440,6 +587,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Onest_600SemiBold',
     color: INK,
   },
+  /** A drawn line (see `drawn`): the spacing on the box, the type on the words. */
+  boardBodyBox: {
+    marginTop: 20,
+  },
+  boardBodyText: {
+    fontFamily: 'Onest_400Regular',
+    fontSize: 16,
+    lineHeight: 26,
+    color: INK_MUTED,
+  },
 
   /**
    * The formula, boxed on a hairline. Centred, a full line of air above it,
@@ -467,6 +624,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(154,106,18,.34)',
     borderRadius: 10,
+  },
+  boardStepFirst: {
+    marginTop: 26,
+    alignSelf: 'stretch',
+  },
+  boardStepCont: {
+    marginTop: 6,
+    alignSelf: 'stretch',
   },
   boardEquation: {
     fontFamily: 'Onest_700Bold',
@@ -500,6 +665,21 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginTop: 22,
     paddingLeft: 16,
+    color: INK_MUTED,
+  },
+  boardNoteBox: {
+    marginTop: 22,
+    paddingLeft: 16,
+  },
+  /** Grid mode (the live class): the gap is set by the block's wrapper. */
+  gridFlush: { marginTop: 0 },
+  gridHeading: { marginTop: 0, lineHeight: 26 },
+  /** Laid out, not yet written: takes its place on the line, in no ink. */
+  unwritten: { color: 'transparent' },
+  boardNoteText: {
+    fontFamily: 'Onest_500Medium',
+    fontSize: 13.5,
+    lineHeight: 21,
     color: INK_MUTED,
   },
 });
