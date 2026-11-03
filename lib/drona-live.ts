@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from '@/lib/api';
 
 /** Verified live against monk-learning-api-production 2026-08-13 — GitHub source for
  *  this router is stale and was not trusted for these shapes. */
@@ -79,6 +79,23 @@ export interface DronaSessionEnd {
    * Absent on a server from before that, where the Save button still works.
    */
   note?: 'writing' | 'too_short';
+}
+
+/**
+ * A class the student's plan will not start: Pro and Max have a number of live
+ * classes a month and a few a day, and the server says so with a 429 whose body
+ * names `class_start`. `message` is written for the student; `upgrade` says a
+ * bigger plan would let them in, so the screen offers the plans page.
+ */
+export type ClassLimit = { message: string; upgrade: boolean };
+
+export function classLimitOf(err: unknown): ClassLimit | null {
+  if (!(err instanceof ApiError) || err.status !== 429) return null;
+  const detail = (err.data as { detail?: unknown } | null | undefined)?.detail;
+  if (!detail || typeof detail !== 'object') return null;
+  const d = detail as { endpoint?: unknown; message?: unknown; upgrade?: unknown };
+  if (d.endpoint !== 'class_start' || typeof d.message !== 'string' || !d.message) return null;
+  return { message: d.message, upgrade: d.upgrade === true };
 }
 
 export function startDronaSession(params: {

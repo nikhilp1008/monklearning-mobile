@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SnapCamera, inAppCameraAvailable } from '@/components/snap-camera';
 import { StateCard } from '@/components/states';
+import { useFreeTier } from '@/lib/free-tier';
 import { useDarkNavigationBar } from '@/lib/nav-bar';
 import { takePendingSnap } from '@/lib/snap-pending';
 import { SnapCrop } from '@/components/snap-crop';
@@ -22,6 +23,8 @@ type Phase = 'opening' | 'camera' | 'idle' | 'cropping' | 'permission_denied' | 
 
 
 export default function SnapCaptureScreen() {
+  // "Free" is only true for a free student: a Pro student at their ceiling is shown Max.
+  const { free } = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   useDarkNavigationBar();
@@ -329,7 +332,21 @@ export default function SnapCaptureScreen() {
         </View>
 
         <View style={styles.body}>
-          {phase === 'failed' && failure?.stage === 'quota' ? (
+          {phase === 'failed' && failure?.stage === 'quota' && failure.upgrade ? (
+            // A limit with a way up (the free tier's, or Pro's). Not "open again
+            // tomorrow": the server's own sentence, which makes the case for a
+            // bigger plan, and a way to one.
+            <View style={styles.stateBlock}>
+              <StateCard
+                tone="dark"
+                glyph="clock"
+                title={free ? "You've used your free snaps" : "You've used today's snaps"}
+                line={failure.message}
+                action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
+                quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+              />
+            </View>
+          ) : phase === 'failed' && failure?.stage === 'quota' ? (
             <View style={styles.stateBlock}>
               <StateCard
                 tone="dark"

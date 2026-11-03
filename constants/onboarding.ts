@@ -127,8 +127,8 @@ export const ob = {
  * there -- see app/(onboarding)/pass.tsx.
  */
 export const PASSES = [
-  { id: 'day', name: '1 day', price: 79 },
-  { id: 'week', name: '7 days', price: 249 },
+  { id: 'day', name: '1 day', price: 7 },
+  { id: 'week', name: '7 days', price: 39 },
 ] as const;
 
 export type PassKey = (typeof PASSES)[number]['id'];
@@ -142,16 +142,18 @@ export type PassKey = (typeof PASSES)[number]['id'];
  * failure the copy was meant to prevent. A comment cannot keep two constants
  * equal; one constant can.
  *
- * THE NUMBERS ARE 50 AND 150. monklearning.com still publishes 75 in three
- * places, including the structured FAQ answer to "What exactly does a pass
- * include?" that Google reads, and that file is in another repo. Home has
- * always said 150. Neither figure is enforced on the server yet: /practice/*
- * returns no daily or quota field at all, where Snap has `daily_limit` and
- * `used_today`.
+ * WHAT THE STARTER PASSES (day and week) INCLUDE: Pro, for a day and for a week
+ * (founder, 2026-11-03). Live classes are said as Pro's two a day; snaps and
+ * practice are NOT put in numbers on purpose: a day or week pass gets what Pro
+ * gets and is not told so, since a number said up front is a ceiling to be
+ * measured against. The server's `tier_limits` (API migrations 0116 and 0117)
+ * holds the real figures; a student who reaches one is told it then. monklearning.com is another repo and still says
+ * the old ones.
  */
 export const INCLUDED: [string, string][] = [
   ['Class 11 & 12', 'Every chapter, taught aloud'],
-  ['Every day', '50 snaps · 150 practice questions'],
+  ['Live classes', 'Up to 2 a day'],
+  ['Snap and Practice', 'Every day'],
   ['Drona & Vedha', 'English / Hinglish'],
 ];
 

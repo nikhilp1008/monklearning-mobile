@@ -115,6 +115,8 @@ function failureFrom(data: Record<string, unknown>): SnapFailure {
     stage: (data.stage as SnapFailure['stage']) ?? 'unknown',
     remedy: (data.remedy as SnapFailure['remedy']) ?? 'our_side',
     retake_helps: Boolean(data.retake_helps),
+    // The FREE tier's limit: `message` is then written to make the case for a plan.
+    upgrade: data.upgrade === true,
   };
 }
 

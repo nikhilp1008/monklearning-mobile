@@ -32,11 +32,13 @@ const ASKED_KEY = 'push.asked.v1';
 
 /** What a notification's `data` carries, as the server sends it (app/push.py). */
 export type PushData = {
-  type?: 'note' | 'doubt' | 'test';
+  type?: 'note' | 'doubt' | 'help' | 'plans' | 'test';
   note_id?: string | null;
   doubt_id?: string | null;
   session_id?: string | null;
   submission_id?: string | null;
+  /** The team's reply to a help request (app/help_relay.py); Help shows it. */
+  escalation_id?: string | null;
 };
 
 /**
@@ -46,7 +48,11 @@ export type PushData = {
  */
 export function routeForNotification(
   data: PushData | null | undefined
-): { pathname: '/note-detail' | '/doubt-detail'; params: { id: string } } | null {
+):
+  | { pathname: '/note-detail' | '/doubt-detail'; params: { id: string } }
+  | { pathname: '/help' }
+  | { pathname: '/plans' }
+  | null {
   if (!data) return null;
   if (data.type === 'note' && data.note_id) {
     return { pathname: '/note-detail', params: { id: data.note_id } };
@@ -54,6 +60,10 @@ export function routeForNotification(
   if (data.type === 'doubt' && data.doubt_id) {
     return { pathname: '/doubt-detail', params: { id: data.doubt_id } };
   }
+  // The Help screen lists the student's requests with the team's replies, so it needs no id.
+  if (data.type === 'help') return { pathname: '/help' };
+  // A starter pass about to end (app/pass_notices.py): straight to the plans page.
+  if (data.type === 'plans') return { pathname: '/plans' };
   return null;
 }
 

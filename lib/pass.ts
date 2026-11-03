@@ -32,7 +32,12 @@ import { supabase } from '@/lib/supabase';
  * each other's pass.
  */
 
-export type PassKind = 'day' | 'week' | '1m' | '3m' | '6m' | '11m';
+/**
+ * `pro_1m` and `max_1m` are the two monthly plans (Rs 499 / Rs 899). The four
+ * before them stay because passes already bought point at them: a student holding
+ * one has Max limits until it ends, and `PLANS` no longer sells them.
+ */
+export type PassKind = 'day' | 'week' | 'pro_1m' | 'max_1m' | '1m' | '3m' | '6m' | '11m';
 
 export type PassRecord = {
   kind: PassKind;
@@ -54,16 +59,23 @@ export type PassRecord = {
 const DAYS: Record<PassKind, number> = {
   day: 1,
   week: 7,
+  pro_1m: 30,
+  max_1m: 30,
   '1m': 30,
   '3m': 90,
   '6m': 180,
   '11m': 330,
 };
 
+/** How many days a plan of this kind runs. */
+export const passDays = (kind: PassKind): number => DAYS[kind] ?? 0;
+
 /** As it reads on a screen. */
 export const PASS_NAME: Record<PassKind, string> = {
   day: '1 day',
   week: '7 days',
+  pro_1m: 'Pro',
+  max_1m: 'Max',
   '1m': '1 month',
   '3m': '3 months',
   '6m': '6 months',
@@ -71,10 +83,14 @@ export const PASS_NAME: Record<PassKind, string> = {
 };
 
 export type PassStatus =
-  /** Never bought one — a new account, or a student from before this existed. */
-  | { state: 'none' }
+  /**
+   * Never bought one — a new account, or a student from before this existed.
+   * `free` is the server saying the free tier is on and this student is on it:
+   * they are let into the app (with limits), not sent to the plans screen.
+   */
+  | { state: 'none'; free?: boolean }
   | { state: 'active'; record: PassRecord; endsAt: Date; daysLeft: number; hoursLeft: number }
-  | { state: 'expired'; record: PassRecord; endsAt: Date }
+  | { state: 'expired'; record: PassRecord; endsAt: Date; free?: boolean }
   /**
    * COULD NOT TELL. The server could not be reached (or its answer was not
    * one it would give), and this phone holds no earlier answer for this
@@ -144,7 +160,159 @@ type ServerPass = {
   started_at?: string;
   ends_at?: string;
   exempt?: boolean;
+  /** 'free' when the free tier is on and this student has no running pass. */
+  tier?: 'free' | 'paid';
+  free_tier?: { enabled?: boolean; limits?: Partial<FreeLimits>; tiers?: Partial<Record<TierName, Partial<TierLimits>>> };
+  /** The pass's real kind. `kind` reports Pro and Max as '1m' for builds that
+   *  predate them, so a build that knows them reads this one. */
+  plan_kind?: string;
+  /** Which plan the student is on: free, day, week, pro or max. Null when the
+   *  tiers are off for them (an exempt account). */
+  plan_tier?: PlanTier | null;
+  classes?: Partial<ClassAllowance>;
+  /** Starter passes already used on this account (one each, ever). */
+  starter_used?: string[];
 };
+
+export type TierName = 'day' | 'week' | 'pro' | 'max';
+export type PlanTier = 'free' | TierName;
+
+/** What each paid plan allows. The server owns the numbers; these are the same
+ *  figures (app/tiers.py DEFAULTS) so the plans page reads right before the
+ *  first answer and with no signal. */
+export type TierLimits = {
+  /** Live classes in `window_days`, never more than `classes_per_day` in a day. */
+  window_days: number;
+  classes: number;
+  classes_per_day: number;
+  snap_questions: number;
+  practice_questions: number;
+  followups: number;
+};
+
+export const DEFAULT_TIERS: Record<TierName, TierLimits> = {
+  day: { window_days: 1, classes: 2, classes_per_day: 2, snap_questions: 25, practice_questions: 100, followups: 100 },
+  week: { window_days: 7, classes: 10, classes_per_day: 2, snap_questions: 25, practice_questions: 100, followups: 100 },
+  pro: { window_days: 30, classes: 45, classes_per_day: 2, snap_questions: 25, practice_questions: 100, followups: 100 },
+  max: { window_days: 30, classes: 60, classes_per_day: 3, snap_questions: 50, practice_questions: 200, followups: 100 },
+};
+
+/** Where a paying student stands on live classes. */
+export type ClassAllowance = {
+  limit: number;
+  used: number;
+  left: number;
+  window_days: number;
+  per_day: number;
+  used_today: number;
+  /** ISO: when the next class opens, once a limit has been reached. */
+  opens_at?: string;
+};
+
+/** What the free tier allows each day (the server owns the numbers). */
+export type FreeLimits = {
+  snap_questions: number;
+  practice_questions: number;
+  followups: number;
+  mocks: number;
+};
+
+export const DEFAULT_FREE_LIMITS: FreeLimits = {
+  snap_questions: 5,
+  practice_questions: 15,
+  followups: 3,
+  mocks: 0,
+};
+
+/**
+ * WHETHER THIS STUDENT IS ON THE FREE TIER, as the server last said. Screens
+ * that draw a locked card (the live class, the progress mock-up) ask this
+ * rather than the server's verdict on each request, so the card is there on
+ * the first frame. The server still decides every limit.
+ */
+let tierNow: { free: boolean; limits: FreeLimits } = { free: false, limits: DEFAULT_FREE_LIMITS };
+const tierListeners = new Set<() => void>();
+
+export function getTier() {
+  return tierNow;
+}
+
+export function subscribeTier(fn: () => void): () => void {
+  tierListeners.add(fn);
+  return () => {
+    tierListeners.delete(fn);
+  };
+}
+
+/**
+ * WHICH PLAN THIS STUDENT IS ON, as the server last said: its tier, the numbers
+ * for every plan, where they stand on live classes, which starter passes they
+ * have used, and when a running starter pass ends (for Home's reminder). Like
+ * the tier above it is for drawing screens on the first frame; the server still
+ * enforces every limit.
+ */
+export type PlanNow = {
+  tier: PlanTier | null;
+  tiers: Record<TierName, TierLimits>;
+  classes: ClassAllowance | null;
+  starterUsed: PassKind[];
+  /** A running day or week pass with nothing bought behind it: when it ends. */
+  starterEnds: string | null;
+  starterKind: 'day' | 'week' | null;
+};
+
+const NO_PLAN: PlanNow = { tier: null, tiers: DEFAULT_TIERS, classes: null, starterUsed: [], starterEnds: null, starterKind: null };
+let planNow: PlanNow = NO_PLAN;
+const planListeners = new Set<() => void>();
+
+export function getPlan(): PlanNow {
+  return planNow;
+}
+
+export function subscribePlan(fn: () => void): () => void {
+  planListeners.add(fn);
+  return () => {
+    planListeners.delete(fn);
+  };
+}
+
+/** The plan as the server's `/pass` answer says it. Exported for tests. */
+export function planFromServer(s: ServerPass): PlanNow {
+  const tiers = { ...DEFAULT_TIERS };
+  for (const name of Object.keys(DEFAULT_TIERS) as TierName[]) {
+    tiers[name] = { ...DEFAULT_TIERS[name], ...(s.free_tier?.tiers?.[name] ?? {}) };
+  }
+  const classes =
+    s.classes && typeof s.classes.limit === 'number'
+      ? ({ used: 0, left: 0, window_days: 30, per_day: 1, used_today: 0, ...s.classes } as ClassAllowance)
+      : null;
+  const kind = (s.plan_kind ?? s.kind) as PassKind | undefined;
+  let starterEnds: string | null = null;
+  let starterKind: 'day' | 'week' | null = null;
+  if (s.state === 'active' && (kind === 'day' || kind === 'week') && s.started_at && s.ends_at) {
+    const runningEnd = new Date(s.started_at).getTime() + DAYS[kind] * 86400000;
+    // Something bought behind it ends later: they are carrying on, nothing to remind.
+    if (new Date(s.ends_at).getTime() - runningEnd <= 86400000) {
+      starterEnds = new Date(runningEnd).toISOString();
+      starterKind = kind;
+    }
+  }
+  const used = (s.starter_used ?? []).filter((k): k is PassKind => k === 'day' || k === 'week');
+  return { tier: s.plan_tier ?? null, tiers, classes, starterUsed: used, starterEnds, starterKind };
+}
+
+function setPlan(next: PlanNow) {
+  if (JSON.stringify(next) === JSON.stringify(planNow)) return;
+  planNow = next;
+  planListeners.forEach((fn) => fn());
+}
+
+function setTier(free: boolean, limits?: Partial<FreeLimits>) {
+  const next = { free, limits: { ...DEFAULT_FREE_LIMITS, ...(limits ?? {}) } };
+  if (next.free === tierNow.free && JSON.stringify(next.limits) === JSON.stringify(tierNow.limits)) return;
+  tierNow = next;
+  tierListeners.forEach((fn) => fn());
+}
 
 const TEN_YEARS_MS = 10 * 365 * 86400000;
 
@@ -152,9 +320,10 @@ const TEN_YEARS_MS = 10 * 365 * 86400000;
 export function recordFromServer(s: ServerPass, now: Date = new Date()): PassRecord | null {
   // A pass the student really has: a kind, a start and an end the server stated.
   let real: PassRecord | null = null;
-  if (s.state !== 'none' && s.kind && s.kind in DAYS && s.started_at && s.ends_at) {
+  const kind = s.plan_kind && s.plan_kind in DAYS ? s.plan_kind : s.kind;
+  if (s.state !== 'none' && kind && kind in DAYS && s.started_at && s.ends_at) {
     const source = (['razorpay', 'promo', 'admin'] as const).find((x) => x === s.source) ?? null;
-    real = { kind: s.kind as PassKind, startedAt: s.started_at, endsAt: s.ends_at, source };
+    real = { kind: kind as PassKind, startedAt: s.started_at, endsAt: s.ends_at, source };
   }
   if (s.exempt) {
     // A founder or tester the paywall never stops. A pass they really hold is
@@ -227,6 +396,7 @@ export async function startPass(kind: PassKind, promo: string): Promise<PassReco
   const record = isServerPass(answer) ? recordFromServer(answer) : null;
   if (!record) throw new Error('The server did not return a pass.');
   await writeCache(userId, record);
+  setTier(false);
   return record;
 }
 
@@ -237,6 +407,7 @@ export async function startPass(kind: PassKind, promo: string): Promise<PassReco
  * were per-student goes too.
  */
 export async function clearPass(): Promise<void> {
+  setTier(false);
   try {
     const id = await currentUserId();
     await AsyncStorage.multiRemove(id ? [KEY, keyFor(id)] : [KEY]);
@@ -284,9 +455,12 @@ export function statusFromServer(answer: ServerPass, record: PassRecord | null, 
   // below, so an exempt account with no real pass (the store-review account) was
   // answered `none` here and the launch gate sent it to the plans screen.
   if (answer.exempt && record) return statusOf(record, now);
-  if (!record || answer.state === 'none') return { state: 'none' };
+  // Free: the tier is on and the server says this student is not paying. A
+  // pass that ran out is still shown as ended, so the plan page can say so.
+  const free = answer.tier === 'free';
+  if (!record || answer.state === 'none') return { state: 'none', free };
   const endsAt = endsAtFor(record);
-  if (answer.state === 'expired') return { state: 'expired', record, endsAt };
+  if (answer.state === 'expired') return { state: 'expired', record, endsAt, free };
   const left = Math.max(endsAt.getTime() - now.getTime(), 3600000);
   return {
     state: 'active',
@@ -318,6 +492,8 @@ export async function passStatus(opts: { timeoutMs?: number } = {}): Promise<Pas
     if (!isServerPass(answer)) throw new Error('Not an answer from the pass server.');
     const record = recordFromServer(answer);
     await writeCache(userId, record);
+    setTier(answer.tier === 'free' && !answer.exempt, answer.free_tier?.limits);
+    setPlan(planFromServer(answer));
     return statusFromServer(answer, record);
   } catch {
     const cached = await readPass(userId);

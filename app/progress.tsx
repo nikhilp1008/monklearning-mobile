@@ -7,6 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { shadow } from '@/lib/shadow';
 import { StateCard } from '@/components/states';
 import { ProgressGlyph } from '@/components/monk-icons';
+import { ProgressLocked } from '@/components/progress-locked';
 import { PressableScale } from '@/components/pressable-scale';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
@@ -30,6 +31,7 @@ import {
   ProgressSummary,
   getCachedProgress,
   getProgress,
+  ProgressLockedError,
 } from '@/lib/progress';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
@@ -143,6 +145,8 @@ function paceGeometry(actual: number, target: number) {
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'ready'; data: ProgressSummary }
+  /** A free student: their numbers are not shown, a sample is (components/progress-locked). */
+  | { kind: 'locked'; message: string }
   | { kind: 'error' };
 
 function BackArrowIcon({ size }: { size: number }) {
@@ -235,8 +239,12 @@ export default function ProgressScreen() {
             })
             .catch(() => undefined);
         })
-        .catch(() => {
+        .catch((err) => {
           if (cancelled) return;
+          if (err instanceof ProgressLockedError) {
+            setState({ kind: 'locked', message: err.message });
+            return;
+          }
           const c = getCachedProgress();
           setState(c ? { kind: 'ready', data: c } : { kind: 'error' });
         });
@@ -250,7 +258,11 @@ export default function ProgressScreen() {
     setState({ kind: 'loading' });
     getProgress()
       .then((data) => setState({ kind: 'ready', data }))
-      .catch(() => {
+      .catch((err) => {
+        if (err instanceof ProgressLockedError) {
+          setState({ kind: 'locked', message: err.message });
+          return;
+        }
         const c = getCachedProgress();
         setState(c ? { kind: 'ready', data: c } : { kind: 'error' });
       });
@@ -392,6 +404,8 @@ export default function ProgressScreen() {
               />
             </View>
           )}
+
+          {state.kind === 'locked' && <ProgressLocked message={state.message} />}
 
           {state.kind === 'error' && (
             <StateCard

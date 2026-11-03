@@ -193,6 +193,9 @@ export interface MockStatus {
   /** The free starting-point paper. Absent from API builds before it
    *  existed, which reads as "none on offer". */
   diagnostic?: MockDiagnosticOffer;
+  /** Present only for a student on the FREE tier: one full paper in total.
+   *  Once it is used `message` is the server's case for a plan. */
+  free_tier?: { mock_used: boolean; upgrade?: boolean; message?: string };
 }
 
 export function getMockStatus(exam: 'jee' | 'neet'): Promise<MockStatus> {

@@ -14,9 +14,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path } from 'react-native-svg';
 
 import { StateCard } from '@/components/states';
+import { openClass } from '@/lib/open-class';
 import { shadow } from '@/lib/shadow';
 import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { footPadding } from '@/lib/foot-padding';
+import { useFreeTier } from '@/lib/free-tier';
 import { KeyboardSpacer, useScrollFocusedFieldAboveKeyboard } from '@/components/keyboard-spacer';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { MathLine } from '@/components/math-line';
@@ -88,6 +90,7 @@ const SUBJECT_QUERY: Record<string, string> = {
 
 
 export default function PracticeScreen() {
+  const { free } = useFreeTier();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   // The numeric answer box sits part-way down the page: scrolled above the
@@ -158,6 +161,8 @@ export default function PracticeScreen() {
   /** Why there is no next question: the day's limit, or nothing left in scope.
    *  Two different states, said two different ways (they shared one card). */
   const [poolReason, setPoolReason] = useState<'daily_limit' | 'pool_empty' | null>(null);
+  /** The day's limit was the FREE tier's: the card makes the case for a plan. */
+  const [poolUpgrade, setPoolUpgrade] = useState(false);
   /** On pool_empty, how many questions the scope holds at all: 0 is a chapter
    *  (or subject) with nothing added yet; more than 0 means the quality check
    *  turned down this draw. Null when the server didn't say, which is read as
@@ -243,7 +248,7 @@ export default function PracticeScreen() {
     // catalogue the button was simply dead — no press state, no transition —
     // for the length of a network round trip. `entering-classroom` does that
     // lookup now, where there is a loading screen to look at while it happens.
-    router.push({
+    openClass({
       pathname: '/entering-classroom',
       params: { chapterTitle: chapterTitle ?? 'this topic' },
     });
@@ -279,7 +284,7 @@ export default function PracticeScreen() {
   const finalAnswer = answerResult ? solutionFinalAnswer(answerResult.solution) : null;
 
   const tally = useMemo(() => {
-    if (!lifetime) return null;
+    if (!lifetime || lifetime.locked) return null;
     const attempted = lifetime.attempted + sessionAttempted;
     if (!attempted) return null;
     const correct = lifetime.correct + sessionCorrect;
@@ -520,6 +525,7 @@ export default function PracticeScreen() {
     setLoadError(null);
     setPoolMessage(null);
     setPoolReason(null);
+    setPoolUpgrade(false);
     setPoolSize(null);
     setSelectedOption(null);
     setNumericInput('');
@@ -591,6 +597,7 @@ export default function PracticeScreen() {
         // The day's questions are used up: felt as the refusal it is.
         if (result.reason === 'daily_limit') hapticWarning();
         setPoolReason(result.reason === 'daily_limit' ? 'daily_limit' : 'pool_empty');
+        setPoolUpgrade(result.reason === 'daily_limit' && result.upgrade === true);
         setPoolMessage(result.message);
         setPoolSize(typeof result.pool_size === 'number' ? result.pool_size : null);
         setQuestion(null);
@@ -797,6 +804,22 @@ export default function PracticeScreen() {
 
           {loading && !question ? (
             <QuestionSkeleton styles={styles} verticalScale={verticalScale} />
+          ) : poolMessage && poolReason === 'daily_limit' && poolUpgrade ? (
+            // A LIMIT WITH A WAY UP (the free tier's, or Pro's). Not "opens again
+            // tomorrow": the server's own sentence, which makes the case for a
+            // bigger plan, and a way to one.
+            <StateCard
+              style={styles.stateCard}
+              glyph="clock"
+              title={
+                free
+                  ? quota ? `You've done today's ${quota.limit} free questions` : "You've done today's free questions"
+                  : quota ? `That's today's ${quota.limit}` : "That's today's questions"
+              }
+              line={poolMessage}
+              action={{ label: 'See plans', onPress: () => router.push('/plans') }}
+              quiet={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
+            />
           ) : poolMessage && poolReason === 'daily_limit' ? (
             // THE DAY'S LIMIT, with somewhere to go: it used to share one card
             // with "nothing left" and offer no way out.

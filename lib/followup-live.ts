@@ -25,6 +25,7 @@ import {
   idleClock,
   isFollowUpQuota,
   parseFrames,
+  upgradeMessageOf,
   type FollowUpHandlers,
   type FollowUpSurface,
   type FollowUpTurn,
@@ -182,6 +183,7 @@ export class LiveAsk {
       let failure: string | null = null;
       /** The daily limit arrives as an `error` frame here, not as a 429. */
       let quota = false;
+      let upgrade = false;
       let settled = false;
       // The socket can stay open with nothing coming. Not LiveUnavailable: the
       // server may already be answering, and uploading too would ask twice.
@@ -212,7 +214,10 @@ export class LiveAsk {
             continue;
           }
           if (frame.event !== 'error') answered = true;
-          else if (isFollowUpQuota(undefined, frame.data)) quota = true;
+          else if (isFollowUpQuota(undefined, frame.data)) {
+            quota = true;
+            if (upgradeMessageOf(frame.data) !== null) upgrade = true;
+          }
           const err = dispatchFollowUpFrame(frame, handlers);
           if (err !== null) failure = err;
         }
@@ -221,7 +226,7 @@ export class LiveAsk {
       for (const text of this.incoming.splice(0)) read(text);
       this.onEnd = () => {
         if (this.passEnded) done(() => reject(new FollowUpError('You need a pass to continue.', 'pass')));
-        else if (failure) done(() => reject(new FollowUpError(failure as string, quota ? 'quota' : 'retry')));
+        else if (failure) done(() => reject(new FollowUpError(failure as string, quota ? 'quota' : 'retry', quota && upgrade)));
         else if (!answered) done(() => reject(new LiveUnavailable('closed before answering')));
         else done(resolve);
       };

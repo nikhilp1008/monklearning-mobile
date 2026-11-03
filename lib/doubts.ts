@@ -205,6 +205,9 @@ export interface SnapFailure {
   used_today?: number;
   daily_limit?: number;
   retry_after_seconds?: number | null;
+  /** The limit was the FREE tier's: `message` is written to make the case for a
+   *  plan, and the screen offers Plans where a paying student's says "tomorrow". */
+  upgrade?: boolean;
 }
 
 /** A picked/captured photo, in the shape expo-image-picker returns. */
@@ -471,6 +474,7 @@ export function readSnapFailure(error: unknown): SnapFailure {
         used_today: d.used_today,
         daily_limit: d.daily_limit,
         retry_after_seconds: d.retry_after_seconds,
+        upgrade: d.upgrade === true,
       };
     }
   }

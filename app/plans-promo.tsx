@@ -32,12 +32,12 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { PLANS } from '@/components/paywall/plans';
-import type { Pick } from '@/components/paywall/screens';
-import { ob, obFont, rupees, useDesignScale } from '@/constants/onboarding';
+import type { PlansPick } from '@/components/paywall/plans-page';
+import { PASSES, ob, obFont, rupees, useDesignScale } from '@/constants/onboarding';
 import { checkPromo, rupeesOf, type Quote } from '@/lib/promo';
 import type { PassKind } from '@/lib/pass';
 
-const isPick = (v?: string): v is Pick => PLANS.some((p) => p.id === v);
+const isPick = (v?: string): v is PlansPick => PASSES.some((p) => p.id === v) || PLANS.some((p) => p.id === v);
 
 export default function PlansPromoScreen() {
   const { ds, fs, tracking } = useDesignScale();
@@ -46,7 +46,7 @@ export default function PlansPromoScreen() {
 
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
   const pick = isPick(params.pick) ? params.pick : null;
-  const plan = PLANS.find((p) => p.id === pick) ?? null;
+  const plan = PLANS.find((p) => p.id === pick) ?? PASSES.find((p) => p.id === pick) ?? null;
   const price = plan ? plan.price : 0;
 
   const [draft, setDraft] = useState((params.promo ?? '').toUpperCase());

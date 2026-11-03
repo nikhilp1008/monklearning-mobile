@@ -7,15 +7,17 @@ import { PaymentNotice } from '@/components/paywall/payment-notice';
 import { PlansPage, type PlansPick } from '@/components/paywall/plans-page';
 import { isReviewerSession } from '@/lib/reviewer';
 import { PLANS } from '@/components/paywall/plans';
+import { PASSES } from '@/constants/onboarding';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PaywallSuccess } from '@/components/paywall/screens';
 import { exitOnBack, useAndroidBack } from '@/lib/android-back';
 import { PASS_NAME, cachedPassStatus, passStatus, startPass, type PassKind, type PassStatus } from '@/lib/pass';
+import { usePlan } from '@/lib/free-tier';
 import { payErrorMessage } from '@/lib/payments';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { rupeesOf } from '@/lib/promo';
 
-const isPick = (v?: string): v is PlansPick => v === 'week' || PLANS.some((p) => p.id === v);
+const isPick = (v?: string): v is PlansPick => PASSES.some((p) => p.id === v) || PLANS.some((p) => p.id === v);
 
 /** How often a page waiting on a confirmed payment asks again. */
 const PENDING_RECHECK_MS = 15000;
@@ -41,6 +43,7 @@ const PENDING_RECHECK_MS = 15000;
 export default function PlansScreen() {
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
   const { pay, checkout, confirming } = usePassCheckout();
+  const { starterUsed } = usePlan();
 
   /** Where the student stands. Null until the first answer. */
   const [status, setStatus] = useState<PassStatus | null>(null);
@@ -148,6 +151,9 @@ export default function PlansScreen() {
         context={context}
         teacher={teacher}
         passEnds={status.state === 'active' ? status.endsAt : null}
+        runningKind={status.state === 'active' ? status.record.kind : null}
+        neverHadPass={status.state === 'none'}
+        starterUsed={starterUsed}
         pick={isPick(params.pick) ? params.pick : null}
         promo={(params.promo ?? '').toUpperCase()}
         busy={paying}

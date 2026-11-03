@@ -138,11 +138,31 @@ export function clearProgressCache(): void {
  * the score has demonstrably moved, so the window's premise ("30 seconds stale
  * is indistinguishable from fresh") no longer holds.
  */
+/**
+ * The free tier does not see its own progress (the server answers
+ * `{ locked: true, message }` with a 200). It is an error here so no caller
+ * can mistake it for a summary and read a score off it; the Progress screen
+ * catches it and draws the locked sample, and Home simply shows no stats row.
+ */
+export class ProgressLockedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProgressLockedError';
+  }
+}
+
 export async function getProgress(
   options?: { force?: boolean },
 ): Promise<ProgressSummary> {
   if (!options?.force && cached && Date.now() - cachedAt < FRESH_MS) return cached;
-  const fresh = await apiFetch<ProgressSummary>('/progress');
+  const fresh = await apiFetch<ProgressSummary & { locked?: boolean; message?: string }>('/progress');
+  if (fresh.locked === true) {
+    cached = null;
+    cachedAt = 0;
+    throw new ProgressLockedError(
+      fresh.message || 'Your progress and weak areas unlock with a plan.',
+    );
+  }
   cached = fresh;
   cachedAt = Date.now();
   return fresh;

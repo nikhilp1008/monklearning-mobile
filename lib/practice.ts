@@ -42,6 +42,9 @@ export interface NextQuestion {
 export interface PoolExhausted {
   exhausted: true;
   message: string;
+  /** The limit was the FREE tier's: `message` is written to make the case for a
+   *  plan, and the screen offers Plans where a paying student's says "tomorrow". */
+  upgrade?: boolean;
   /** `daily_limit` when the 150 are spent, `pool_empty` when this filter has
    *  nothing left. They need different words and different advice. */
   reason?: 'daily_limit' | 'pool_empty';
@@ -136,6 +139,8 @@ export interface PracticeStats {
   attempted: number;
   correct: number;
   accuracy: number;
+  /** The free tier does not see its own tally (it is still recorded). */
+  locked?: boolean;
 }
 
 export function getNextQuestion(params: {
