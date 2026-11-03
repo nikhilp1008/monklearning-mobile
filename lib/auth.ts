@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { clearProfile, hasCompletedOnboarding, onboardedOnThisDevice } from '@/lib/profile';
 import { clearAllMockProgress } from '@/lib/mock';
@@ -199,8 +200,10 @@ export async function signOut(): Promise<void> {
  * is cleared then only if a DIFFERENT account signs in (`afterSignIn`).
  *
  * Bump the version to ask everyone to sign in again in a later release.
+ * v2 is iPhone only (Nov 2026): TestFlight testers sign in again with the first
+ * iPhone build since 1.4.1. Android stays on v1, so nobody there is signed out.
  */
-const RELOGIN_KEY = 'auth.relogin:v1';
+const RELOGIN_KEY = Platform.OS === 'ios' ? 'auth.relogin:v2' : 'auth.relogin:v1';
 const SIGNED_OUT_USER_KEY = 'auth.signedOutByUpdate';
 
 /** The access token of the session this launch ended, or null. Asked once

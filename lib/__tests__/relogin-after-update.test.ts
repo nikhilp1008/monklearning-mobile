@@ -119,3 +119,14 @@ test('a different student signing in does not inherit the last one’s data', as
   expect(mockClears.plan).toHaveBeenCalled();
   expect(mockClears.pass).not.toHaveBeenCalled();
 });
+
+test('an iPhone tester who already passed v1 is signed out once more, and only once', async () => {
+  await AsyncStorage.setItem('auth.relogin:v1', '1');
+  mockAuth.session = { access_token: 'old', user: { id: 'u1' } };
+  expect(await launch().endSessionFromBeforeUpdate()).toBe('old');
+  expect(mockAuth.signOut).toHaveBeenCalledTimes(1);
+
+  mockAuth.session = { access_token: 'new', user: { id: 'u1' } };
+  expect(await launch().endSessionFromBeforeUpdate()).toBeNull();
+  expect(mockAuth.signOut).toHaveBeenCalledTimes(1);
+});
