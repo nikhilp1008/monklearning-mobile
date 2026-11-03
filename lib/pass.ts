@@ -191,8 +191,8 @@ export type TierLimits = {
 };
 
 export const DEFAULT_TIERS: Record<TierName, TierLimits> = {
-  day: { window_days: 1, classes: 1, classes_per_day: 1, snap_questions: 25, practice_questions: 100, followups: 100 },
-  week: { window_days: 7, classes: 3, classes_per_day: 2, snap_questions: 25, practice_questions: 100, followups: 100 },
+  day: { window_days: 1, classes: 2, classes_per_day: 2, snap_questions: 25, practice_questions: 100, followups: 100 },
+  week: { window_days: 7, classes: 10, classes_per_day: 2, snap_questions: 25, practice_questions: 100, followups: 100 },
   pro: { window_days: 30, classes: 45, classes_per_day: 2, snap_questions: 25, practice_questions: 100, followups: 100 },
   max: { window_days: 30, classes: 60, classes_per_day: 3, snap_questions: 50, practice_questions: 200, followups: 100 },
 };

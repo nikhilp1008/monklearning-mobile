@@ -34,8 +34,16 @@ describe('the plans and what they cost', () => {
   test('the built-in numbers are the server\'s defaults (app/tiers.py)', () => {
     expect(DEFAULT_TIERS.pro).toMatchObject({ classes: 45, classes_per_day: 2, snap_questions: 25, practice_questions: 100 });
     expect(DEFAULT_TIERS.max).toMatchObject({ classes: 60, classes_per_day: 3, snap_questions: 50, practice_questions: 200 });
-    expect(DEFAULT_TIERS.day.classes).toBe(1);
-    expect(DEFAULT_TIERS.week.classes).toBe(3);
+    expect(DEFAULT_TIERS.day.classes).toBe(2);
+    expect(DEFAULT_TIERS.week.classes).toBe(10);
+    // A day or week pass is Pro for that long.
+    for (const t of ['day', 'week'] as const) {
+      expect(DEFAULT_TIERS[t]).toMatchObject({
+        classes_per_day: DEFAULT_TIERS.pro.classes_per_day,
+        snap_questions: DEFAULT_TIERS.pro.snap_questions,
+        practice_questions: DEFAULT_TIERS.pro.practice_questions,
+      });
+    }
   });
 });
 

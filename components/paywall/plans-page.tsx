@@ -344,7 +344,7 @@ export function PlansPage(props: PlansPageProps) {
       key={p.id}
       shape="row"
       label={p.name}
-      note={p.id === 'day' ? '1 live class, snaps and practice' : '3 live classes, snaps and practice'}
+      note={p.id === 'day' ? 'Live classes, snaps and practice, for a day' : 'Live classes, snaps and practice, for a week'}
       trailing={rupees(p.price)}
       selected={pick === p.id}
       tickArrives

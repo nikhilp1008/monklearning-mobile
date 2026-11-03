@@ -142,17 +142,17 @@ export type PassKey = (typeof PASSES)[number]['id'];
  * failure the copy was meant to prevent. A comment cannot keep two constants
  * equal; one constant can.
  *
- * WHAT THE STARTER PASSES (day and week) INCLUDE. Live classes are counted (one,
- * and three); snaps and practice are NOT put in numbers on purpose (founder,
- * 2026-11-03): a day or week pass gets what Pro gets and is not told so, since a
- * number said up front is a ceiling to be measured against. The server's
- * `tier_limits` (API migration 0116) holds the real figures; a student who
- * reaches one is told it then. monklearning.com is another repo and still says
+ * WHAT THE STARTER PASSES (day and week) INCLUDE: Pro, for a day and for a week
+ * (founder, 2026-11-03). Live classes are said as Pro's two a day; snaps and
+ * practice are NOT put in numbers on purpose: a day or week pass gets what Pro
+ * gets and is not told so, since a number said up front is a ceiling to be
+ * measured against. The server's `tier_limits` (API migrations 0116 and 0117)
+ * holds the real figures; a student who reaches one is told it then. monklearning.com is another repo and still says
  * the old ones.
  */
 export const INCLUDED: [string, string][] = [
   ['Class 11 & 12', 'Every chapter, taught aloud'],
-  ['Live classes', '1 on the day pass · 3 on the week pass'],
+  ['Live classes', 'Up to 2 a day'],
   ['Snap and Practice', 'Every day'],
   ['Drona & Vedha', 'English / Hinglish'],
 ];
