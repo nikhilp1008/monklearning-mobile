@@ -11,7 +11,7 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { SKY_THEMES } from '@/constants/teachers';
 import { useFreeTier, usePlan } from '@/lib/free-tier';
-import { PASS_NAME, isTeamAccess, passDays, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
+import { PASS_NAME, cachedPassStatus, isTeamAccess, passDays, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 
 /**
@@ -71,6 +71,10 @@ export default function SubscriptionScreen() {
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   useEffect(() => {
     let live = true;
+    // The phone's last answer at once; the server's answer then wins.
+    cachedPassStatus().then((c) => {
+      if (live && c.state !== 'unknown') setStatus((s) => s ?? c);
+    });
     passStatus().then((s) => live && setStatus(s));
     getTeacherPreference().then((t) => live && setTeacher(t));
     return () => {

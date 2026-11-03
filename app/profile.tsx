@@ -33,7 +33,7 @@ import { useScale } from '@/constants/scale';
 import { SKY_THEMES, START_ARROW, TEACHERS } from '@/constants/teachers';
 import { signOut } from '@/lib/auth';
 import { hapticCommitted, hapticSwitched, hapticsEnabled, setHapticsEnabled } from '@/lib/haptics';
-import { PASS_NAME, isTeamAccess, passDays, passStatus, type PassStatus } from '@/lib/pass';
+import { PASS_NAME, cachedPassStatus, isTeamAccess, passDays, passStatus, type PassStatus } from '@/lib/pass';
 import { pullPersona, pushPersona } from '@/lib/persona-sync';
 import {
   getLanguagePreference,
@@ -92,6 +92,11 @@ export default function ProfileScreen() {
     // Read, never written here: the teacher is chosen on Select Teacher. This
     // screen lights its card in their sky and names them.
     getTeacherPreference().then((t) => !cancelled && setTeacher(t));
+    // The phone's last answer at once, so the plan row is never blank while the
+    // server is asked; the server's answer then wins.
+    cachedPassStatus().then((c) => {
+      if (!cancelled && c.state !== 'unknown') setPass((p) => p ?? c);
+    });
     passStatus().then((p) => !cancelled && setPass(p));
     // Local first so the page paints at once, then refreshed from the server:
     // this is the screen most likely to be opened on a new device.
@@ -226,7 +231,7 @@ export default function ProfileScreen() {
           <Text style={styles.manageLine}>{pass ? passLine : ' '}</Text>
         </View>
         <Text style={styles.manageLink}>
-          {pass?.state === 'active' ? 'Manage plan' : 'Get a pass'} →
+          {!pass ? ' ' : pass.state === 'active' ? 'Manage plan →' : 'Get a pass →'}
         </Text>
       </PressableScale>
 

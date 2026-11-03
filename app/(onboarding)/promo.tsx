@@ -22,14 +22,15 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { ObButton, ObHeader } from '@/components/onboarding-kit';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
+import { PLANS } from '@/components/paywall/plans';
 import { checkPromo, rupeesOf, type Quote } from '@/lib/promo';
+import type { PassKind } from '@/lib/pass';
 import {
   PASSES,
   ob,
   obFont,
   rupees,
   useDesignScale,
-  type PassKey,
 } from '@/constants/onboarding';
 
 export default function PromoScreen() {
@@ -38,8 +39,10 @@ export default function PromoScreen() {
   const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
 
   const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
-  const passId = (PASSES.some((p) => p.id === params.pass) ? params.pass : 'week') as PassKey;
-  const pass = PASSES.find((p) => p.id === passId) ?? PASSES[1];
+  const plan = PLANS.find((p) => p.id === params.pass) ?? null;
+  const chosen = plan ?? PASSES.find((p) => p.id === params.pass) ?? null;
+  /** How the screen names what the code is for: "Pro plan", "7 days pass". */
+  const named = chosen ? `${chosen.name} ${plan ? 'plan' : 'pass'}` : '';
 
   const [draft, setDraft] = useState((params.promo ?? '').toUpperCase());
   const [rejected, setRejected] = useState(false);
@@ -67,8 +70,13 @@ export default function PromoScreen() {
 
   const apply = async () => {
     if (checking || !draft.trim()) return;
+    // A code can be good for some plans and not others, so it is checked against one.
+    if (!chosen) {
+      setMessage('Pick a pass or a plan first, then add your code.');
+      return reject();
+    }
     setChecking(true);
-    const answer = await checkPromo(draft, passId);
+    const answer = await checkPromo(draft, chosen.id as PassKind);
     setChecking(false);
     if (!answer.valid) {
       setQuote(null);
@@ -81,7 +89,7 @@ export default function PromoScreen() {
     // and a pop would restore the instance that never had it.
     router.replace({
       pathname: '/pass',
-      params: { pass: passId, promo: answer.quote.code, exam: params.exam ?? '' },
+      params: { pass: chosen.id, promo: answer.quote.code, exam: params.exam ?? '' },
     });
   };
 
@@ -125,24 +133,26 @@ export default function PromoScreen() {
               />
             </Animated.View>
 
-            <View style={styles.ledger}>
-              <View style={styles.ledgerRow}>
-                <Text style={styles.ledgerLabel}>{pass.name} pass</Text>
-                <Text style={styles.ledgerValue}>{rupees(pass.price)}</Text>
+            {chosen ? (
+              <View style={styles.ledger}>
+                <View style={styles.ledgerRow}>
+                  <Text style={styles.ledgerLabel}>{named}</Text>
+                  <Text style={styles.ledgerValue}>{rupees(chosen.price)}</Text>
+                </View>
+                <View style={[styles.ledgerRow, styles.ledgerRowLast]}>
+                  <Text style={styles.ledgerLabel}>With this code</Text>
+                  <Text style={[styles.ledgerValue, valid && styles.ledgerValueOn]}>
+                    {rupees(quote ? rupeesOf(quote.finalPaise) : chosen.price)}
+                  </Text>
+                </View>
               </View>
-              <View style={[styles.ledgerRow, styles.ledgerRowLast]}>
-                <Text style={styles.ledgerLabel}>With this code</Text>
-                <Text style={[styles.ledgerValue, valid && styles.ledgerValueOn]}>
-                  {rupees(quote ? rupeesOf(quote.finalPaise) : pass.price)}
-                </Text>
-              </View>
-            </View>
+            ) : null}
 
             <Text style={[styles.hint, rejected && !valid && styles.hintBad]}>
               {quote
                 ? quote.free
-                  ? `Valid code. The ${pass.name} pass is free.`
-                  : `Valid code. ${rupees(rupeesOf(quote.discountPaise))} off the ${pass.name} pass.`
+                  ? `Valid code. The ${named} is free.`
+                  : `Valid code. ${rupees(rupeesOf(quote.discountPaise))} off the ${named}.`
                 : rejected
                   ? message || 'That code isn’t valid. Check the spelling and try again.'
                   : 'Enter your code exactly as you received it.'}

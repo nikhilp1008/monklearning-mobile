@@ -48,6 +48,8 @@ export default function PlansPromoScreen() {
   const pick = isPick(params.pick) ? params.pick : null;
   const plan = PLANS.find((p) => p.id === pick) ?? PASSES.find((p) => p.id === pick) ?? null;
   const price = plan ? plan.price : 0;
+  /** "Pro plan", "7 days pass". */
+  const named = plan ? `${plan.name} ${PLANS.some((p) => p.id === plan.id) ? 'plan' : 'pass'}` : 'plan';
 
   const [draft, setDraft] = useState((params.promo ?? '').toUpperCase());
   const [rejected, setRejected] = useState(false);
@@ -75,7 +77,7 @@ export default function PlansPromoScreen() {
   const apply = async () => {
     if (checking || !draft.trim()) return;
     if (!codeable) {
-      setMessage('Pick a plan first, then add your code.');
+      setMessage('Pick a pass or a plan first, then add your code.');
       return reject();
     }
     setChecking(true);
@@ -151,7 +153,7 @@ export default function PlansPromoScreen() {
             {plan ? (
               <View style={styles.ledger}>
                 <View style={styles.ledgerRow}>
-                  <Text style={styles.ledgerLabel}>{plan.name}</Text>
+                  <Text style={styles.ledgerLabel}>{named}</Text>
                   <Text style={styles.ledgerValue}>{rupees(price)}</Text>
                 </View>
                 <View style={[styles.ledgerRow, styles.ledgerRowLast]}>
@@ -166,8 +168,8 @@ export default function PlansPromoScreen() {
             <Text style={[styles.hint, rejected && !valid && styles.hintBad]}>
               {quote
                 ? quote.free
-                  ? `Valid code. The ${plan?.name ?? 'plan'} plan is free.`
-                  : `Valid code. ${rupees(rupeesOf(quote.discountPaise))} off the ${plan?.name ?? 'plan'} plan.`
+                  ? `Valid code. The ${named} is free.`
+                  : `Valid code. ${rupees(rupeesOf(quote.discountPaise))} off the ${named}.`
                 : rejected
                   ? message || 'That code isn’t valid. Check the spelling and try again.'
                   : 'Enter your code exactly as you received it.'}

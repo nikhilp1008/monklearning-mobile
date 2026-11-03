@@ -19,7 +19,6 @@ import Svg, { Path } from "react-native-svg";
 
 import { CONTROL_LABEL_MAX_SCALE } from "@/constants/font-scale";
 import { PressableScale } from "@/components/pressable-scale";
-import { POUR_ROW_MS, PourFill, usePour, type SkyTheme } from "@/components/paywall/poured-sky";
 import { ob, obFont, useDesignScale } from "@/constants/onboarding";
 import { hapticSwitched } from "@/lib/haptics";
 
@@ -107,14 +106,7 @@ export function SkyChoice({
   style,
   tickArrives = false,
   plain = false,
-  pourTheme,
 }: {
-  /**
-   * A payment screen: when picked, the row fills from the top with the one
-   * gradient every payment screen uses, instead of fading in the picture of the
-   * sky. Rows only.
-   */
-  pourTheme?: SkyTheme;
   /**
    * Picked without the sky: the row stays white, its edge turns ink, and the
    * tick (ink, with a cream mark) is the whole change. For the plans page,
@@ -175,21 +167,18 @@ export function SkyChoice({
           ? SKY.tile2
           : SKY.tile3;
 
-  const pour = usePour(selected, POUR_ROW_MS);
-  const poured = !!pourTheme;
-  const pourOpen = pour.open;
-  const skyIn = useAnimatedStyle(() => ({ opacity: plain || poured ? 0 : progress.value }));
+  const skyIn = useAnimatedStyle(() => ({ opacity: plain ? 0 : progress.value }));
   const hairline = useAnimatedStyle(() =>
     plain
       ? { opacity: 1, borderColor: interpolateColor(progress.value, [0, 1], [ob.hairline14, ob.ink]) }
-      : { opacity: 1 - (poured ? pourOpen.value : progress.value) },
+      : { opacity: 1 - progress.value },
   );
   const labelColor = useAnimatedStyle(() => ({
-    color: interpolateColor(poured ? pourOpen.value : progress.value, [0, 1], [ob.ink, plain ? ob.ink : CREAM]),
+    color: interpolateColor(progress.value, [0, 1], [ob.ink, plain ? ob.ink : CREAM]),
   }));
   const noteColor = useAnimatedStyle(() => ({
     color: interpolateColor(
-      poured ? pourOpen.value : progress.value,
+      progress.value,
       [0, 1],
       [ob.ink55, plain ? ob.ink55 : "rgba(251,249,242,0.8)"],
     ),
@@ -260,11 +249,10 @@ export function SkyChoice({
           }}
         >
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, skyIn]}>
-            {box.h > 0 && !plain && !poured && (
+            {box.h > 0 && !plain && (
               <Image source={sky} contentFit="fill" style={StyleSheet.absoluteFill} />
             )}
           </Animated.View>
-          {pourTheme ? <PourFill pour={pour} width={box.w} height={box.h} radius={radius} theme={pourTheme} /> : null}
           <Animated.View
             pointerEvents="none"
             style={[

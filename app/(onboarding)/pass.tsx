@@ -9,7 +9,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
@@ -17,40 +16,23 @@ import { PaymentNotice } from '@/components/paywall/payment-notice';
 import { UpiPay, useUpiApps } from '@/components/paywall/upi-pay';
 import type { UpiApp } from '@/lib/upi-apps';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
-import { OnbTitle } from '@/components/onboarding/onb-screen';
-import { SkyChoice } from '@/components/onboarding/sky-choice';
+import { PlanChooser, type PlansPick } from '@/components/paywall/plan-chooser';
+import { PLANS } from '@/components/paywall/plans';
 import { PressableScale } from '@/components/pressable-scale';
-import { SKY_THEMES } from '@/constants/teachers';
-import { useFreeTier } from '@/lib/free-tier';
-import { passStatus } from '@/lib/pass';
-import { teacherIdNow } from '@/lib/preferences';
+import { useScale } from '@/constants/scale';
+import { useFreeTier, usePlan } from '@/lib/free-tier';
+import { passStatus, type PassKind } from '@/lib/pass';
 import { PAYMENTS_ON_THIS_DEVICE, payErrorMessage } from '@/lib/payments';
 import { rupeesOf, usePromo } from '@/lib/promo';
 import {
   EXAMS,
-  INCLUDED,
   PASSES,
   ob,
   obFont,
   rupees,
   useDesignScale,
   type ExamKey,
-  type PassKey,
 } from '@/constants/onboarding';
-
-function ArrowGlyph({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path
-        d="M2 8h11M9 3.5 13.5 8 9 12.5"
-        stroke={ob.link}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 /** After a UPI payment the server could not confirm: how long, and how often,
  *  the page keeps asking for the pass. */
@@ -58,9 +40,12 @@ const LATE_WATCH_MS = 2 * 60 * 1000;
 const LATE_WATCH_EVERY_MS = 5000;
 
 export default function PassScreen() {
-  const { ds, fs, tracking } = useDesignScale();
-  const styles = useMemo(() => createStyles(ds, fs, tracking), [ds, fs, tracking]);
+  const { ds, fs } = useDesignScale();
+  const { scale } = useScale();
+  const styles = useMemo(() => createStyles(ds, fs), [ds, fs]);
   const freeTier = useFreeTier();
+  const { starterUsed } = usePlan();
+  const starters = PASSES.filter((p) => !starterUsed.includes(p.id));
 
   // Both come back from the promo screen, which replaces this route rather
   // than popping to it — so the pass the student had already chosen has to
@@ -68,20 +53,17 @@ export default function PassScreen() {
   const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
   // Nothing preselected. A highlighted row reads as an answer already given,
   // and this one costs money — the student should pick it, not un-pick ours.
-  const [pass, setPass] = useState<PassKey | null>(
-    PASSES.some((p) => p.id === params.pass) ? (params.pass as PassKey) : null
-  );
+  const isPick = (v?: string): v is PlansPick => PASSES.some((p) => p.id === v) || PLANS.some((p) => p.id === v);
+  const [pass, setPass] = useState<PlansPick | null>(isPick(params.pass) ? params.pass : null);
 
-  const active = PASSES.find((p) => p.id === pass) ?? null;
+  const plan = PLANS.find((p) => p.id === pass) ?? null;
+  const active = plan ?? PASSES.find((p) => p.id === pass) ?? null;
   // The server prices the code (a typed one, or one made for this student) and
   // this screen shows exactly its answer; with no code the list price stands.
-  const { code: promo, quote, checking, refresh } = usePromo(params.promo ?? '', pass);
+  const { code: promo, quote, checking, auto, refresh } = usePromo(params.promo ?? '', pass as PassKind | null);
   const discount = quote ? rupeesOf(quote.discountPaise) : 0;
   const total = !active ? 0 : quote ? rupeesOf(quote.finalPaise) : active.price;
   const paid = !!active && !!quote?.free;
-
-  // SkyChoice gives the tap its haptic.
-  const select = (id: PassKey) => setPass(id);
 
   const { pay, checkout, confirming } = usePassCheckout();
   const [paying, setPaying] = useState(false);
@@ -117,8 +99,7 @@ export default function PassScreen() {
         // opened its own. While a purchase is on, the purchase decides.
         if (!live || st.state !== 'active' || leaving.current || payingNow.current) return;
         leaving.current = true;
-        const kind = st.record.kind === 'day' || st.record.kind === 'week' ? st.record.kind : 'week';
-        router.replace({ pathname: '/pass-active', params: { pass: kind, promo: '', exam: params.exam ?? '', paid: '1' } });
+        router.replace({ pathname: '/pass-active', params: { pass: st.record.kind, promo: '', exam: params.exam ?? '', paid: '1' } });
       });
     checkPass.current = () => void check();
     void check();
@@ -163,7 +144,7 @@ export default function PassScreen() {
     setUpiBusy(app?.packageName ?? null);
     try {
       const result = await pay(active.id, {
-        description: `${active.name} pass`,
+        description: plan ? `${plan.name} plan` : `${active.name} pass`,
         promo: quote && !quote.free ? quote.code : undefined,
         // The sheet only opens for the amount on the button.
         expectedPaise: Math.round(total * 100),
@@ -210,56 +191,26 @@ export default function PassScreen() {
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {/* The onboarding's shared heading: no back arrow, same spot as every
-              question before it. OnbTitle pads itself to 30, which this
-              screen's content already is, so it is pulled back out by that. */}
-          <View style={styles.titleBleed}>
-            <OnbTitle title="Start with a pass" sub="Live classes, doubts and practice. Nothing renews on its own." />
-          </View>
-
-          <View style={styles.rows}>
-            {PASSES.map((p) => (
-              <SkyChoice
-                key={p.id}
-                shape="row"
-                label={p.name}
-                trailing={rupees(p.price)}
-                selected={pass === p.id}
-                pourTheme={SKY_THEMES[teacherIdNow()]}
-                onPress={() => select(p.id)}
-              />
-            ))}
-
-            {/* A line, not a field. Nothing is typed here — the box implied an
-                input and sat in a stack of two other boxes that ARE choices,
-                so it read as a third pass. */}
-            <PressableScale style={styles.promoLink} hitSlop={10} onPress={toPromo}>
-              <Text style={styles.promoLinkText}>
-                {discount
-                  ? `${quote?.code ?? promo} applied · −${rupees(discount)}`
-                  : promo && !quote && !checking
-                    ? // A code is in force but could not be priced: say so, so a
-                      // student is never charged full price thinking it applied.
-                      `${promo} couldn't be applied`
-                    : 'Have a promo code?'}
-              </Text>
-              <ArrowGlyph size={ds(13)} />
-            </PressableScale>
-          </View>
-
-          <View style={styles.included}>
-            <Text style={styles.overline}>BOTH PASSES INCLUDE</Text>
-            {/* No teachers before the payment: the teacher is met on the very
-                next screens, so their row is left off here (the paywall keeps it). */}
-            {INCLUDED.filter(([label]) => label !== 'Drona & Vedha').map(([label, value], i, rows) => (
-              <View
-                key={label}
-                style={[styles.includedRow, i === rows.length - 1 && styles.includedRowLast]}>
-                <Text style={styles.includedLabel}>{label}</Text>
-                <Text style={styles.includedValue}>{value}</Text>
-              </View>
-            ))}
-          </View>
+          <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(26), lineHeight: scale(32), letterSpacing: scale(-0.5), color: ob.ink, marginBottom: scale(20) }}>
+            Choose what works for you
+          </Text>
+          <PlanChooser
+            pick={pass}
+            onPick={setPass}
+            starters={starters}
+            passesFirst
+            promoLine={
+              discount
+                ? `${quote?.code ?? promo} applied · −${rupees(discount)}`
+                : // A code is in force but could not be priced: say so, so a
+                  // student is never charged full price thinking it applied.
+                  promo && !quote && !checking && !auto
+                  ? `${promo} couldn't be applied`
+                  : 'Have a promo code?'
+            }
+            promoQuiet={!quote && !!promo && !checking && !auto}
+            onPromo={toPromo}
+          />
         </ScrollView>
 
         <View style={styles.footer}>
@@ -278,7 +229,7 @@ export default function PassScreen() {
           <ObButton
             label={
               !active
-                ? 'Choose a pass'
+                ? 'Choose one to continue'
                 : paid
                   ? 'Complete for ₹0'
                   : PAYMENTS_ON_THIS_DEVICE
@@ -286,7 +237,7 @@ export default function PassScreen() {
                     : // iPhone: testers come in with a code (lib/payments.ts).
                       'Enter a promo code'
             }
-            trailing={paid || PAYMENTS_ON_THIS_DEVICE ? active?.name : undefined}
+            trailing={paid || PAYMENTS_ON_THIS_DEVICE ? (plan ? `${plan.name} · 1 month` : active?.name) : undefined}
             disabled={!active || paying || checking}
             withArrow={paid}
             onPress={() => {
@@ -300,9 +251,6 @@ export default function PassScreen() {
               });
             }}
           />
-          {!!active && (
-            <Text style={styles.footNote}>One payment. Nothing renews on its own.</Text>
-          )}
           {freeTier.free && (
             // The free tier: a way past the price list. Not hidden and not
             // shouted: a plan is what this screen is for, and this is what the
@@ -334,68 +282,17 @@ export function examLabel(key: string | undefined) {
   return (EXAMS[k] ?? EXAMS.jee).name;
 }
 
-function createStyles(
-  ds: (size: number) => number,
-  fs: (size: number) => number,
-  tracking: (em: number, fontSize: number) => number
-) {
+function createStyles(ds: (size: number) => number, fs: (size: number) => number) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: ob.surface },
     safeArea: { flex: 1 },
-    content: { paddingHorizontal: ds(30), paddingBottom: ds(24) },
-    titleBleed: { marginHorizontal: -ds(30) },
-    sub: {
-      fontFamily: obFont.r400,
-      fontSize: fs(15),
-      lineHeight: fs(22),
-      color: ob.ink80,
-      marginTop: ds(14),
-    },
-    rows: { marginTop: ds(22), gap: ds(10) },
+    content: { paddingHorizontal: ds(20), paddingTop: ds(18), paddingBottom: ds(12) },
     freeLink: { alignSelf: 'center', paddingVertical: ds(12), marginTop: ds(4) },
     freeLinkText: {
       fontFamily: obFont.m500,
       fontSize: fs(15),
       color: ob.link,
     },
-    promoLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: ds(6),
-      alignSelf: 'flex-start',
-      paddingVertical: ds(6),
-    },
-    promoLinkText: {
-      fontFamily: obFont.m500,
-      fontSize: fs(15),
-      color: ob.link,
-    },
-    included: { marginTop: ds(26) },
-    overline: {
-      fontFamily: obFont.sb600,
-      fontSize: fs(10),
-      letterSpacing: tracking(0.14, 10),
-      color: ob.ink55,
-      marginBottom: ds(8),
-    },
-    includedRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: ds(12),
-      paddingVertical: ds(9),
-      borderTopWidth: 1,
-      borderTopColor: ob.rule,
-    },
-    includedRowLast: { borderBottomWidth: 1, borderBottomColor: ob.rule },
-    includedLabel: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink80 },
-    includedValue: { fontFamily: obFont.r400, fontSize: fs(13.5), color: ob.ink },
-    footer: { paddingHorizontal: ds(30), paddingBottom: ds(16), gap: ds(10) },
-    footNote: {
-      fontFamily: obFont.r400,
-      fontSize: fs(13),
-      lineHeight: fs(19),
-      textAlign: 'center',
-      color: ob.ink55,
-    },
+    footer: { paddingHorizontal: ds(20), paddingTop: ds(8), paddingBottom: ds(10), gap: ds(10) },
   });
 }

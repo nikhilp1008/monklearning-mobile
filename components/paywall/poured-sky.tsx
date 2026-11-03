@@ -1,31 +1,31 @@
+import { Image } from 'expo-image';
 import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
 import Animated, { Easing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 
-import { NightSky } from '@/components/night-sky';
-import type { SKY_THEMES } from '@/constants/teachers';
-import type { TeacherId } from '@/lib/preferences';
-
 /**
- * WHAT IS PICKED ON A PAYMENT SCREEN: ONE GRADIENT, POURED FROM THE TOP.
+ * WHAT IS PICKED ON A PAYMENT SCREEN: ONBOARDING'S SKY, POURED FROM THE TOP.
  *
- * A pass, Pro or Max: the same drawing at each thing's own size, so a short row
- * and a tall column carry the same dark-to-ember sky (Nikhil, 3 Nov 2026). It runs
- * down from the top edge and the words turn as it reaches them.
+ * The same picture a picked answer has on every onboarding question (Nikhil, 3 Nov
+ * 2026), so a pass, Pro and Max read as answers to one more question. It runs down
+ * from the top edge and the words turn as it reaches them.
  *
- * The sky is drawn ready behind a closed clip: a canvas mounted on the tap takes a
- * moment to paint, and the words had turned white on white by then. It is clipped,
- * not stretched, so the pour costs no redraw.
+ * Drawn ready behind a closed clip, so the words never turn cream before the sky is
+ * there. It is clipped, not stretched as it moves, so the pour costs no redraw.
  */
 
-export type SkyTheme = (typeof SKY_THEMES)[TeacherId];
+const SKY = {
+  row: require('@/assets/images/onboarding/sky-row.png'),
+  column: require('@/assets/images/onboarding/sky-tile3.png'),
+};
 
-/** A little taller than the thing it fills: the ember stays low, and the words on it readable. */
-const SKY_RATIO = 1.28;
 const EASE = Easing.bezier(0.45, 0.05, 0.25, 1);
 
 export const POUR_ROW_MS = 420;
 export const POUR_COLUMN_MS = 620;
+/** The cream onboarding's picked answers use. */
+export const POUR_CREAM = '#FBF9F2';
+export const POUR_CREAM_QUIET = 'rgba(251,249,242,0.8)';
 
 export type Pour = { open: SharedValue<number> };
 
@@ -38,13 +38,13 @@ export function usePour(on: boolean, ms: number): Pour {
   return { open };
 }
 
-export function PourFill({ pour, width, height, radius, theme }: { pour: Pour; width: number; height: number; radius: number; theme: SkyTheme }) {
+export function PourFill({ pour, shape, height, radius }: { pour: Pour; shape: keyof typeof SKY; height: number; radius: number }) {
   const { open } = pour;
   const level = useAnimatedStyle(() => ({ height: open.value * height }));
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, overflow: 'hidden' }]}>
       <Animated.View style={[styles.level, level]}>
-        {width > 0 && height > 0 ? <NightSky width={width} height={Math.round(height * SKY_RATIO)} lift={0} grain={0.35} theme={theme} /> : null}
+        {height > 0 ? <Image source={SKY[shape]} contentFit="fill" style={{ width: '100%', height }} /> : null}
       </Animated.View>
     </View>
   );

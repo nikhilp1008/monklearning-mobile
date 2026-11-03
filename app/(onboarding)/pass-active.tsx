@@ -8,22 +8,23 @@ import { Alert } from 'react-native';
 
 import { useAndroidBack } from '@/lib/android-back';
 import { PassConfirmation, activeTill } from '@/components/pass-confirmation';
+import { PLANS } from '@/components/paywall/plans';
 import {
   EXAMS,
   PASSES,
   rupees,
   type ExamKey,
-  type PassKey,
 } from '@/constants/onboarding';
 import { ApiError } from '@/lib/api';
-import { startPass } from '@/lib/pass';
+import { startPass, type PassKind } from '@/lib/pass';
 import { payErrorMessage } from '@/lib/payments';
 import { getProfile } from '@/lib/profile';
 
 export default function PassActiveScreen() {
   const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string; paid?: string; amount?: string }>();
-  const passId = (PASSES.some((p) => p.id === params.pass) ? params.pass : 'week') as PassKey;
-  const pass = PASSES.find((p) => p.id === passId) ?? PASSES[1];
+  const plan = PLANS.find((p) => p.id === params.pass) ?? null;
+  const starter = PASSES.find((p) => p.id === params.pass) ?? PASSES[1];
+  const passId = (plan?.id ?? starter.id) as PassKind;
   // The profile, not the param: a student who resumes after the app was
   // closed reaches the pass with no param, and a NEET receipt must not say JEE.
   const [examKey, setExamKey] = useState<ExamKey>(params.exam === 'neet' ? 'neet' : 'jee');
@@ -85,9 +86,9 @@ export default function PassActiveScreen() {
     <PassConfirmation
       // No teacher named: the student has not chosen one yet. That is the
       // very next screen, so this line points at it.
-      sub={`${pass.name} of live classes, doubts and practice. Next, choose who teaches you.`}
+      sub={plan ? `You're on ${plan.name}. Next, choose who teaches you.` : `${starter.name} of live classes, doubts and practice. Next, choose who teaches you.`}
       rows={[
-        ['Pass', pass.name],
+        ['Pass', plan ? `${plan.name} · 1 month` : starter.name],
         ['Exam', exam.name],
         ['Active till', activeTill(passId)],
         ['Paid', rupees(paid)],
