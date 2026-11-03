@@ -14,9 +14,10 @@ export type CompareRow = { label: string; pro: string; max: string };
 export function compareRows(pro: TierLimits, max: TierLimits): CompareRow[] {
   return [
     { label: classesLabel(pro), pro: `${pro.classes}`, max: `${max.classes}` },
+    { label: 'Most classes in a day', pro: `${pro.classes_per_day}`, max: `${max.classes_per_day}` },
     { label: 'Snapped questions a day', pro: `${pro.snap_questions}`, max: `${max.snap_questions}` },
     { label: 'Practice questions a day', pro: `${pro.practice_questions}`, max: `${max.practice_questions}` },
-    { label: 'Follow-ups', pro: 'Unlimited', max: 'Unlimited' },
+    { label: 'Follow-up questions', pro: 'Unlimited', max: 'Unlimited' },
   ];
 }
 

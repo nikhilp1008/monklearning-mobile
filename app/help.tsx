@@ -1,31 +1,36 @@
-// Help: a plain screen to ask the help assistant a question about the app.
+// Support: a chat with the help assistant, and with the team when the assistant can't sort it out.
 //
-// A TEST SCREEN, built so the backend (POST /help/ask, /help/escalate, GET /help/escalations, API) can be tried
-// from a phone before the real design exists. Layout and wording are placeholders for the cofounder to
-// replace. What he should keep is the contract below.
-//
-// THE CONTRACT
-//   ask       { question }  ->  { ask_id, answer, route, covered, escalation_offered, sources }
-//   escalate  { ask_id }    ->  { escalated, id, already, message }
-//   request   GET /help/escalations/<id>  ->  { id, question, status, created_at, replies: [{ id, text, at }] }
-//   list      GET /help/escalations       ->  { escalations: [request, ...] }   (newest first, last 10)
-//   - `route` is a key from content/app_help/app_help.md in the API repo. ROUTES below maps it to a
-//     screen; "none" means the answer stands alone, "support" opens an email to support.
-//   - `escalation_offered` is true when the assistant is not sure. Only then is "Send to the team"
-//     shown. The reply never contains a founder's name or number, so the app never has one to show.
-//   - After "Send to the team" the screen WAITS for the team: it polls the request every 4 s for two minutes,
-//     then every 15 s for half an hour. A founder answers in Telegram; the words appear here as a reply from
-//     "the MonkLearning team" (nobody is named), and the phone is pushed if the student has left the screen
-//     (lib/push.ts routes that tap back here, where the open request is found again on mount).
-//   - One question at a time: the assistant does not remember the last one, and a reply is one-way.
-import { router, type Href } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
+// THE CONTRACT (API, app/routers/help.py)
+//   ask       POST /help/ask { question }      ->  { ask_id, answer, route, covered, escalation_offered, sources }
+//   escalate  POST /help/escalate { ask_id } or { question }  ->  { escalated, id, already, message }
+//   request   GET /help/escalations/<id>       ->  a thread: { id, question, status, created_at, replies, messages, awaiting_team, note }
+//   list      GET /help/escalations            ->  { escalations: [thread, ...] }   (newest first, last 10)
+//   write     POST /help/escalations/<id>/messages { text }  ->  the updated thread (409 closed, 429 too many)
+//   - `route` is a key from content/app_help/app_help.md in the API repo: lib/help-chat.ts maps it to a screen,
+//     "none" means the answer stands alone, "support" opens an email to support.
+//   - "Talk to a person" is always offered, not only when `escalation_offered` is true: the help file answers
+//     "talk to a person" with the support email, so a student who asked for one was never given the team.
+//   - A founder answers in Telegram; the words arrive here as the monklearning team (nobody is named), and the
+//     phone is pushed if the student has left the screen (lib/push.ts routes that tap back here).
+//   - The screen polls while the team owes an answer: every 4 s for two minutes, then every 15 s for half an hour.
+//   - The assistant answers one question at a time: it does not remember the last one (a server change, for later).
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
+import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { GridPaper } from '@/components/grid-paper';
+import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { PressableScale } from '@/components/pressable-scale';
-import { SettingsPage } from '@/components/settings-page';
 import { colors } from '@/constants/brand';
-import { apiFetch, friendlyError } from '@/lib/api';
+import { ApiError, apiFetch, friendlyError } from '@/lib/api';
+import { HELP_ROUTES, activeThread, buildChat, trimLocal, type ChatItem, type HelpThread, type LocalItem } from '@/lib/help-chat';
+import { getStoredName } from '@/lib/profile';
+import { supabase } from '@/lib/supabase';
 
 const SUPPORT_EMAIL = 'support@monklearning.com';
 
@@ -34,121 +39,160 @@ const SLOW_POLL_MS = 15000;
 const FAST_WINDOW_MS = 2 * 60 * 1000;
 const GIVE_UP_MS = 30 * 60 * 1000;
 
-// Route key -> screen. Keys the API may return but this map lacks open nothing.
-const ROUTES: Record<string, string> = {
-  home: '/',
-  textbooks: '/(tabs)/textbooks',
-  doubts: '/(tabs)/doubts',
-  notes: '/(tabs)/notes',
-  snap: '/snap-capture',
-  class_picker: '/drona',
-  select_teacher: '/select-teacher',
-  practice: '/practice',
-  practice_focus: '/practice-focus',
-  mocks: '/mocks',
-  progress: '/progress',
-  exam_scope: '/exam-scope',
-  plan_sheet: '/plan-sheet',
-  profile: '/profile',
-  account: '/account',
-  subscription: '/subscription',
-  plans: '/plans',
-  promo: '/plans-promo',
-  about: '/about-us',
-  privacy: '/privacy-policy',
-  terms: '/terms',
-};
+const STARTERS = ['My payment went through but no plan', 'How many classes do I get?', 'Change my teacher', 'The mic is not working'];
+const TALK = 'Talk to a person';
 
-type HelpAnswer = {
-  ask_id: number;
-  answer: string;
-  route: string;
-  covered: boolean;
-  escalation_offered: boolean;
-  sources: unknown[];
-};
-
+type HelpAnswer = { ask_id: number; answer: string; route: string; covered: boolean; escalation_offered: boolean };
 type Escalated = { escalated: boolean; id: string | null; already: boolean; message: string };
 
-type HelpRequest = {
-  id: string;
-  question: string;
-  status: 'open' | 'answered' | 'closed';
-  created_at: string;
-  replies: { id: number; text: string; at: string }[];
-};
+const stamp = () => new Date().toISOString();
+const newKey = () => `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+
+/** The sentence for a refusal. The server's own for a closed request; its daily limits are said here. */
+function refusal(err: unknown, doing: string): string {
+  if (err instanceof ApiError && err.status === 409) return err.message;
+  if (err instanceof ApiError && err.status === 429) {
+    return `That's the limit for today. Try again tomorrow, or write to ${SUPPORT_EMAIL}.`;
+  }
+  return friendlyError(err, doing);
+}
 
 function openRoute(route: string) {
   if (route === 'support') {
-    Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
+    void Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
     return;
   }
-  const path = ROUTES[route];
-  if (path) router.push(path as Href);
+  const to = HELP_ROUTES[route];
+  if (to) router.push(to.path as Href);
 }
 
-export default function HelpScreen() {
-  const [question, setQuestion] = useState('');
-  const [busy, setBusy] = useState<'ask' | 'escalate' | null>(null);
-  const [answer, setAnswer] = useState<HelpAnswer | null>(null);
-  const [sent, setSent] = useState<Escalated | null>(null);
+function routeLabel(route: string | undefined): string | null {
+  if (!route) return null;
+  if (route === 'support') return 'Email support';
+  return HELP_ROUTES[route]?.label ?? null;
+}
+
+function Bubble({ item }: { item: ChatItem }) {
+  if (item.kind === 'line') return <Text style={styles.line}>{item.text}</Text>;
+  const me = item.kind === 'me';
+  const label = item.kind === 'bot' ? routeLabel(item.route) : null;
+  return (
+    <View style={[styles.bubble, me ? styles.bubbleMe : styles.bubbleThem, item.kind === 'team' && styles.bubbleTeam]}>
+      <Text selectable style={[styles.bubbleText, me && styles.bubbleTextMe]}>
+        {item.text}
+      </Text>
+      {label && item.kind === 'bot' ? (
+        <PressableScale style={styles.action} accessibilityRole="button" onPress={() => openRoute(item.route as string)}>
+          <Text style={styles.actionText}>{label}</Text>
+          <ArrowRightIcon size={15} color={colors.ink} />
+        </PressableScale>
+      ) : null}
+    </View>
+  );
+}
+
+function Chip({ text, strong, onPress }: { text: string; strong?: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.chip, strong && styles.chipStrong, pressed && { opacity: 0.6 }]}>
+      <Text style={styles.chipText}>{text}</Text>
+    </Pressable>
+  );
+}
+
+export default function SupportScreen() {
+  const insets = useSafeAreaInsets();
+  const scroll = useRef<ScrollView>(null);
+
+  const [userKey, setUserKey] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [local, setLocal] = useState<LocalItem[]>([]);
+  const [threads, setThreads] = useState<HelpThread[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The student said the answer helped: no more buttons under it. */
+  const [settled, setSettled] = useState<string | null>(null);
+  /** Asked for a person with nothing yet asked: the next message goes to the team. */
+  const [tellingTeam, setTellingTeam] = useState(false);
+  /** Went back to the assistant from this thread. */
+  const [leftThread, setLeftThread] = useState<string | null>(null);
 
-  // The student's requests, and the one we are waiting on.
-  const [requests, setRequests] = useState<HelpRequest[]>([]);
-  const [watchId, setWatchId] = useState<string | null>(null);
-  const [longWait, setLongWait] = useState(false);
+  const active = useMemo(() => activeThread(threads), [threads]);
+  const withTeam = !!active && leftThread !== active.id;
+  const chat = useMemo(() => buildChat(local, threads, active), [local, threads, active]);
+  const last = chat[chat.length - 1];
+  const awaiting = !!active && active.awaiting_team !== false && withTeam;
 
-  const canAsk = question.trim().length > 0 && busy === null;
-  const canOpen = !!answer && (answer.route === 'support' || !!ROUTES[answer.route]);
-
-  const upsert = useCallback((req: HelpRequest) => {
-    setRequests((all) => (all.some((r) => r.id === req.id) ? all.map((r) => (r.id === req.id ? req : r)) : [req, ...all]));
+  const upsert = useCallback((thread: HelpThread) => {
+    setThreads((all) => (all.some((t) => t.id === thread.id) ? all.map((t) => (t.id === thread.id ? thread : t)) : [thread, ...all]));
   }, []);
 
-  // On opening: show earlier requests, and pick the wait back up for one still open and recent (a student who
-  // left and came back, or tapped the notification).
+  // What the assistant said lives on this phone, one student's to a key.
   useEffect(() => {
     let stop = false;
-    apiFetch<{ escalations: HelpRequest[] }>('/help/escalations')
-      .then((res) => {
-        if (stop) return;
-        setRequests(res.escalations);
-        const waiting = res.escalations.find(
-          (r) => r.status === 'open' && r.replies.length === 0 && Date.now() - Date.parse(r.created_at) < GIVE_UP_MS,
-        );
-        if (waiting) setWatchId(waiting.id);
-      })
-      .catch(() => {});
+    void (async () => {
+      const [{ data }, name] = await Promise.all([supabase.auth.getSession(), getStoredName()]);
+      if (stop) return;
+      setFirstName(name?.trim().split(/\s+/)[0] || null);
+      const id = data.session?.user?.id;
+      if (!id) {
+        setLoaded(true);
+        return;
+      }
+      const key = `help.chat.v1:${id}`;
+      setUserKey(key);
+      try {
+        const raw = await AsyncStorage.getItem(key);
+        if (!stop && raw) setLocal(JSON.parse(raw) as LocalItem[]);
+      } catch {
+        // An unreadable chat is an empty one.
+      }
+      if (!stop) setLoaded(true);
+    })();
     return () => {
       stop = true;
     };
   }, []);
 
+  useEffect(() => {
+    if (!loaded || !userKey) return;
+    AsyncStorage.setItem(userKey, JSON.stringify(trimLocal(local))).catch(() => {});
+  }, [loaded, userKey, local]);
+
+  // The team's side, every time the screen is come back to (a student who left, or tapped the notification).
+  useFocusEffect(
+    useCallback(() => {
+      let stop = false;
+      apiFetch<{ escalations: HelpThread[] }>('/help/escalations')
+        .then((res) => {
+          if (!stop) setThreads(res.escalations);
+        })
+        .catch(() => {});
+      return () => {
+        stop = true;
+      };
+    }, [])
+  );
+
   // Waiting for the team: ask the server until a reply arrives, quickly at first and then gently.
+  const watchId = awaiting ? active?.id : null;
   useEffect(() => {
     if (!watchId) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const started = Date.now();
-    setLongWait(false);
-
     const tick = async () => {
       try {
-        const req = await apiFetch<HelpRequest>(`/help/escalations/${watchId}`);
+        const thread = await apiFetch<HelpThread>(`/help/escalations/${watchId}`);
         if (stop) return;
-        upsert(req);
-        if (req.replies.length > 0) {
-          setWatchId(null);
-          return;
-        }
+        upsert(thread);
       } catch {
-        // a dropped connection is not the end of the wait
+        // A dropped connection is not the end of the wait.
       }
       if (stop) return;
       const elapsed = Date.now() - started;
       if (elapsed > GIVE_UP_MS) return;
-      if (elapsed > FAST_WINDOW_MS) setLongWait(true);
       timer = setTimeout(tick, elapsed < FAST_WINDOW_MS ? FAST_POLL_MS : SLOW_POLL_MS);
     };
     timer = setTimeout(tick, FAST_POLL_MS);
@@ -158,276 +202,262 @@ export default function HelpScreen() {
     };
   }, [watchId, upsert]);
 
-  async function ask() {
-    if (!canAsk) return;
-    setBusy('ask');
+  async function ask(question: string) {
+    setLocal((all) => [...all, { kind: 'me', key: newKey(), text: question, at: stamp() }]);
+    setBusy(true);
     setError(null);
-    setAnswer(null);
-    setSent(null);
     try {
-      setAnswer(
-        await apiFetch<HelpAnswer>('/help/ask', {
-          method: 'POST',
-          body: JSON.stringify({ question: question.trim() }),
-        }),
-      );
+      const res = await apiFetch<HelpAnswer>('/help/ask', { method: 'POST', body: JSON.stringify({ question }) });
+      setLocal((all) => [...all, { kind: 'bot', key: newKey(), text: res.answer, at: stamp(), askId: res.ask_id, route: res.route, covered: res.covered }]);
     } catch (err) {
-      setError(friendlyError(err, 'get an answer'));
+      setError(refusal(err, 'get an answer'));
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
-  async function escalate() {
-    if (!answer || busy) return;
-    setBusy('escalate');
+  async function handOver(body: { ask_id: number } | { question: string }, fallbackQuestion: string) {
+    setBusy(true);
     setError(null);
     try {
-      const res = await apiFetch<Escalated>('/help/escalate', {
-        method: 'POST',
-        body: JSON.stringify({ ask_id: answer.ask_id }),
-      });
-      setSent(res);
+      const res = await apiFetch<Escalated>('/help/escalate', { method: 'POST', body: JSON.stringify(body) });
+      setLocal((all) => [...all, { kind: 'bot', key: newKey(), text: res.message, at: stamp(), threadId: res.id ?? undefined }]);
       if (res.id) {
-        // Show it at once as waiting, then let the poll bring the reply.
-        upsert({
-          id: res.id,
-          question: question.trim(),
-          status: 'open',
-          created_at: new Date().toISOString(),
-          replies: [],
-        });
-        setWatchId(res.id);
+        setLeftThread(null);
+        // Show it at once as waiting, then let the poll bring the rest.
+        upsert({ id: res.id, question: fallbackQuestion, status: 'open', created_at: stamp(), replies: [], messages: [], awaiting_team: true });
       }
     } catch (err) {
-      setError(friendlyError(err, 'send that to the team'));
+      setError(refusal(err, 'send that to the team'));
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
-  const current = sent?.id ? requests.find((r) => r.id === sent.id) : undefined;
-  const earlier = requests.filter((r) => r.id !== current?.id);
+  async function writeToTeam(id: string, text: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      upsert(await apiFetch<HelpThread>(`/help/escalations/${id}/messages`, { method: 'POST', body: JSON.stringify({ text }) }));
+    } catch (err) {
+      setDraft(text);
+      setError(refusal(err, 'send that to the team'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function send() {
+    const text = draft.trim();
+    if (!text || busy) return;
+    setDraft('');
+    if (withTeam && active) {
+      void writeToTeam(active.id, text);
+      return;
+    }
+    if (tellingTeam) {
+      setTellingTeam(false);
+      setLocal((all) => [...all, { kind: 'me', key: newKey(), text, at: stamp() }]);
+      void handOver({ question: text }, text);
+      return;
+    }
+    void ask(text);
+  }
+
+  function talkToPerson() {
+    if (busy) return;
+    if (active) {
+      setLeftThread(null);
+      return;
+    }
+    const answered = [...local].reverse().find((i) => i.kind === 'bot' && i.askId !== undefined);
+    const question = [...local].reverse().find((i) => i.kind === 'me');
+    if (answered && answered.kind === 'bot' && answered.askId !== undefined && question) {
+      void handOver({ ask_id: answered.askId }, question.text);
+      return;
+    }
+    setTellingTeam(true);
+    setLocal((all) => [...all, { kind: 'bot', key: newKey(), text: 'Tell me what you need help with, and I will send it to the team.', at: stamp() }]);
+  }
+
+  const empty = loaded && chat.length === 0;
+  const askedLast = !withTeam && !tellingTeam && !busy && last?.kind === 'bot' && last.askId !== undefined && settled !== last.key;
+  const hint = withTeam || tellingTeam ? 'Message the team' : 'Ask a question';
+  const canSend = draft.trim().length > 0 && !busy;
 
   return (
-    <SettingsPage title="Help" keyboardAware>
-      <Text style={styles.lede}>Ask anything about how the app works.</Text>
-      <TextInput
-        style={styles.input}
-        value={question}
-        onChangeText={setQuestion}
-        placeholder="For example: how do I snap a question?"
-        placeholderTextColor={colors.faint}
-        multiline
-        maxLength={1000}
-        editable={busy === null}
-        accessibilityLabel="Your question"
-      />
-      <PressableScale
-        style={[styles.button, !canAsk && styles.buttonOff]}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canAsk }}
-        onPress={ask}>
-        {busy === 'ask' ? <ActivityIndicator color={colors.ink} /> : <Text style={styles.buttonText}>Ask</Text>}
-      </PressableScale>
+    <View style={styles.page}>
+      <StatusBar style="dark" />
+      <GridPaper />
+      <View style={[styles.head, { paddingTop: insets.top + 8 }]}>
+        <PressableScale
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={8}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
+          <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+            <Path d="M10 3.5L5.5 8l4.5 4.5" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        </PressableScale>
+        <Text accessibilityRole="header" style={styles.title}>
+          Support
+        </Text>
+      </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      {answer ? (
-        <View style={styles.answer}>
-          <Text style={styles.answerText}>{answer.answer}</Text>
-
-          {canOpen ? (
-            <PressableScale
-              style={styles.secondary}
-              accessibilityRole="button"
-              onPress={() => openRoute(answer.route)}>
-              <Text style={styles.secondaryText}>
-                {answer.route === 'support' ? 'Email support' : 'Take me there'} →
-              </Text>
-            </PressableScale>
-          ) : null}
-
-          {answer.escalation_offered && !sent ? (
-            <PressableScale
-              style={[styles.secondary, busy !== null && styles.buttonOff]}
-              accessibilityRole="button"
-              onPress={escalate}>
-              {busy === 'escalate' ? (
-                <ActivityIndicator color={colors.ink} />
-              ) : (
-                <Text style={styles.secondaryText}>Send to the team</Text>
-              )}
-            </PressableScale>
-          ) : null}
-
-          {sent ? <Text style={styles.sent}>{sent.message}</Text> : null}
-
-          {current && current.replies.length === 0 ? (
-            <View style={styles.waiting}>
-              <ActivityIndicator color={colors.ink} />
-              <Text style={styles.waitingText}>
-                {longWait
-                  ? 'Still waiting. The team has your question. You can leave this screen: we will notify you when they reply.'
-                  : 'Waiting for the team to reply. This usually takes a few minutes.'}
-              </Text>
+      <ScrollView
+        ref={scroll}
+        style={styles.scroll}
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}>
+        {empty ? (
+          <>
+            <View style={[styles.bubble, styles.bubbleThem]}>
+              <Text style={styles.bubbleText}>{`Hi${firstName ? ` ${firstName}` : ''}. Ask me anything about the app, or pick one of these.`}</Text>
             </View>
-          ) : null}
-
-          {current?.replies.map((r) => (
-            <View key={r.id} style={styles.reply}>
-              <Text style={styles.replyFrom}>Reply from the MonkLearning team</Text>
-              <Text style={styles.replyText}>{r.text}</Text>
-            </View>
-          ))}
-
-          {/* Test-only: what the backend matched, so a wrong answer can be traced. Remove with the screen. */}
-          <Text style={styles.debug}>
-            covered={String(answer.covered)} · route={answer.route} · sources=
-            {answer.sources.map(String).join(', ') || 'none'}
-          </Text>
-        </View>
-      ) : null}
-
-      {earlier.length > 0 ? (
-        <View style={styles.history}>
-          <Text style={styles.historyTitle}>Your questions to the team</Text>
-          {earlier.map((r) => (
-            <View key={r.id} style={styles.historyItem}>
-              <Text style={styles.historyQuestion} numberOfLines={2}>
-                {r.question}
-              </Text>
-              <Text style={styles.historyStatus}>
-                {r.replies.length > 0 ? 'Answered' : r.status === 'closed' ? 'Closed' : 'Waiting for a reply'}
-              </Text>
-              {r.replies.map((rep) => (
-                <View key={rep.id} style={styles.reply}>
-                  <Text style={styles.replyFrom}>Reply from the MonkLearning team</Text>
-                  <Text style={styles.replyText}>{rep.text}</Text>
-                </View>
+            <View style={styles.chips}>
+              {STARTERS.map((t) => (
+                <Chip key={t} text={t} onPress={() => void ask(t)} />
               ))}
+              <Chip text={TALK} strong onPress={talkToPerson} />
             </View>
-          ))}
+          </>
+        ) : null}
+
+        {chat.map((item) => (
+          <Bubble key={item.key} item={item} />
+        ))}
+
+        {busy ? (
+          <View style={[styles.bubble, styles.bubbleThem, styles.typing]}>
+            <ActivityIndicator size="small" color={colors.slate} />
+          </View>
+        ) : null}
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        {askedLast ? (
+          <>
+            <Text style={styles.ask}>Did this help?</Text>
+            <View style={styles.chips}>
+              <Chip text="Yes, thanks" onPress={() => setSettled(last.key)} />
+              <Chip text={TALK} strong onPress={talkToPerson} />
+            </View>
+          </>
+        ) : null}
+
+        {!withTeam && !askedLast && !empty && !busy && !tellingTeam ? (
+          <View style={styles.chips}>
+            <Chip text={TALK} strong onPress={talkToPerson} />
+          </View>
+        ) : null}
+
+        {withTeam && active ? (
+          <View style={styles.chips}>
+            <Chip text="Ask the assistant instead" onPress={() => setLeftThread(active.id)} />
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <SafeAreaView edges={['bottom']} style={styles.composerWrap}>
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.input}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder={hint}
+            placeholderTextColor={colors.faint}
+            multiline
+            maxLength={1000}
+            accessibilityLabel={hint}
+          />
+          <PressableScale
+            style={styles.send}
+            accessibilityRole="button"
+            accessibilityLabel="Send"
+            accessibilityState={{ disabled: !canSend }}
+            onPress={send}>
+            <View style={styles.sendArrow}>
+              <ArrowRightIcon size={19} color={colors.paper} />
+            </View>
+          </PressableScale>
         </View>
-      ) : null}
-    </SettingsPage>
+      </SafeAreaView>
+      <KeyboardSpacer ios bottomInset={insets.bottom} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  lede: {
-    fontFamily: 'Onest_400Regular',
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.slate,
-    marginTop: 16,
-  },
-  input: {
-    fontFamily: 'Onest_400Regular',
-    fontSize: 16,
-    color: colors.ink,
-    minHeight: 96,
-    marginTop: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    borderRadius: 12,
-    textAlignVertical: 'top',
-  },
-  button: {
-    marginTop: 12,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: colors.marigold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonOff: { opacity: 0.45 },
-  buttonText: { fontFamily: 'Onest_700Bold', fontSize: 16, color: colors.ink },
-  error: {
-    fontFamily: 'Onest_400Regular',
-    fontSize: 14,
-    color: colors.red,
-    marginTop: 14,
-  },
-  answer: {
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: colors.tint,
-  },
-  answerText: {
-    fontFamily: 'Onest_400Regular',
-    fontSize: 15,
-    lineHeight: 23,
-    color: colors.ink,
-  },
-  secondary: {
-    marginTop: 14,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryText: { fontFamily: 'Onest_700Bold', fontSize: 15, color: colors.ink },
-  sent: {
-    fontFamily: 'Onest_700Bold',
-    fontSize: 14,
-    lineHeight: 21,
-    color: colors.ink,
-    marginTop: 14,
-  },
-  waiting: {
-    marginTop: 14,
+  page: { flex: 1, backgroundColor: '#FFFFFF' },
+  head: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 11,
+    paddingBottom: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(28,26,22,.08)',
   },
-  waitingText: {
-    flex: 1,
-    fontFamily: 'Onest_400Regular',
-    fontSize: 14,
-    lineHeight: 21,
-    color: colors.slate,
-  },
-  reply: {
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+  back: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 1,
     borderColor: colors.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
-  replyFrom: {
-    fontFamily: 'Onest_700Bold',
-    fontSize: 12,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: colors.faint,
+  title: { fontFamily: 'Onest_600SemiBold', fontSize: 17, lineHeight: 22, color: colors.ink },
+  scroll: { flex: 1 },
+  list: { padding: 16, gap: 10 },
+  bubble: { maxWidth: '84%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, gap: 9 },
+  bubbleMe: { alignSelf: 'flex-end', borderBottomRightRadius: 5, backgroundColor: colors.ink },
+  bubbleThem: { alignSelf: 'flex-start', borderBottomLeftRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(28,26,22,.12)' },
+  bubbleTeam: { borderColor: colors.marigold },
+  bubbleText: { fontFamily: 'Onest_400Regular', fontSize: 15, lineHeight: 22, color: colors.ink },
+  bubbleTextMe: { color: colors.paper },
+  typing: { paddingVertical: 12, paddingHorizontal: 18 },
+  line: { alignSelf: 'center', textAlign: 'center', fontFamily: 'Onest_500Medium', fontSize: 12.5, lineHeight: 18, color: colors.slate, marginVertical: 4, paddingHorizontal: 12 },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(28,26,22,.16)',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
   },
-  replyText: {
+  actionText: { flexShrink: 1, fontFamily: 'Onest_600SemiBold', fontSize: 14, color: colors.ink },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
+  chip: { borderRadius: 14, borderWidth: 1, borderColor: 'rgba(28,26,22,.16)', paddingHorizontal: 13, paddingVertical: 9, backgroundColor: '#FFFFFF' },
+  chipStrong: { borderColor: colors.ink },
+  chipText: { fontFamily: 'Onest_500Medium', fontSize: 13.5, lineHeight: 18, color: colors.ink },
+  ask: { fontFamily: 'Onest_400Regular', fontSize: 12, color: colors.faint, marginTop: 2 },
+  error: { fontFamily: 'Onest_400Regular', fontSize: 14, lineHeight: 20, color: colors.ink, marginTop: 2 },
+  composerWrap: { backgroundColor: '#FFFFFF' },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
+  input: {
+    flex: 1,
+    minHeight: 50,
+    maxHeight: 120,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(28,26,22,.16)',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
     fontFamily: 'Onest_400Regular',
     fontSize: 15,
-    lineHeight: 23,
+    lineHeight: 20,
     color: colors.ink,
-    marginTop: 6,
+    backgroundColor: '#FFFFFF',
   },
-  debug: {
-    fontFamily: 'Onest_400Regular',
-    fontSize: 11,
-    color: colors.faint,
-    marginTop: 14,
-  },
-  history: { marginTop: 28 },
-  historyTitle: { fontFamily: 'Onest_700Bold', fontSize: 16, color: colors.ink },
-  historyItem: {
-    marginTop: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  historyQuestion: { fontFamily: 'Onest_400Regular', fontSize: 15, lineHeight: 22, color: colors.ink },
-  historyStatus: { fontFamily: 'Onest_700Bold', fontSize: 12, color: colors.slate, marginTop: 4 },
+  send: { width: 50, height: 50, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  sendArrow: { transform: [{ rotate: '-90deg' }] },
 });

@@ -20,8 +20,10 @@ import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { OnbTitle } from '@/components/onboarding/onb-screen';
 import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
+import { SKY_THEMES } from '@/constants/teachers';
 import { useFreeTier } from '@/lib/free-tier';
 import { passStatus } from '@/lib/pass';
+import { teacherIdNow } from '@/lib/preferences';
 import { PAYMENTS_ON_THIS_DEVICE, payErrorMessage } from '@/lib/payments';
 import { rupeesOf, usePromo } from '@/lib/promo';
 import {
@@ -223,6 +225,7 @@ export default function PassScreen() {
                 label={p.name}
                 trailing={rupees(p.price)}
                 selected={pass === p.id}
+                pourTheme={SKY_THEMES[teacherIdNow()]}
                 onPress={() => select(p.id)}
               />
             ))}

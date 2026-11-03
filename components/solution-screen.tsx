@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
   type StyleProp,
 } from 'react-native';
 import Animated, {
@@ -28,6 +27,7 @@ import { MathLine } from '@/components/math-line';
 import { QuestionPeek } from '@/components/question-peek';
 import { FigureLoadFailed } from '@/components/question-diagram';
 import { Skeleton, SkeletonParagraph, stagger } from '@/components/skeleton';
+import { GridPaper } from '@/components/grid-paper';
 import { SolutionCards } from '@/components/solution-cards';
 import { DoubtOption } from '@/lib/doubts';
 import type { ResolveEvent } from '@/lib/doubt-followup';
@@ -61,9 +61,7 @@ const INK_70 = '#4A463D';
 const INK_50 = '#8A8478';
 const INK_30 = '#B5B0A4';
 const PAPER = '#FFFFFF';
-const GRID = 'rgba(28,26,22,0.04)';
 const HAIR = 'rgba(28,26,22,0.12)';
-const GRID_SIZE = 26;
 // The same greens as the solution's final answer, so the option the answer
 // landed on and the answer itself read as one statement.
 const GREEN = '#1C9B57';
@@ -227,43 +225,6 @@ function isStructureOnly(text: string): boolean {
   return (
     /^(<smiles>[^<]*<\/smiles>\s*)+$/i.test(value) ||
     /^structure(:.*)?$/i.test(value)
-  );
-}
-
-/** The graph paper the design lays everything on: 26px squares at 4% ink. */
-function GridPaper() {
-  const { width, height } = useWindowDimensions();
-  const rows = Math.ceil(height / GRID_SIZE);
-  const cols = Math.ceil(width / GRID_SIZE);
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {Array.from({ length: rows }, (_, i) => (
-        <View
-          key={`r${i}`}
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: (i + 1) * GRID_SIZE,
-            height: 1,
-            backgroundColor: GRID,
-          }}
-        />
-      ))}
-      {Array.from({ length: cols }, (_, i) => (
-        <View
-          key={`c${i}`}
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: (i + 1) * GRID_SIZE,
-            width: 1,
-            backgroundColor: GRID,
-          }}
-        />
-      ))}
-    </View>
   );
 }
 

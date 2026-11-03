@@ -66,10 +66,9 @@ describe('what the plans page promises is what the server grants', () => {
     expect(Math.round((end.getTime() - start.getTime()) / 86400000)).toBe(days);
   });
 
-  test('the plans page dates come from endsAtFor, not from calendar months', () => {
+  test('the plans page never counts calendar months', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const src = require('fs').readFileSync(require('path').join(__dirname, '../../components/paywall/plans-page.tsx'), 'utf8');
-    expect(src).toMatch(/endsAtFor\(\{ kind: p\.id, startedAt: from\.toISOString\(\) \}\)/);
     expect(src).not.toMatch(/setMonth\(/);
   });
 });

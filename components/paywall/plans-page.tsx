@@ -1,51 +1,47 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
+import { ScrollView, Text, View, type LayoutChangeEvent } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
-import { NightSky } from '@/components/night-sky';
 import { ObButton } from '@/components/onboarding-kit';
-import { SkyChoice } from '@/components/onboarding/sky-choice';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { PASSES, rupees, type PassKey } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
 import { SKY_THEMES } from '@/constants/teachers';
 import { usePlan } from '@/lib/free-tier';
-import { PASS_NAME, endsAtFor, type PassKind } from '@/lib/pass';
+import { hapticSwitched } from '@/lib/haptics';
+import { PASS_NAME, type PassKind } from '@/lib/pass';
 import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
 import type { TeacherId } from '@/lib/preferences';
 import { rupeesOf, usePromo } from '@/lib/promo';
 
 import { compareRows } from './compare';
 import { PLANS, type Plan } from './plans';
+import { POUR_COLUMN_MS, POUR_ROW_MS, PourEdge, PourFill, PourText, usePour, type SkyTheme } from './poured-sky';
 
 /**
- * THE PLANS PAGE (designed with the founder, 2026-10-17).
+ * THE PLANS PAGE (Nikhil's P10, 3 Nov 2026; he means to come back to it).
  *
- * Home's sky at the top — in the student's teacher's light, no logo, no orb,
- * no teacher's name — with one glass panel that says what a plan is for: the
- * AI teachers, snapping questions, a 20,000+ question bank, the textbooks. No
- * numbers there: they differ by plan and live in the table below.
+ * A white page. The trial passes are one line each, because a pass is everything
+ * in Pro for a shorter time, so there is nothing to open. Pro and Max are a table
+ * that can be read before anything is tapped, its two columns edged like buttons.
+ * What is picked fills from the top with one gradient (poured-sky.tsx): the
+ * pass's row, or the plan's whole column.
  *
- * THE APP STARTS AT A PASS (founder, 2026-11-03): there is no free way in. A
- * student who has never had one, or whose last one ended, sees the day pass
- * (Rs 7) and the week pass (Rs 39) FIRST, under "Start here", and the monthly
- * plans below them; a starter already used is not shown again. Someone on Pro or
- * Max sees only the plans. Pro and Max are two plain rows (an ink edge and the
- * tick, no sky: the sky is already the page's header) and a table that sets
- * them side by side. One line under them: nothing renews.
+ * NOTHING IS PICKED WHEN THE PAGE OPENS, unless the promo screen carried a pick
+ * back. Every figure in the table is the server's (`usePlan`), so the page and the
+ * limit a student meets can never disagree.
  *
- * TWO WAYS IN, ONE PAGE. `gate`: the pass has ended and the app opens here;
- * there is no way out but a pass. `extend`: Profile → Your plan → Extend,
- * with time still left; it closes, and new time starts after the current
- * pass. The prices are the server's to charge (the app never sends one); the
- * page shows its own list, and the checkout refuses to open if the two differ.
+ * TWO WAYS IN, ONE PAGE. `gate`: the pass has ended or there never was one, and the
+ * app opens here; there is no way out but a pass. `extend`: Profile → Your plan,
+ * with time still left; it closes, and new time starts after the current pass. The
+ * prices are the server's to charge (the app never sends one); the page shows its
+ * own list, and the checkout refuses to open if the two differ.
  *
  * NOTHING ABOUT EXAM DATES. The founder: "we don't track their exam date".
- * Each plan says only when it would run till.
  */
 
 export type PlansPick = Plan['id'] | PassKey;
@@ -63,8 +59,7 @@ export type PlansPageProps = {
   neverHadPass?: boolean;
   /** Starter passes already used on this account: not offered again. */
   starterUsed?: PassKind[];
-  /** The plan picked when the page opens, or the one carried back from the
-   *  promo screen. */
+  /** The plan carried back from the promo screen. */
   pick?: PlansPick | null;
   /** The code carried back from the promo screen. */
   promo?: string;
@@ -79,8 +74,18 @@ export type PlansPageProps = {
 
 const PAPER = colors.paper;
 const PAPER62 = 'rgba(255,253,248,.62)';
+const PAPER82 = 'rgba(255,253,248,.82)';
+const INK = colors.ink;
+const SLATE = colors.slate;
+const RULE = 'rgba(28,26,22,.08)';
+const RULE_ON_SKY = 'rgba(255,253,248,.12)';
+const EDGE = 'rgba(28,26,22,.16)';
+const EDGE_WIDTH = 1.5;
 
-type Scale = (n: number) => number;
+const PASS_LINE: Record<PassKey, string> = {
+  day: 'Everything in Pro, for a day',
+  week: 'Everything in Pro, for a week',
+};
 
 function asDay(d: Date, today: Date) {
   return d.toLocaleDateString('en-IN', {
@@ -96,127 +101,121 @@ function midnight(d: Date) {
   return m;
 }
 
-// ─── The glass panel ─────────────────────────────────────────────────────────
+// ─── The things to pick ──────────────────────────────────────────────────────
 
-function BookGlyph({ size, color }: { size: number; color: string }) {
+function PassRow({
+  pass,
+  on,
+  onPress,
+  theme,
+}: {
+  pass: (typeof PASSES)[number];
+  on: boolean;
+  onPress: () => void;
+  theme: SkyTheme;
+}) {
+  const { scale } = useScale();
+  const pour = usePour(on, POUR_ROW_MS);
+  const [box, setBox] = useState({ width: 0, height: 0 });
+  const radius = scale(18);
+  const tickRoom = scale(32);
+  const { open } = pour;
+  const tick = useAnimatedStyle(() => ({ opacity: open.value, width: open.value * tickRoom }));
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 6.4C10.3 5 7.8 4.5 4 4.6v13.6c3.8-.1 6.3.4 8 1.8 1.7-1.4 4.2-1.9 8-1.8V4.6c-3.8-.1-6.3.4-8 1.8zM12 6.4V20"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-/** Home's glass, without the blurred copy: the sky behind it is smooth, so a
- *  warm tint and two inset rings carry it. */
-function Glass({ children, scale }: { children: ReactNode; scale: Scale }) {
-  return (
-    <View style={{ borderRadius: scale(18), backgroundColor: 'rgba(26,24,20,.34)', overflow: 'hidden', paddingHorizontal: scale(20), paddingTop: scale(20), paddingBottom: scale(8) }}>
-      {children}
+    <PressableScale
+      onPress={() => {
+        if (!on) hapticSwitched();
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={`${pass.name}, ${rupees(pass.price)}. ${PASS_LINE[pass.id]}.`}>
       <View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            borderRadius: scale(18),
-            boxShadow: [
-              { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(255,253,248,.14)', inset: true },
-              { offsetX: 0, offsetY: 1, blurRadius: 0, spreadDistance: 0, color: 'rgba(255,253,248,.1)', inset: true },
-            ],
-          },
-        ]}
-      />
-    </View>
-  );
-}
-
-const OFFER_ROWS = [
-  { key: 'snap', title: 'Snap any question', line: 'Solved step by step, in seconds.' },
-  { key: 'practice', title: 'Practise from 20,000+ questions', line: "In the exam's own pattern." },
-  { key: 'book', title: 'Textbooks made for revision', line: 'Formulas, diagrams and key points, chapter by chapter.' },
-] as const;
-
-/** `compact`: the heading alone. For a student who has to choose a pass, the choices must be on the first screen. */
-function Offer({ scale, compact = false }: { scale: Scale; compact?: boolean }) {
-  const glyph = (key: (typeof OFFER_ROWS)[number]['key']) => {
-    const size = scale(20);
-    const c = colors.paleGold;
-    if (key === 'snap') return <SnapADoubtIcon size={size} color={c} accent={c} />;
-    if (key === 'practice') return <PracticeIcon size={size} color={c} accent={c} />;
-    return <BookGlyph size={size} color={c} />;
-  };
-  return (
-    <Glass scale={scale}>
-      <Text style={{ fontFamily: 'Onest_700Bold', fontSize: scale(10.5), letterSpacing: scale(1.3), color: colors.paleGold }}>LIVE WITH DRONA AND VEDHA</Text>
-      <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(20), lineHeight: scale(25), letterSpacing: scale(-0.3), color: PAPER, marginTop: scale(6) }}>
-        Every chapter, taught aloud
-      </Text>
-      <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(14), lineHeight: scale(20), color: PAPER62, marginTop: scale(6) }}>
-        Live classes, follow-ups, and a plan for how much you need.
-      </Text>
-      <View style={{ height: 1, backgroundColor: 'rgba(255,253,248,.12)', marginTop: scale(18), display: compact ? 'none' : 'flex' }} />
-      {compact ? <View style={{ height: scale(12) }} /> : null}
-      {(compact ? [] : OFFER_ROWS).map((r, i) => (
-        <View
-          key={r.key}
-          style={{ flexDirection: 'row', gap: scale(14), paddingVertical: scale(13), borderTopWidth: i === 0 ? 0 : 1, borderTopColor: 'rgba(255,253,248,.07)' }}>
-          <View style={{ paddingTop: scale(1) }}>{glyph(r.key)}</View>
+        onLayout={(e: LayoutChangeEvent) => setBox({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+        style={{ borderRadius: radius, overflow: 'hidden', backgroundColor: '#fff' }}>
+        <PourFill pour={pour} width={box.width} height={box.height} radius={radius} theme={theme} />
+        <PourEdge pour={pour} radius={radius} color={EDGE} width={EDGE_WIDTH} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: scale(18), paddingVertical: scale(14) }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(15.5), color: PAPER }}>{r.title}</Text>
-            <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(12.5), lineHeight: scale(17), color: PAPER62, marginTop: scale(2) }}>{r.line}</Text>
+            <PourText pour={pour} from={INK} to={PAPER} start={0.1} end={0.5} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(17), lineHeight: scale(23) }}>{pass.name}</PourText>
+            <PourText pour={pour} from={SLATE} to={PAPER82} start={0.45} end={0.9} style={{ fontFamily: 'Onest_400Regular', fontSize: scale(13), lineHeight: scale(18) }}>{PASS_LINE[pass.id]}</PourText>
           </View>
+          <PourText pour={pour} from={INK} to={PAPER} start={0.25} end={0.7} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(19) }}>{rupees(pass.price)}</PourText>
+          <Animated.View style={[{ alignItems: 'flex-end', overflow: 'hidden' }, tick]}>
+            <View style={{ width: scale(24), height: scale(24), borderRadius: scale(12), backgroundColor: PAPER, alignItems: 'center', justifyContent: 'center' }}>
+              <Svg width={scale(12)} height={scale(12)} viewBox="0 0 16 16" fill="none">
+                <Path d="M3.5 8.4l3 3L12.5 5" stroke={INK} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+            </View>
+          </Animated.View>
         </View>
-      ))}
-    </Glass>
-  );
-}
-
-/**
- * FREE, PRO AND MAX SIDE BY SIDE. A number reads against the others: 45 classes
- * means little until the column beside it says none, and the column beside that
- * says 60. Every figure comes from the server's own table (`usePlan`), so the
- * page and the limit a student meets can never disagree.
- */
-function SectionLabel({ scale, children, style }: { scale: Scale; children: ReactNode; style?: object }) {
-  return (
-    <Text style={[{ fontFamily: 'Onest_600SemiBold', fontSize: scale(10), letterSpacing: scale(1.4), color: colors.slate, marginBottom: scale(10) }, style]}>{children}</Text>
-  );
-}
-
-function Compare({ scale, selected }: { scale: Scale; selected: 'pro' | 'max' | null }) {
-  const { tiers } = usePlan();
-  const rows = compareRows(tiers.pro, tiers.max);
-  const col = (on: boolean): object => ({ flex: 1, textAlign: 'center', color: on ? colors.ink : colors.slate });
-  const head = { fontFamily: 'Onest_700Bold', fontSize: scale(13), paddingBottom: scale(8) };
-  const cell = { fontFamily: 'Onest_500Medium', fontSize: scale(14), lineHeight: scale(19) };
-  return (
-    <View style={{ marginTop: scale(26) }}>
-      <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(10), letterSpacing: scale(1.4), color: colors.slate, marginBottom: scale(10) }}>PRO AND MAX, SIDE BY SIDE</Text>
-      <View style={{ flexDirection: 'row' }}>
-        <Text style={{ flex: 2 }} />
-        <Text style={[head, col(selected === 'pro')]}>Pro</Text>
-        <Text style={[head, col(selected === 'max')]}>Max</Text>
       </View>
-      {rows.map((r) => (
-        <View key={r.label} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: scale(11), borderTopWidth: 1, borderTopColor: 'rgba(28,26,22,.08)' }}>
-          <Text style={[cell, { flex: 2, fontFamily: 'Onest_400Regular', color: colors.slate }]}>{r.label}</Text>
-          <Text style={[cell, col(selected === 'pro')]}>{r.pro}</Text>
-          <Text style={[cell, col(selected === 'max')]}>{r.max}</Text>
-        </View>
-      ))}
-      <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(11.5), lineHeight: scale(16), color: colors.slate, marginTop: scale(8) }}>
-        Follow-ups are unlimited within fair use. Full mock tests are earned by practising, on every plan.
-      </Text>
-    </View>
+    </PressableScale>
   );
 }
 
-function CloseButton({ onPress, scale }: { onPress: () => void; scale: Scale }) {
+/** One plan's column of the table: its name and price, then its numbers. Edged like a button; tap anywhere on it. */
+function PlanColumn({
+  plan,
+  values,
+  on,
+  onPress,
+  theme,
+  headH,
+  rowH,
+}: {
+  plan: Plan;
+  values: string[];
+  on: boolean;
+  onPress: () => void;
+  theme: SkyTheme;
+  headH: number;
+  rowH: number;
+}) {
+  const { scale } = useScale();
+  const pour = usePour(on, POUR_COLUMN_MS);
+  const [width, setWidth] = useState(0);
+  const radius = scale(16);
+  const total = headH + values.length * rowH;
+  const headEnd = headH / total;
+  return (
+    <PressableScale
+      onPress={() => {
+        if (!on) hapticSwitched();
+        onPress();
+      }}
+      style={{ width: scale(84) }}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={`${plan.name}, ${rupees(plan.price)} a month`}>
+      <View onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} style={{ height: total, borderRadius: radius, overflow: 'hidden', backgroundColor: '#fff' }}>
+        <PourFill pour={pour} width={width} height={total} radius={radius} theme={theme} />
+        <PourEdge pour={pour} radius={radius} color={EDGE} width={EDGE_WIDTH} />
+        <View style={{ height: headH, alignItems: 'center', justifyContent: 'center' }}>
+          <PourText pour={pour} from={INK} to={PAPER} end={headEnd * 0.5} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(15.5), lineHeight: scale(21) }}>{plan.name}</PourText>
+          <PourText pour={pour} from={INK} to={PAPER} end={headEnd * 0.8} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(20), lineHeight: scale(26), letterSpacing: scale(-0.3) }}>{rupees(plan.price)}</PourText>
+          <PourText pour={pour} from={SLATE} to={PAPER62} end={headEnd} style={{ fontFamily: 'Onest_400Regular', fontSize: scale(11.5), lineHeight: scale(15) }}>a month</PourText>
+        </View>
+        {values.map((value, i) => (
+          <View key={i} style={{ height: rowH, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: on ? RULE_ON_SKY : RULE }}>
+            <PourText
+              pour={pour}
+              from={INK}
+              to={PAPER}
+              start={(headH + i * rowH) / total}
+              end={(headH + (i + 1) * rowH) / total}
+              style={{ fontFamily: 'Onest_600SemiBold', fontSize: value.length > 4 ? scale(12) : scale(15.5) }}>
+              {value}
+            </PourText>
+          </View>
+        ))}
+      </View>
+    </PressableScale>
+  );
+}
+
+function CloseButton({ onPress }: { onPress: () => void }) {
+  const { scale } = useScale();
   return (
     <PressableScale
       onPress={onPress}
@@ -226,46 +225,26 @@ function CloseButton({ onPress, scale }: { onPress: () => void; scale: Scale }) 
         width: scale(40),
         height: scale(40),
         borderRadius: scale(20),
+        borderWidth: 1,
+        borderColor: colors.hairline,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,253,248,.07)',
-        boxShadow: [{ offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 1, color: 'rgba(255,253,248,.14)', inset: true }],
       }}>
       <Svg viewBox="0 0 24 24" width={scale(18)} height={scale(18)} fill="none">
-        <Path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke={PAPER} strokeWidth={1.9} strokeLinecap="round" />
+        <Path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke={INK} strokeWidth={1.9} strokeLinecap="round" />
       </Svg>
     </PressableScale>
   );
-}
-
-/** Three of Home's stars, in the empty sky above the heading. */
-const STARS = [
-  { x: 34, y: 10, d: 2.5, o: 0.7 },
-  { x: 262, y: 20, d: 2, o: 0.6 },
-  { x: 168, y: 4, d: 2, o: 0.5 },
-];
-
-/** What is selected when the page opens: the week pass for a student starting
- *  out (the better of the two), the day pass if that is all they have left, and
- *  Pro for everyone else. */
-function firstPick(props: PlansPageProps): PlansPick {
-  const running = props.runningKind ?? null;
-  if (running && running !== 'day' && running !== 'week') return 'pro_1m';
-  const used = props.starterUsed ?? [];
-  if (props.context === 'gate' && !used.includes('week')) return 'week';
-  if (props.context === 'gate' && !used.includes('day')) return 'day';
-  return 'pro_1m';
 }
 
 // ─── The page ────────────────────────────────────────────────────────────────
 
 export function PlansPage(props: PlansPageProps) {
   const { scale } = useScale();
-  const insets = useSafeAreaInsets();
-  const [sky, setSky] = useState({ width: 0, height: 0 });
   const theme = SKY_THEMES[props.teacher];
+  const { tiers } = usePlan();
 
-  const [pick, setPick] = useState<PlansPick | null>(props.pick ?? firstPick(props));
+  const [pick, setPick] = useState<PlansPick | null>(props.pick ?? null);
   // The promo screen goes back to this same page with the pick it carried.
   useEffect(() => {
     if (props.pick) setPick(props.pick);
@@ -274,7 +253,6 @@ export function PlansPage(props: PlansPageProps) {
   const plan = PLANS.find((p) => p.id === pick) ?? null;
   const starter = PASSES.find((p) => p.id === pick) ?? null;
   const price = plan?.price ?? starter?.price ?? 0;
-  const name = plan?.name ?? starter?.name ?? '';
   const starterUsed = props.starterUsed ?? [];
   const runningStarter = props.runningKind === 'day' || props.runningKind === 'week';
   // A starter is for trying the app: not offered to someone already on Pro, Max or a longer pass.
@@ -288,20 +266,9 @@ export function PlansPage(props: PlansPageProps) {
   const total = quote ? rupeesOf(quote.finalPaise) : price;
   const free = !!quote?.free;
 
-  // New time starts now at the gate, and the moment the running pass ends when
-  // extending — so the "Till" dates are the dates the student would really get.
-  //
-  // COUNTED IN THE SAME DAYS THE SERVER GRANTS (30 / 90 / 180 / 330), through the
-  // same function the receipt uses. This used calendar months, which promised up
-  // to four days more than a student received ("Till 14 Jan 2028" for a plan that
-  // runs to 11 Jan), and a different date from the receipt a minute later.
   const today = midnight(new Date());
-  const from = props.context === 'extend' && props.passEnds && !startsNow ? props.passEnds : new Date();
-  const till = (p: Plan) => asDay(endsAtFor({ kind: p.id, startedAt: from.toISOString() }), today);
-
-  const starting = props.context === 'gate' && props.neverHadPass;
-  const title =
-    props.context === 'extend' ? (runningStarter ? 'Keep going' : 'Add more time') : starting ? 'Start with a pass' : 'Your pass has ended';
+  const title = props.context === 'extend' ? (runningStarter ? 'Keep going' : 'Add more time') : 'Choose what works for you';
+  // Only what the student must know. A new student needs no line here at all.
   const sub =
     props.context === 'extend'
       ? startsNow
@@ -309,9 +276,9 @@ export function PlansPage(props: PlansPageProps) {
         : props.passEnds
           ? `New time starts after your pass ends on ${asDay(props.passEnds, today)}.`
           : 'New time starts after your current pass ends.'
-      : starting
-        ? 'Try it for a day or a week, then pick a plan. Nothing renews on its own.'
-        : 'Choose a plan to continue. Your progress is saved.';
+      : props.neverHadPass
+        ? null
+        : 'Your pass has ended. Your progress is saved.';
 
   const promoLine = quote
     ? `${quote.code} applied · −${rupees(rupeesOf(quote.discountPaise))}`
@@ -328,137 +295,91 @@ export function PlansPage(props: PlansPageProps) {
    */
   const codeOnly = !canPay;
   const label = !pick
-    ? 'Choose a plan'
+    ? 'Choose one to continue'
     : free
       ? 'Complete for ₹0'
       : codeOnly
         ? 'Enter a promo code'
         : `Pay ${rupees(total)}`;
+  const trailing = plan ? `${plan.name} · 1 month` : starter?.name;
 
-  /** Starters lead for a student starting out or whose pass has ended; someone
-   *  extending a running plan sees the plans alone (their starters, if any are
-   *  left, are offered last). */
-  const startersFirst = props.context === 'gate' && starters.length > 0;
-  const starterRows = starters.map((p) => (
-    <SkyChoice
-      key={p.id}
-      shape="row"
-      label={p.name}
-      note={p.id === 'day' ? 'Live classes, snaps and practice, for a day' : 'Live classes, snaps and practice, for a week'}
-      trailing={rupees(p.price)}
-      selected={pick === p.id}
-      tickArrives
-      plain
-      onPress={() => setPick(p.id)}
-    />
-  ));
+  const rows = compareRows(tiers.pro, tiers.max);
+  const headH = scale(84);
+  const rowH = scale(42);
+  const heading = (text: string, first?: boolean) => (
+    <Text style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(15), lineHeight: scale(21), color: INK, marginTop: first ? 0 : scale(22), marginBottom: scale(9) }}>{text}</Text>
+  );
+
+  const passes =
+    starters.length > 0 ? (
+      <>
+        {heading('Trial passes', props.context === 'gate')}
+        <View style={{ gap: scale(9) }}>
+          {starters.map((p) => (
+            <PassRow key={p.id} pass={p} on={pick === p.id} onPress={() => setPick(p.id)} theme={theme} />
+          ))}
+        </View>
+      </>
+    ) : null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scale(20) }}>
-        <View
-          onLayout={(e: LayoutChangeEvent) => {
-            const { width, height } = e.nativeEvent.layout;
-            setSky((p) => (p.width === width && p.height === height ? p : { width, height }));
-          }}
-          style={{ borderBottomLeftRadius: scale(34), borderBottomRightRadius: scale(34), overflow: 'hidden' }}>
-          <NightSky width={sky.width} height={sky.height} theme={theme} style={StyleSheet.absoluteFillObject} />
-          {STARS.map((s) => (
-            <View
-              key={s.x}
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: scale(s.x),
-                top: insets.top + scale(s.y),
-                width: scale(s.d),
-                height: scale(s.d),
-                borderRadius: scale(s.d),
-                opacity: s.o,
-                backgroundColor: PAPER,
-                boxShadow: [{ offsetX: 0, offsetY: 0, blurRadius: scale(6), color: 'rgba(255,253,248,.6)' }],
-              }}
-            />
-          ))}
-          <View style={{ paddingHorizontal: scale(24), paddingTop: insets.top + scale(36), paddingBottom: scale(24) }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(12) }}>
-              <Text accessibilityRole="header" style={{ flex: 1, fontFamily: 'Onest_600SemiBold', fontSize: scale(26), lineHeight: scale(31), letterSpacing: scale(-0.6), color: PAPER }}>
-                {title}
-              </Text>
-              {props.onClose ? <CloseButton onPress={props.onClose} scale={scale} /> : null}
-            </View>
-            <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(14), lineHeight: scale(20), color: PAPER62, marginTop: scale(8) }}>{sub}</Text>
-            <View style={{ marginTop: scale(24) }}>
-              <Offer scale={scale} compact={startersFirst} />
-            </View>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: '#fff' }}>
+      <StatusBar style="dark" />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: scale(20), paddingTop: scale(18), paddingBottom: scale(12) }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(12), marginBottom: scale(20) }}>
+          <View style={{ flex: 1 }}>
+            <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(26), lineHeight: scale(32), letterSpacing: scale(-0.5), color: INK }}>
+              {title}
+            </Text>
+            {sub ? <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(14), lineHeight: scale(20), color: SLATE, marginTop: scale(4) }}>{sub}</Text> : null}
           </View>
+          {props.onClose ? <CloseButton onPress={props.onClose} /> : null}
         </View>
 
-        <View style={{ paddingHorizontal: scale(24), paddingTop: scale(24) }}>
-          {startersFirst ? (
-            <>
-              <SectionLabel scale={scale}>START HERE</SectionLabel>
-              <View style={{ gap: scale(10) }}>{starterRows}</View>
-              <SectionLabel scale={scale} style={{ marginTop: scale(28) }}>OR GO STRAIGHT TO A PLAN</SectionLabel>
-            </>
-          ) : null}
-          <View style={{ gap: scale(10) }}>
-            {PLANS.map((p) => (
-              <SkyChoice
-                key={p.id}
-                shape="row"
-                label={p.name}
-                note={`Till ${till(p)}`}
-                trailing={`${rupees(p.price)} a month`}
-                selected={pick === p.id}
-                tickArrives
-                plain
-                onPress={() => setPick(p.id)}
-              />
+        {props.context === 'gate' ? passes : null}
+
+        {heading('Monthly plans', props.context === 'extend')}
+        <View style={{ flexDirection: 'row', gap: scale(7) }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ height: headH }} />
+            {rows.map((r) => (
+              <View key={r.label} style={{ height: rowH, justifyContent: 'center', borderTopWidth: 1, borderTopColor: RULE }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: 'Onest_400Regular', fontSize: scale(13.5), lineHeight: scale(18), color: SLATE }}>{r.label}</Text>
+              </View>
             ))}
           </View>
-
-          <Compare scale={scale} selected={plan?.tier ?? null} />
-
-          {!startersFirst && starters.length > 0 ? (
-            <View style={{ marginTop: scale(26) }}>
-              <SectionLabel scale={scale}>JUST TRYING IT?</SectionLabel>
-              <View style={{ gap: scale(10) }}>{starterRows}</View>
-            </View>
-          ) : null}
-
-          {/* One line, always: it shrinks a little on a narrow phone rather
-              than leaving "choose to." alone on a second line. */}
-          <Text
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-            style={{ fontFamily: 'Onest_400Regular', fontSize: scale(12.5), lineHeight: scale(18), color: colors.slate, textAlign: 'center', marginTop: scale(14) }}>
-            Nothing renews on its own. You pay only when you choose to.
-          </Text>
-
-          {codeOnly && !promo.code ? null : (
-          <PressableScale
-            hitSlop={10}
-            onPress={() => props.onPromo(pick)}
-            style={{ alignSelf: 'center', marginTop: scale(12), paddingVertical: scale(4) }}>
-            <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(13.5), color: !quote && promo.code && !promo.checking && !promo.auto ? colors.slate : colors.amberText }}>{promoLine}</Text>
-          </PressableScale>
-          )}
+          {PLANS.map((p) => (
+            <PlanColumn
+              key={p.id}
+              plan={p}
+              values={rows.map((r) => (p.tier === 'pro' ? r.pro : r.max))}
+              on={pick === p.id}
+              onPress={() => setPick(p.id)}
+              theme={theme}
+              headH={headH}
+              rowH={rowH}
+            />
+          ))}
         </View>
+
+        {props.context === 'extend' ? passes : null}
+
+        <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(12.5), lineHeight: scale(18), color: SLATE, textAlign: 'center', marginTop: scale(16) }}>
+          One payment. Nothing renews on its own.
+        </Text>
+
+        {codeOnly && !promo.code ? null : (
+          <PressableScale hitSlop={10} onPress={() => props.onPromo(pick)} style={{ alignSelf: 'center', marginTop: scale(10), paddingVertical: scale(4) }}>
+            <Text style={{ fontFamily: 'Onest_500Medium', fontSize: scale(13.5), color: !quote && promo.code && !promo.checking && !promo.auto ? SLATE : colors.amberText }}>{promoLine}</Text>
+          </PressableScale>
+        )}
       </ScrollView>
 
-      {/* The sky's top edge, held under the clock while the page scrolls. */}
-      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, overflow: 'hidden' }}>
-        <NightSky width={sky.width} height={sky.height} theme={theme} />
-      </View>
-
       <SafeAreaView edges={['bottom']} style={{ backgroundColor: '#fff' }}>
-        <View style={{ paddingHorizontal: scale(24), paddingTop: scale(10), paddingBottom: scale(12) }}>
+        <View style={{ paddingHorizontal: scale(20), paddingTop: scale(8), paddingBottom: scale(10) }}>
           <ObButton
             label={label}
-            trailing={pick && canPay ? name : undefined}
+            trailing={pick && canPay ? trailing : undefined}
             withArrow={free}
             busy={props.busy}
             disabled={!pick || props.busy || promo.checking}
@@ -483,6 +404,6 @@ export function PlansPage(props: PlansPageProps) {
           />
         </View>
       </SafeAreaView>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -99,9 +99,10 @@ describe('Pro and Max side by side', () => {
     const rows = compareRows(DEFAULT_TIERS.pro, DEFAULT_TIERS.max);
     expect(rows).toEqual([
       { label: 'Live classes a month', pro: '45', max: '60' },
+      { label: 'Most classes in a day', pro: '2', max: '3' },
       { label: 'Snapped questions a day', pro: '25', max: '50' },
       { label: 'Practice questions a day', pro: '100', max: '200' },
-      { label: 'Follow-ups', pro: 'Unlimited', max: 'Unlimited' },
+      { label: 'Follow-up questions', pro: 'Unlimited', max: 'Unlimited' },
     ]);
     expect(rows.some((r) => /\ba (day|month)\b/.test(r.pro) || /\ba (day|month)\b/.test(r.max))).toBe(false);
   });
