@@ -93,6 +93,8 @@ const SYMBOLS: Record<string, string> = {
   // They are extraction debris, and printing their names is the worst option.
   section: '', subsection: '', par: '', item: '',
   lll: '⋘', ggg: '⋙', cong: '≅', ncong: '≇', asymp: '≍', doteq: '≐',
+  // Not LaTeX, but the solver writes it between two results: "x = 1,\or".
+  or: ' or ',
 };
 
 /**
@@ -147,6 +149,48 @@ const TRANSPARENT_WRAPPERS = new Set([
   // `\substack{a \\ b}` stacks reagents above an arrow; linear text cannot.
   'substack',
 ]);
+
+/** Commands `convertMath` reads by name, or prints as their own name on purpose. */
+const NAMED_COMMANDS = new Set([
+  'frac', 'dfrac', 'tfrac', 'begin', 'end', 'xrightarrow', 'xleftarrow', 'underbrace',
+  'overbrace', 'ce', 'ch', 'underset', 'stackrel', 'overset', 'binom', 'dbinom', 'tbinom',
+  'pmod', 'bmod', 'sqrt', 'mathbb', 'widehat', 'implies', 'sin', 'cos', 'tan', 'cot', 'sec',
+  'csc', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan', 'log', 'ln', 'exp', 'lim',
+  'max', 'min',
+]);
+
+export function isLatexCommand(name: string): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(SYMBOLS, name) ||
+    TRANSPARENT_WRAPPERS.has(name) ||
+    NAMED_COMMANDS.has(name)
+  );
+}
+
+/**
+ * Control characters the solver wrote into its own answer.
+ *
+ * It sometimes writes one where a backslash belongs (`$\x05ce{CN^-}$`), or in
+ * front of a word that means nothing at all (`$y = 2\x07utomatically$`). Neither
+ * can be seen on screen, and the second leaves "utomatically" in a formula. So
+ * in front of a real command the backslash goes back; in front of anything else
+ * inside maths the word goes too, because no formula has a four-letter word that
+ * is not a command. In prose only the character goes: the word may be real.
+ *
+ * Tab, newline and carriage return are ordinary whitespace and stay.
+ */
+const CONTROL_RUN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]+([A-Za-z]*)/g;
+const TERMINAL_CODE = /\u001B\[[?\d;]*[A-Za-z]/g;
+
+export function clearControlChars(raw: string): string {
+  if (raw.search(CONTROL_RUN) === -1) return raw;
+  const text = raw.replace(TERMINAL_CODE, '');
+  return text.replace(CONTROL_RUN, (_m, word: string, at: number) => {
+    if (word && isLatexCommand(word)) return `\\${word}`;
+    const inMath = (text.slice(0, at).split('$').length - 1) % 2 === 1;
+    return inMath && word.length >= 4 ? '' : word;
+  });
+}
 
 /** Glyphs that already sit raised on the line, so `^` around them would be
  *  doubling up — `45^\circ` is just "45°". */
@@ -1216,7 +1260,7 @@ export function latexToText(raw: string): string {
   // caller wants segments the tags become markers the scanner reads; for plain
   // text they vanish — a bare <Text> printing a literal "<b>" is the one
   // outcome neither path may produce.
-  const emphasised = raw.replace(/<\/?b>/gi, (tag) =>
+  const emphasised = clearControlChars(raw).replace(/<\/?b>/gi, (tag) =>
     markSegments ? (tag.length === 3 ? BOLD_OPEN : BOLD_CLOSE) : '',
   );
   const arrowsResolved = unwrapSmiles(hatsAsAccents(emphasised))
