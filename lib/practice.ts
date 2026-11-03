@@ -23,6 +23,20 @@ export interface DiagramFigure {
   region?: { x: number; y: number; w: number; h: number };
 }
 
+/** Which real sitting a past-paper question came from. `label` is the finished
+ *  line to show, e.g. "JEE Main · 29 Jan 2024 · Shift 2"; build nothing from the
+ *  other fields unless the design needs them. `date`/`shift`/`shift_time` are
+ *  null when unknown; `shift_time` is also null before the Sept 2020 session,
+ *  when the slots were not fixed. */
+export interface SourceTag {
+  exam: string;
+  year: number;
+  date: string | null;
+  shift: 1 | 2 | null;
+  shift_time: string | null;
+  label: string;
+}
+
 export interface NextQuestion {
   question_id: string;
   question_text: string | null;
@@ -33,6 +47,9 @@ export interface NextQuestion {
   concept: string | null;
   difficulty: string | null;
   diagram: DiagramFigure[] | null;
+  /** Null for a question that is not a dated past paper (mock tests, generated
+   *  questions). Absent from API builds before 291f0e01. */
+  source_tag?: SourceTag | null;
   /** The day's tally, so the quota line needs no second call. Counted BEFORE
    *  this question is answered. */
   questions_used_today?: number;
