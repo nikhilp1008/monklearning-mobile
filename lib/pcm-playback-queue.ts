@@ -161,6 +161,9 @@ export class PcmPlaybackQueue {
       this.started = true;
       this.fedSec = 0;
       this.lastPlayed = 0;
+      // Pressed Pause before the first audio of a turn: starting the player
+      // clears its pause, and the class spoke over a paused screen.
+      if (this.paused) pcmPause();
     }
     // Audio arriving at an empty queue restarts the stall clock: the time
     // between turns is silence nobody is waiting on.

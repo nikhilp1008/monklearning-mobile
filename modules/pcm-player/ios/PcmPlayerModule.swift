@@ -113,7 +113,14 @@ public class PcmPlayerModule: Module {
       // play() on a stopped engine raises "player started when engine not
       // running" and kills the app. A route change can stop the engine while
       // paused and a restart can still be retrying; recover() plays it then.
-      if self.playing, self.engine?.isRunning == true { self.player?.play() }
+      guard self.engine?.isRunning == true else { return }
+      if self.playing {
+        self.player?.play()
+      } else if !self.interrupted && self.fedSeconds >= self.prebufferSeconds {
+        // Everything arrived during the pause, so nothing has played yet.
+        self.player?.play()
+        self.playing = true
+      }
     }
 
     Function("playedSeconds") { () -> Double in
@@ -174,8 +181,9 @@ public class PcmPlayerModule: Module {
     // While interrupted, or stopped by a route change and not yet restarted,
     // the engine is not running; queue now, play on recovery (play() on a
     // stopped engine raises and kills the app).
-    if !self.interrupted && !self.playing && self.fedSeconds >= self.prebufferSeconds
-        && self.engine?.isRunning == true {
+    // Nor while the student has it paused: resume starts it.
+    if !self.interrupted && !self.userPaused && !self.playing
+        && self.fedSeconds >= self.prebufferSeconds && self.engine?.isRunning == true {
       player.play()
       self.playing = true
     }
