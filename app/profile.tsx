@@ -152,7 +152,7 @@ export default function ProfileScreen() {
       : pass && (pass.state === 'none' || pass.state === 'expired') && pass.free
         ? 'Free plan'
         : pass?.state === 'expired'
-          ? 'Your pass has ended'
+          ? `Your ${pass.record.kind === 'day' || pass.record.kind === 'week' ? 'pass' : 'plan'} has ended`
           : pass?.state === 'unknown'
             ? 'Your pass'
             : 'No pass yet';
@@ -231,7 +231,7 @@ export default function ProfileScreen() {
           <Text style={styles.manageLine}>{pass ? passLine : ' '}</Text>
         </View>
         <Text style={styles.manageLink}>
-          {!pass ? ' ' : pass.state === 'active' ? 'Manage plan →' : 'Get a pass →'}
+          {!pass ? ' ' : pass.state === 'active' ? 'Manage plan →' : pass.state !== 'unknown' && pass.free ? 'See plans →' : 'Get a pass →'}
         </Text>
       </PressableScale>
 

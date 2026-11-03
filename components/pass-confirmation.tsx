@@ -29,12 +29,15 @@ import { endsAtFor, type PassKind } from '@/lib/pass';
 export function PassConfirmation({
   sub,
   rows,
+  headline = 'Your pass is active.',
   buttonLabel,
   onPress,
   busy = false,
   error,
 }: {
-  /** The line under "Your pass is active." */
+  /** "Your pass is active." or, for a plan, "You're on Pro." */
+  headline?: string;
+  /** The line under the headline. */
   sub: string;
   /** The receipt, label and value. */
   rows: [string, string][];
@@ -77,7 +80,7 @@ export function PassConfirmation({
 
           <View style={styles.headBlock}>
             <Rise delay={300}>
-              <Text style={styles.headline}>Your pass is active.</Text>
+              <Text style={styles.headline}>{headline}</Text>
             </Rise>
             <Rise delay={420}>
               <Text style={styles.sub}>{sub}</Text>

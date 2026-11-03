@@ -44,6 +44,8 @@ export type PlansPageProps = {
   runningKind?: PassKind | null;
   /** Gate only: a student who has never held a pass is not told theirs ended. */
   neverHadPass?: boolean;
+  /** Gate only: what ended was Pro, Max or an older plan, not a pass. */
+  endedPlan?: boolean;
   /** Starter passes already used on this account: not offered again. */
   starterUsed?: PassKind[];
   /** The plan carried back from the promo screen. */
@@ -134,11 +136,11 @@ export function PlansPage(props: PlansPageProps) {
       ? startsNow
         ? `${plan?.name} starts right away and takes over from the rest of your ${PASS_NAME[props.runningKind as PassKind]} pass.`
         : props.passEnds
-          ? `New time starts after your pass ends on ${asDay(props.passEnds, today)}.`
-          : 'New time starts after your current pass ends.'
+          ? `New time starts after your ${runningStarter ? 'pass' : 'plan'} ends on ${asDay(props.passEnds, today)}.`
+          : `New time starts after your current ${runningStarter ? 'pass' : 'plan'} ends.`
       : props.neverHadPass
         ? null
-        : 'Your pass has ended. Your progress is saved.';
+        : `Your ${props.endedPlan ? 'plan' : 'pass'} has ended. Your progress is saved.`;
 
   const promoLine = quote
     ? `${quote.code} applied · −${rupees(rupeesOf(quote.discountPaise))}`

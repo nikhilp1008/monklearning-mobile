@@ -53,7 +53,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "MonkLearning uses your camera to snap a photo of your doubt so Drona can solve it.",
+          "cameraPermission": "monklearning uses your camera to snap a photo of your doubt so Drona can solve it.",
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": false
         }
@@ -61,14 +61,14 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "MonkLearning uses your camera to snap a photo of your doubt so Drona can solve it.",
-          "photosPermission": "MonkLearning needs access to your photos so you can pick an image of your doubt."
+          "cameraPermission": "monklearning uses your camera to snap a photo of your doubt so Drona can solve it.",
+          "photosPermission": "monklearning needs access to your photos so you can pick an image of your doubt."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "MonkLearning needs your microphone so Drona can hear you during a live class and when you ask a follow-up question by voice.",
+          "microphonePermission": "monklearning needs your microphone so Drona can hear you during a live class and when you ask a follow-up question by voice.",
           "recordAudioAndroid": true
         }
       ],

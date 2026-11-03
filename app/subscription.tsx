@@ -155,9 +155,9 @@ export default function SubscriptionScreen() {
 
           {record && !team ? (
             <>
-              <Text style={styles.overline}>DETAILS</Text>
+              <Text style={styles.overline}>{free ? 'YOUR LAST PASS' : 'DETAILS'}</Text>
               <View style={styles.card}>
-                <Row scale={scale} label="Plan" value={PASS_NAME[record.kind]} />
+                <Row scale={scale} label={record.kind === 'day' || record.kind === 'week' ? 'Pass' : 'Plan'} value={PASS_NAME[record.kind]} />
                 <Row scale={scale} label="Started" value={asDate(new Date(record.startedAt))} />
                 {runningEnds ? <Row scale={scale} label="This plan ends" value={asDate(runningEnds)} /> : null}
                 {endsAt ? <Row scale={scale} label={active ? (stacked ? 'All paid time ends' : 'Ends') : 'Ended'} value={asDate(endsAt)} /> : null}
@@ -168,8 +168,8 @@ export default function SubscriptionScreen() {
                     value={`${classes.left} of ${classes.limit}`}
                   />
                 ) : null}
-                <Row scale={scale} label="How you got it" value={howGot(record)} />
-                <Row scale={scale} label="Renews" value="Never on its own" last />
+                <Row scale={scale} label="How you got it" value={howGot(record)} last={free} />
+                {free ? null : <Row scale={scale} label="Renews" value="Never on its own" last />}
               </View>
             </>
           ) : null}
@@ -181,18 +181,33 @@ export default function SubscriptionScreen() {
             </Text>
           ) : null}
 
-          <Text style={styles.overline}>{record && !team ? 'YOUR PLAN INCLUDES' : 'EVERY PLAN INCLUDES'}</Text>
-          <View style={styles.card}>
-            <Included
-              scale={scale}
-              icon={<LiveGlyph size={scale(20)} />}
-              title="Live classes with Drona or Vedha"
-              line={`${allowed.classes} ${allowed.window_days >= 30 ? 'a month' : allowed.window_days === 7 ? 'this week' : 'today'}, and unlimited follow-ups.`}
-            />
-            <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line={showNumbers ? `Solved step by step. Up to ${allowed.snap_questions} a day.` : 'Solved step by step, whenever you are stuck.'} />
-            <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line={showNumbers ? `In the exam's own pattern. Up to ${allowed.practice_questions} a day.` : "In the exam's own pattern, every day."} />
-            <Included scale={scale} icon={<BookGlyph size={scale(20)} />} title="Textbooks made for revision" line="Formulas, diagrams and key points, chapter by chapter." last />
-          </View>
+          {free ? (
+            // What Free really gives, not what the pass that ended gave.
+            <>
+              <Text style={styles.overline}>THE FREE PLAN INCLUDES</Text>
+              <View style={styles.card}>
+                <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line={`Solved step by step. Up to ${limits.snap_questions} a day.`} />
+                <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line={`In the exam's own pattern. Up to ${limits.practice_questions} a day.`} />
+                <Included scale={scale} icon={<AskGlyph size={scale(20)} />} title="Follow-up questions" line={`Ask about any solution or textbook page. Up to ${limits.followups} a day.`} />
+                <Included scale={scale} icon={<BookGlyph size={scale(20)} />} title="Textbooks made for revision" line="Formulas, diagrams and key points, chapter by chapter." last />
+              </View>
+            </>
+          ) : (
+            <>
+            <Text style={styles.overline}>{record && !team ? 'YOUR PLAN INCLUDES' : 'EVERY PLAN INCLUDES'}</Text>
+            <View style={styles.card}>
+              <Included
+                scale={scale}
+                icon={<LiveGlyph size={scale(20)} />}
+                title="Live classes with Drona or Vedha"
+                line={`${allowed.classes} ${allowed.window_days >= 30 ? 'a month' : allowed.window_days === 7 ? 'this week' : 'today'}, and unlimited follow-ups.`}
+              />
+              <Included scale={scale} icon={<SnapADoubtIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Snap any question" line={showNumbers ? `Solved step by step. Up to ${allowed.snap_questions} a day.` : 'Solved step by step, whenever you are stuck.'} />
+              <Included scale={scale} icon={<PracticeIcon size={scale(20)} color={colors.ink} accent={colors.marigold} />} title="Practise from 20,000+ questions" line={showNumbers ? `In the exam's own pattern. Up to ${allowed.practice_questions} a day.` : "In the exam's own pattern, every day."} />
+              <Included scale={scale} icon={<BookGlyph size={scale(20)} />} title="Textbooks made for revision" line="Formulas, diagrams and key points, chapter by chapter." last />
+            </View>
+            </>
+          )}
 
           <Text style={styles.foot}>
             When a plan ends, your notes and doubts stay, and you can still read them. Only new classes, snaps and
@@ -298,6 +313,14 @@ function Included({ scale, icon, title, line, last }: { scale: Scale; icon: Reac
 }
 
 /** A board with a line of working on it: the live class. */
+function AskGlyph({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 5.5h16v10.5H10l-4.5 3.5V16H4z" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 function LiveGlyph({ size }: { size: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

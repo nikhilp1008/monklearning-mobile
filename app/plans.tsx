@@ -153,6 +153,7 @@ export default function PlansScreen() {
         passEnds={status.state === 'active' ? status.endsAt : null}
         runningKind={status.state === 'active' ? status.record.kind : null}
         neverHadPass={status.state === 'none'}
+        endedPlan={status.state === 'expired' && status.record.kind !== 'day' && status.record.kind !== 'week'}
         starterUsed={starterUsed}
         pick={isPick(params.pick) ? params.pick : null}
         promo={(params.promo ?? '').toUpperCase()}
@@ -185,7 +186,7 @@ export default function PlansScreen() {
           setPaying(true);
           try {
             const result = await pay(kind, {
-              description: `${PASS_NAME[kind]} pass`,
+              description: `${PASS_NAME[kind]} ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'}`,
               promo,
               expectedPaise,
             });
@@ -203,7 +204,7 @@ export default function PlansScreen() {
               setPending(true);
               Alert.alert(
                 'Payment received',
-                "Your bank is still confirming it. Your pass will start on its own in a few minutes — you don't need to pay again."
+                `Your bank is still confirming it. Your ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'} will start on its own in a few minutes — you don't need to pay again.`
               );
             } else if (result.status === 'failed' || result.status === 'cancelled') {
               setNotPaid(true);

@@ -334,6 +334,7 @@ export function PaywallSuccess({
   /** "Start learning". */
   onDone: () => void;
 }) {
+  const isPlan = kind === 'pro_1m' || kind === 'max_1m';
   // The student's own exam: a plan is for one, JEE Main or NEET UG.
   const [exam, setExam] = useState<ExamKey | null>(null);
   useEffect(() => {
@@ -348,13 +349,10 @@ export function PaywallSuccess({
 
   return (
     <PassConfirmation
-      sub={
-        kind === 'pro_1m' || kind === 'max_1m'
-          ? `You're on ${PASS_NAME[kind]}. Pick a chapter and the class begins.`
-          : `${PASS_NAME[kind]} of live classes, doubts and practice. Pick a chapter and the class begins.`
-      }
+      headline={isPlan ? `You're on ${PASS_NAME[kind]}.` : undefined}
+      sub={isPlan ? 'Pick a chapter and the class begins.' : `${PASS_NAME[kind]} of live classes, doubts and practice. Pick a chapter and the class begins.`}
       rows={[
-        ['Pass', kind === 'pro_1m' || kind === 'max_1m' ? `${PASS_NAME[kind]} · 1 month` : PASS_NAME[kind]],
+        [isPlan ? 'Plan' : 'Pass', isPlan ? `${PASS_NAME[kind]} · 1 month` : PASS_NAME[kind]],
         ['Exam', exam ? EXAMS[exam].name : '—'],
         ['Active till', activeTill(kind, endsAt)],
         ['Paid', rupees(paid)],

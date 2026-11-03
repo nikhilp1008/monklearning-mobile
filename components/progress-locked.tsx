@@ -13,7 +13,7 @@ import { useScale } from '@/constants/scale';
  * The free tier does not show a student their own score or weak areas (the
  * server answers `locked`). What goes here instead is what the page LOOKS like
  * with a plan, drawn with made-up figures, said to be made up in three places
- * (the pill, the heading, the dimming) so nobody reads it as their own. Their
+ * (the tag, the heading, the dimming) so nobody reads it as their own. Their
  * answers are still being recorded, and the card above it says so.
  */
 const SAMPLE_SUBJECTS = [
@@ -41,9 +41,7 @@ export function ProgressLocked({ message }: { message: string }) {
 
       <View style={styles.sampleHead}>
         <Text style={styles.overline}>WHAT IT LOOKS LIKE</Text>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>SAMPLE</Text>
-        </View>
+        <Text style={styles.pillText}>SAMPLE</Text>
       </View>
 
       <View style={styles.sample} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -92,12 +90,6 @@ function createStyles(scale: (n: number) => number) {
       fontSize: scale(11),
       letterSpacing: scale(1.2),
       color: colors.faint,
-    },
-    pill: {
-      paddingHorizontal: scale(9),
-      paddingVertical: scale(3),
-      borderRadius: scale(8),
-      backgroundColor: 'rgba(238,163,31,.16)',
     },
     pillText: {
       fontFamily: 'Onest_600SemiBold',

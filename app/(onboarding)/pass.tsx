@@ -166,7 +166,7 @@ export default function PassScreen() {
       } else if (result.status === 'pending') {
         Alert.alert(
           'Payment received',
-          "Your bank is still confirming it. Your pass will start on its own in a few minutes — you don't need to pay again."
+          `Your bank is still confirming it. Your ${plan ? 'plan' : 'pass'} will start on its own in a few minutes — you don't need to pay again.`
         );
       } else if (result.status === 'failed' || result.status === 'cancelled') {
         setNotPaid(result.unsure ? 'unsure' : 'sure');

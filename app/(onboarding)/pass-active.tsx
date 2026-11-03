@@ -86,9 +86,10 @@ export default function PassActiveScreen() {
     <PassConfirmation
       // No teacher named: the student has not chosen one yet. That is the
       // very next screen, so this line points at it.
-      sub={plan ? `You're on ${plan.name}. Next, choose who teaches you.` : `${starter.name} of live classes, doubts and practice. Next, choose who teaches you.`}
+      headline={plan ? `You're on ${plan.name}.` : undefined}
+      sub={plan ? 'Next, choose who teaches you.' : `${starter.name} of live classes, doubts and practice. Next, choose who teaches you.`}
       rows={[
-        ['Pass', plan ? `${plan.name} · 1 month` : starter.name],
+        [plan ? 'Plan' : 'Pass', plan ? `${plan.name} · 1 month` : starter.name],
         ['Exam', exam.name],
         ['Active till', activeTill(passId)],
         ['Paid', rupees(paid)],
