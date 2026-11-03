@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, View } from 'react-native';
+import { Alert, AppState, Platform, View } from 'react-native';
 
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { PaymentNotice } from '@/components/paywall/payment-notice';
@@ -94,6 +94,19 @@ export default function PlansScreen() {
 
   const goHome = useCallback(() => router.dismissTo('/'), []);
 
+  /**
+   * A FREE STUDENT CAN LEAVE. For them this page is a choice, not the gate, but
+   * it looks like the gate: no close button and no swipe back, so on iPhone the
+   * only way out was to force-quit. (Android's Back leaves the app.) A student
+   * with no plan and no free tier still has nothing behind this page.
+   */
+  const canLeaveFree =
+    Platform.OS === 'ios' && (status?.state === 'none' || status?.state === 'expired') && !!status.free;
+  const leave = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }, []);
+
   /** True from the tap on Pay until the purchase has finished. A ref, not state:
    *  the checks below run from app-focus events and must see it at once. */
   const payingNow = useRef(false);
@@ -158,7 +171,7 @@ export default function PlansScreen() {
         pick={isPick(params.pick) ? params.pick : null}
         promo={(params.promo ?? '').toUpperCase()}
         busy={paying}
-        onClose={context === 'extend' ? () => router.back() : undefined}
+        onClose={context === 'extend' ? () => router.back() : canLeaveFree ? leave : undefined}
         onPromo={(pick) =>
           router.push({
             pathname: '/plans-promo',
