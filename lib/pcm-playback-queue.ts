@@ -99,11 +99,31 @@ const probe = (line: string) => {
 /** How far ahead of the heard audio a part's board lines are revealed. */
 const REVEAL_LEAD_S = 0.5;
 
+/**
+ * How far ahead of the heard audio a part is APPROACHED (`onItemApproach`).
+ *
+ * `onItemStart` carries the caption, the speaking flag and every board entry
+ * that is not plain writing, and the classroom's cue captions depend on it
+ * running at the old time (app/live-classroom.tsx, onCaptionReveal) — so it
+ * stays at REVEAL_LEAD_S. `onItemApproach` is a second, earlier signal for the
+ * one thing that may be seen early: the lines a teacher writes. 0 (or anything
+ * not above REVEAL_LEAD_S) switches it off and the queue behaves exactly as it
+ * did before it existed.
+ *
+ * The check runs on a 100ms tick and compares against an estimate of the
+ * audible playhead, so a part is approached when it is between BOARD_LEAD_S
+ * and BOARD_LEAD_S + one tick away (about 2.0 to 2.1s), not "at least".
+ */
+export const BOARD_LEAD_S = 2.0;
+
 type Held = { id: string; pcm: Uint8Array; startSec: number; durSec: number };
 type Reason = 'jump' | 'frozen';
 
 export class PcmPlaybackQueue {
   onItemStart?: (id: string) => void;
+  /** Fired once per part, BOARD_LEAD_S before it is heard and always before
+   *  its own `onItemStart`. See BOARD_LEAD_S. Never while paused. */
+  onItemApproach?: (id: string) => void;
   onQueueDrained?: () => void;
   /** Diagnostics hook: fired after a dead engine has been rebuilt. */
   onRecovered?: (info: { reason: Reason; heardUpTo: number; replayed: number }) => void;
@@ -129,6 +149,11 @@ export class PcmPlaybackQueue {
   private recoveries: number[] = [];
   /** The native player's restart count as of the last tick; see tick(). */
   private nativeRecoveries = pcmRecoveries();
+  /** Parts already approached and not yet started: a part is approached once,
+   *  across rebuilds (which re-derive `pending`) and pauses. */
+  private approached = new Set<string>();
+
+  constructor(private readonly boardLeadS: number = BOARD_LEAD_S) {}
 
   get idle(): boolean {
     return (
@@ -227,8 +252,21 @@ export class PcmPlaybackQueue {
     // Never while paused: the playhead stands still, so a sentence that arrives
     // during a pause is already "due" and would write its lines and caption on
     // a stopped class.
+    //
+    // The earlier signal first, so a part is always approached before it
+    // starts. Same rule: never while paused.
+    if (!this.paused && this.boardLeadS > REVEAL_LEAD_S && this.pending.length) {
+      const horizon = played + this.intoHeadS(played, now) + this.boardLeadS + TICK_MS / 1000;
+      for (const item of [...this.pending]) {
+        if (item.startSec > horizon) break;
+        if (this.approached.has(item.id)) continue;
+        this.approached.add(item.id);
+        this.onItemApproach?.(item.id);
+      }
+    }
     while (!this.paused && this.pending.length && this.pending[0].startSec <= played + REVEAL_LEAD_S) {
       const item = this.pending.shift()!;
+      this.approached.delete(item.id);
       this.onItemStart?.(item.id);
     }
     // Keep the head part (it may be mid-play) and everything after it.
@@ -245,6 +283,25 @@ export class PcmPlaybackQueue {
       }, DRAIN_GRACE_MS);
     }
   };
+
+  /**
+   * How far into the part now sounding the audible playhead is.
+   *
+   * `pcmPlayedSeconds` only advances when a whole part finishes, so it trails
+   * the sound by up to one part (~1s). Left alone, a part would be approached
+   * anywhere from BOARD_LEAD_S down to BOARD_LEAD_S minus a part's length. The
+   * wall clock since the last step, capped at the part's own length, closes
+   * that. Before the first step it counts from the moment the stream was fed
+   * (a little early if the engine is slow to start, which can only bring the
+   * board forward, never hold it back), and not at all while less than the
+   * prebuffer is fed, since the player has not been told to play yet.
+   */
+  private intoHeadS(played: number, now: number): number {
+    if (played <= 0 && this.fedSec < PREBUFFER_S) return 0;
+    const head = this.held.find((h) => h.startSec + h.durSec > played + DRAIN_EPS_S);
+    if (!head) return 0;
+    return Math.min(Math.max(0, (now - this.lastMoveAt) / 1000), head.durSec);
+  }
 
   /** Rebuild the stream and feed everything not heard past `heardUpTo`. */
   private recover(reason: Reason, heardUpTo: number) {
@@ -348,6 +405,7 @@ export class PcmPlaybackQueue {
     this.started = false;
     this.fedSec = 0;
     this.pending = [];
+    this.approached.clear();
     this.held = [];
     this.paused = false;
     this.lastPlayed = 0;

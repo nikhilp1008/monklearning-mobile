@@ -532,6 +532,14 @@ export class DronaVoiceClient {
       this.revealNextSentenceLines(meta?.sentenceId);
     };
 
+    // BOARD_LEAD_S before a sentence is heard: the lines a teacher WRITES go up
+    // (and only those). Everything else about the sentence — caption, speaking
+    // flag, figures, widgets, the cue clock — still waits for onItemStart.
+    // Only the native queue has this signal; the file queue never fires it and
+    // keeps today's behaviour.
+    (this.playback as { onItemApproach?: (id: string) => void }).onItemApproach = (id) =>
+      this.revealWrittenLinesAhead(id);
+
     // The turn's audio has actually finished playing — see `flushHeldTurn`.
     this.playback.onQueueDrained = () => {
       this.handlers.onSpeakingChange?.(false);
@@ -1215,6 +1223,63 @@ export class DronaVoiceClient {
     rows.forEach((row, i) =>
       this.handlers.onBoardReveal?.({ ...row, key: `${entry.key}~${i}`, write: pace[i] })
     );
+  }
+
+  /**
+   * THE BOARD LEADS THE VOICE BY ~BOARD_LEAD_S (lib/pcm-playback-queue.ts).
+   *
+   * Only plain writing goes early — text, heading, note, formula, and none of
+   * the figure kinds — and only a PREFIX of the chunk's lines, so a figure
+   * never ends up below a line that comes after it. Everything else stays with
+   * onItemStart, which runs at the old time and reveals the rest (this is
+   * idempotent by key, so it writes nothing twice).
+   *
+   * Three things keep the sync:
+   * - The caption, the speaking flag and figures/widgets are not touched: the
+   *   classroom's cue captions rely on onItemStart running just before
+   *   onBoardReveal of the same sentence (app/live-classroom.tsx).
+   * - The cue clock is the last revealed line's `seq` (activeSeq), and a
+   *   widget's cues and steps are selected by it. Early text would move it, so
+   *   a turn whose board holds any registry widget does not lead at all — it
+   *   keeps today's reveal times.
+   * - Board order is arrival order: if an earlier chunk still holds a line that
+   *   has not been revealed (a figure waiting for its sentence), this chunk
+   *   waits behind it.
+   */
+  private revealWrittenLinesAhead(id: string) {
+    const meta = this.chunkMeta.get(id);
+    const entries = meta?.board;
+    if (!meta || !entries?.length) return;
+    for (const [otherId, other] of this.chunkMeta) {
+      if (otherId === id) break;
+      if (other.board?.some((e) => !this.revealedBoardKeys.has(e.key))) return;
+    }
+    let n = 0;
+    while (n < entries.length && this.isWrittenLine(entries[n].event)) n += 1;
+    if (n === 0) return;
+    for (const entry of entries.slice(0, n)) {
+      const batch = this.boardBatches.find((b) => b.serial === entry.batch);
+      if (!batch || batch.entries.some((e) => e.event.payload)) return;
+    }
+    const now = Date.now();
+    const pace = paceLines(
+      entries.map((e) => e.event),
+      this.sentenceMs(meta)
+    );
+    entries.slice(0, n).forEach((entry, i) =>
+      this.revealBoardEntry(
+        entry,
+        `ahead(${meta.sentenceId ?? id})`,
+        { sentenceId: meta.sentenceId ?? '-', receivedAt: meta.receivedAt ?? now, startedAt: now },
+        pace[i]
+      )
+    );
+  }
+
+  /** What a teacher writes: not a figure, a widget or an illustration. */
+  private isWrittenLine(e: BoardEvent): boolean {
+    if (e.payload || e.svg || e.illustration_slug) return false;
+    return e.type === 'text' || e.type === 'heading' || e.type === 'note' || e.type === 'formula';
   }
 
   /**
