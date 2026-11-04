@@ -27,6 +27,12 @@ describe('a reading line keeps a term whole', () => {
     expect(plainSpaces('2: L mol<sup>−1</sup> s<sup>−1</sup>').some((p) => p.includes('L\u00a0mol−1'))).toBe(true);
     expect(readerBreaks('<i>k</i>′[A]')).toContain('′\u2060[');
   });
+  it('a coefficient stays with its species (Chemistry 12 Ch 4)', () => {
+    expect(plainSpaces('→ 2 Mn<sup>2+</sup> + 5 I<sub>2</sub> + 8H<sub>2</sub>O').some((p) => p.includes('5\u00a0I2'))).toBe(true);
+    expect(plainSpaces('+ 2 H<sub>2</sub>O').some((p) => p.includes('2\u00a0H2O'))).toBe(true);
+    expect(plainSpaces('8 H<sup>+</sup> + 5 e<sup>−</sup> →').some((p) => p.includes('5\u00a0e−'))).toBe(true);
+    expect(plainSpaces('→ 2 CO<sub>2</sub> gives').some((p) => p.includes('2\u00a0CO2'))).toBe(true);
+  });
   it('a couple stays whole across the slash, and words may still break', () => {
     const WJ = '\u2060';
     expect(readerBreaks('E°(Ni<sup>2+</sup>/Ni) = −0.25 V')).toContain(`/${WJ}Ni)`);

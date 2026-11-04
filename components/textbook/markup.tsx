@@ -609,6 +609,8 @@ export function readerBreaks(html: string): string {
       (READER_OPS.has(b) && (a.length <= 3 || (b === '×' && /[0-9]$/.test(a)))) ||
       // A short bracket stays whole: "(0.50" | "− x)", "log(pᵢ/(2pᵢ" | "− pₜ))" (Chemistry 12 Ch 3).
       (READER_OPS.has(b) && /\([^()]{1,6}$/.test(a)) ||
+      // A coefficient with its species: "+ 5" | "I₂", "+ 2" | "H₂O", "+ 5" | "e⁻" (Chemistry 12 Ch 4).
+      (/^[0-9]{1,2}$/.test(a) && /^(?:(?:[A-Z][a-z]?)+|e)<su[bp]>/.test(toks[k])) ||
       // An option's letter with its value: "(d)" | "240 min".
       /^\([a-e]\)$/.test(a) ||
       // A unit stays whole: "0.133 mol" | "L⁻¹", "2: L" | "mol⁻¹".

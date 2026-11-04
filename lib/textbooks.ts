@@ -780,6 +780,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'chemistry|12|solutions': () => import('@/content/textbooks/chem-12-01-solutions'),
   'chemistry|12|electrochemistry': () => import('@/content/textbooks/chem-12-02-electrochemistry'),
   'chemistry|12|chemical kinetics': () => import('@/content/textbooks/chem-12-03-chemical-kinetics'),
+  'chemistry|12|d and f block elements': () => import('@/content/textbooks/chem-12-04-d-and-f-block'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {
