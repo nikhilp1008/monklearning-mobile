@@ -1,4 +1,14 @@
-import { activeThread, buildChat, trimLocal, KEEP_ITEMS, threadTurns, type HelpThread, type LocalItem } from '@/lib/help-chat';
+import {
+  activeThread,
+  buildChat,
+  carriedThreads,
+  localForThread,
+  trimLocal,
+  KEEP_ITEMS,
+  threadTurns,
+  type HelpThread,
+  type LocalItem,
+} from '@/lib/help-chat';
 
 const T0 = '2026-11-03T10:00:00.000Z';
 const T1 = '2026-11-03T10:01:00.000Z';
@@ -117,5 +127,58 @@ describe('trimLocal', () => {
     const kept = trimLocal(many);
     expect(kept).toHaveLength(KEEP_ITEMS);
     expect(kept.at(-1)?.key).toBe(`${KEEP_ITEMS + 4}`);
+  });
+});
+
+describe('carriedThreads', () => {
+  const team = (at: string) => [{ id: 1, from: 'team' as const, text: 'Fixed.', at }];
+
+  it('carries a request the team still owes an answer on', () => {
+    expect(carriedThreads([thread({ awaiting_team: true })], Date.parse(T2))).toEqual(['e1']);
+  });
+
+  it('carries an answered request when the team spoke after the student last looked', () => {
+    const t = thread({ status: 'answered', awaiting_team: false, messages: team(T2) });
+    expect(carriedThreads([t], Date.parse(T1))).toEqual(['e1']);
+  });
+
+  it('lets go of an answered request the student has already seen', () => {
+    const t = thread({ status: 'answered', awaiting_team: false, messages: team(T1) });
+    expect(carriedThreads([t], Date.parse(T2))).toEqual([]);
+  });
+
+  it('has nothing to compare against on a first visit: only waiting requests carry', () => {
+    const answered = thread({ id: 'a', status: 'answered', awaiting_team: false, messages: team(T1) });
+    expect(carriedThreads([answered, thread({ id: 'w', awaiting_team: true })], null)).toEqual(['w']);
+  });
+
+  it('does not carry a closed request that is only waiting, but shows a closing reply once', () => {
+    expect(carriedThreads([thread({ status: 'closed', awaiting_team: true })], Date.parse(T2))).toEqual([]);
+    const closedWithReply = thread({ status: 'closed', awaiting_team: false, messages: team(T2) });
+    expect(carriedThreads([closedWithReply], Date.parse(T1))).toEqual(['e1']);
+  });
+
+  it("ignores the student's own later messages", () => {
+    const t = thread({ status: 'answered', awaiting_team: false, messages: [{ id: 2, from: 'student', text: 'ok', at: T2 }] });
+    expect(carriedThreads([t], Date.parse(T1))).toEqual([]);
+  });
+});
+
+describe('localForThread', () => {
+  const me = (key: string): LocalItem => ({ kind: 'me', key, text: key, at: T0 });
+  const bot = (key: string, extra: Partial<Extract<LocalItem, { kind: 'bot' }>> = {}): LocalItem => ({ kind: 'bot', key, text: key, at: T0, ...extra });
+
+  it('keeps from the question that led to the hand-over, and drops the older chat', () => {
+    const local = [me('old q'), bot('old a', { askId: 1 }), me('q'), bot('a', { askId: 2 }), bot('sent', { threadId: 'e1' })];
+    expect(localForThread(local, 'e1').map((i) => i.key)).toEqual(['q', 'a', 'sent']);
+  });
+
+  it('keeps what was said after the hand-over', () => {
+    const local = [me('q'), bot('sent', { threadId: 'e1' }), me('later q'), bot('later a', { askId: 3 })];
+    expect(localForThread(local, 'e1').map((i) => i.key)).toEqual(['q', 'sent', 'later q', 'later a']);
+  });
+
+  it('keeps nothing for a request made on another phone', () => {
+    expect(localForThread([me('q'), bot('a', { askId: 1 })], 'e9')).toEqual([]);
   });
 });

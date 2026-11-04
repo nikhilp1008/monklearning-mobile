@@ -12,6 +12,8 @@
 //     "talk to a person" with the support email, so a student who asked for one was never given the team.
 //   - A founder answers in Telegram; the words arrive here as the monklearning team (nobody is named), and the
 //     phone is pushed if the student has left the screen (lib/push.ts routes that tap back here).
+//   - Opening Support starts a new chat. A request is carried over only while the team owes an answer or has
+//     spoken since the student last looked (lib/help-chat.ts carriedThreads); the server keeps the rest.
 //   - The screen polls while the team owes an answer: every 4 s for two minutes, then every 15 s for half an hour.
 //   - The assistant answers one question at a time: it does not remember the last one (a server change, for later).
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,7 +30,18 @@ import { KeyboardSpacer } from '@/components/keyboard-spacer';
 import { PressableScale } from '@/components/pressable-scale';
 import { colors } from '@/constants/brand';
 import { ApiError, apiFetch, friendlyError } from '@/lib/api';
-import { HELP_ROUTES, activeThread, buildChat, trimLocal, type ChatItem, type HelpThread, type LocalItem } from '@/lib/help-chat';
+import {
+  HELP_ROUTES,
+  activeThread,
+  buildChat,
+  carriedThreads,
+  lastActivity,
+  localForThread,
+  trimLocal,
+  type ChatItem,
+  type HelpThread,
+  type LocalItem,
+} from '@/lib/help-chat';
 import { getStoredName } from '@/lib/profile';
 import { supabase } from '@/lib/supabase';
 
@@ -105,9 +118,21 @@ export default function SupportScreen() {
 
   const [userKey, setUserKey] = useState<string | null>(null);
   const [firstName, setFirstName] = useState<string | null>(null);
+  const [seenKey, setSeenKey] = useState<string | null>(null);
   const [local, setLocal] = useState<LocalItem[]>([]);
   const [threads, setThreads] = useState<HelpThread[]>([]);
+  /** The phone's memory has been read. */
   const [loaded, setLoaded] = useState(false);
+  /** The first ask of the server has come back (or failed). */
+  const [fetched, setFetched] = useState<'pending' | 'ok' | 'failed'>('pending');
+  /** What to show has been decided: a new chat, or the one still being sorted out. */
+  const [ready, setReady] = useState(false);
+  /** The requests on this screen. The server sends the last ten; only the unfinished ones are shown. */
+  const [shown, setShown] = useState<string[]>([]);
+  const stored = useRef<LocalItem[]>([]);
+  const seenAt = useRef<number | null>(null);
+  const seenKeyRef = useRef<string | null>(null);
+  const decided = useRef(false);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,9 +143,10 @@ export default function SupportScreen() {
   /** Went back to the assistant from this thread. */
   const [leftThread, setLeftThread] = useState<string | null>(null);
 
-  const active = useMemo(() => activeThread(threads), [threads]);
+  const visible = useMemo(() => threads.filter((t) => shown.includes(t.id)), [threads, shown]);
+  const active = useMemo(() => activeThread(visible), [visible]);
   const withTeam = !!active && leftThread !== active.id;
-  const chat = useMemo(() => buildChat(local, threads, active), [local, threads, active]);
+  const chat = useMemo(() => buildChat(local, visible, active), [local, visible, active]);
   const last = chat[chat.length - 1];
   const awaiting = !!active && active.awaiting_team !== false && withTeam;
 
@@ -141,10 +167,15 @@ export default function SupportScreen() {
         return;
       }
       const key = `help.chat.v1:${id}`;
+      const seen = `help.chat.seen:${id}`;
       setUserKey(key);
+      setSeenKey(seen);
+      seenKeyRef.current = seen;
       try {
         const raw = await AsyncStorage.getItem(key);
-        if (!stop && raw) setLocal(JSON.parse(raw) as LocalItem[]);
+        if (raw) stored.current = JSON.parse(raw) as LocalItem[];
+        const left = Number(await AsyncStorage.getItem(seen));
+        seenAt.current = Number.isFinite(left) && left > 0 ? left : null;
       } catch {
         // An unreadable chat is an empty one.
       }
@@ -155,10 +186,36 @@ export default function SupportScreen() {
     };
   }, []);
 
+  // Opening Support starts a new chat, unless a request is still being sorted out: the team owes
+  // an answer, or has spoken since the student last looked. Decided once, when the first answer
+  // from the server and the phone's memory are both in; after that, only new replies are added.
   useEffect(() => {
-    if (!loaded || !userKey) return;
+    if (!loaded || fetched === 'pending') return;
+    const carried = carriedThreads(threads, seenAt.current);
+    if (!decided.current) {
+      decided.current = true;
+      if (fetched === 'failed') {
+        // Offline: the server can't say what is finished, so the phone's chat stays as it was.
+        setLocal(stored.current);
+      } else {
+        const newest = threads.filter((t) => carried.includes(t.id)).sort((a, b) => lastActivity(b) - lastActivity(a))[0];
+        setLocal(newest ? localForThread(stored.current, newest.id) : []);
+      }
+      setReady(true);
+    }
+    setShown((was) => (carried.every((id) => was.includes(id)) ? was : [...was, ...carried.filter((id) => !was.includes(id))]));
+  }, [loaded, fetched, threads]);
+
+  useEffect(() => {
+    if (!ready || !userKey) return;
     AsyncStorage.setItem(userKey, JSON.stringify(trimLocal(local))).catch(() => {});
-  }, [loaded, userKey, local]);
+  }, [ready, userKey, local]);
+
+  // What the student has seen of the team's side: written as it arrives on screen, and on leaving.
+  useEffect(() => {
+    if (!ready || !seenKey) return;
+    AsyncStorage.setItem(seenKey, String(Date.now())).catch(() => {});
+  }, [ready, seenKey, threads]);
 
   // The team's side, every time the screen is come back to (a student who left, or tapped the notification).
   useFocusEffect(
@@ -166,11 +223,16 @@ export default function SupportScreen() {
       let stop = false;
       apiFetch<{ escalations: HelpThread[] }>('/help/escalations')
         .then((res) => {
-          if (!stop) setThreads(res.escalations);
+          if (stop) return;
+          setThreads(res.escalations);
+          setFetched('ok');
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!stop) setFetched((was) => (was === 'pending' ? 'failed' : was));
+        });
       return () => {
         stop = true;
+        if (seenKeyRef.current) AsyncStorage.setItem(seenKeyRef.current, String(Date.now())).catch(() => {});
       };
     }, [])
   );
@@ -223,7 +285,9 @@ export default function SupportScreen() {
       const res = await apiFetch<Escalated>('/help/escalate', { method: 'POST', body: JSON.stringify(body) });
       setLocal((all) => [...all, { kind: 'bot', key: newKey(), text: res.message, at: stamp(), threadId: res.id ?? undefined }]);
       if (res.id) {
+        const id = res.id;
         setLeftThread(null);
+        setShown((was) => (was.includes(id) ? was : [...was, id]));
         // Show it at once as waiting, then let the poll bring the rest.
         upsert({ id: res.id, question: fallbackQuestion, status: 'open', created_at: stamp(), replies: [], messages: [], awaiting_team: true });
       }
@@ -249,7 +313,7 @@ export default function SupportScreen() {
 
   function send() {
     const text = draft.trim();
-    if (!text || busy) return;
+    if (!text || busy || !ready) return;
     setDraft('');
     if (withTeam && active) {
       void writeToTeam(active.id, text);
@@ -280,7 +344,7 @@ export default function SupportScreen() {
     setLocal((all) => [...all, { kind: 'bot', key: newKey(), text: 'Tell me what you need help with, and I will send it to the team.', at: stamp() }]);
   }
 
-  const empty = loaded && chat.length === 0;
+  const empty = ready && chat.length === 0;
   const askedLast = !withTeam && !tellingTeam && !busy && last?.kind === 'bot' && last.askId !== undefined && settled !== last.key;
   const hint = withTeam || tellingTeam ? 'Message the team' : 'Ask a question';
   const canSend = draft.trim().length > 0 && !busy;
@@ -347,7 +411,7 @@ export default function SupportScreen() {
           </>
         ) : null}
 
-        {!withTeam && !askedLast && !empty && !busy && !tellingTeam ? (
+        {ready && !withTeam && !askedLast && !empty && !busy && !tellingTeam ? (
           <View style={styles.chips}>
             <Chip text={TALK} strong onPress={talkToPerson} />
           </View>
