@@ -777,6 +777,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // Not on the shelf until the server's chapters table has a Class 11 p-Block
   // row (founder's decision, 2026-10-31); the key follows that row's name.
   'chemistry|11|p block elements': () => import('@/content/textbooks/chem-11-10-p-block'),
+  'chemistry|12|solutions': () => import('@/content/textbooks/chem-12-01-solutions'),
+  'chemistry|12|electrochemistry': () => import('@/content/textbooks/chem-12-02-electrochemistry'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

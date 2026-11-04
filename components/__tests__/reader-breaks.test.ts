@@ -20,6 +20,15 @@ describe('a reading line keeps a term whole', () => {
   it('a short term with ≲ or ≳: "V_Z ≲ 5 V", not "threshold V_Z" | "≲ 5 V" (Physics 12 Ch 14)', () => {
     expect(plainSpaces('• Zener: threshold <i>V</i><sub>Z</sub> ≲ 5 V').some((p) => p.includes('VZ\u00a0≲\u00a05\u00a0V'))).toBe(true);
   });
+  it('a couple stays whole across the slash, and words may still break', () => {
+    const WJ = '\u2060';
+    expect(readerBreaks('E°(Ni<sup>2+</sup>/Ni) = −0.25 V')).toContain(`/${WJ}Ni)`);
+    expect(readerBreaks('the AgCl/Ag couple')).toContain(`/${WJ}Ag `);
+    expect(readerBreaks('E°(Fe<sup>3+</sup>/Fe<sup>2+</sup>)')).toContain(`/${WJ}Fe<sup>`);
+    expect(readerBreaks('Strong/Weak')).not.toContain(WJ);
+    expect(readerBreaks('<i>E</i>°(Ni<sup>2+</sup>/Ni)')).toContain(`°${WJ}(`);
+  });
+
   it('a minus with the bracket it negates, and a slash with the root after it', () => {
     expect(readerBreaks('= −(−30)/(−15)')).toContain('−⁠(');
     expect(readerBreaks('= (1/√2)/(1/2)')).toContain('/⁠√');

@@ -591,6 +591,11 @@ export function readerBreaks(html: string): string {
     .replace(/(<i>[^<]*[A-Z]<\/i>)(?=′)/g, `$1${HAIR}${WJ}`)
     // Only a maths slash: "1/N_A", "10⁻¹⁰/0.1", "[salt]/[base]"; a list of words ("linear/trigonal-planar/…") may still break.
     .replace(/([^<\s])\/(?=[\d([√]|<[isb]|[A-Za-zα-ωΑ-Ω](?![a-z]))/g, `$1/${WJ}`)
+    // A couple stays whole: "Ni²⁺/" | "Ni)", "AgCl/" | "Ag" (Android check of Chemistry 12 Ch 2). An element
+    // symbol has one lower-case letter at most, so a capitalised word after a slash may still break.
+    .replace(/([^<\s])\/(?=[A-Z][a-z]?(?:<su|[^A-Za-z]|$))/g, `$1/${WJ}`)
+    // A symbol with its couple: "E°" | "(Ni²⁺/Ni)".
+    .replace(/°(?=\()/g, `°${WJ}`)
     // A minus sign stays with the bracket it negates: "= −" | "(−30)/(−15)" (Physics 12 Ch 9).
     .replace(/−(?=[([])/g, `−${WJ}`)
     .split(' ');

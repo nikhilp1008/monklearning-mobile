@@ -8,6 +8,8 @@ import { KEY_POINTS as C11_07 } from '@/lib/revise/keypoints-chemistry-11-07';
 import { KEY_POINTS as C11_08 } from '@/lib/revise/keypoints-chemistry-11-08';
 import { KEY_POINTS as C11_09 } from '@/lib/revise/keypoints-chemistry-11-09';
 import { KEY_POINTS as C11_10 } from '@/lib/revise/keypoints-chemistry-11-10';
+import { KEY_POINTS as C12_01 } from '@/lib/revise/keypoints-chemistry-12-01';
+import { KEY_POINTS as C12_02 } from '@/lib/revise/keypoints-chemistry-12-02';
 import { KEY_POINTS as P11_01 } from '@/lib/revise/keypoints-physics-11-01';
 import { KEY_POINTS as P11_02 } from '@/lib/revise/keypoints-physics-11-02';
 import { KEY_POINTS as P11_03 } from '@/lib/revise/keypoints-physics-11-03';
@@ -96,4 +98,6 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'chemistry|11|8': C11_08,
   'chemistry|11|9': C11_09,
   'chemistry|11|10': C11_10,
+  'chemistry|12|1': C12_01,
+  'chemistry|12|2': C12_02,
 };

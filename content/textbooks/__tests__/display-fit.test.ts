@@ -132,6 +132,28 @@ describe('a factor written against a bracket goes over the bar with it', () => {
   });
 });
 
+describe('a mark on a symbol stays with it under the bar', () => {
+  // "(p° − ps)/p°" once drew p under the bar with its ° stranded beside the
+  // fraction (Android check of Chemistry 12 Ch 1, relative lowering of vapour pressure).
+  it('(p° − ps)/p°: the degree mark is part of the bottom', () => {
+    const f = boxes('(<i>p</i>° − <i>p</i><sub>s</sub>)/<i>p</i>° = <i>x</i><sub>solute</sub>').flat().find((x) => x.kind === 'frac') as { bottom: string };
+    expect(shown(f.bottom)).toBe('p°');
+  });
+  it('no card leaves a degree mark just after a fraction', () => {
+    const out: string[] = [];
+    for (const chapter of BOOK_CHAPTERS)
+      buildFormulaCards(chapter).forEach((card, k) => {
+        for (const it of card.items)
+          for (const line of it.expr.split('<br>'))
+            if (line && hasFraction(line))
+              boxes(line).flat().forEach((p, i, all) => {
+                if (p.kind === 'text' && /^\s*°/.test(shown(p.html)) && all[i - 1]?.kind === 'frac') out.push(`${chapterName(chapter)} card ${k + 1}: ${shown(line)}`);
+              });
+      });
+    expect(out).toEqual([]);
+  });
+});
+
 describe('a short last term stays with its operator', () => {
   // "% X = … × m(AgX)/w ×" | "100" left a number alone on the card's last line
   // (Android check of Chemistry 11 Ch 8, the Carius card).

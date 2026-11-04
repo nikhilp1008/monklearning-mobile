@@ -69,7 +69,7 @@ function openCount(s: string): number {
   return n;
 }
 const hasSpace = (h: string) => /[\s]/.test(h);
-const SYMBOL = /^(?:<i>[^<]+<\/i>|[A-Za-z0-9]+)(?:<su([bp])>(?:<\/?i>|[^<])*<\/su\1>)*/;
+const SYMBOL = /^(?:<i>[^<]+<\/i>°?|[A-Za-z0-9]+)(?:<su([bp])>(?:<\/?i>|[^<])*<\/su\1>)*/;
 const FUNCTION = /^(?:sin|cos|tan|cot|sec|cosec|log|ln)\d*$/;
 
 type Found = { start: number; end: number; top: string; bottom: string; tall: boolean };
