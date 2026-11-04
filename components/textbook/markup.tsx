@@ -596,6 +596,8 @@ export function readerBreaks(html: string): string {
     .replace(/([^<\s])\/(?=[A-Z][a-z]?(?:<su|[^A-Za-z]|$))/g, `$1/${WJ}`)
     // A symbol with its couple: "E°" | "(Ni²⁺/Ni)".
     .replace(/°(?=\()/g, `°${WJ}`)
+    // A prime with its bracket: "k′" | "[A]" (Android check of Chemistry 12 Ch 3).
+    .replace(/′(?=[[(])/g, `′${WJ}`)
     // A minus sign stays with the bracket it negates: "= −" | "(−30)/(−15)" (Physics 12 Ch 9).
     .replace(/−(?=[([])/g, `−${WJ}`)
     .split(' ');
@@ -605,6 +607,12 @@ export function readerBreaks(html: string): string {
     const a = plain(toks[k - 1]), b = plain(toks[k]);
     const glue =
       (READER_OPS.has(b) && (a.length <= 3 || (b === '×' && /[0-9]$/.test(a)))) ||
+      // A short bracket stays whole: "(0.50" | "− x)", "log(pᵢ/(2pᵢ" | "− pₜ))" (Chemistry 12 Ch 3).
+      (READER_OPS.has(b) && /\([^()]{1,6}$/.test(a)) ||
+      // An option's letter with its value: "(d)" | "240 min".
+      /^\([a-e]\)$/.test(a) ||
+      // A unit stays whole: "0.133 mol" | "L⁻¹", "2: L" | "mol⁻¹".
+      (/(?:^|[^A-Za-z])(?:mol|L)$/.test(a) && /^(?:L|mol|s|min|K|h)(?:[−0-9]|$)/.test(b)) ||
       (READER_OPS.has(a) && b.length > 0 && b.length <= 7) ||
       // "× 10⁻⁹" stays with its number however much follows it: "(550 ×" | "10⁻⁹)/(4 …".
       (a === '×' && toks[k].startsWith('10<sup>')) ||

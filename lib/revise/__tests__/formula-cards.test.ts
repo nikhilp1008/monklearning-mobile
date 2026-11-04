@@ -110,6 +110,12 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
 describe('keepTogether', () => {
   const nb = (s: string) => s.replace(/\u00a0/g, '·').replace(/\u2060/g, '');
 
+  it('lets a long log start a line, and holds a prime to its bracket (Chemistry 12 Ch 3)', () => {
+    const line = keepTogether('<i>k</i>′ = (2.303/<i>t</i>) log((<i>V</i><sub>∞</sub> − <i>V</i><sub>0</sub>)/(<i>V</i><sub>∞</sub> − <i>V</i><sub>t</sub>))');
+    expect(line).toContain(') log(');
+    expect(keepTogether('Rate = <i>k</i>′[A]')).toContain('′\u2060[');
+  });
+
   it('keeps a bracket of maths whole: (m₁ + m₂), (1 + k²/R²), (v² − v₀²)', () => {
     expect(nb(keepTogether('<i>r</i> = <i>m</i>/(<i>m</i><sub>1</sub> + <i>m</i><sub>2</sub>)'))).toContain('(<i>m</i><sub>1</sub>·+·<i>m</i><sub>2</sub>)');
     expect(nb(keepTogether('<i>K</i> = ½<i>mv</i><sup>2</sup>(1 + <i>k</i><sup>2</sup>/<i>R</i><sup>2</sup>)'))).toContain('(1·+·');
