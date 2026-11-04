@@ -18,19 +18,33 @@ import {
 
 jest.mock('@/lib/widgets/registry', () => ({ REGISTRY_MANIFEST: [] }));
 
-const mockPlayer = { played: 0 };
+/** `paused` is the native player's pause: a held or paused player plays nothing. */
+const mockPlayer = { played: 0, paused: false, fed: false, calls: [] as string[] };
 jest.mock('@/lib/pcm-player', () => ({
   pcmAvailable: true,
   pcmStart: () => {
     mockPlayer.played = 0;
+    mockPlayer.paused = false; // the native start() clears a pause
+    mockPlayer.calls.push('start');
   },
-  pcmStop: () => {},
-  pcmFeedBytes: () => {},
+  pcmStop: () => {
+    mockPlayer.calls.push('stop');
+  },
+  pcmFeedBytes: () => {
+    mockPlayer.fed = true;
+    mockPlayer.calls.push('feed');
+  },
   pcmPlayedSeconds: () => mockPlayer.played,
   pcmRecoveries: () => 0,
   pcmTeardown: () => {},
-  pcmPause: () => {},
-  pcmResume: () => {},
+  pcmPause: () => {
+    mockPlayer.paused = true;
+    mockPlayer.calls.push('pause');
+  },
+  pcmResume: () => {
+    mockPlayer.paused = false;
+    mockPlayer.calls.push('resume');
+  },
 }));
 
 /** Imported unconditionally by the client; never constructed here (pcmAvailable). */
@@ -44,7 +58,13 @@ jest.mock('@/lib/pcm-playback-queue', () => {
       super((globalThis as { __BOARD_LEAD_S?: number }).__BOARD_LEAD_S ?? actual.BOARD_LEAD_S);
     }
   }
-  return { ...actual, PcmPlaybackQueue: Queue };
+  const mod = { ...actual, PcmPlaybackQueue: Queue };
+  // The opening hold, switchable per test; the tests that predate it run with 0.
+  Object.defineProperty(mod, 'FIRST_AUDIO_HOLD_S', {
+    enumerable: true,
+    get: () => (globalThis as { __FIRST_AUDIO_HOLD_S?: number }).__FIRST_AUDIO_HOLD_S ?? 0,
+  });
+  return mod;
 });
 
 class FakeSocket {
@@ -88,7 +108,11 @@ beforeEach(() => {
   jest.useFakeTimers();
   FakeSocket.all = [];
   mockPlayer.played = 0;
+  mockPlayer.paused = false;
+  mockPlayer.fed = false;
+  mockPlayer.calls = [];
   delete (globalThis as { __BOARD_LEAD_S?: number }).__BOARD_LEAD_S;
+  delete (globalThis as { __FIRST_AUDIO_HOLD_S?: number }).__FIRST_AUDIO_HOLD_S;
 });
 afterEach(() => {
   openClients.forEach((c) => c.disconnect());
@@ -100,12 +124,14 @@ async function flushMicrotasks() {
   for (let i = 0; i < 5; i += 1) await Promise.resolve();
 }
 
-type Seen = { what: string; heard: number };
+type Seen = { what: string; heard: number; wall: number };
 
 /** A connected client; everything it tells the screen is logged with `heard`. */
-async function joinClass(boardLeadS?: number, extra: DronaVoiceHandlers = {}) {
+async function joinClass(boardLeadS?: number, extra: DronaVoiceHandlers = {}, holdS?: number) {
   if (boardLeadS !== undefined) (globalThis as { __BOARD_LEAD_S?: number }).__BOARD_LEAD_S = boardLeadS;
-  const clock = { heard: 0 };
+  if (holdS !== undefined) (globalThis as { __FIRST_AUDIO_HOLD_S?: number }).__FIRST_AUDIO_HOLD_S = holdS;
+  /** `heard`: seconds of audio heard. `wall`: seconds of real time since the class opened. */
+  const clock = { heard: 0, wall: 0, audioStart: undefined as number | undefined };
   const log: Seen[] = [];
   const revealCalls: Record<string, number> = {};
   let board: BoardEvent[] = [];
@@ -114,10 +140,10 @@ async function joinClass(boardLeadS?: number, extra: DronaVoiceHandlers = {}) {
     onBoardReveal: (event) => {
       revealCalls[event.key ?? '?'] = (revealCalls[event.key ?? '?'] ?? 0) + 1;
       board = appendBoardEvent(board, event);
-      log.push({ what: `line:${event.text ?? event.type}`, heard: clock.heard });
+      log.push({ what: `line:${event.text ?? event.type}`, heard: clock.heard, wall: clock.wall });
     },
-    onCaptionReveal: (text) => log.push({ what: `caption:${text}`, heard: clock.heard }),
-    onSpeakingChange: (on) => log.push({ what: `speaking:${on}`, heard: clock.heard }),
+    onCaptionReveal: (text) => log.push({ what: `caption:${text}`, heard: clock.heard, wall: clock.wall }),
+    onSpeakingChange: (on) => log.push({ what: `speaking:${on}`, heard: clock.heard, wall: clock.wall }),
   });
   openClients.push(client);
   client.connect();
@@ -134,11 +160,30 @@ async function joinClass(boardLeadS?: number, extra: DronaVoiceHandlers = {}) {
     send: (msg: object) => socket().receive(msg),
     /** The audible time at which `what` first happened, or undefined. */
     when: (what: string) => log.find((e) => e.what === what)?.heard,
+    /** The real time at which `what` first happened. */
+    whenWall: (what: string) => log.find((e) => e.what === what)?.wall,
     /** Real time passes in 100ms ticks; the playhead follows the sound. */
     play(to: number) {
       while (clock.heard < to - 1e-9) {
         clock.heard = Math.round((clock.heard + 0.1) * 10) / 10;
+        clock.wall = Math.round((clock.wall + 0.1) * 10) / 10;
         mockPlayer.played = clock.heard;
+        jest.advanceTimersByTime(100);
+      }
+    },
+    /**
+     * Real time passes to `wallTo`; the playhead follows the sound ONLY while
+     * the native player is not paused or held. `audioStart` is the real time
+     * the first word could be heard.
+     */
+    run(wallTo: number) {
+      while (clock.wall < wallTo - 1e-9) {
+        if (!mockPlayer.paused && mockPlayer.fed) {
+          if (clock.audioStart === undefined) clock.audioStart = clock.wall;
+          clock.heard = Math.round((clock.heard + 0.1) * 10) / 10;
+          mockPlayer.played = clock.heard;
+        }
+        clock.wall = Math.round((clock.wall + 0.1) * 10) / 10;
         jest.advanceTimersByTime(100);
       }
     },
@@ -367,5 +412,192 @@ describe('a rebuilt stream', () => {
     c.play(11);
     for (const calls of Object.values(c.revealCalls)) expect(calls).toBe(1);
     expect(c.lines()).toEqual(Array.from({ length: 10 }, (_, k) => `line ${k}`));
+  });
+});
+
+/**
+ * THE FIRST SENTENCE OF A RUN IS HELD (FIRST_AUDIO_HOLD_S = 2).
+ *
+ * The opening sentence has no earlier sentence to lead it, so its voice waits
+ * instead: its lines go up, and the first word follows about 2s later — less
+ * if the turn's board already beat its audio to the phone.
+ */
+describe('the first sentence is held for its lines', () => {
+  const HOLD = 2;
+  /** A turn of 1s sentences, one plain line each. The board arrives, `gap`s later the audio. */
+  async function heldTurn(gap: number, opts: { events?: BoardEvent[]; hold?: number; n?: number } = {}) {
+    const c = await joinClass(undefined, {}, opts.hold ?? HOLD);
+    const events = opts.events ?? Array.from({ length: opts.n ?? 8 }, (_, k) => text(k + 1, `line ${k}`));
+    c.send({ type: 'board_events', events });
+    c.run(gap);
+    events.forEach((e, k) => c.send(say(`t_6_s${k}`, [e])));
+    c.send({ type: 'turn_complete' });
+    return { c, events };
+  }
+  const leadOf = (c: Awaited<ReturnType<typeof joinClass>>, k: number) =>
+    (c.clock.audioStart as number) + k - (c.whenWall(`line:line ${k}`) as number);
+
+  it('puts the first line up and the voice 2s behind it; the next three keep their 2s lead', async () => {
+    const { c } = await heldTurn(0);
+    // The lines are up before any sound, and the player is held.
+    expect(c.lines()[0]).toBe('line 0');
+    expect(mockPlayer.paused).toBe(true);
+    c.run(6);
+    expect(c.clock.audioStart).toBeCloseTo(2.0, 5);
+    expect(leadOf(c, 0)).toBeGreaterThanOrEqual(2.0); // first
+    expect(leadOf(c, 0)).toBeLessThanOrEqual(2.1);
+    for (const k of [1, 2, 3]) {
+      expect(leadOf(c, k)).toBeGreaterThanOrEqual(2.0);
+      expect(leadOf(c, k)).toBeLessThanOrEqual(2.2);
+    }
+  });
+
+  it('keeps the caption and the speaking flag with the voice, not with the lines', async () => {
+    const { c } = await heldTurn(0);
+    c.run(6);
+    const start = c.clock.audioStart as number;
+    expect(c.whenWall('caption:(t_6_s0)') as number).toBeGreaterThanOrEqual(start);
+    expect(c.whenWall('caption:(t_6_s0)') as number).toBeLessThanOrEqual(start + 0.1);
+    expect(c.whenWall('speaking:true') as number).toBeGreaterThanOrEqual(start);
+    for (const k of [2, 3]) {
+      expect((c.whenWall(`caption:(t_6_s${k})`) as number) - start).toBeCloseTo(k - 0.5, 5);
+    }
+  });
+
+  it('writes every line once', async () => {
+    const { c } = await heldTurn(0);
+    c.run(12);
+    expect(c.lines()).toEqual(Array.from({ length: 8 }, (_, k) => `line ${k}`));
+    for (const calls of Object.values(c.revealCalls)) expect(calls).toBe(1);
+  });
+
+  it('a board that beat its audio by 1.2s only holds the remaining 0.8s', async () => {
+    const { c } = await heldTurn(1.2);
+    c.run(5);
+    // 2s after the first line went up, 0.8s after the audio arrived.
+    expect(c.clock.audioStart).toBeCloseTo(2.0, 5);
+    expect(c.clock.audioStart! - 1.2).toBeCloseTo(0.8, 5);
+    expect(leadOf(c, 0)).toBeGreaterThanOrEqual(2.0);
+    expect(leadOf(c, 0)).toBeLessThanOrEqual(2.1);
+  });
+
+  it('a board that beat its audio by 2s or more holds nothing', async () => {
+    const { c } = await heldTurn(2.5);
+    c.run(6);
+    expect(mockPlayer.calls).not.toContain('pause');
+    expect(c.clock.audioStart).toBeCloseTo(2.5, 5);
+    expect(leadOf(c, 0)).toBeGreaterThanOrEqual(2.5);
+  });
+
+  it('holds nothing for a sentence with no line to show', async () => {
+    const c = await joinClass(undefined, {}, HOLD);
+    c.send({ type: 'board_events', events: [] });
+    c.send(say('t_7_s0', [], 2));
+    c.run(2);
+    expect(mockPlayer.calls).not.toContain('pause');
+    expect(c.clock.audioStart).toBe(0);
+  });
+
+  it('holds nothing when the first line is a figure', async () => {
+    const c = await joinClass(undefined, {}, HOLD);
+    const events = [svgFigure(1), text(2, 'b')];
+    c.send({ type: 'board_events', events });
+    events.forEach((e, k) => c.send(say(`t_8_s${k}`, [e], 2)));
+    c.run(1);
+    expect(mockPlayer.calls).not.toContain('pause');
+    expect(c.clock.audioStart).toBe(0);
+  });
+
+  it('holds nothing for a turn with a widget, and shows nothing early', async () => {
+    const c = await joinClass(undefined, {}, HOLD);
+    const events = [text(1, 'a'), widget(2), text(3, 'c')];
+    c.send({ type: 'board_events', events });
+    expect(c.lines()).toEqual([]); // nothing on arrival
+    c.run(0.5);
+    events.forEach((e, k) => c.send(say(`t_9_s${k}`, [e], 2)));
+    c.run(1);
+    expect(mockPlayer.calls).not.toContain('pause');
+    expect(c.clock.audioStart).toBeCloseTo(0.5, 5);
+  });
+
+  it('with the hold at 0 nothing is paused and the audio starts at once, as before', async () => {
+    const { c } = await heldTurn(0, { hold: 0 });
+    c.run(3);
+    expect(mockPlayer.calls).not.toContain('pause');
+    expect(mockPlayer.calls).not.toContain('resume');
+    expect(c.clock.audioStart).toBe(0);
+  });
+
+  it('does not show a line on arrival while the last turn is still being spoken', async () => {
+    const c = await joinClass(undefined, {}, HOLD);
+    const t1 = [text(1, 'first turn')];
+    c.send({ type: 'board_events', events: t1 });
+    c.send(say('t_10_s0', [t1[0]], 6));
+    c.run(2.5); // held, then speaking
+    expect(c.clock.heard).toBeGreaterThan(0);
+    // The server runs on into the next turn while the last is still playing.
+    const t2 = [text(1, 'next turn')];
+    c.send({ type: 'board_events', events: t2 });
+    expect(c.lines()).toEqual(['first turn']);
+    const pauses = mockPlayer.calls.filter((x) => x === 'pause').length;
+    c.send(say('t_11_s0', [t2[0]], 2));
+    expect(mockPlayer.calls.filter((x) => x === 'pause').length).toBe(pauses); // no second hold
+  });
+
+  it('does not hold a second run again if the first is still talking, only a quiet one', async () => {
+    const c = await joinClass(undefined, {}, HOLD);
+    const e1 = [text(1, 'one')];
+    c.send({ type: 'board_events', events: e1 });
+    c.send(say('t_12_s0', [e1[0]], 1));
+    c.send({ type: 'turn_complete' });
+    c.run(6); // spoken, drained, flushed
+    const pauses = () => mockPlayer.calls.filter((x) => x === 'pause').length;
+    expect(pauses()).toBe(1);
+    const e2 = [text(1, 'two')];
+    c.send({ type: 'board_events', events: e2 });
+    expect(c.lines()).toEqual(['one', 'two']); // quiet class: up on arrival
+    c.send(say('t_13_s0', [e2[0]], 1));
+    expect(pauses()).toBe(2); // held again for its own 2s
+  });
+
+  it('an interruption during the hold means no audio afterwards', async () => {
+    const { c } = await heldTurn(0);
+    c.run(1.0);
+    c.client.bargeIn();
+    mockPlayer.calls = [];
+    c.run(8);
+    expect(mockPlayer.calls).not.toContain('resume');
+    expect(c.log.some((e) => e.what.startsWith('caption:'))).toBe(false);
+    expect(c.log.some((e) => e.what === 'speaking:true')).toBe(false);
+  });
+
+  it('a pause during the hold stops its clock; resuming runs out what was left', async () => {
+    const { c } = await heldTurn(0);
+    c.run(0.5); // 1.5s of the hold left
+    c.client.pausePlayback();
+    mockPlayer.calls = [];
+    c.run(5.0);
+    expect(mockPlayer.calls).not.toContain('resume');
+    expect(c.log.some((e) => e.what.startsWith('caption:'))).toBe(false);
+    c.client.resumePlayback();
+    expect(mockPlayer.paused).toBe(true); // still held
+    c.run(7.0);
+    expect(mockPlayer.calls).toContain('resume');
+    expect(c.clock.audioStart).toBeCloseTo(5.0 + 1.5, 5);
+    expect(c.whenWall('caption:(t_6_s0)') as number).toBeGreaterThanOrEqual(6.5);
+  });
+
+  it('holds only the rest of the 2s: a turn_complete during the hold waits for the audio', async () => {
+    const turnDone: number[] = [];
+    const c = await joinClass(undefined, { onTurnComplete: () => turnDone.push(c.clock.wall) }, HOLD);
+    const e = [text(1, 'only')];
+    c.send({ type: 'board_events', events: e });
+    c.send(say('t_14_s0', [e[0]], 1));
+    c.send({ type: 'turn_complete' });
+    c.run(1.5);
+    expect(turnDone).toEqual([]); // not while held
+    c.run(6);
+    expect(turnDone).toHaveLength(1);
+    expect(turnDone[0]).toBeGreaterThanOrEqual(3.0); // 2s hold + 1s of speech
   });
 });

@@ -11,9 +11,10 @@
  * ways: smooth (a playhead that follows the sound) and in whole-part steps,
  * which is what the native clock really does (dataPlayedBack completions).
  */
-import { BOARD_LEAD_S, PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
+import { BOARD_LEAD_S, FIRST_AUDIO_HOLD_S, PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
 
-const mockPlayer = { played: 0, starts: 0, stops: 0 };
+const mockPlayer = { played: 0, starts: 0, stops: 0, calls: [] as { what: string; at: number }[] };
+const note = (what: string) => mockPlayer.calls.push({ what, at: Date.now() });
 jest.mock('@/lib/pcm-player', () => ({
   pcmStart: () => {
     mockPlayer.starts += 1;
@@ -22,12 +23,12 @@ jest.mock('@/lib/pcm-player', () => ({
   pcmStop: () => {
     mockPlayer.stops += 1;
   },
-  pcmFeedBytes: () => {},
+  pcmFeedBytes: () => note('feed'),
   pcmPlayedSeconds: () => mockPlayer.played,
   pcmRecoveries: () => 0,
   pcmTeardown: () => {},
-  pcmPause: () => {},
-  pcmResume: () => {},
+  pcmPause: () => note('pause'),
+  pcmResume: () => note('resume'),
 }));
 
 const part = (id: string, seconds: number) => ({
@@ -41,6 +42,7 @@ beforeEach(() => {
   mockPlayer.played = 0;
   mockPlayer.starts = 0;
   mockPlayer.stops = 0;
+  mockPlayer.calls = [];
 });
 afterEach(() => jest.useRealTimers());
 
@@ -299,6 +301,195 @@ describe('BOARD_LEAD_S = 0 is the old queue', () => {
     rig.q.enqueue(part('s2', 2));
     play(rig, 4);
     expect(rig.log.some((e) => e.kind === 'approach')).toBe(false);
+    rig.q.destroy();
+  });
+});
+
+describe('the opening hold (FIRST_AUDIO_HOLD_S)', () => {
+  const calls = (what: string) => mockPlayer.calls.filter((c) => c.what === what);
+
+  it('is 2 seconds', () => {
+    expect(FIRST_AUDIO_HOLD_S).toBe(2);
+  });
+
+  it('holds the player after its start, feeds behind the hold, and releases it after holdS', () => {
+    const rig = recorded();
+    const t0 = Date.now();
+    rig.q.enqueue(part('s1', 3), { holdS: 2 });
+    rig.q.enqueue(part('s2', 3));
+    expect(calls('pause')).toHaveLength(1);
+    expect(mockPlayer.calls.map((c) => c.what)).toEqual(['pause', 'feed', 'feed']);
+    jest.advanceTimersByTime(1900);
+    expect(calls('resume')).toHaveLength(0);
+    jest.advanceTimersByTime(100);
+    expect(calls('resume')).toHaveLength(1);
+    expect(calls('resume')[0].at - t0).toBe(2000);
+    rig.q.destroy();
+  });
+
+  it('announces nothing as started during the hold, then starts the first part when it ends', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 3), { holdS: 2 });
+    jest.advanceTimersByTime(1900);
+    expect(rig.log.filter((e) => e.kind === 'start')).toEqual([]);
+    jest.advanceTimersByTime(300);
+    expect(rig.log.filter((e) => e.kind === 'start').map((e) => e.id)).toEqual(['s1']);
+    rig.q.destroy();
+  });
+
+  it('approaches later parts 2s before they sound, counting the hold: the first lead is the hold itself', () => {
+    const rig = recorded();
+    for (const id of ['s1', 's2', 's3', 's4']) rig.q.enqueue(part(id, 1), id === 's1' ? { holdS: 2 } : undefined);
+    // Wall clock: hold until 2.0, then the audio plays; sound for part k is at 2 + k.
+    let wall = 0;
+    const when: Record<string, number> = {};
+    rig.q.onItemApproach = (id) => (when[id] = wall);
+    while (wall < 8) {
+      wall = Math.round((wall + 0.1) * 10) / 10;
+      if (wall > 2) {
+        rig.clock.heard = Math.round((wall - 2) * 10) / 10;
+        mockPlayer.played = rig.clock.heard;
+      }
+      jest.advanceTimersByTime(100);
+    }
+    for (const [i, id] of ['s1', 's2', 's3', 's4'].entries()) {
+      const lead = 2 + i - when[id];
+      // s1: the hold itself, less the first 100ms tick; the rest, the 2s lead.
+      expect(lead).toBeGreaterThanOrEqual(i === 0 ? 1.9 : 2.0);
+      expect(lead).toBeLessThanOrEqual(2.2);
+    }
+    rig.q.destroy();
+  });
+
+  it('is never longer than FIRST_AUDIO_HOLD_S, whatever is asked', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 3), { holdS: 30 });
+    jest.advanceTimersByTime(2000);
+    expect(calls('resume')).toHaveLength(1);
+    rig.q.destroy();
+  });
+
+  it('runs inside the prebuffer wait, not after it: a short first part and a late second change nothing', () => {
+    const rig = recorded();
+    const t0 = Date.now();
+    rig.q.enqueue(part('s1', 0.3), { holdS: 2 }); // under the 0.5s prebuffer
+    jest.advanceTimersByTime(1000);
+    rig.q.enqueue(part('s2', 1)); // completes the prebuffer mid-hold; no new hold
+    expect(calls('pause')).toHaveLength(1);
+    jest.advanceTimersByTime(1000);
+    expect(calls('resume')).toHaveLength(1);
+    expect(calls('resume')[0].at - t0).toBe(2000);
+    rig.q.destroy();
+  });
+
+  it('a still playhead during the hold is not a dead engine (short parts, prebuffer filled)', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 0.3), { holdS: 2 });
+    rig.q.enqueue(part('s2', 0.3)); // 0.6s fed: the stall check would be live
+    jest.advanceTimersByTime(2000);
+    expect(mockPlayer.stops).toBe(0);
+    expect(mockPlayer.starts).toBe(1);
+    rig.q.destroy();
+  });
+
+  it('clear() during the hold cancels it: the audio is never released', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 3), { holdS: 2 });
+    jest.advanceTimersByTime(800);
+    rig.q.clear();
+    jest.advanceTimersByTime(10_000);
+    expect(calls('resume')).toHaveLength(0);
+    expect(rig.log.filter((e) => e.kind === 'start')).toEqual([]);
+    // The next run is a clean one.
+    rig.q.enqueue(part('n1', 1));
+    jest.advanceTimersByTime(300);
+    expect(rig.log.filter((e) => e.kind === 'start').map((e) => e.id)).toEqual(['n1']);
+    rig.q.destroy();
+  });
+
+  it('destroy() during the hold cancels it too', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 3), { holdS: 2 });
+    rig.q.destroy();
+    jest.advanceTimersByTime(10_000);
+    expect(calls('resume')).toHaveLength(0);
+  });
+
+  it('pause() freezes the hold clock; resume() runs out what was left, with the player still held', () => {
+    const rig = recorded();
+    const t0 = Date.now();
+    rig.q.enqueue(part('s1', 3), { holdS: 2 });
+    jest.advanceTimersByTime(500);
+    rig.q.pause();
+    jest.advanceTimersByTime(60_000);
+    expect(calls('resume')).toHaveLength(0);
+    expect(rig.log.filter((e) => e.kind === 'start')).toEqual([]);
+    const back = Date.now();
+    rig.q.resume();
+    expect(calls('resume')).toHaveLength(0); // the hold, not the pause, is what is left
+    jest.advanceTimersByTime(1400);
+    expect(calls('resume')).toHaveLength(0);
+    jest.advanceTimersByTime(100);
+    expect(calls('resume')).toHaveLength(1);
+    expect(calls('resume')[0].at - back).toBe(1500);
+    expect(t0).toBeLessThan(back);
+    rig.q.destroy();
+  });
+
+  it('a pause that lasts past the hold still releases only on resume', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 3), { holdS: 2 });
+    rig.q.pause();
+    jest.advanceTimersByTime(5000);
+    rig.q.resume();
+    jest.advanceTimersByTime(2100);
+    expect(calls('resume')).toHaveLength(1);
+    rig.q.destroy();
+  });
+
+  it('is not asked twice: audio already queued is never held', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 3));
+    rig.q.enqueue(part('s2', 3), { holdS: 2 });
+    expect(calls('pause')).toHaveLength(0);
+    rig.q.destroy();
+  });
+
+  it('does not hold a class the student has paused (the pause already holds it)', () => {
+    const rig = recorded();
+    rig.q.pause();
+    mockPlayer.calls = [];
+    rig.q.enqueue(part('s1', 3), { holdS: 2 });
+    // start() then the pause that keeps the paused state; no hold clock.
+    jest.advanceTimersByTime(5000);
+    expect(calls('resume')).toHaveLength(0);
+    rig.q.resume();
+    expect(calls('resume')).toHaveLength(1);
+    rig.q.destroy();
+  });
+
+  it('a second run after the first drained is held again', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('a', 1), { holdS: 2 });
+    jest.advanceTimersByTime(2000);
+    for (let i = 1; i <= 10; i += 1) {
+      mockPlayer.played = i / 10; // the part plays out in real time
+      jest.advanceTimersByTime(100);
+    }
+    expect(rig.q.idle).toBe(true);
+    mockPlayer.calls = [];
+    rig.q.enqueue(part('b', 1), { holdS: 2 });
+    expect(calls('pause')).toHaveLength(1);
+    jest.advanceTimersByTime(2000);
+    expect(calls('resume')).toHaveLength(1);
+    rig.q.destroy();
+  });
+
+  it('no hold requested means today\'s calls exactly', () => {
+    const rig = recorded();
+    rig.q.enqueue(part('s1', 3));
+    rig.q.enqueue(part('s2', 3));
+    expect(mockPlayer.calls.map((c) => c.what)).toEqual(['feed', 'feed']);
     rig.q.destroy();
   });
 });

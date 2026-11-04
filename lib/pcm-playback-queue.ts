@@ -116,6 +116,20 @@ const REVEAL_LEAD_S = 0.5;
  */
 export const BOARD_LEAD_S = 2.0;
 
+/**
+ * How long the first audio of a run waits, at most, so its board lines are on
+ * screen before the first word (the sentence that opens a run has no earlier
+ * sentence to lead it, so the voice is held instead). The CALLER asks for a
+ * hold (`enqueue(item, { holdS })`) and decides how much of this is still
+ * owed; this is the ceiling and the one number to tune. 0 restores today's
+ * timing exactly: no hold is ever requested.
+ *
+ * The hold is the native player's own pause (the one a student's Pause uses),
+ * so the audio keeps buffering underneath and the prebuffer wait runs inside
+ * the hold, not after it. Releasing it plays what is already fed.
+ */
+export const FIRST_AUDIO_HOLD_S = 2.0;
+
 type Held = { id: string; pcm: Uint8Array; startSec: number; durSec: number };
 type Reason = 'jump' | 'frozen';
 
@@ -152,6 +166,14 @@ export class PcmPlaybackQueue {
   /** Parts already approached and not yet started: a part is approached once,
    *  across rebuilds (which re-derive `pending`) and pauses. */
   private approached = new Set<string>();
+  /** The opening hold (see FIRST_AUDIO_HOLD_S): audio fed and waiting. While
+   *  it lasts nothing is announced as started, the stall checks stand down
+   *  (a still playhead is on purpose) and the board clock runs from minus the
+   *  time left, so later parts are approached BOARD_LEAD_S before they sound. */
+  private holding = false;
+  private holdLeftMs = 0;
+  private holdStartedAt = 0;
+  private holdTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly boardLeadS: number = BOARD_LEAD_S) {}
 
@@ -163,7 +185,7 @@ export class PcmPlaybackQueue {
     );
   }
 
-  enqueue(item: QueueItem) {
+  enqueue(item: QueueItem, opts?: { holdS?: number }) {
     // After End: a late chunk must not rebuild the engine (pcmStart below)
     // and talk on a screen that no longer exists.
     if (this.destroyed) return;
@@ -190,12 +212,26 @@ export class PcmPlaybackQueue {
       // clears its pause, and the class spoke over a paused screen.
       if (this.paused) pcmPause();
     }
+    // The first audio of a run, asked to wait: nothing is waiting in the queue
+    // (and the student has not paused, which already holds the audio).
+    const holdS = Math.min(opts?.holdS ?? 0, FIRST_AUDIO_HOLD_S);
+    const opensHeld =
+      holdS > 0 && !this.paused && !this.holding && this.pending.length === 0 && this.started;
     // Audio arriving at an empty queue restarts the stall clock: the time
     // between turns is silence nobody is waiting on.
     if (pcmPlayedSeconds() >= this.fedSec - DRAIN_EPS_S) this.lastMoveAt = Date.now();
     this.pending.push({ id: item.id, startSec: this.fedSec });
     this.held.push({ id: item.id, pcm: item.pcm, startSec: this.fedSec, durSec });
     this.fedSec += durSec;
+    if (opensHeld) {
+      // Pause BEFORE the first feed: the native player starts itself as soon
+      // as the prebuffer is fed, unless it is paused.
+      pcmPause();
+      this.holding = true;
+      this.holdLeftMs = holdS * 1000;
+      this.holdStartedAt = Date.now();
+      this.holdTimer = setTimeout(this.releaseHold, this.holdLeftMs);
+    }
     pcmFeedBytes(item.pcm);
     this.drainedFired = false;
     if (this.drainTimer) {
@@ -223,7 +259,7 @@ export class PcmPlaybackQueue {
       this.lastPlayed = played;
       this.lastMoveAt = now;
       probe(`native restart seen (recoveries=${nativeRecoveries}) played=${played.toFixed(2)}s — stall clock restarted`);
-    } else if (this.started && !this.paused) {
+    } else if (this.started && !this.paused && !this.holding) {
       const sinceMoveS = (now - this.lastMoveAt) / 1000;
       if (played - this.lastPlayed > sinceMoveS + JUMP_SLACK_S) {
         // Checked BEFORE anything is announced: the leap is audio nobody
@@ -256,7 +292,9 @@ export class PcmPlaybackQueue {
     // The earlier signal first, so a part is always approached before it
     // starts. Same rule: never while paused.
     if (!this.paused && this.boardLeadS > REVEAL_LEAD_S && this.pending.length) {
-      const horizon = played + this.intoHeadS(played, now) + this.boardLeadS + TICK_MS / 1000;
+      // Held: the clock is the time left until the first word, below zero.
+      const clock = this.holding ? played - this.holdRemainingMs(now) / 1000 : played + this.intoHeadS(played, now);
+      const horizon = clock + this.boardLeadS + TICK_MS / 1000;
       for (const item of [...this.pending]) {
         if (item.startSec > horizon) break;
         if (this.approached.has(item.id)) continue;
@@ -264,7 +302,7 @@ export class PcmPlaybackQueue {
         this.onItemApproach?.(item.id);
       }
     }
-    while (!this.paused && this.pending.length && this.pending[0].startSec <= played + REVEAL_LEAD_S) {
+    while (!this.paused && !this.holding && this.pending.length && this.pending[0].startSec <= played + REVEAL_LEAD_S) {
       const item = this.pending.shift()!;
       this.approached.delete(item.id);
       this.onItemStart?.(item.id);
@@ -297,10 +335,36 @@ export class PcmPlaybackQueue {
    * prebuffer is fed, since the player has not been told to play yet.
    */
   private intoHeadS(played: number, now: number): number {
-    if (played <= 0 && this.fedSec < PREBUFFER_S) return 0;
+    if (this.holding || (played <= 0 && this.fedSec < PREBUFFER_S)) return 0;
     const head = this.held.find((h) => h.startSec + h.durSec > played + DRAIN_EPS_S);
     if (!head) return 0;
     return Math.min(Math.max(0, (now - this.lastMoveAt) / 1000), head.durSec);
+  }
+
+  private holdRemainingMs(now: number): number {
+    if (!this.holding) return 0;
+    // A pause freezes the clock (holdTimer is null then, holdLeftMs is what is left).
+    return this.holdTimer ? Math.max(0, this.holdLeftMs - (now - this.holdStartedAt)) : this.holdLeftMs;
+  }
+
+  /** The hold is over: the audio already fed plays now. */
+  private releaseHold = () => {
+    if (this.holdTimer) clearTimeout(this.holdTimer);
+    this.holdTimer = null;
+    if (!this.holding) return;
+    this.holding = false;
+    this.holdLeftMs = 0;
+    // The playhead has stood still on purpose; the stall clock starts now.
+    this.lastMoveAt = Date.now();
+    this.lastPlayed = pcmPlayedSeconds();
+    if (!this.paused) pcmResume();
+  };
+
+  private dropHold() {
+    if (this.holdTimer) clearTimeout(this.holdTimer);
+    this.holdTimer = null;
+    this.holding = false;
+    this.holdLeftMs = 0;
   }
 
   /** Rebuild the stream and feed everything not heard past `heardUpTo`. */
@@ -381,12 +445,29 @@ export class PcmPlaybackQueue {
   };
 
   pause() {
+    if (this.holding && this.holdTimer) {
+      // The hold clock stops with the class and picks up where it left off.
+      this.holdLeftMs = this.holdRemainingMs(Date.now());
+      clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+    }
     this.paused = true;
     pcmPause();
   }
 
   resume() {
     this.paused = false;
+    if (this.holding) {
+      // Still owed some of the opening hold: the audio stays held (the native
+      // pause stays on) until the rest of it has run.
+      this.lastMoveAt = Date.now();
+      if (this.holdLeftMs <= 0) this.releaseHold();
+      else {
+        this.holdStartedAt = Date.now();
+        this.holdTimer = setTimeout(this.releaseHold, this.holdLeftMs);
+      }
+      return;
+    }
     // A pause is a playhead standing still on purpose; the stall clock
     // starts again from the moment it is released.
     this.lastMoveAt = Date.now();
@@ -396,6 +477,7 @@ export class PcmPlaybackQueue {
   /** Drops everything queued and silences the stream — the interruption
    *  path. The engine restarts lazily on the next enqueue. */
   clear() {
+    this.dropHold();
     if (this.restartTimer) {
       clearTimeout(this.restartTimer);
       this.restartTimer = null;
