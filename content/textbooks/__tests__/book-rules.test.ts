@@ -8,6 +8,7 @@
  */
 import type { Block, Chapter, Topic } from '@/lib/textbooks';
 import { BOOK_CHAPTERS } from '../test-support/book-list';
+import { REF, width } from '../test-support/measure';
 
 /** The text as read: only the reader's own tags are dropped (a "<" in "√(2gR) < u" is text). */
 const plain = (h: string) => h.replace(/<\/?(?:b|i|sup|sub)>|<br\s*\/?>/gi, (t) => (/br/i.test(t) ? '\n' : '')).replace(/&nbsp;|\u00a0/g, ' ');
@@ -45,6 +46,9 @@ function htmls(b: Block): string[] {
 
 const clip = (s: string) => (s.length > 90 ? `${s.slice(0, 87)}…` : s);
 
+/** The narrowest column a run of text can land in: an answer box inside a worked example. */
+const ANSWER_BOX = 250;
+
 describe('the text of every book chapter', () => {
   it('keeps plain-text fields plain: titles, part names, tags and the up-next line take no markup, raised letters or overlines', () => {
     expect(
@@ -64,6 +68,17 @@ describe('the text of every book chapter', () => {
         if (block.t === 'part' || block.t === 'proc' || block.t === 'defgrid') check(`${block.t} title`, block.title);
         if (block.t === 'table') check('table title', block.title);
         if (block.t === 'ex') check('example tag', block.tag);
+      }),
+    ).toEqual([]);
+  });
+
+  it('breaks no word it can avoid: a run wider than a card, with nowhere to break, is cut mid-word on Android', () => {
+    expect(
+      breaches(({ block }, say) => {
+        if (block) for (const h of htmls(block))
+          // Android breaks at a hyphen between words, but not beside a digit: "(ethan | e-1,2-diamine)".
+          for (const word of plain(h).split(/[\s\u200b/–]+|(?<=[A-Za-z])-(?=[A-Za-z])/))
+            if (/[a-z]{6}/.test(word) && width(word, REF.read, 'pilot') > ANSWER_BOX) say(clip(word));
       }),
     ).toEqual([]);
   });
