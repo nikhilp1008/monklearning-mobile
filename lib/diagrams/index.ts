@@ -10,6 +10,12 @@ import { DIAGRAMS_CHEMISTRY_11_08 } from '@/lib/diagrams/chemistry-11-08';
 import { DIAGRAMS_CHEMISTRY_11_09 } from '@/lib/diagrams/chemistry-11-09';
 import { DIAGRAMS_CHEMISTRY_11_09B } from '@/lib/diagrams/chemistry-11-09b';
 import { DIAGRAMS_CHEMISTRY_11_10 } from '@/lib/diagrams/chemistry-11-10';
+import { DIAGRAMS_CHEMISTRY_12_01 } from '@/lib/diagrams/chemistry-12-01';
+import { DIAGRAMS_CHEMISTRY_12_02 } from '@/lib/diagrams/chemistry-12-02';
+import { DIAGRAMS_CHEMISTRY_12_03 } from '@/lib/diagrams/chemistry-12-03';
+import { DIAGRAMS_CHEMISTRY_12_04 } from '@/lib/diagrams/chemistry-12-04';
+import { DIAGRAMS_CHEMISTRY_12_05 } from '@/lib/diagrams/chemistry-12-05';
+import { DIAGRAMS_CHEMISTRY_12_06 } from '@/lib/diagrams/chemistry-12-06';
 import { DIAGRAMS_PHYSICS_11_01 } from '@/lib/diagrams/physics-11-01';
 import { DIAGRAMS_PHYSICS_11_02 } from '@/lib/diagrams/physics-11-02';
 import { DIAGRAMS_PHYSICS_11_03 } from '@/lib/diagrams/physics-11-03';
@@ -88,6 +94,12 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'chemistry|11|8': DIAGRAMS_CHEMISTRY_11_08,
   'chemistry|11|9': [...DIAGRAMS_CHEMISTRY_11_09, ...DIAGRAMS_CHEMISTRY_11_09B],
   'chemistry|11|10': DIAGRAMS_CHEMISTRY_11_10,
+  'chemistry|12|1': DIAGRAMS_CHEMISTRY_12_01,
+  'chemistry|12|2': DIAGRAMS_CHEMISTRY_12_02,
+  'chemistry|12|3': DIAGRAMS_CHEMISTRY_12_03,
+  'chemistry|12|4': DIAGRAMS_CHEMISTRY_12_04,
+  'chemistry|12|5': DIAGRAMS_CHEMISTRY_12_05,
+  'chemistry|12|6': DIAGRAMS_CHEMISTRY_12_06,
 };
 
 const BY_ID = new Map(Object.values(DIAGRAMS).flat().map((d) => [d.id, d]));

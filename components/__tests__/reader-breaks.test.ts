@@ -20,6 +20,28 @@ describe('a reading line keeps a term whole', () => {
   it('a short term with ≲ or ≳: "V_Z ≲ 5 V", not "threshold V_Z" | "≲ 5 V" (Physics 12 Ch 14)', () => {
     expect(plainSpaces('• Zener: threshold <i>V</i><sub>Z</sub> ≲ 5 V').some((p) => p.includes('VZ\u00a0≲\u00a05\u00a0V'))).toBe(true);
   });
+  it('a short bracket, an option letter and a unit stay whole (Chemistry 12 Ch 3)', () => {
+    expect(plainSpaces('<i>p</i><sub>t</sub> = (0.50 − <i>x</i>) + 2<i>x</i>').some((p) => p.includes('(0.50\u00a0−\u00a0x)'))).toBe(true);
+    expect(plainSpaces('(a) 75 min (d) 240 min').some((p) => p.includes('(d)\u00a0240'))).toBe(true);
+    expect(plainSpaces('[A] = 0.133 mol L<sup>−1</sup> to two').some((p) => p.includes('mol\u00a0L−1'))).toBe(true);
+    expect(plainSpaces('2: L mol<sup>−1</sup> s<sup>−1</sup>').some((p) => p.includes('L\u00a0mol−1'))).toBe(true);
+    expect(readerBreaks('<i>k</i>′[A]')).toContain('′\u2060[');
+  });
+  it('a coefficient stays with its species (Chemistry 12 Ch 4)', () => {
+    expect(plainSpaces('→ 2 Mn<sup>2+</sup> + 5 I<sub>2</sub> + 8H<sub>2</sub>O').some((p) => p.includes('5\u00a0I2'))).toBe(true);
+    expect(plainSpaces('+ 2 H<sub>2</sub>O').some((p) => p.includes('2\u00a0H2O'))).toBe(true);
+    expect(plainSpaces('8 H<sup>+</sup> + 5 e<sup>−</sup> →').some((p) => p.includes('5\u00a0e−'))).toBe(true);
+    expect(plainSpaces('→ 2 CO<sub>2</sub> gives').some((p) => p.includes('2\u00a0CO2'))).toBe(true);
+  });
+  it('a couple stays whole across the slash, and words may still break', () => {
+    const WJ = '\u2060';
+    expect(readerBreaks('E°(Ni<sup>2+</sup>/Ni) = −0.25 V')).toContain(`/${WJ}Ni)`);
+    expect(readerBreaks('the AgCl/Ag couple')).toContain(`/${WJ}Ag `);
+    expect(readerBreaks('E°(Fe<sup>3+</sup>/Fe<sup>2+</sup>)')).toContain(`/${WJ}Fe<sup>`);
+    expect(readerBreaks('Strong/Weak')).not.toContain(WJ);
+    expect(readerBreaks('<i>E</i>°(Ni<sup>2+</sup>/Ni)')).toContain(`°${WJ}(`);
+  });
+
   it('a minus with the bracket it negates, and a slash with the root after it', () => {
     expect(readerBreaks('= −(−30)/(−15)')).toContain('−⁠(');
     expect(readerBreaks('= (1/√2)/(1/2)')).toContain('/⁠√');

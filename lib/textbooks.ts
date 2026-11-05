@@ -777,6 +777,12 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   // Not on the shelf until the server's chapters table has a Class 11 p-Block
   // row (founder's decision, 2026-10-31); the key follows that row's name.
   'chemistry|11|p block elements': () => import('@/content/textbooks/chem-11-10-p-block'),
+  'chemistry|12|solutions': () => import('@/content/textbooks/chem-12-01-solutions'),
+  'chemistry|12|electrochemistry': () => import('@/content/textbooks/chem-12-02-electrochemistry'),
+  'chemistry|12|chemical kinetics': () => import('@/content/textbooks/chem-12-03-chemical-kinetics'),
+  'chemistry|12|d and f block elements': () => import('@/content/textbooks/chem-12-04-d-and-f-block'),
+  'chemistry|12|coordination compounds': () => import('@/content/textbooks/chem-12-05-coordination-compounds'),
+  'chemistry|12|haloalkanes and haloarenes': () => import('@/content/textbooks/chem-12-06-haloalkanes-haloarenes'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {
@@ -871,9 +877,17 @@ export function blockText(b: Block): string {
     case 'diagram':
       out.push(`Figure: ${b.kicker}`, ...(b.captions ?? []).map(strip));
       break;
-    case 'ex':
-      out.push(`Example ${b.tag}: ${strip(b.q)}`, ...b.steps.map(strip), ...(b.ans ? [`Answer: ${strip(b.ans)}`] : []));
+    case 'ex': {
+      // A figure printed inside the example is shown under its question.
+      const d = b.fig ? diagramById(b.fig) : undefined;
+      out.push(
+        `Example ${b.tag}: ${strip(b.q)}`,
+        ...(d ? [`Figure: ${d.name}`, ...d.cases.map((c) => strip(c.cap))] : []),
+        ...b.steps.map(strip),
+        ...(b.ans ? [`Answer: ${strip(b.ans)}`] : []),
+      );
       break;
+    }
     case 'mcq':
       out.push(`Question: ${strip(b.q)}`, ...b.opts.map((o, i) => `(${i + 1}) ${strip(o.label)}`));
       break;

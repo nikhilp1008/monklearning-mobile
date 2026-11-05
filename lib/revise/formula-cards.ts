@@ -352,6 +352,11 @@ export function keepTogether(expr: string): string {
     // An arrow may start a line, and its condition (→ with r≈R over it) stays on it.
     .replace(/\u00a0([→⇒⇔⟺])/g, ' $1')
     .replace(/([→⇒⇔⟺])(<su[bp]>)/g, '$1\u2060$2')
+    // A long log may start a line: "k′ = (2.303/t)" | "log((V∞ − V₀)/(V∞ − Vₜ))", which otherwise
+    // had nowhere to break and Android cut it inside a bracket (Chemistry 12 Ch 3).
+    .replace(/\)\u00a0(?=(?:log|ln)\b)/g, ') ')
+    // Nor between a prime and its bracket: "k′" | "[A]".
+    .replace(/′(?=[[(])/g, '′\u2060')
     // Not in a list of numbers: "n = 1, 2, 3, …" stays one piece.
     .replace(/([,;])\u00a0(?![0-9]+,|…|⋯)/g, '$1 ')
     // Nor between a degree sign and its bracket: "νS°" | "(reactants)".

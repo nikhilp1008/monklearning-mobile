@@ -86,6 +86,14 @@ describe('blockText', () => {
     expect(blockText(fig!)).toMatch(/^Figure: \S/);
   });
 
+  it('sends a figure printed inside a worked example', () => {
+    const fig = buildParts(units1).flatMap((p) => p.blocks).find((b) => b.t === 'fig');
+    if (fig?.t !== 'fig') throw new Error('no figure in this chapter');
+    const text = blockText({ t: 'ex', tag: 'Level', q: 'Question', steps: ['Step'], ans: 'Answer', fig: fig.id });
+    expect(text).toMatch(/^Example Level: Question\nFigure: \S/);
+    expect(text).toContain('Step');
+  });
+
   it('marks the card showing in a row of examples, so "this example" is that one', () => {
     const ex = (tag: string) => ({ t: 'ex' as const, tag, q: `Question ${tag}`, steps: ['step'], ans: 'x' });
     const text = renderBlockText({ t: 'exGroup', items: [ex('A'), ex('B'), ex('C')] }, 1);
