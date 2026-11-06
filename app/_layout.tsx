@@ -95,6 +95,7 @@ import {
 // Its companion for the maths symbols the text face lacks (√ ≈ ⇒ ≠ …); see components/textbook/markup.tsx.
 import { STIXTwoMath_400Regular } from '@expo-google-fonts/stix-two-math';
 
+import { endActiveClassForGate } from '@/lib/active-class';
 import { AuthStateContext, signedOutByUpdate, useAuthState } from '@/lib/auth';
 import { cachedPassStatus, passStatus } from '@/lib/pass';
 import { onPassRequired } from '@/lib/pass-events';
@@ -368,7 +369,14 @@ export default function RootLayout() {
         // plans screen appearing for students who had paid.
         // The FREE tier: the server says this student is not paying but is let
         // in, with limits. They meet the plans screen at a limit, not at launch.
-        if ((status.state === 'none' || status.state === 'expired') && !status.free) router.replace('/plans');
+        if ((status.state === 'none' || status.state === 'expired') && !status.free) {
+          // A pass that ran out MID-CLASS: close the session before the screen it
+          // is open on is replaced, or it is left open on the server for good (the
+          // classroom's own cleanup drops the socket and the mic, never the
+          // session). The same end call the classroom's End button starts.
+          endActiveClassForGate();
+          router.replace('/plans');
+        }
         setPassKnown(true);
       } finally {
         checking = false;
@@ -392,7 +400,11 @@ export default function RootLayout() {
   // live socket) is the same verdict the gate above reaches at launch.
   useEffect(() => {
     if (!passGateReady || onPlans) return;
-    return onPassRequired(() => router.replace('/plans'));
+    return onPassRequired(() => {
+      // Mid-class: close the open session first (see lib/active-class.ts).
+      endActiveClassForGate();
+      router.replace('/plans');
+    });
   }, [passGateReady, onPlans]);
 
   useEffect(() => {

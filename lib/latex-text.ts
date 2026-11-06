@@ -1685,11 +1685,11 @@ const BARE_COMMAND = /\\[a-zA-Z]+/;
  *
  * A thin space, a medium space and a colon-space are one plain space, and swallow
  * the spaces around them, as in `convertMath` ("sin x \, dx" is one gap). `\!` is a
- * negative space and prints nothing. `\{` and `\}` are the braces themselves. A `\\`
+ * negative space and prints nothing, and a backslash-space is one space. `\{` and `\}` are the braces themselves. A `\\`
  * is matched first and left alone, so a line break straight before a comma
  * (`a \\, b`) is not read as `\,`.
  */
-const BARE_ESCAPE = /\\\\|\s*\\[,;:]\s*|\\!|\\([{}])/g;
+const BARE_ESCAPE = /\\\\|\s*\\[,;:]\s*|\\!|\\ +|\\([{}])/g;
 
 function unescapeBare(text: string): string {
   return text.replace(BARE_ESCAPE, (escape, brace: string | undefined) => {

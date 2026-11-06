@@ -263,6 +263,7 @@ describe('the understanding check-in (time-based)', () => {
     expect(c.socket.sent.map((x) => JSON.parse(x))).toContainEqual({
       type: 'utterance',
       text: 'Mujhe is part mein thoda doubt hai.',
+      client_msg_id: expect.any(String), // every utterance carries an id the server de-duplicates on
     });
   });
 
