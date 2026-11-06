@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SvgAst, parse } from 'react-native-svg';
 
 import { INK, INK_MUTED } from '@/components/classroom-chrome';
+import { placeHats } from '@/lib/diagrams/accent-text';
 import { decodeTextNodes, svgParseError, utf8ByteLength } from '@/lib/widgets/svg-parse';
 
 /**
@@ -874,7 +875,7 @@ function DiagramXml({ xml, width, height }: { xml: string; width: number; height
  * Exported for the test file; the component's only caller is below.
  */
 export function prepareDiagramSvg(svg: string): string {
-  return withFont(housePalette(remapWhitePaint(svg).svg));
+  return withFont(housePalette(remapWhitePaint(placeHats(svg)).svg));
 }
 
 /**
