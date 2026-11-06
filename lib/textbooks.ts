@@ -783,6 +783,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'chemistry|12|d and f block elements': () => import('@/content/textbooks/chem-12-04-d-and-f-block'),
   'chemistry|12|coordination compounds': () => import('@/content/textbooks/chem-12-05-coordination-compounds'),
   'chemistry|12|haloalkanes and haloarenes': () => import('@/content/textbooks/chem-12-06-haloalkanes-haloarenes'),
+  'chemistry|12|alcohols phenols and ethers': () => import('@/content/textbooks/chem-12-07-alcohols-phenols-ethers'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

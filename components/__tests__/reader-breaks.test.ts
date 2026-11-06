@@ -32,6 +32,8 @@ describe('a reading line keeps a term whole', () => {
     expect(plainSpaces('+ 2 H<sub>2</sub>O').some((p) => p.includes('2\u00a0H2O'))).toBe(true);
     expect(plainSpaces('8 H<sup>+</sup> + 5 e<sup>−</sup> →').some((p) => p.includes('5\u00a0e−'))).toBe(true);
     expect(plainSpaces('→ 2 CO<sub>2</sub> gives').some((p) => p.includes('2\u00a0CO2'))).toBe(true);
+    expect(plainSpaces('B →<sup>H₂O₂, OH⁻</sup> 3 R–CH<sub>2</sub>–OH').some((p) => p.includes('3\u00a0R–CH2–OH'))).toBe(true);
+    expect(plainSpaces('3 R–OH + PBr<sub>3</sub>').some((p) => p.includes('3\u00a0R–OH'))).toBe(true);
   });
   it('a couple stays whole across the slash, and words may still break', () => {
     const WJ = '\u2060';
