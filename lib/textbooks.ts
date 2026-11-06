@@ -784,6 +784,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'chemistry|12|coordination compounds': () => import('@/content/textbooks/chem-12-05-coordination-compounds'),
   'chemistry|12|haloalkanes and haloarenes': () => import('@/content/textbooks/chem-12-06-haloalkanes-haloarenes'),
   'chemistry|12|alcohols phenols and ethers': () => import('@/content/textbooks/chem-12-07-alcohols-phenols-ethers'),
+  'chemistry|12|aldehydes ketones and carboxylic acids': () =>
+    import('@/content/textbooks/chem-12-08-aldehydes-ketones-carboxylic-acids'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {
