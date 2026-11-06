@@ -62,10 +62,11 @@ export function legendHtml(line: string): string {
   if (line.indexOf(' = ', at + 3) >= 0) return line;
   // A value keeps its "=": "pKa — −log Ka" read as minus minus, and
   // "z₁ — 2 for an α-particle" as z₁ minus 2. A name opening on its locant
-  // ("3-hydroxybutanal", "2,4,6-tribromophenol") is no value (Chemistry 12 Ch 8).
+  // ("3-hydroxybutanal", "2,4,6-tribromophenol") is no value (Chemistry 12 Ch 8), nor is
+  // a class ("1° amine", Chemistry 12 Ch 9).
   const rest = line.slice(at + 3);
   const restText = rest.replace(/<[^>]*>/g, '');
-  const sign = /^[0-9−+±.½]/.test(restText) && !/^\d+(?:,\d+)*-[a-zα-ω]/i.test(restText) ? '=' : '—';
+  const sign = /^[0-9−+±.½]/.test(restText) && !/^\d+(?:,\d+)*-[a-zα-ω]|^\d+°\s*[a-z]/i.test(restText) ? '=' : '—';
   return `<b>${line.slice(0, at)}</b> ${sign} ${rest}`;
 }
 

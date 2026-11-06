@@ -30,7 +30,8 @@ export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default
 type Node =
   | { kind: 'text'; value: string }
   | { kind: 'br' }
-  | { kind: 'tag'; name: 'b' | 'i' | 'sup' | 'sub'; children: Node[] }
+  /** `cond`: a raised run straight after an arrow, a reaction's condition, not an exponent. */
+  | { kind: 'tag'; name: 'b' | 'i' | 'sup' | 'sub'; children: Node[]; cond?: boolean }
   /** A run under one or more NOT bars (see overlines). */
   | Over;
 type Over = { kind: 'over'; feet: number[]; onest: boolean; lean: [boolean, boolean]; children: Node[] };
@@ -315,11 +316,11 @@ export const isWordScript = (run: string) => /[A-Za-z]{2,}/.test(run);
  */
 export const WJ = '\u2060';
 
-function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink, drop = SUB_DROP) {
+function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink, drop = SUB_DROP, cond = false) {
   const shift = name === 'sup' ? -size * SUP_RISE : size * drop;
   return (
     <View key={key} style={{ transform: [{ translateY: shift }] }}>
-      {scriptText(name, children, size, key, ink)}
+      {scriptText(name, children, size, key, ink, cond)}
     </View>
   );
 }
@@ -374,7 +375,7 @@ function italicBefore(nodes: Node[], i: number, ink: Ink): boolean {
   return prev.kind === 'text' && isItalicFamily(ink.family) && /\S$/.test(prev.value);
 }
 
-function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink) {
+function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink, cond = false) {
   const small = size * DRAWN_SUP;
   // A raised letter is an exponent, a variable (Mᵃ, xⁿ), so it is italic like
   // every other variable, even where the content left it upright. Not a word
@@ -382,7 +383,7 @@ function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: st
   const label = isWordScript(plainText(children.filter((c) => !(c.kind === 'tag' && c.name === 'i'))));
   // Only its letters, though: the digits, signs and brackets of an exponent
   // stay upright as they are everywhere else (V^(γ−1), not V^(γ−1) slanted whole).
-  const italic = name === 'sup' && !label && (!ink.family || ink.family === STIX.regular);
+  const italic = name === 'sup' && !label && !cond && (!ink.family || ink.family === STIX.regular);
   const kids = italic ? italicLetters(children) : children;
   return (
     <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: small, lineHeight: small * 1.1, color: ink.color }}>
@@ -866,6 +867,12 @@ function overRun(node: Over, size: number, key: string, look: MarkupLook, ink: I
 
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
   const out: ReactNode[] = [];
+  // A raised run over an arrow names the reaction's conditions ("273–278 K", "H⁺"), so its
+  // letters stay upright (Android check of Chemistry 12 Ch 9).
+  nodes.forEach((n, i) => {
+    const prev = nodes[i - 1];
+    if (n.kind === 'tag' && n.name === 'sup' && prev?.kind === 'text' && /[→⟶][⁠ ]*$/.test(prev.value)) n.cond = true;
+  });
   for (let i = 0; i < nodes.length; i++) {
     const pair = look === 'stix' || look === 'pilot' ? scriptPair(nodes, i) : null;
     if (pair) {
@@ -915,7 +922,7 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
       return (
         <Fragment key={key}>
           {WJ}
-          {drawnRun(node.name, node.children, size, `${key}.d`, ink)}
+          {drawnRun(node.name, node.children, size, `${key}.d`, ink, SUB_DROP, node.cond)}
           {WJ}
         </Fragment>
       );

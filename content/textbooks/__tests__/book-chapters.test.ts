@@ -46,6 +46,7 @@ import chem12ch5 from '@/content/textbooks/chem-12-05-coordination-compounds';
 import chem12ch6 from '@/content/textbooks/chem-12-06-haloalkanes-haloarenes';
 import chem12ch7 from '@/content/textbooks/chem-12-07-alcohols-phenols-ethers';
 import chem12ch8 from '@/content/textbooks/chem-12-08-aldehydes-ketones-carboxylic-acids';
+import chem12ch9 from '@/content/textbooks/chem-12-09-amines';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import type { Chapter } from '@/lib/textbooks';
 
@@ -68,7 +69,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem11ch10, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem11ch10, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
@@ -97,7 +98,9 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
         const practiceOnly = !!t.extra && t.blocks.length === 2 && t.blocks[1].t === 'practice';
         // So is a chapter's opening that is only one box of the book's (Physics 12 Ch 14's syllabus scope).
         const oneBoxGuide = t.n === '00' && t.blocks.length === 2;
-        expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly || oneBoxGuide ? 1 : 2);
+        // And the book's "Summary Checklist" printed with no lead-in of its own (Chemistry 12 Ch 9 E).
+        const checklistOnly = !!t.extra && t.title === 'Summary Checklist' && t.blocks.length === 2;
+        expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly || oneBoxGuide || checklistOnly ? 1 : 2);
       }
     });
 
