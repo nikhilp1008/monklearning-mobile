@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleProp, Text, TextStyle, ViewStyle } from 'react-native';
 
+import { withAccents } from '@/components/accented';
 import { latexToText } from '@/lib/latex-text';
 
 type MathTextProps = {
@@ -59,5 +60,5 @@ export function MathText({
     textAlign,
   };
 
-  return <Text style={[textStyle, style as StyleProp<TextStyle>]}>{rendered}</Text>;
+  return <Text style={[textStyle, style as StyleProp<TextStyle>]}>{withAccents(rendered)}</Text>;
 }
