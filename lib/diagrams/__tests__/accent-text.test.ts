@@ -6,6 +6,8 @@
  * floated beside the k. placeHats sets it by hand: a tspan back half a letter
  * and up, in a start-anchored label whose x is worked out from Onest's widths.
  */
+import { Platform } from 'react-native';
+
 import { placeHats, textWidthEm } from '@/lib/diagrams/accent-text';
 import { prepareDiagramSvg } from '@/components/board-diagram';
 
@@ -105,9 +107,30 @@ describe('placeHats', () => {
 });
 
 describe('the board diagram', () => {
-  it('sets hats before the font goes on', () => {
-    const out = prepareDiagramSvg(doc(`<text x="20" y="38" font-size="26" fill="#1C1A16">${K}</text>`));
-    expect(out).toContain('font-family="Onest_400Regular"');
-    expect(out).toContain('dx="-0.26em"');
+  const svg = doc(`<text x="20" y="38" font-size="26" fill="#1C1A16">${K}</text>`);
+  const withOS = (os: 'ios' | 'android', run: () => void) => {
+    const was = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { configurable: true, get: () => os });
+    try {
+      run();
+    } finally {
+      Object.defineProperty(Platform, 'OS', { configurable: true, get: () => was });
+    }
+  };
+
+  it('sets hats before the font goes on, on iOS', () => {
+    withOS('ios', () => {
+      const out = prepareDiagramSvg(svg);
+      expect(out).toContain('font-family="Onest_400Regular"');
+      expect(out).toContain('dx="-0.26em"');
+    });
+  });
+
+  it('leaves the mark to the text engine on Android, which already puts it over its letter', () => {
+    withOS('android', () => {
+      const out = prepareDiagramSvg(svg);
+      expect(out).toContain(K);
+      expect(out).not.toContain('dx=');
+    });
   });
 });
