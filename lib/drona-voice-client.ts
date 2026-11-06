@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { REGISTRY_MANIFEST } from '@/lib/widgets/registry';
 
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
-import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
+import { FIRST_AUDIO_HOLD_S, PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
 import { pcmAvailable } from '@/lib/pcm-player';
 import { base64ToBytes } from '@/lib/audio-pcm';
 
@@ -532,6 +532,14 @@ export class DronaVoiceClient {
       this.revealNextSentenceLines(meta?.sentenceId);
     };
 
+    // BOARD_LEAD_S before a sentence is heard: the lines a teacher WRITES go up
+    // (and only those). Everything else about the sentence — caption, speaking
+    // flag, figures, widgets, the cue clock — still waits for onItemStart.
+    // Only the native queue has this signal; the file queue never fires it and
+    // keeps today's behaviour.
+    (this.playback as { onItemApproach?: (id: string) => void }).onItemApproach = (id) =>
+      this.revealWrittenLinesAhead(id);
+
     // The turn's audio has actually finished playing — see `flushHeldTurn`.
     this.playback.onQueueDrained = () => {
       this.handlers.onSpeakingChange?.(false);
@@ -831,14 +839,19 @@ export class DronaVoiceClient {
         if (state.phase === 'complete') this.handlers.onSessionEnded?.();
         break;
       }
-      case 'board_events':
+      case 'board_events': {
+        // Read BEFORE this frame opens its turn: only a board that arrives into
+        // a finished, silent class may show a line before its audio.
+        const classIsQuiet =
+          !this.turnInFlight && !this.awaitingDrain && !this.userPaused && this.chunkMeta.size === 0 && this.playback.idle;
         this.turnActivitySinceOpen = true;
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
         this.serverTurnOpen = true;
         this.clearTurnErrorRecovery();
-        this.bufferBoardEvents((msg.events as BoardEvent[]) ?? []);
+        this.bufferBoardEvents((msg.events as BoardEvent[]) ?? [], classIsQuiet);
         break;
+      }
       case 'board_replay': {
         /**
          * History, for a board this client has not started writing.
@@ -1218,6 +1231,147 @@ export class DronaVoiceClient {
   }
 
   /**
+   * THE BOARD LEADS THE VOICE BY ~BOARD_LEAD_S (lib/pcm-playback-queue.ts).
+   *
+   * Only plain writing goes early — text, heading, note, formula, and none of
+   * the figure kinds — and only a PREFIX of the chunk's lines, so a figure
+   * never ends up below a line that comes after it. Everything else stays with
+   * onItemStart, which runs at the old time and reveals the rest (this is
+   * idempotent by key, so it writes nothing twice).
+   *
+   * Three things keep the sync:
+   * - The caption, the speaking flag and figures/widgets are not touched: the
+   *   classroom's cue captions rely on onItemStart running just before
+   *   onBoardReveal of the same sentence (app/live-classroom.tsx).
+   * - The cue clock is the last revealed line's `seq` (activeSeq), and a
+   *   widget's cues and steps are selected by it. Early text would move it, so
+   *   a turn whose board holds any registry widget does not lead at all — it
+   *   keeps today's reveal times.
+   * - Board order is arrival order: if an earlier chunk still holds a line that
+   *   has not been revealed (a figure waiting for its sentence), this chunk
+   *   waits behind it.
+   */
+  private revealWrittenLinesAhead(id: string) {
+    const meta = this.chunkMeta.get(id);
+    const entries = meta?.board;
+    if (!meta || !entries?.length) return;
+    for (const [otherId, other] of this.chunkMeta) {
+      if (otherId === id) break;
+      if (other.board?.some((e) => !this.revealedBoardKeys.has(e.key))) return;
+    }
+    const n = this.writtenPrefix(entries).length;
+    if (n === 0) return;
+    const now = Date.now();
+    const pace = paceLines(
+      entries.map((e) => e.event),
+      this.sentenceMs(meta)
+    );
+    entries.slice(0, n).forEach((entry, i) =>
+      this.revealBoardEntry(
+        entry,
+        `ahead(${meta.sentenceId ?? id})`,
+        { sentenceId: meta.sentenceId ?? '-', receivedAt: meta.receivedAt ?? now, startedAt: now },
+        pace[i]
+      )
+    );
+  }
+
+  /**
+   * The lines of `entries` that may be shown ahead of their voice: the plain
+   * written lines at the front, and none at all when the turn's board holds a
+   * registry widget (its cues and steps run off the last revealed `seq`).
+   */
+  private writtenPrefix(entries: BoardEntry[]): BoardEntry[] {
+    let n = 0;
+    while (n < entries.length && this.isWrittenLine(entries[n].event)) n += 1;
+    const prefix = entries.slice(0, n);
+    for (const entry of prefix) {
+      const batch = this.boardBatches.find((b) => b.serial === entry.batch);
+      if (!batch || batch.entries.some((e) => e.event.payload)) return [];
+    }
+    return prefix;
+  }
+
+  /** Lines shown the moment their turn's board arrived (before any audio), and
+   *  when. See `revealOnArrival`. Read once, by the turn's first audio. */
+  private earlyRevealAt = new Map<string, number>();
+
+  /**
+   * THE FIRST LINE, AS SOON AS IT IS SAFE.
+   *
+   * A turn's board arrives ahead of its audio by the TTS latency. When the
+   * class is silent and the previous turn is over — flushed, drained, nothing
+   * queued, not paused — the turn's first line may go up at once, and that
+   * time counts against the hold on the first audio. Anywhere else it must
+   * not: the next turn's board used to arrive while the last one was still
+   * being spoken and was written over it (see flushPendingBoardEvents).
+   *
+   * Only the first entry, and only if it is plain writing, the turn has no
+   * widget, and nothing earlier in the session has the same content (a turn
+   * re-sent after a resume or a drop is re-keyed to the copy already on the
+   * board, and an early line under the new key would be written twice).
+   */
+  private revealOnArrival(batch: BoardBatch) {
+    const first = batch.entries[0];
+    if (!first || !pcmAvailable || FIRST_AUDIO_HOLD_S <= 0) return;
+    if (this.writtenPrefix([first]).length === 0 || this.revealedBoardKeys.has(first.key)) return;
+    const repeats = this.boardBatches.some(
+      (b) => b !== batch && b.entries.some((e) => e.fingerprint === first.fingerprint)
+    );
+    if (repeats) return;
+    const now = Date.now();
+    this.revealBoardEntry(first, 'arrival', { sentenceId: '-', receivedAt: now, startedAt: now });
+    this.earlyRevealAt.set(first.key, now);
+  }
+
+  /**
+   * How much of the opening hold a run's first chunk still owes, after
+   * showing its plain lines. 0 when it has none (or the turn has a widget):
+   * nothing is delayed for a sentence with nothing to show.
+   *
+   * The clock starts at the LATEST of its lines' reveal times — a line shown
+   * on arrival has been up since then — so a board that beat its audio by the
+   * TTS latency pays only the rest. A line that was already on the board
+   * before this turn counts as seen long ago.
+   */
+  private holdForFirstAudio(
+    entries: BoardEntry[],
+    sentence: { speech?: string; durationMs?: number; sentenceId: string; receivedAt: number }
+  ): number {
+    const prefix = this.writtenPrefix(entries);
+    if (prefix.length === 0) return 0;
+    const now = Date.now();
+    const pace = paceLines(
+      entries.map((e) => e.event),
+      this.sentenceMs(sentence)
+    );
+    let latest = -Infinity;
+    prefix.forEach((entry, i) => {
+      const early = this.earlyRevealAt.get(entry.key);
+      this.earlyRevealAt.delete(entry.key);
+      if (early !== undefined) latest = Math.max(latest, early);
+      else if (!this.revealedBoardKeys.has(entry.key)) {
+        this.revealBoardEntry(
+          entry,
+          `hold(${sentence.sentenceId})`,
+          { sentenceId: sentence.sentenceId, receivedAt: sentence.receivedAt, startedAt: now },
+          pace[i]
+        );
+        latest = now;
+      }
+    });
+    if (latest === -Infinity) return 0;
+    const owed = FIRST_AUDIO_HOLD_S - (now - latest) / 1000;
+    return owed < 0.1 ? 0 : Math.min(owed, FIRST_AUDIO_HOLD_S);
+  }
+
+  /** What a teacher writes: not a figure, a widget or an illustration. */
+  private isWrittenLine(e: BoardEvent): boolean {
+    if (e.payload || e.svg || e.illustration_slug) return false;
+    return e.type === 'text' || e.type === 'heading' || e.type === 'note' || e.type === 'formula';
+  }
+
+  /**
    * Reveals the board lines of the next sentence still queued after
    * `currentSentenceId`, ahead of its audio. Its chunk keeps its metadata (for
    * the caption); the reveal is idempotent by key, so its own onItemStart
@@ -1248,7 +1402,7 @@ export class DronaVoiceClient {
    *  not shown yet, until each item's paired audio_chunk starts playing. An
    *  entry leaves this list when a chunk claims it, not when it is revealed. */
   private pendingBoardEvents: BoardEntry[] = [];
-  private bufferBoardEvents(events: BoardEvent[]) {
+  private bufferBoardEvents(events: BoardEvent[], classIsQuiet = false) {
     const batch = this.openBatch(events);
     if (this.cutOffBatch) {
       // The first turn after a drop that cut one off: if it is that turn
@@ -1256,6 +1410,7 @@ export class DronaVoiceClient {
       this.adoptKeys(batch, [this.cutOffBatch]);
       this.cutOffBatch = null;
     }
+    if (classIsQuiet) this.revealOnArrival(batch);
     // INSTRUMENTATION, temporary and deliberately verbose. The question this
     // answers: which board events ever get carried by an audio chunk, and
     // which sit in this queue until the end-of-turn safety net. A figure has
@@ -1391,7 +1546,17 @@ export class DronaVoiceClient {
     // the lines wait to be written as their sentence plays.
     const opensRun = this.playback.idle && !this.userPaused;
     const pcm = base64ToBytes(audioBase64);
-    this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
+    // The first word of a run waits for its lines to have been on screen for a
+    // while (FIRST_AUDIO_HOLD_S), net of what they have already had.
+    const holdS =
+      opensRun && pcmAvailable && FIRST_AUDIO_HOLD_S > 0 && entries.length > 0
+        ? this.holdForFirstAudio(entries, { speech, durationMs, sentenceId, receivedAt })
+        : 0;
+    if (holdS > 0) {
+      (this.playback as PcmPlaybackQueue).enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE }, { holdS });
+    } else {
+      this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
+    }
     if (opensRun && entries.length > 0) {
       const pace = paceLines(
         entries.map((e) => e.event),
@@ -1453,6 +1618,7 @@ export class DronaVoiceClient {
     this.lastStartedSentence = null;
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.earlyRevealAt.clear();
     this.currentChunkDurationMs = null;
     this.playback.clear();
     this.handlers.onSpeakingChange?.(false);
@@ -1510,6 +1676,7 @@ export class DronaVoiceClient {
   interrupt(playbackPosition: number, cutoffText: string) {
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.earlyRevealAt.clear();
     this.currentChunkDurationMs = null;
     this.playback.clear();
     this.sendJson({ type: 'interrupt', playback_position: playbackPosition, cutoff_text: cutoffText });
