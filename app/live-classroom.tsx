@@ -492,7 +492,11 @@ export default function LiveClassroomScreen() {
 
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
-  const online = useOnline();
+  // By `isConnected` alone: the system's "internet reachable" ping fails on a
+  // simulator or a filtered network while the class works, and put "You're
+  // offline" over a class that was running. A connection that is really gone
+  // shows as the socket reconnecting.
+  const online = useOnline({ reachability: false });
   const [paused, setPaused] = useState(false);
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
