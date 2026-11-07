@@ -88,7 +88,9 @@ export function TextbookBlockPilot({ block, ctx }: { block: RenderBlock; ctx: Bl
         .split(/(?:<br\s*\/?>\s*){2,}/i)
         .map((part) => part.trim())
         .filter(Boolean)
-        .flatMap(splitProse);
+        .flatMap(splitProse)
+        // A piece split before a bullet item opens on that item's <br>.
+        .map((part) => part.replace(/^(?:\s*<br\s*\/?>)+\s*/i, ''));
       return (
         <View style={st.paras}>
           {paras.map((para, i) => read(para, undefined, i))}

@@ -138,7 +138,8 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: BlockCt
        * one thought the author wrote long; a block is a different thought, and
        * the page should say which is which.
        */
-      const paras = splitProse(block.html);
+      // A piece split before a bullet item opens on that item's <br>.
+      const paras = splitProse(block.html).map((part) => part.replace(/^(?:\s*<br\s*\/?>)+\s*/i, ''));
       if (paras.length === 1) {
         return <Markup html={block.html} size={type(16.5)} style={s.body} />;
       }

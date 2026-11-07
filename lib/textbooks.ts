@@ -787,6 +787,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'chemistry|12|aldehydes ketones and carboxylic acids': () =>
     import('@/content/textbooks/chem-12-08-aldehydes-ketones-carboxylic-acids'),
   'chemistry|12|amines': () => import('@/content/textbooks/chem-12-09-amines'),
+  'chemistry|12|biomolecules': () => import('@/content/textbooks/chem-12-10-biomolecules'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

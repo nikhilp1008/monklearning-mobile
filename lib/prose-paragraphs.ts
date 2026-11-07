@@ -74,6 +74,11 @@ const ABBREVIATIONS = [
   'alc.',
   'anhyd.',
   'aq.',
+  // Melting and boiling points: "α (m.p. 419 K, …)" split after "m.p." and
+  // left "419 K" opening the next paragraph (Android check of Chemistry 12
+  // Ch 10, the glucose anomers).
+  'm.p.',
+  'b.p.',
 ];
 
 /**
@@ -98,6 +103,15 @@ function endsSentence(text: string, end: number): boolean {
   return true;
 }
 
+/** A line break that opens a bullet item: "<br>• ". */
+const BULLET_BREAK = /^<br\s*\/?>\s*•/i;
+
+/** True when position `at` lies inside a "• " item of a bullet list. */
+function inBulletItem(html: string, at: number): boolean {
+  const br = html.lastIndexOf('<br', at);
+  return br >= 0 ? BULLET_BREAK.test(html.slice(br, br + 16)) : /^\s*•/.test(html);
+}
+
 /**
  * The block's sentences, in order, with their trailing space kept on the
  * sentence that precedes the gap — so joining the result returns the original
@@ -115,7 +129,20 @@ function sentences(html: string): string[] {
       continue;
     }
     if (inMath) continue;
+    // A bullet list written "…<br>• item": the place to break is before an
+    // item, never inside one. Split mid-item and the item's last sentence
+    // stood as a paragraph of its own, cut off from its bullet ("Every other
+    // standard amino acid is chiral.", Android check of Chemistry 12 Ch 10).
+    // The <br> opens the next piece; the reader drops it there.
+    if (ch === '<' && BULLET_BREAK.test(html.slice(i, i + 16))) {
+      if (i > start) {
+        out.push(html.slice(start, i));
+        start = i;
+      }
+      continue;
+    }
     if (ch !== '.' && ch !== '?' && ch !== '!') continue;
+    if (inBulletItem(html, i)) continue;
 
     // Run past a closing tag or quote that belongs to this sentence.
     let j = i + 1;
