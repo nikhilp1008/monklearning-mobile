@@ -29,6 +29,7 @@ const CHECKIN_COPY: Record<LanguageId, { prompt: string; options: { choice: Chec
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
+  AppState,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -94,6 +95,7 @@ import { useOrientation } from '@/hooks/use-landscape-lock';
 import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 
 import { base64ToBytes } from '@/lib/audio-pcm';
+import { setActiveClassSession } from '@/lib/active-class';
 import { endDronaSession } from '@/lib/drona-live';
 import { startSessionEnd } from '@/lib/session-end';
 import { createFollowTracker, isFling, pageTarget } from '@/lib/board-follow';
@@ -107,7 +109,7 @@ import {
   DronaVoiceClient,
   DronaVoiceHandlers,
 } from '@/lib/drona-voice-client';
-import { BoardBlockView } from '@/components/board-text';
+import { GuardedBoardBlock } from '@/components/board-error-boundary';
 import { applyContinuity, boardRowKeys } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
 import { teacherName, teacherNameNow, type TeacherId } from '@/lib/preferences';
@@ -269,10 +271,36 @@ interface AudioRecorderLike {
     keepAwake?: boolean;
     showNotification?: boolean;
     android?: { audioFocusStrategy?: 'background' | 'interactive' | 'communication' | 'none' };
+    /** Resume by itself when a call, Siri or an alarm lets go of the audio
+     *  session. audio-studio's default is false. */
+    autoResumeAfterInterruption?: boolean;
+    onRecordingInterrupted?: (event: { reason: string; isPaused: boolean }) => void;
     onAudioStream: (event: { data: unknown }) => void;
   }): Promise<unknown>;
   stopRecording(): Promise<unknown>;
+  /** Read off the hook, which polls the native status once a second. */
+  resumeRecording?(): Promise<unknown>;
+  isRecording?: boolean;
+  isPaused?: boolean;
 }
+
+/**
+ * An interruption that has ENDED, in audio-studio's own vocabulary
+ * (`RecordingInterruptionReason`): the call is over (`phoneCallEnded`) or the
+ * audio focus came back (`audioFocusGain`). Siri and an alarm arrive as the
+ * second.
+ */
+const INTERRUPTION_ENDED = new Set(['phoneCallEnded', 'audioFocusGain']);
+/**
+ * How long after an interruption ends before the recorder is checked. iOS
+ * auto-resumes 2.0s AFTER it reports the end (AudioStreamManager.swift), and
+ * reports the end first — so looking sooner finds a recorder that is about to
+ * fix itself and would restart it from under the native resume.
+ */
+const MIC_RECOVER_DELAY_MS = 3000;
+/** How long the board has to be unreachable before it says so. A drop shorter
+ *  than this is over before it could be read. */
+const RECONNECT_CAPTION_DELAY_MS = 1500;
 
 /**
  * `@siteed/audio-studio`'s own module calls `requireNativeModule('AudioStudio')`
@@ -464,7 +492,11 @@ export default function LiveClassroomScreen() {
 
   const [caption, setCaption] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
-  const online = useOnline();
+  // By `isConnected` alone: the system's "internet reachable" ping fails on a
+  // simulator or a filtered network while the class works, and put "You're
+  // offline" over a class that was running. A connection that is really gone
+  // shows as the socket reconnecting.
+  const online = useOnline({ reachability: false });
   const [paused, setPaused] = useState(false);
   const [ending, setEnding] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -534,6 +566,34 @@ export default function LiveClassroomScreen() {
    * wrong. Null until the answer comes back.
    */
   const [answerVerdict, setAnswerVerdict] = useState<string | null>(null);
+  /**
+   * `chosenOption` for the socket's callbacks, which are built once. A verdict
+   * is only painted on a chip that is actually still chosen: it arrives with
+   * the reply turn's state frame, which can land after the hold has expired and
+   * the next question's chips have mounted, and painting it then would put a
+   * verdict on the wrong card and tear that card down a second later.
+   */
+  const chosenOptionRef = useRef<string | null>(null);
+  chosenOptionRef.current = chosenOption;
+  /** An answer is waiting for the connection to come back (see the client's
+   *  `sendAnswer`): the board says so rather than leaving the tap unanswered. */
+  const [answerPending, setAnswerPending] = useState(false);
+  /**
+   * The connection is gone and has been for a moment, or an answer is waiting
+   * on it. Debounced: the first retry is a second away and a blip is over
+   * before a line could be read.
+   */
+  const unreachable =
+    !ending && (connectionStatus === 'reconnecting' || connectionStatus === 'closed' || answerPending);
+  const [showReconnecting, setShowReconnecting] = useState(false);
+  useEffect(() => {
+    if (!unreachable) {
+      setShowReconnecting(false);
+      return;
+    }
+    const id = setTimeout(() => setShowReconnecting(true), RECONNECT_CAPTION_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [unreachable]);
   const answerHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Takes the card down and resets it, from either path. */
   const clearCheckpoint = useCallback(() => {
@@ -555,6 +615,10 @@ export default function LiveClassroomScreen() {
    *  socket down and rebuild it on every render). */
   const endClassRef = useRef<(() => Promise<void>) | null>(null);
   const recorder = useAudioRecorder();
+  /** The hook's latest return, for callbacks that outlive the render they were
+   *  built in (`isRecording` / `isPaused` are state and go stale in a closure). */
+  const recorderRef = useRef(recorder);
+  recorderRef.current = recorder;
 
   useEffect(() => {
     if (!sessionId) {
@@ -711,6 +775,8 @@ export default function LiveClassroomScreen() {
        * to the thing it is about, so there is nothing to look up.
        */
       onAnswerResult: (result) => {
+        // Only for the chip that is still held. See `chosenOptionRef`.
+        if (chosenOptionRef.current === null) return;
         setAnswerVerdict(result.verdict);
         if (answerHoldRef.current) clearTimeout(answerHoldRef.current);
         answerHoldRef.current = setTimeout(clearCheckpoint, VERDICT_HOLD_MS);
@@ -740,7 +806,12 @@ export default function LiveClassroomScreen() {
       onError: (message) => {
         dismissCard();
         setCaption(message);
+        // An answer that waited too long is told about (below), not held.
+        setAnswerPending(false);
       },
+      // A tap while the socket was down is held, not lost. 'queued' turns the
+      // board's own writing row to "Reconnecting…"; 'sent' puts it back.
+      onPendingAnswer: (event) => setAnswerPending(event === 'queued'),
     };
 
     let client: DronaVoiceClient;
@@ -752,6 +823,17 @@ export default function LiveClassroomScreen() {
       client.connect();
     }
     clientRef.current = client;
+    // THE CLASS IS OPEN, for the pass gate in app/_layout.tsx: a pass that runs
+    // out mid-class ends this session before replacing the screen.
+    setActiveClassSession(sessionId);
+    // BACK IN FRONT OF THE STUDENT. A phone in a pocket loses its socket and
+    // the quick retries (about 31s) run out; a class left in the background
+    // and reopened sat on a dead board until the student rejoined by hand.
+    // On every return to the foreground the client reconnects at once with a
+    // fresh budget if the socket is not open, or probes it if it claims to be.
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') client.onForeground();
+    });
     // Kicks off the first teaching turn — but only if the server has not
     // already started one.
     //
@@ -785,6 +867,8 @@ export default function LiveClassroomScreen() {
 
     return () => {
       cancelled = true;
+      appStateSub.remove();
+      setActiveClassSession(null);
       /**
        * Give the floor back BEFORE the socket goes, not after.
        *
@@ -1623,6 +1707,7 @@ export default function LiveClassroomScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    let micRecoverCleanup: () => void = () => {};
     (async () => {
       /**
        * Everything about whether the mic can be opened is settled HERE, before
@@ -1654,8 +1739,30 @@ export default function LiveClassroomScreen() {
         setMicStatus(mic.status);
         return;
       }
-      try {
-        await recorder.startRecording({
+      /**
+       * THE MIC COMES BACK AFTER A CALL, SIRI OR AN ALARM.
+       *
+       * The capture chain is started once and held for the whole class (see
+       * above), so an interruption that pauses it is not a hiccup but the end
+       * of the student's voice: audio-studio does not resume on its own unless
+       * asked (`autoResumeAfterInterruption` is false by default), and nothing
+       * here listened — the rail still looked ready and every hold sent
+       * silence. Two layers, both audio-studio's own names:
+       *
+       *  - `autoResumeAfterInterruption: true`, so the library resumes the
+       *    recording it paused (it waits 2s after the interruption ends).
+       *  - `onRecordingInterrupted`, whose `phoneCallEnded` / `audioFocusGain`
+       *    reasons mean the interruption is over. A moment after the library's
+       *    own window, if the recorder is still paused, resume it by hand; if
+       *    the resume is refused (the audio session was reset under it), start
+       *    the capture again from scratch with the same options.
+       */
+      let recoverTimer: ReturnType<typeof setTimeout> | null = null;
+      micRecoverCleanup = () => {
+        if (recoverTimer) clearTimeout(recoverTimer);
+        recoverTimer = null;
+      };
+      const micOptions = {
           sampleRate: 16000,
           channels: 1,
           encoding: 'pcm_16bit',
@@ -1671,7 +1778,7 @@ export default function LiveClassroomScreen() {
           // recorder claimed it too, the two would pause each other.
           keepAwake: false,
           showNotification: false,
-          android: { audioFocusStrategy: 'none' },
+          android: { audioFocusStrategy: 'none' as const },
           // Without `DefaultToSpeaker`, iOS's shared AVAudioSession defaults a
           // `.playAndRecord` category to the earpiece receiver — and this
           // category is now held for the whole class, so without it every
@@ -1681,6 +1788,43 @@ export default function LiveClassroomScreen() {
               category: 'PlayAndRecord',
               categoryOptions: ['AllowBluetooth', 'MixWithOthers', 'DefaultToSpeaker'],
             },
+          },
+          // Resume by itself when a call, Siri or an alarm lets go of the audio
+          // session (audio-studio's default is false). The screen is kept awake
+          // elsewhere: `keepAwake` above is about the Android foreground service.
+          autoResumeAfterInterruption: true,
+          onRecordingInterrupted: (event: { reason: string; isPaused: boolean }) => {
+            if (!INTERRUPTION_ENDED.has(event.reason)) return;
+            if (recoverTimer) clearTimeout(recoverTimer);
+            recoverTimer = setTimeout(async () => {
+              recoverTimer = null;
+              if (cancelled) return;
+              const live = recorderRef.current;
+              // The library got there first: recording, not paused.
+              if (live.isRecording && !live.isPaused) return;
+              try {
+                if (live.isPaused && live.resumeRecording) {
+                  await live.resumeRecording();
+                  return;
+                }
+              } catch (err) {
+                console.warn('[live-classroom] resume after interruption refused, restarting:', err);
+              }
+              if (cancelled) return;
+              try {
+                await live.stopRecording().catch(() => {});
+                await live.startRecording(micOptions);
+                if (cancelled) return;
+                micReadyRef.current = true;
+                setMicStatus('available');
+              } catch (err) {
+                // Genuinely gone. Say so on the rail rather than leave a
+                // button that looks ready and sends silence.
+                console.warn('[live-classroom] recorder could not be restarted after interruption:', err);
+                micReadyRef.current = false;
+                if (!cancelled) setMicStatus('unavailable');
+              }
+            }, MIC_RECOVER_DELAY_MS);
           },
           onAudioStream: async (event: { data: unknown }) => {
             // The gate. Closed unless a finger is on the button.
@@ -1693,7 +1837,9 @@ export default function LiveClassroomScreen() {
               voiceLevel.value = withTiming(pcmLevel(bytes), { duration: 90 });
             }
           },
-        });
+      };
+      try {
+        await recorder.startRecording(micOptions);
         if (cancelled) return;
         micReadyRef.current = true;
         setMicStatus('available');
@@ -1708,6 +1854,7 @@ export default function LiveClassroomScreen() {
     })();
     return () => {
       cancelled = true;
+      micRecoverCleanup();
       micReadyRef.current = false;
       handRaisedRef.current = false;
       recorder.stopRecording().catch(() => {});
@@ -2077,7 +2224,11 @@ export default function LiveClassroomScreen() {
               <View style={styles.writingRow}>
                 <Blink style={styles.writingCursor} />
                 <Text style={styles.writingText}>
-                  {connectionStatus === 'open' ? 'Writing…' : 'Connecting to Drona…'}
+                  {connectionStatus === 'open'
+                    ? 'Writing…'
+                    : showReconnecting
+                      ? 'Reconnecting…'
+                      : 'Connecting to Drona…'}
                 </Text>
               </View>
             ) : (
@@ -2089,25 +2240,40 @@ export default function LiveClassroomScreen() {
                  from the picture's signature, so the component instance
                  survives that change and animates instead of remounting; a
                  picture drawn a second time gets its own key (`boardRowKeys`). */
-              boardRows.map((event, i) => (
-                <BoardLine
-                  key={boardKeys[i]}
-                  event={event}
-                  first={i === 0}
-                  paused={paused}
-                  hurry={!teacherSpeaking}
-                  onHeadingAt={onHeadingAt}>
-                  {(progress) => (
-                    <BoardBlockView
-                      event={event}
-                      diagramBox={diagramBox}
-                      widgetHost={widgetHost}
-                      progress={progress}
-                      grid
-                    />
-                  )}
-                </BoardLine>
-              ))
+              <>
+                {boardRows.map((event, i) => (
+                  <BoardLine
+                    key={boardKeys[i]}
+                    event={event}
+                    first={i === 0}
+                    paused={paused}
+                    hurry={!teacherSpeaking}
+                    onHeadingAt={onHeadingAt}>
+                    {(progress) => (
+                      /* A row that throws while it draws costs that row, not the
+                         class: see components/board-error-boundary.tsx. */
+                      <GuardedBoardBlock
+                        event={event}
+                        diagramBox={diagramBox}
+                        widgetHost={widgetHost}
+                        progress={progress}
+                        grid
+                      />
+                    )}
+                  </BoardLine>
+                ))}
+                {/* The board's own writing row, reused: the connection is
+                    down and the board says so rather than going quiet. While the
+                    client is retrying, the banner over the board already says it;
+                    this row is for a closed socket and for an answer that is
+                    waiting on a connection that claims to be open. */}
+                {showReconnecting && connectionStatus !== 'reconnecting' && (
+                  <View style={styles.writingRow}>
+                    <Blink style={styles.writingCursor} />
+                    <Text style={styles.writingText}>Reconnecting…</Text>
+                  </View>
+                )}
+              </>
             )}
           </Pressable>
         </Animated.ScrollView>

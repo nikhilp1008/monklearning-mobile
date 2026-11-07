@@ -12,7 +12,7 @@
  * concept whose subject IS money — its chunks carry "US $33 trillion" and
  * "~US $18 trillion" on nearly every page.
  */
-import { latexToText } from '../latex-text';
+import { latexToSegments, latexToText } from '../latex-text';
 
 describe('a dollar sign followed by a digit is currency', () => {
   test.each([
@@ -61,4 +61,87 @@ test('the cost this rule USED to have, and no longer does', () => {
   // So this asserts the improvement rather than the old limitation.
   expect(latexToText('$2x + 1$')).toBe('2x + 1');
   expect(latexToText('$2 x+3 y=9$')).toBe('2 x+3 y=9');
+});
+
+/**
+ * `\$` — the same defect, from the other side.
+ *
+ * The rule above decides whether a bare `$` followed by a digit is a price. It never
+ * considered a dollar that was ESCAPED, and the scan walked straight over the
+ * backslash and took it for a delimiter. One `\$` only ever worked because it had no
+ * second dollar to pair with; two of them read everything between as maths. The
+ * Ecosystem Services board holds exactly that line, stored as the formula
+ *
+ *     \text{Costanza valuation} \approx \text{US \$33 trillion/yr} \approx 2 \times \text{global GNP (\$18 trillion)}
+ *
+ * and it reached students as "US 33 trillion/yr ≈ 2 × global GNP (18 trillion)}" —
+ * both dollar signs gone, and the brace of the second `\text{` left on screen.
+ */
+describe('an escaped dollar is a dollar, never a delimiter', () => {
+  test.each([
+    [
+      'the stored Ecosystem Services line, two of them',
+      String.raw`\text{Costanza valuation} \approx \text{US \$33 trillion/yr} \approx 2 \times \text{global GNP (\$18 trillion)}`,
+      'Costanza valuation ≈ US $33 trillion/yr ≈ 2 × global GNP ($18 trillion)',
+    ],
+    [
+      'one, as it always worked',
+      String.raw`\text{Global GNP} \approx \text{US \$18 trillion}`,
+      'Global GNP ≈ US $18 trillion',
+    ],
+    ['two in prose with no command in the line', String.raw`costs \$5 and \$6`, 'costs $5 and $6'],
+    ['beside a real maths span', String.raw`It costs \$5, so $x = 5$`, 'It costs $5, so x = 5'],
+    ['inside a maths span', String.raw`$x = \$5$`, 'x = $5'],
+  ])('%s', (_label, raw, expected) => {
+    expect(latexToText(raw)).toBe(expected);
+  });
+
+  test('no stray brace is left behind', () => {
+    const raw = String.raw`\text{US \$33 trillion/yr} \approx 2 \times \text{global GNP (\$18 trillion)}`;
+    expect(latexToText(raw)).not.toMatch(/[{}\\]/);
+  });
+
+  test('the drawn path keeps the money too', () => {
+    // MathLine draws this line, so it is `latexToSegments` that has to keep both signs.
+    const raw = String.raw`\text{Costanza valuation} \approx \text{US \$33 trillion/yr} \approx 2 \times \text{global GNP (\$18 trillion)}`;
+    const shown = latexToSegments(raw)
+      .map((s) => ('text' in s ? s.text : ''))
+      .join('');
+    expect(shown).toBe('Costanza valuation ≈ US $33 trillion/yr ≈ 2 × global GNP ($18 trillion)');
+  });
+
+  test('a line break straight before a real delimiter is not an escape', () => {
+    // `\\` is a row break and `$x$` is maths. With no space between them the second
+    // backslash and the dollar LOOK like `\$`, and taking them for one left a lone
+    // delimiter on screen, so the dollars must still pair up.
+    expect(latexToText(String.raw`a \\$x$`)).not.toContain('$');
+    expect(latexToText(String.raw`a \\ $x$ and \$5`)).toBe(String.raw`a \\ x and $5`);
+  });
+});
+
+describe('two prices are two prices, however short the words between them', () => {
+  test.each([
+    // A body with no word of three letters used to read as maths: "5 to 10".
+    ['"to" is two letters', 'between $5 to $10'],
+    ['"or" is two letters', 'worth $33 or $18'],
+    ['a price with markup around it', String.raw`\text{US $33 trillion/yr} \approx \text{US $18 trillion}`],
+  ])('%s', (_label, raw) => {
+    const out = latexToText(raw);
+    expect(out.match(/\$/g)).toHaveLength(2);
+    expect(out).not.toMatch(/[{}\\]/);
+  });
+
+  test('the second dollar opens the next price, so it is never a closing delimiter', () => {
+    expect(latexToText('between $5 to $10')).toBe('between $5 to $10');
+    expect(latexToText(String.raw`\text{US $33 trillion/yr} \approx \text{US $18 trillion}`)).toBe(
+      'US $33 trillion/yr ≈ US $18 trillion',
+    );
+  });
+
+  test('real maths that opens with a digit still converts', () => {
+    // The practice bank's own shapes, and two spans side by side.
+    expect(latexToText(String.raw`$5 \times 10^6 m^{-1}$ and $5000 A^0$`)).toBe('5 × 10⁶ m⁻¹ and 5000 A⁰');
+    expect(latexToText('$5$ and $6$')).toBe('5 and 6');
+    expect(latexToText('$2 x+3 y=9$')).toBe('2 x+3 y=9');
+  });
 });

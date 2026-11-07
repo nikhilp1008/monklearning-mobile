@@ -32,9 +32,17 @@ function netInfo(): {
   }
 }
 
-const offlineFrom = (s: NetInfoState) => s.isConnected === false || s.isInternetReachable === false;
+/**
+ * `isInternetReachable` is the system pinging a test address in the background
+ * (a Google one, on iOS), and it comes back false on a simulator, a VPN, a DNS
+ * filter or a captive network while the app's own server answers fine. A screen
+ * that has its own, truer signal (the class's socket) can ask to go by
+ * `isConnected` alone.
+ */
+const offlineFrom = (s: NetInfoState, reachability: boolean) =>
+  s.isConnected === false || (reachability && s.isInternetReachable === false);
 
-export function useOnline(): boolean {
+export function useOnline({ reachability = true }: { reachability?: boolean } = {}): boolean {
   const [online, setOnline] = useState(true);
   useEffect(() => {
     const ni = netInfo();
@@ -43,9 +51,9 @@ export function useOnline(): boolean {
     let unsubscribe = () => {};
     try {
       ni.fetch()
-        .then((s) => live && setOnline(!offlineFrom(s)))
+        .then((s) => live && setOnline(!offlineFrom(s, reachability)))
         .catch(() => {});
-      unsubscribe = ni.addEventListener((s) => setOnline(!offlineFrom(s)));
+      unsubscribe = ni.addEventListener((s) => setOnline(!offlineFrom(s, reachability)));
     } catch {
       // The module is present but its native side is not (tests, an old build).
     }
@@ -53,6 +61,6 @@ export function useOnline(): boolean {
       live = false;
       unsubscribe();
     };
-  }, []);
+  }, [reachability]);
   return online;
 }
