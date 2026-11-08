@@ -106,7 +106,6 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'chemistry|11|7': C11_07,
   'chemistry|11|8': C11_08,
   'chemistry|11|9': C11_09,
-  'chemistry|11|10': C11_10,
   'chemistry|12|1': C12_01,
   'chemistry|12|2': C12_02,
   'chemistry|12|3': C12_03,
@@ -117,5 +116,6 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'chemistry|12|8': C12_08,
   'chemistry|12|9': C12_09,
   'chemistry|12|10': C12_10,
-  'chemistry|12|11': C12_11,
+  // One chapter from two books: the Class 11 p-Block (Groups 13–14) then the Class 12 (Groups 15–18), in topic order.
+  'chemistry|12|11': [...C11_10, ...C12_11].sort((a, b) => a.topic - b.topic),
 };

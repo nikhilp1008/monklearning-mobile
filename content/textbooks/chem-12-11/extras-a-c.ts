@@ -29,9 +29,9 @@ import type { Topic } from '@/lib/textbooks';
  * labels are upright (sp<sup>3</sup>d, π*), and an empty table cell ("-") is "—".
  */
 export const TOPICS: Topic[] = [
-  // ───────────────────────── Additional topic A · pp. 551–555 ─────────────────────────
+  // ───────────────────────── Additional topic L · pp. 551–555 ─────────────────────────
   {
-    n: 'A',
+    n: 'L',
     title: 'Group 15: Hydride Data, Nitrogen versus Phosphorus, and the Oxides of Nitrogen',
     extra: true,
     kalam: 'Nitrogen spans every oxidation state from +1 to +5 in its oxides.',
@@ -43,7 +43,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Addenda A to F take Groups 15, 16, 17 and 18 in turn, each with its worked examples and practice. Addendum G is a multiple-choice drill with an analysis of every wrong option, Addendum H gathers the pitfalls and a cheat sheet, and Additional topic I describes what JEE and NEET actually ask.',
+        html: 'Additional topics L to Q take Groups 15, 16, 17 and 18 in turn, each with its worked examples and practice. Additional topic R is a multiple-choice drill with an analysis of every wrong option, Additional topic S gathers the pitfalls and a cheat sheet, and Additional topic T describes what JEE and NEET actually ask.',
       },
       {
         t: 'p',
@@ -221,9 +221,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Additional topic B · pp. 556–559 ─────────────────────────
+  // ───────────────────────── Additional topic M · pp. 556–559 ─────────────────────────
   {
-    n: 'B',
+    n: 'M',
     title: 'Ammonia and Nitric Acid in Depth',
     extra: true,
     kalam: 'The nitrogen in HNO₃ is at +5; what it is reduced to depends on concentration and on the metal.',
@@ -383,9 +383,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Additional topic C · pp. 559–563 ─────────────────────────
+  // ───────────────────────── Additional topic N · pp. 559–563 ─────────────────────────
   {
-    n: 'C',
+    n: 'N',
     title: 'Phosphorus: Allotropes, Phosphine, the Chlorides and the Oxoacids',
     extra: true,
     kalam: 'Basicity equals the number of P–OH groups: only an O–H hydrogen ionises.',

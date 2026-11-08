@@ -25,10 +25,10 @@ import type { Topic } from '@/lib/textbooks';
  * book's italic emphasis ("dilute", "trans", "because", "reason") set upright.
  */
 export const TOPICS: Topic[] = [
-  // ───────────────────────── Topic 07 · pp. 543–550 ─────────────────────────
+  // ───────────────────────── Topic 13 · pp. 543–550 ─────────────────────────
   {
-    n: '07',
-    title: 'Worked examples & exam practice',
+    n: '13',
+    title: 'Worked examples & exam practice: Groups 15 to 18',
     kalam: 'This unit is a dense concentration of “state the exception” questions.',
     blocks: [
       // Section 7 — Worked Examples · pp. 543–545

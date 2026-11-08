@@ -22,7 +22,7 @@ export const TOPICS: Topic[] = [
   // ───────────────────────── Topic 06 · pp. 467–474 ─────────────────────────
   {
     n: '06',
-    title: 'Worked examples & exam practice',
+    title: 'Worked examples & exam practice: Groups 13 and 14',
     kalam:
       'Group 13/14 chemistry is tested almost entirely through a small, recurring set of concept checks rather than heavy calculation.',
     blocks: [

@@ -37,6 +37,11 @@
  * M<sup>III</sup> upright. Δ<sub>i</sub><i>H</i><sub>1</sub>,
  * Δ<sub>f</sub><i>H</i>°, Δ<sub>r</sub><i>H</i>°, <i>E</i>°, <i>n</i>,
  * <i>s</i>, <i>M</i> italic; p<i>K</i><sub>a</sub> with an upright p.
+ *
+ * JOINED (2026-11-07): these points now open the one p-Block chapter on the
+ * Class 12 shelf (content/textbooks/chem-12-11-p-block.ts), so every `topic`
+ * below is its index in the joined chapter: Topics 01–06 stay 0–5, Additional
+ * topics A–K are 13–23 (the indexes above are this book's own).
  */
 import type { KeyPoint } from '@/lib/revise/keypoints';
 
@@ -308,7 +313,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional A · The Numbers Behind the Group 13 and 14 Trends ──
   // pp. 475–476
   {
-    topic: 6,
+    topic: 13,
     kind: 'remember',
     q: 'Group 13: the sums Δ<sub>i</sub><i>H</i><sub>1</sub> + Δ<sub>i</sub><i>H</i><sub>2</sub> + Δ<sub>i</sub><i>H</i><sub>3</sub>, and what they show?',
     a: 'B 6887, Al 5137, Ga 5520, In 5082, Tl 5437 kJ mol<sup>−1</sup>. Boron’s is 1750 more than aluminium’s, more than any lattice or hydration enthalpy of B<sup>3+</sup> could repay, so boron stays covalent. The zigzag (rises from Al to Ga and from In to Tl) marks the poorly shielding 3d<sup>10</sup> and 4f<sup>14</sup>5d<sup>10</sup> cores',
@@ -317,7 +322,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 477–478
   {
-    topic: 6,
+    topic: 13,
     kind: 'mistake',
     q: 'The compound GaCl<sub>2</sub> is diamagnetic. Is gallium in the +2 state?',
     a: 'No: it is Ga<sup>+</sup>[GaCl<sub>4</sub>]<sup>−</sup>, one Ga(I) (4s<sup>2</sup>, paired) and one Ga(III); only the average is +2. A real Ga<sup>2+</sup> (4s<sup>1</sup>) would be paramagnetic',
@@ -328,7 +333,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional B · Boron’s Anomalies and the Diagonal Relationship, Tabulated ──
   // pp. 478–480
   {
-    topic: 7,
+    topic: 14,
     kind: 'remember',
     q: 'Boron against aluminium: ion, covalence, trichloride, hydride, oxide?',
     a: 'Boron: no M<sup>3+</sup> ion; maximum covalence 4 ([BF<sub>4</sub>]<sup>−</sup>); monomeric BCl<sub>3</sub>; volatile boranes (B<sub>2</sub>H<sub>6</sub>); acidic B<sub>2</sub>O<sub>3</sub>; no reaction with acids or alkalis. Aluminium: common Al<sup>3+</sup>; covalence 6 ([AlF<sub>6</sub>]<sup>3−</sup>); dimeric Al<sub>2</sub>Cl<sub>6</sub>; polymeric solid (AlH<sub>3</sub>)<sub><i>n</i></sub>; amphoteric Al<sub>2</sub>O<sub>3</sub>; dissolves in both, giving H<sub>2</sub>',
@@ -337,7 +342,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 479–480
   {
-    topic: 7,
+    topic: 14,
     kind: 'remember',
     q: 'Sodium metaborate, nominally NaBO<sub>2</sub>, is a ring of three BO<sub>3</sub> triangles. Its charge, and its bridging oxygens?',
     a: '[B<sub>3</sub>O<sub>6</sub>]<sup>3−</sup>: each triangle shares two corners, so three bridging oxygens and three terminal O<sup>−</sup>; check 3(+3) + 6(−2) = −3. A ring of four such triangles is [B<sub>4</sub>O<sub>8</sub>]<sup>4−</sup>',
@@ -348,7 +353,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional C · Boron Compounds in Depth: Borax, Boric Acid, the Trihalides and Diborane ──
   // pp. 481–482, 484
   {
-    topic: 8,
+    topic: 15,
     kind: 'remember',
     q: 'Borax titrated with HCl: what ratio, which indicator, and what volume of 0.100 M HCl for 1.906 g of Na<sub>2</sub>B<sub>4</sub>O<sub>7</sub>·10H<sub>2</sub>O?',
     a: 'In water [B<sub>4</sub>O<sub>5</sub>(OH)<sub>4</sub>]<sup>2−</sup> + 5H<sub>2</sub>O ⇌ 2B(OH)<sub>3</sub> + 2[B(OH)<sub>4</sub>]<sup>−</sup>, and only [B(OH)<sub>4</sub>]<sup>−</sup> takes up acid: 1 mol borax : 2 mol HCl, with methyl orange. <i>M</i> = 381.2, so 0.00500 mol needs 0.0100 mol HCl: 100 mL',
@@ -357,7 +362,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 482, 484–485
   {
-    topic: 8,
+    topic: 15,
     kind: 'remember',
     q: 'Why is mannitol added before boric acid is titrated with NaOH?',
     a: 'Alone, boric acid is too weak (p<i>K</i><sub>a</sub> ≈ 9.2) for a sharp end point. A cis-diol (glycerol, mannitol, sugars) holds the borate as a stable chelate, B(OH)<sub>3</sub> + 2H<sub>2</sub>L → [BL<sub>2</sub>]<sup>−</sup> + H<sup>+</sup> + 3H<sub>2</sub>O, driving the ionisation to completion: it then titrates as a strong monobasic acid (<i>n</i>-factor 1) with phenolphthalein',
@@ -368,7 +373,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional D · Aluminium: Oxide, Hydroxide, Chloride and Alums ──
   // p. 485
   {
-    topic: 9,
+    topic: 16,
     kind: 'remember',
     q: 'Show that Al<sub>2</sub>O<sub>3</sub> and Al(OH)<sub>3</sub> are amphoteric. What brings the hydroxide back down?',
     a: 'With acid: Al<sub>2</sub>O<sub>3</sub> + 6HCl → 2AlCl<sub>3</sub> + 3H<sub>2</sub>O; Al(OH)<sub>3</sub> + 3HCl → AlCl<sub>3</sub> + 3H<sub>2</sub>O. With alkali: Al<sub>2</sub>O<sub>3</sub> + 2NaOH + 3H<sub>2</sub>O → 2Na[Al(OH)<sub>4</sub>]; Al(OH)<sub>3</sub> + NaOH → Na[Al(OH)<sub>4</sub>] (tetrahedral [Al(OH)<sub>4</sub>]<sup>−</sup>). CO<sub>2</sub>, or boiling with NH<sub>4</sub>Cl, reprecipitates Al(OH)<sub>3</sub>',
@@ -377,7 +382,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 486–487
   {
-    topic: 9,
+    topic: 16,
     kind: 'remember',
     q: 'Alums: the general formula, which ions, and what potash alum shows in water?',
     a: 'M<sup>I</sup><sub>2</sub>SO<sub>4</sub>·M<sup>III</sup><sub>2</sub>(SO<sub>4</sub>)<sub>3</sub>·24H<sub>2</sub>O, or M<sup>I</sup>M<sup>III</sup>(SO<sub>4</sub>)<sub>2</sub>·12H<sub>2</sub>O: M<sup>I</sup> is Na<sup>+</sup>, K<sup>+</sup> or NH<sub>4</sub><sup>+</sup> (lithium sulphate is not known to form one), M<sup>III</sup> is Al<sup>3+</sup>, Fe<sup>3+</sup> or Cr<sup>3+</sup>. A double salt splits into its ions, so potash alum solution gives the tests of K<sup>+</sup>, Al<sup>3+</sup> and SO<sub>4</sub><sup>2−</sup>, and is acidic',
@@ -388,7 +393,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional E · Allotropes of Carbon: Structure to Property ──
   // p. 489
   {
-    topic: 10,
+    topic: 17,
     kind: 'remember',
     q: 'C<sub>60</sub>: how many σ bonds, π bonds, pentagons and hexagons?',
     a: 'Each carbon makes three σ bonds and has one π electron: 60 × 3/2 = 90 σ, 60/2 = 30 π (30 double bonds, 138.3 pm, and 60 single, 143.5 pm). Every fullerene has 12 pentagons; C<sub><i>n</i></sub> has <i>n</i>/2 − 10 hexagons: 20 for C<sub>60</sub>, 25 for C<sub>70</sub>',
@@ -397,7 +402,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 487–490
   {
-    topic: 10,
+    topic: 17,
     kind: 'mixup',
     q: 'Diamond or graphite: which conducts, which is denser, which is more stable?',
     a: 'Graphite conducts, along the layers only (one delocalised π electron per sp<sup>2</sup> carbon); diamond has all four electrons in localised σ bonds and does not. Diamond is denser (3.51 against 2.22 g cm<sup>−3</sup>; graphite’s layers are 340 pm apart), yet graphite is more stable: C(graphite) → C(diamond), Δ<sub>r</sub><i>H</i>° ≈ +1.9 kJ mol<sup>−1</sup>',
@@ -408,7 +413,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional F · Carbon Monoxide, Carbon Dioxide and the Carbonates ──
   // p. 490
   {
-    topic: 11,
+    topic: 18,
     kind: 'remember',
     q: 'CO and CO<sub>2</sub> in the laboratory, and the order of C–O bond lengths?',
     a: 'CO: formic acid with conc. H<sub>2</sub>SO<sub>4</sub> at 373 K, HCOOH → CO + H<sub>2</sub>O. CO<sub>2</sub>: CaCO<sub>3</sub> + 2HCl → CaCl<sub>2</sub> + CO<sub>2</sub> + H<sub>2</sub>O. CO is neutral, CO<sub>2</sub> acidic. Bond length follows bond order: CO (3) < CO<sub>2</sub> (2) < CO<sub>3</sub><sup>2−</sup> (4/3)',
@@ -417,7 +422,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 491
   {
-    topic: 11,
+    topic: 18,
     kind: 'mixup',
     q: 'Carbonate or hydrogencarbonate: how do you tell them apart?',
     a: 'Cold MgSO<sub>4</sub> solution: a carbonate gives white MgCO<sub>3</sub> at once; a hydrogencarbonate gives a precipitate only on heating (Mg(HCO<sub>3</sub>)<sub>2</sub> is soluble in the cold). Alkali-metal carbonates are stable to heat (except Li<sub>2</sub>CO<sub>3</sub>), but 2NaHCO<sub>3</sub> → Na<sub>2</sub>CO<sub>3</sub> + H<sub>2</sub>O + CO<sub>2</sub>. Both fizz with dilute acid',
@@ -428,7 +433,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional G · Silicon: Silica, Silicates, Silicones and Zeolites ──
   // pp. 492–493
   {
-    topic: 12,
+    topic: 19,
     kind: 'remember',
     q: 'The silicate corner-counting rule, and the anions it gives?',
     a: 'A tetrahedron sharing <i>s</i> corners: formula unit SiO<sub>4−<i>s</i>/2</sub>, charge per Si −(4 − <i>s</i>). <i>s</i> = 0: SiO<sub>4</sub><sup>4−</sup>. 1: Si<sub>2</sub>O<sub>7</sub><sup>6−</sup>. 2: rings and single chains, (SiO<sub>3</sub>)<sub><i>n</i></sub><sup>2<i>n</i>−</sup> (Si<sub>3</sub>O<sub>9</sub><sup>6−</sup>). 2 and 3: double chains, (Si<sub>4</sub>O<sub>11</sub>)<sub><i>n</i></sub><sup>6<i>n</i>−</sup>. 3: sheets, (Si<sub>2</sub>O<sub>5</sub>)<sub><i>n</i></sub><sup>2<i>n</i>−</sup>. 4: neutral SiO<sub>2</sub>',
@@ -437,7 +442,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 494–495
   {
-    topic: 12,
+    topic: 19,
     kind: 'remember',
     q: 'Silicones: what does each chlorosilane do, and how long is the average chain from 98 mol (CH<sub>3</sub>)<sub>2</sub>SiCl<sub>2</sub> with 2 mol (CH<sub>3</sub>)<sub>3</sub>SiCl?',
     a: '(CH<sub>3</sub>)<sub>3</sub>SiCl (one Si–Cl) caps a chain end; (CH<sub>3</sub>)<sub>2</sub>SiCl<sub>2</sub> (two) builds linear [(CH<sub>3</sub>)<sub>2</sub>SiO]<sub><i>n</i></sub>; CH<sub>3</sub>SiCl<sub>3</sub> (three) cross-links; SiCl<sub>4</sub> (four) gives a silica-like network. 2 mol of caps end 1 mol of chains: 98 units per chain',
@@ -448,7 +453,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional H · Tin and Lead: Compounds the Papers Name ──
   // pp. 495–497
   {
-    topic: 13,
+    topic: 20,
     kind: 'remember',
     q: 'SnCl<sub>2</sub> as a reducing agent: what does it do to HgCl<sub>2</sub>, and to what else?',
     a: '2HgCl<sub>2</sub> + SnCl<sub>2</sub> → Hg<sub>2</sub>Cl<sub>2</sub>↓ (white) + SnCl<sub>4</sub>; with excess SnCl<sub>2</sub>, Hg<sub>2</sub>Cl<sub>2</sub> + SnCl<sub>2</sub> → 2Hg (grey) + SnCl<sub>4</sub>. It also reduces FeCl<sub>3</sub> to FeCl<sub>2</sub>, CuCl<sub>2</sub> to CuCl, I<sub>2</sub> to HI (with HCl), and nitrobenzene to aniline',
@@ -457,7 +462,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 496–497
   {
-    topic: 13,
+    topic: 20,
     kind: 'remember',
     q: 'Red lead, Pb<sub>3</sub>O<sub>4</sub>: what is it, and what do nitric acid and hot concentrated HCl do to it?',
     a: '2PbO·PbO<sub>2</sub>: two Pb(II) and one Pb(IV), average +8/3. Nitric acid dissolves the PbO part and leaves brown PbO<sub>2</sub>: Pb<sub>3</sub>O<sub>4</sub> + 4HNO<sub>3</sub> → 2Pb(NO<sub>3</sub>)<sub>2</sub> + PbO<sub>2</sub>↓ + 2H<sub>2</sub>O. Hot concentrated HCl is oxidised: Pb<sub>3</sub>O<sub>4</sub> + 8HCl → 3PbCl<sub>2</sub> + 4H<sub>2</sub>O + Cl<sub>2</sub>',
@@ -468,7 +473,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional I · Which Is Stronger, Which Is More Stable: The Reasoning Rules ──
   // pp. 498–499
   {
-    topic: 14,
+    topic: 21,
     kind: 'remember',
     q: 'Oxide character in groups 13 and 14: the rule and the cases?',
     a: 'Higher oxidation state, more acidic; down a group, more basic. B<sub>2</sub>O<sub>3</sub> acidic; Al<sub>2</sub>O<sub>3</sub>, Ga<sub>2</sub>O<sub>3</sub> amphoteric; In<sub>2</sub>O<sub>3</sub>, Tl<sub>2</sub>O<sub>3</sub> basic. CO<sub>2</sub>, SiO<sub>2</sub>, GeO<sub>2</sub> acidic; SnO<sub>2</sub>, PbO<sub>2</sub> amphoteric. CO neutral; GeO acidic; SnO, PbO amphoteric',
@@ -477,7 +482,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 498
   {
-    topic: 14,
+    topic: 21,
     kind: 'mixup',
     q: 'Al<sup>3+</sup> with NaOH and with aqueous ammonia: does the precipitate dissolve in excess?',
     a: 'With NaOH, the white gelatinous precipitate dissolves in excess (aluminate); with aqueous ammonia, the white precipitate does not. Heated on charcoal with Co(NO<sub>3</sub>)<sub>2</sub>, Al<sup>3+</sup> leaves a blue residue (Thenard’s blue)',
@@ -488,7 +493,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional K · What JEE and NEET Actually Ask ──
   // p. 500
   {
-    topic: 16,
+    topic: 23,
     kind: 'remember',
     q: 'In what forms are groups 13 and 14 tested?',
     a: 'Usually one idea per question: recall with a reason; compare and rank (Lewis acidity, oxide character, bond length, stability); count (bonds in diborane or C<sub>60</sub>, the charge on a silicate); identify (a precipitate, a bead colour, a flame); one-step stoichiometry on a named reaction; and statement pairs that hide one inverted clause. Name the rule first',
@@ -497,7 +502,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 500–502
   {
-    topic: 16,
+    topic: 23,
     kind: 'mistake',
     q: 'Which traps recur in group 13 and 14 questions?',
     a: 'Boric acid taken as tribasic (it is monobasic, <i>n</i>-factor 1, even with a cis-diol); the inert pair effect read backwards (it stabilises the lower state: Pb(IV) oxidises, Sn(II) reduces); Lewis acidity ranked by electronegativity (BF<sub>3</sub> is the weakest boron halide acid); the borax anion written as B<sub>4</sub>O<sub>7</sub><sup>2−</sup>; lime water that “does not clear” (excess CO<sub>2</sub> gives soluble Ca(HCO<sub>3</sub>)<sub>2</sub>)',

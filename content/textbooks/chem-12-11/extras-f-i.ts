@@ -29,9 +29,9 @@ import type { Topic } from '@/lib/textbooks';
  * upright, the book's "e" for electrons is kept, and ratios take "∶" as in B.
  */
 export const TOPICS: Topic[] = [
-  // ───────────────────────── Additional topic F · pp. 575–578 ─────────────────────────
+  // ───────────────────────── Additional topic Q · pp. 575–578 ─────────────────────────
   {
-    n: 'F',
+    n: 'Q',
     title: 'Group 18: Xenon Compounds from VSEPR',
     extra: true,
     kalam: 'Where lone pairs sit: the three in XeF₂ are equatorial, the two in XeF₄ are trans, and the one in XeOF₄ is trans to O.',
@@ -178,9 +178,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Additional topic G · pp. 578–580 ─────────────────────────
+  // ───────────────────────── Additional topic R · pp. 578–580 ─────────────────────────
   {
-    n: 'G',
+    n: 'R',
     title: 'Multiple-Choice Drill with Distractor Analysis',
     extra: true,
     kalam: 'Each question has exactly one correct option.',
@@ -354,9 +354,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Additional topic H · pp. 580–581 ─────────────────────────
+  // ───────────────────────── Additional topic S · pp. 580–581 ─────────────────────────
   {
-    n: 'H',
+    n: 'S',
     title: 'Common Pitfalls and a Cheat Sheet',
     extra: true,
     kalam: 'Match shapes by lone pairs, not by formula pattern.',
@@ -456,10 +456,10 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ─────────────── Additional topic I (the book's Addendum P) · pp. 582–583 ───────────────
+  // ─────────────── Additional topic T (the book's Addendum P) · pp. 582–583 ───────────────
   {
-    n: 'I',
-    title: 'What JEE and NEET Actually Ask',
+    n: 'T',
+    title: 'What JEE and NEET Actually Ask: Groups 15 to 18',
     extra: true,
     kalam: 'This chapter rewards accuracy on small facts far more than long derivations.',
     blocks: [
@@ -476,7 +476,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Shape, hybridisation and lone pairs</b> for xenon compounds, interhalogens, oxo-anions and phosphorus halides, often summed over a list. <b>Approach:</b> the pair-counting recipe of Addendum F; count each species separately.',
+        html: '<b>Shape, hybridisation and lone pairs</b> for xenon compounds, interhalogens, oxo-anions and phosphorus halides, often summed over a list. <b>Approach:</b> the pair-counting recipe of Additional topic Q; count each species separately.',
       },
       {
         t: 'p',
@@ -484,7 +484,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Oxoacid basicity and structure:</b> counts of P–OH, P=O, P–H, P–P and P–O–P, or the S–S, S–O–S and O–O features of the sulphur acids. <b>Approach:</b> the bond-inventory tables of Addenda C and D.',
+        html: '<b>Oxoacid basicity and structure:</b> counts of P–OH, P=O, P–H, P–P and P–O–P, or the S–S, S–O–S and O–O features of the sulphur acids. <b>Approach:</b> the bond-inventory tables of Additional topics N and O.',
       },
       {
         t: 'p',
@@ -504,7 +504,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The traps.</b> The pitfalls of Addendum H are the traps these questions are built on: counting hydrogens for basicity, the two fluorine orders, HF as the strongest acid, SO<sub>3</sub> into water, a planar ClO<sub>3</sub><sup>−</sup> and XeF<sub>6</sub> hydrolysis treated as redox.',
+        html: '<b>The traps.</b> The pitfalls of Additional topic S are the traps these questions are built on: counting hydrogens for basicity, the two fluorine orders, HF as the strongest acid, SO<sub>3</sub> into water, a planar ClO<sub>3</sub><sup>−</sup> and XeF<sub>6</sub> hydrolysis treated as redox.',
       },
 
       { t: 'part', title: 'Graded practice set' },

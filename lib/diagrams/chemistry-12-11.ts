@@ -28,6 +28,10 @@ import type { Check, Diagram } from '@/lib/diagrams/types';
  * drawing reads as the book's does. No fills: the book's coloured lobes and bars are outlines, its colour words in the
  * captions become "highlighted" (Figures 1, 4 and 7), Figure 7's "Left/Centre/Right" are "First panel/Second/Third",
  * and Figure 9's "lower right panel" is its last chip.
+ *
+ * JOINED (2026-11-07): `topic` is the index in the one p-Block chapter
+ * (content/textbooks/chem-12-11-p-block.ts: Class 11 Topics 01–06, Class 12
+ * Topics 07–13, Class 11 Additional A–K, Class 12 Additional L–T).
  */
 
 const W = 340;
@@ -292,7 +296,7 @@ const xA1 = (c: HydCase, i: number) => GA1.ox + ((GA1.x1 - GA1.ox) * (i + 0.5)) 
 const PTS = new WeakMap<Sketch, P[]>();
 const figA1: Diagram = {
   id: 'c12-11-A-d1',
-  topic: 7,
+  topic: 24,
   name: 'Boiling points of the hydrides',
   cases: CASESA1,
   draw(c: HydCase) {
@@ -335,7 +339,7 @@ const figA1: Diagram = {
 /* ===================================================================== */
 /* Figure 2 · the oxidation-state ladder of nitrogen (Addendum A, p. 554) */
 /* ===================================================================== */
-const CAPA2 = 'The oxidation-state ladder of nitrogen, with the product that nitric acid is reduced to in each familiar reaction. The metal reactions are worked out in Addendum B.';
+const CAPA2 = 'The oxidation-state ladder of nitrogen, with the product that nitric acid is reduced to in each familiar reaction. The metal reactions are worked out in Additional topic M.';
 /** p. 554, each rung as printed: the species in its box and the note its arrow points to. */
 const RUNGS: { ox: number; species: string[]; note?: string[] }[] = [
   { ox: 5, species: ['N<sub>2</sub>O<sub>5</sub>', 'HNO<sub>3</sub>'], note: ['HNO<sub>3</sub> itself: the oxidising acid'] },
@@ -370,7 +374,7 @@ const yA2 = (ox: number) => GA2.y0 + (5 - ox) * GA2.dy;
 const BOXA2 = new WeakMap<Sketch, { ox: number; rect: Rect; text: string }[]>();
 const figA2: Diagram = {
   id: 'c12-11-A-d2',
-  topic: 7,
+  topic: 24,
   name: 'Oxidation-state ladder of nitrogen',
   cases: [{ chip: 'Nitric acid products', cap: CAPA2 }],
   draw() {
@@ -439,7 +443,7 @@ const pcl6 = (): Shape => ({ centre: 'P', V: 5, charge: -1, ligs: OCTA('Cl'), lp
 const pcl3 = (): Shape => ({ centre: 'P', V: 5, ligs: TETRA.slice(1).map((d) => ({ el: 'Cl', d })), lps: [TETRA[0]], L: 64, az: 0, el: 16, c: [170, 140], depth: 0.6, lpR: 38 });
 const figC1: Diagram = {
   id: 'c12-11-C-d1',
-  topic: 9,
+  topic: 26,
   name: 'Phosphorus chlorides',
   cases: [
     { chip: '(a) Gas', cap: CAPC1, panel: 'a' },
@@ -524,7 +528,7 @@ type Grp = { kind: 'O' | 'H' | 'OH'; order: number };
 const groupsOf = (a: Acid): Grp[] => [{ kind: 'O', order: 2 }, { kind: a.left, order: 1 }, { kind: a.right, order: 1 }, { kind: 'OH', order: 1 }];
 const figC2: Diagram = {
   id: 'c12-11-C-d2',
-  topic: 9,
+  topic: 26,
   name: 'The three phosphorus oxoacids',
   cases: [{ chip: 'Three acids', cap: CAPC2 }],
   draw() {
@@ -611,7 +615,7 @@ function drawForm(s: Sketch, c: P, dbl: 'left' | 'right') {
 const GD1 = { a: [78, 60] as P, b: [262, 60] as P, hy: [196, 200] as P };
 const figD1: Diagram = {
   id: 'c12-11-D-d1',
-  topic: 10,
+  topic: 27,
   name: 'Ozone as a resonance hybrid',
   cases: [{ chip: 'Two forms, one hybrid', cap: CAPD1 }],
   draw() {
@@ -690,7 +694,7 @@ const EN: Record<string, number> = { H: 2.2, S: 2.58, O: 3.44 };
 const oxStates = (g: { atoms: string[]; bonds: [number, number, number][] }) => g.atoms.map((el, i) => g.bonds.filter((b) => b[0] === i || b[1] === i).reduce((t, b) => { const o = g.atoms[b[0] === i ? b[1] : b[0]]; return t + (EN[o] > EN[el] ? b[2] : EN[o] < EN[el] ? -b[2] : 0); }, 0));
 const figD2: Diagram = {
   id: 'c12-11-D-d2',
-  topic: 10,
+  topic: 27,
   name: 'Sulphur oxoacids',
   cases: SACIDS,
   draw(a: SAcid) {
@@ -750,7 +754,7 @@ const BARS = new WeakMap<Sketch, { top: number; label: string }[]>();
 const orderOf = (c: BarCase) => c.names.map((n, i) => ({ n: plain(n), v: c.v[i] })).sort((a, b) => b.v - a.v).map((x) => x.n);
 const figE1: Diagram = {
   id: 'c12-11-E-d1',
-  topic: 11,
+  topic: 28,
   name: 'Three fluorine anomalies',
   cases: CASESE1,
   draw(c: BarCase) {
@@ -842,7 +846,7 @@ function shapeCaseChecks(c: ShapeCase, s: Sketch, name: string): Check[] {
 }
 const figE2: Diagram = {
   id: 'c12-11-E-d2',
-  topic: 11,
+  topic: 28,
   name: 'Shapes of the interhalogens',
   cases: CASESE2,
   draw: (c: ShapeCase) => drawShapeCase(c),
@@ -924,7 +928,7 @@ function drawPairs(): Sketch {
 }
 const figF1: Diagram = {
   id: 'c12-11-F-d1',
-  topic: 12,
+  topic: 29,
   name: 'Shapes of the xenon compounds',
   cases: CASESF1,
   draw: (c: ShapeCase | PairsCase) => (isPairs(c) ? drawPairs() : drawShapeCase(c)),

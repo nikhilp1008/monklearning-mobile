@@ -63,6 +63,11 @@
  * <i>K</i><sub>a2</sub>, <i>M</i>, <i>x</i>, <i>n</i> italic, p<i>K</i><sub>a</sub>
  * with an upright p. Ratios with ∶. A value is kept with its unit by a
  * no-break space.
+ *
+ * JOINED (2026-11-07): the Class 11 p-Block (Groups 13–14) now comes first in
+ * the one p-Block chapter (content/textbooks/chem-12-11-p-block.ts), so every
+ * `topic` below is its index there: this book's Topics 01–07 are 6–12 (shown
+ * as Topics 07–13) and its Additional topics A–I are 24–32 (shown as L–T).
  */
 import type { KeyPoint } from '@/lib/revise/keypoints';
 
@@ -70,7 +75,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Topic 01 · Group 15: The Nitrogen Family ──
   // p. 530
   {
-    topic: 0,
+    topic: 6,
     kind: 'remember',
     q: 'Group 15: the valence configuration, and how size, ionisation enthalpy and metallic character run down the group?',
     a: '<i>n</i>s<sup>2</sup> <i>n</i>p<sup>3</sup>: the p subshell is exactly half-filled and extra stable, so Group 15 has distinctly higher ionisation enthalpies than its Group 14 and Group 16 neighbours in the same period. Down the group covalent and ionic radii rise (a large jump from N to P, a small one from As to Bi, where filled d and f subshells contract the size), while ionisation enthalpy and electronegativity fall, so metallic character rises: N and P non-metals, As and Sb metalloids, Bi essentially a metal',
@@ -79,7 +84,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 531
   {
-    topic: 0,
+    topic: 6,
     kind: 'remember',
     q: 'Why is nitrogen the odd one out in Group 15?',
     a: 'It is small, highly electronegative and has no valence d orbitals. Small size gives strong pπ–pπ multiple bonds, so dinitrogen is ∶N≡N∶ (one σ, two π) with a bond dissociation enthalpy of 941.4 kJ mol<sup>−1</sup>, inert at room temperature; P, As and Sb are too large and diffuse, and form single σ bonds instead. With only one 2s and three 2p orbitals, nitrogen cannot expand its covalency past four: it forms no pentahalide, so NCl<sub>5</sub> does not exist while PCl<sub>5</sub> and PF<sub>6</sub><sup>−</sup> do',
@@ -88,7 +93,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 531
   {
-    topic: 0,
+    topic: 6,
     kind: 'mixup',
     q: 'Nitrogen or phosphorus: which catenates more?',
     a: 'Phosphorus. The single N–N bond is weaker than the single P–P bond: nitrogen’s short bond forces the lone pairs on the two atoms close together, and their strong lone-pair/lone-pair repulsion destabilises it. Catenation rises from N to P, then falls through As, Sb and Bi as the atoms grow and the bonds weaken; nitrogen’s own catenation is weak, despite the strength of its triple bond in N<sub>2</sub>',
@@ -97,7 +102,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 531
   {
-    topic: 0,
+    topic: 6,
     kind: 'mistake',
     q: 'PH<sub>3</sub> has the greater molar mass. Does it boil higher than NH<sub>3</sub>?',
     a: 'No: NH<sub>3</sub> has the far higher melting and boiling point. Nitrogen’s small size and high electronegativity make NH<sub>3</sub> extensively hydrogen-bonded in the liquid and solid states; PH<sub>3</sub> molecules are not hydrogen-bonded',
@@ -106,7 +111,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 531
   {
-    topic: 0,
+    topic: 6,
     kind: 'shortcut',
     q: 'Group 15 oxides and halides: which are acidic, which more covalent, and what does nitrogen lack? The fast way?',
     a: 'All five elements form E<sub>2</sub>O<sub>3</sub> and E<sub>2</sub>O<sub>5</sub>; the higher oxidation state gives the more acidic oxide, and acidity falls down the group: the E<sub>2</sub>O<sub>3</sub> of N and P purely acidic, of As and Sb amphoteric, Bi<sub>2</sub>O<sub>3</sub> predominantly basic. Every element except nitrogen forms both EX<sub>3</sub> and EX<sub>5</sub>; nitrogen forms only trihalides, and of these only NF<sub>3</sub> is genuinely stable',
@@ -117,7 +122,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Topic 02 · Important Compounds of Nitrogen and Phosphorus ──
   // pp. 532, 556
   {
-    topic: 1,
+    topic: 7,
     kind: 'remember',
     q: 'The Haber process: the enthalpy, the conditions, and why they are a compromise?',
     a: 'N<sub>2</sub>(g) + 3H<sub>2</sub>(g) ⇌ 2NH<sub>3</sub>(g) is exothermic, −46.1 kJ per mole of NH<sub>3</sub> and so −92.2 kJ for the equation as written, and it cuts 4 gas moles to 2: low temperature and high pressure favour ammonia. At low temperature the rate is unacceptably slow, so the plant runs at about 200 atm and 700 K over iron promoted with small amounts of K<sub>2</sub>O and Al<sub>2</sub>O<sub>3</sub>, which speeds the approach to equilibrium. Asked for “the conditions”, state both halves',
@@ -126,7 +131,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 534, 549
   {
-    topic: 1,
+    topic: 7,
     kind: 'remember',
     q: 'White, red and black phosphorus: structure, reactivity and stability?',
     a: 'White: discrete tetrahedral P<sub>4</sub> molecules with a P–P–P angle of only 60°, severely strained, so it is the least stable and most reactive: poisonous, it catches fire in air (white fumes of P<sub>4</sub>O<sub>10</sub>), glows in the dark and is stored under water; soluble in CS<sub>2</sub>, not in water. Red, from white heated at 573 K in an inert atmosphere: a polymer of linked P<sub>4</sub> tetrahedra, odourless, non-poisonous, insoluble in water and CS<sub>2</sub>, no glow, far less reactive. Black: the most thermodynamically stable, not readily oxidised in air. Stability white < red < black',
@@ -135,7 +140,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 533, 547
   {
-    topic: 1,
+    topic: 7,
     kind: 'mixup',
     q: 'Copper with dilute and with concentrated nitric acid: which gas, and which equation?',
     a: 'Dilute gives NO: 3Cu + 8HNO<sub>3</sub> → 3Cu(NO<sub>3</sub>)<sub>2</sub> + 2NO + 4H<sub>2</sub>O. Concentrated gives NO<sub>2</sub>: Cu + 4HNO<sub>3</sub> → Cu(NO<sub>3</sub>)<sub>2</sub> + 2NO<sub>2</sub> + 2H<sub>2</sub>O. Zinc changes product too, to different ones: dilute acid gives N<sub>2</sub>O (4Zn + 10HNO<sub>3</sub> → 4Zn(NO<sub>3</sub>)<sub>2</sub> + 5H<sub>2</sub>O + N<sub>2</sub>O), concentrated again NO<sub>2</sub>. Concentration changes the product, not just the rate',
@@ -144,7 +149,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 535, 547
   {
-    topic: 1,
+    topic: 7,
     kind: 'mistake',
     q: 'Is PCl<sub>5</sub> a trigonal bipyramidal molecule in every phase?',
     a: 'No, only in the gas and liquid, where it is sp<sup>3</sup>d with three equivalent equatorial P–Cl bonds and two longer axial ones (the axial pairs are repelled more by the three equatorial pairs). The solid is an ionic lattice, [PCl<sub>4</sub>]<sup>+</sup>[PCl<sub>6</sub>]<sup>−</sup>, a tetrahedral cation with an octahedral anion. “The structure of PCl<sub>5</sub>” with no phase named is testing whether you know both',
@@ -153,7 +158,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 535, 546
   {
-    topic: 1,
+    topic: 7,
     kind: 'shortcut',
     q: 'The basicity of a phosphorus oxoacid from its formula? The fast way?',
     a: 'Count the P–OH groups, never the hydrogens: a P–H hydrogen is bonded to phosphorus, not oxygen, and does not ionise. H<sub>3</sub>PO<sub>2</sub> (one P–OH, two P–H) is monobasic; H<sub>3</sub>PO<sub>3</sub> (two P–OH, one P–H) dibasic; H<sub>3</sub>PO<sub>4</sub> tribasic; H<sub>4</sub>P<sub>2</sub>O<sub>7</sub> and H<sub>4</sub>P<sub>2</sub>O<sub>6</sub> tetrabasic. The acids with P–H bonds are strong reducing agents: H<sub>3</sub>PO<sub>2</sub> reduces silver nitrate to silver',
@@ -164,7 +169,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Topic 03 · Group 16: The Oxygen Family ──
   // p. 536
   {
-    topic: 2,
+    topic: 8,
     kind: 'remember',
     q: 'Group 16: configuration, ionisation enthalpy, electron gain enthalpy and oxidation states?',
     a: '<i>n</i>s<sup>2</sup> <i>n</i>p<sup>4</sup>. Ionisation enthalpy is lower than for Group 15 in the same period, because the half-filled p<sup>3</sup> is the extra-stable configuration and p<sup>4</sup> is not. Oxygen’s electron gain enthalpy is less negative than sulphur’s (the incoming electron is repelled in the compact atom); from sulphur on it becomes less negative down the group. −2 is characteristic but loses stability down the group; the others commonly show +4 and +6, with +6 less stable and +4 more stable down the group (the inert-pair effect)',
@@ -173,7 +178,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 537
   {
-    topic: 2,
+    topic: 8,
     kind: 'remember',
     q: 'Ozone: how is it made, what shape is it, and what makes it an oxidant?',
     a: 'By a silent electric discharge through cold, dry oxygen: the conversion of O<sub>2</sub> to O<sub>3</sub> is endothermic, and a spark would decompose the ozone as fast as it forms. It is bent, about 117°, with two identical O–O bonds of 128 pm: a resonance hybrid of two equivalent forms. Its decomposition to O<sub>2</sub> releases heat and raises entropy, so it is unstable and hands over oxygen readily, O<sub>3</sub> → O<sub>2</sub> + [O]: PbS + 4O<sub>3</sub> → PbSO<sub>4</sub> + 4O<sub>2</sub>; 2I<sup>−</sup> + H<sub>2</sub>O + O<sub>3</sub> → 2OH<sup>−</sup> + I<sub>2</sub> + O<sub>2</sub>',
@@ -182,7 +187,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 536
   {
-    topic: 2,
+    topic: 8,
     kind: 'mixup',
     q: 'Group 16 hydrides: do thermal stability and acid strength run the same way?',
     a: 'No, opposite ways, for one reason. The H–E bond weakens down the group (463 kJ mol<sup>−1</sup> for O–H to 238 kJ mol<sup>−1</sup> for Te–H), so thermal stability falls, H<sub>2</sub>O > H<sub>2</sub>S > H<sub>2</sub>Se > H<sub>2</sub>Te > H<sub>2</sub>Po, while acid strength rises: H<sub>2</sub>S is more acidic than H<sub>2</sub>O, and H<sub>2</sub>Te is the most acidic. Every hydride except water is a reducing agent, more so from H<sub>2</sub>S to H<sub>2</sub>Te',
@@ -191,7 +196,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 536–537
   {
-    topic: 2,
+    topic: 8,
     kind: 'mistake',
     q: 'Dioxygen has an even number of electrons. Is it diamagnetic?',
     a: 'No, paramagnetic: molecular orbital theory puts two unpaired electrons in the degenerate π* antibonding orbitals of O<sub>2</sub>',
@@ -200,7 +205,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 536–537
   {
-    topic: 2,
+    topic: 8,
     kind: 'shortcut',
     q: 'Oxides: acidic, basic, amphoteric or neutral, at a glance?',
     a: 'Acidic: typically non-metal oxides (SO<sub>2</sub>, CO<sub>2</sub>), and also some high-oxidation-state metal oxides (Mn<sub>2</sub>O<sub>7</sub>, CrO<sub>3</sub>). Basic: Na<sub>2</sub>O, CaO. Amphoteric, reacting with both acid and alkali: Al<sub>2</sub>O<sub>3</sub>. Neutral: CO, NO, N<sub>2</sub>O',
@@ -211,7 +216,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Topic 04 · Important Compounds of Sulphur ──
   // p. 537
   {
-    topic: 3,
+    topic: 9,
     kind: 'remember',
     q: 'Rhombic and monoclinic sulphur: which is stable where, and how are they built?',
     a: 'Rhombic (α) sulphur, yellow, m.p. 385.8 K, is the stable form below 369 K; monoclinic (β), m.p. 393 K, above it; at 369 K, the transition temperature, both coexist in equilibrium. Both are built from puckered, crown-shaped S<sub>8</sub> rings, simply packed differently in the crystal',
@@ -220,7 +225,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 538
   {
-    topic: 3,
+    topic: 9,
     kind: 'remember',
     q: 'Concentrated H<sub>2</sub>SO<sub>4</sub>: its four properties, and a reaction for each?',
     a: 'Low volatility, strong acidity, a strong affinity for water and moderate oxidising power. Non-volatile, it frees more volatile acids from their salts (2MX + H<sub>2</sub>SO<sub>4</sub> → 2HX + M<sub>2</sub>SO<sub>4</sub>); dehydrating, it chars sugar (C<sub>12</sub>H<sub>22</sub>O<sub>11</sub> → 12C + 11H<sub>2</sub>O); hot and concentrated, it oxidises metals and non-metals and is reduced to SO<sub>2</sub>: Cu + 2H<sub>2</sub>SO<sub>4</sub> → CuSO<sub>4</sub> + SO<sub>2</sub> + 2H<sub>2</sub>O, S + 2H<sub>2</sub>SO<sub>4</sub> → 3SO<sub>2</sub> + 2H<sub>2</sub>O',
@@ -229,7 +234,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 538, 547
   {
-    topic: 3,
+    topic: 9,
     kind: 'mixup',
     q: 'SO<sub>2</sub> and Cl<sub>2</sub> both bleach. Which by reduction, which by oxidation, and which lasts?',
     a: 'Moist SO<sub>2</sub> bleaches by reduction: it releases nascent hydrogen (SO<sub>2</sub> + 2H<sub>2</sub>O → H<sub>2</sub>SO<sub>4</sub> + 2[H]), which reduces the coloured matter to a colourless form, often unstable, which air (an oxidant) can turn back, so the bleaching is temporary. Cl<sub>2</sub> bleaches by oxidation: Cl<sub>2</sub> + H<sub>2</sub>O → HCl + HOCl, then HOCl → HCl + [O], and the nascent oxygen destroys the chromophore outright, so the bleaching is permanent',
@@ -238,7 +243,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 538
   {
-    topic: 3,
+    topic: 9,
     kind: 'mistake',
     q: 'In the Contact process, is the SO<sub>3</sub> absorbed in water?',
     a: 'No: in concentrated H<sub>2</sub>SO<sub>4</sub>, giving oleum, SO<sub>3</sub> + H<sub>2</sub>SO<sub>4</sub> → H<sub>2</sub>S<sub>2</sub>O<sub>7</sub>, which is then diluted with water as a final, separate step. Passing SO<sub>3</sub> straight into water produces a dense acid mist that is difficult to condense',
@@ -247,7 +252,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 538
   {
-    topic: 3,
+    topic: 9,
     kind: 'shortcut',
     q: 'Low temperature favours the yield of SO<sub>3</sub>. Why is the converter run at about 720 K?',
     a: '2SO<sub>2</sub> + O<sub>2</sub> → 2SO<sub>3</sub> over V<sub>2</sub>O<sub>5</sub>, Δ<sub>r</sub><i>H</i>° = −196.6 kJ mol<sup>−1</sup>, is exothermic and reduces the gas volume, so low temperature and high pressure favour the yield; but lower than about 720 K (at 2 bar) the rate is unacceptable. Thermodynamics sets the ideal, kinetics the working temperature',
@@ -258,7 +263,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Topic 05 · Group 17: The Halogens ──
   // p. 539
   {
-    topic: 4,
+    topic: 10,
     kind: 'remember',
     q: 'The halogens: radius, ionisation enthalpy, electronegativity and electron gain enthalpy?',
     a: '<i>n</i>s<sup>2</sup><i>n</i>p<sup>5</sup>, one electron short of a noble gas. Each has the smallest atomic radius in its period, radii rising down the group; ionisation enthalpy is very high and falls down the group; electronegativity is the highest of any group, fluorine the most electronegative element of all. Electron gain enthalpies are the most negative in each period, but chlorine’s (−349 kJ mol<sup>−1</sup>) is more negative than fluorine’s (−333 kJ mol<sup>−1</sup>): in magnitude, Cl > F > Br > I',
@@ -267,7 +272,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 540
   {
-    topic: 4,
+    topic: 10,
     kind: 'remember',
     q: 'Chlorine with cold dilute and with hot concentrated NaOH, and with dry slaked lime?',
     a: 'Cold and dilute: Cl<sub>2</sub> + 2NaOH → NaCl + NaOCl + H<sub>2</sub>O (chloride and hypochlorite). Hot and concentrated: 3Cl<sub>2</sub> + 6NaOH → 5NaCl + NaClO<sub>3</sub> + 3H<sub>2</sub>O (chloride and chlorate). Both are disproportionations. Dry slaked lime gives bleaching powder: 2Ca(OH)<sub>2</sub> + 2Cl<sub>2</sub> → Ca(OCl)<sub>2</sub> + CaCl<sub>2</sub> + 2H<sub>2</sub>O',
@@ -276,7 +281,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 539, 547
   {
-    topic: 4,
+    topic: 10,
     kind: 'mixup',
     q: 'Bond dissociation enthalpy and electron gain enthalpy: which halogen order is which?',
     a: 'X–X bond enthalpy: Cl<sub>2</sub> > Br<sub>2</sub> > F<sub>2</sub> > I<sub>2</sub> (242.6, 192.8, 158.8, 151.1 kJ mol<sup>−1</sup>), F<sub>2</sub> slotting between Br<sub>2</sub> and I<sub>2</sub> because the lone pairs on its two close-set atoms repel across the short bond. Electron gain magnitude: Cl > F > Br > I, because the incoming electron is repelled in fluorine’s compact 2p orbitals. One cause, small size; two different orders',
@@ -285,7 +290,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 540, 547
   {
-    topic: 4,
+    topic: 10,
     kind: 'mistake',
     q: 'Fluorine is the most electronegative halogen. Is HF the strongest hydrohalic acid?',
     a: 'No, the weakest: HF < HCl < HBr < HI. HF (p<i>K</i><sub>a</sub> ≈ 3.2) has by far the strongest bond, H–F 574 kJ mol<sup>−1</sup>, hard to break heterolytically in water, and it hydrogen-bonds strongly in solution, which suppresses ionisation further. Bond energy and hydrogen bonding decide here, not electronegativity',
@@ -294,7 +299,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 541
   {
-    topic: 4,
+    topic: 10,
     kind: 'shortcut',
     q: 'Interhalogens XX′<sub><i>n</i></sub>: which atom is central, what shapes, and what does water do?',
     a: 'X is the larger, more electropositive halogen, <i>n</i> = 1, 3, 5, 7, and a bigger size ratio fits more atoms: hence IF<sub>7</sub>. Shapes by VSEPR: XX′<sub>3</sub> (ClF<sub>3</sub>, BrF<sub>3</sub>) bent T-shaped; XX′<sub>5</sub> (IF<sub>5</sub>, BrF<sub>5</sub>) square pyramidal; IF<sub>7</sub> pentagonal bipyramidal. Except for fluorine they are more reactive than the parent halogens, the X–X′ bond being weaker than X–X. Water gives the halide of the smaller atom and an oxoacid of the larger: XX′ + H<sub>2</sub>O → HX′ + HOX',
@@ -305,7 +310,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Topic 06 · Group 18: The Noble Gases ──
   // pp. 541, 543
   {
-    topic: 5,
+    topic: 11,
     kind: 'remember',
     q: 'Why are the noble gases so unreactive, and why do they boil so low?',
     a: '<i>n</i>s<sup>2</sup><i>n</i>p<sup>6</sup> (helium 1s<sup>2</sup>) is a closed shell: exceptionally high ionisation enthalpies and large positive electron gain enthalpies, so no incentive to lose or gain an electron. The only significant interatomic force is weak London dispersion, so melting and boiling points are extremely low; helium’s, 4.2 K, is the lowest of any known substance',
@@ -314,7 +319,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 541–542, 575
   {
-    topic: 5,
+    topic: 11,
     kind: 'remember',
     q: 'What led Bartlett to the first noble-gas compound, and why is xenon the active one?',
     a: 'In 1962 he noticed that the first ionisation enthalpy of O<sub>2</sub> (1175 kJ mol<sup>−1</sup>) almost matches xenon’s (1170 kJ mol<sup>−1</sup>). Having made O<sub>2</sub><sup>+</sup>PtF<sub>6</sub><sup>−</sup>, he reasoned PtF<sub>6</sub> should oxidise xenon too, and obtained Xe<sup>+</sup>PtF<sub>6</sub><sup>−</sup> (as NCERT formulates it; later work showed the product to be more complex). Xenon’s ionisation enthalpy, the lowest in the group besides radon’s, is low enough for fluorine and oxygen to pull electron density from it',
@@ -323,7 +328,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 542
   {
-    topic: 5,
+    topic: 11,
     kind: 'mixup',
     q: 'A xenon fluoride with a fluoride-ion acceptor, and with a fluoride-ion donor: cation or anion?',
     a: 'With an acceptor it gives a cation: XeF<sub>2</sub> + PF<sub>5</sub> → [XeF]<sup>+</sup>[PF<sub>6</sub>]<sup>−</sup>. With a donor it gives a fluoroanion: XeF<sub>6</sub> + MF → M<sup>+</sup>[XeF<sub>7</sub>]<sup>−</sup> (M = Na, K, Rb, Cs)',
@@ -332,7 +337,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 542, 577
   {
-    topic: 5,
+    topic: 11,
     kind: 'mistake',
     q: 'XeF<sub>6</sub> + H<sub>2</sub>O → XeOF<sub>4</sub> + 2HF looks like a decomposition. Is it a redox reaction?',
     a: 'No: xenon stays at +6 and every other oxidation state is unchanged on both sides. The same holds for XeF<sub>6</sub> + 2H<sub>2</sub>O → XeO<sub>2</sub>F<sub>2</sub> + 4HF and for complete hydrolysis, XeF<sub>6</sub> + 3H<sub>2</sub>O → XeO<sub>3</sub> + 6HF',
@@ -341,7 +346,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 542, 547
   {
-    topic: 5,
+    topic: 11,
     kind: 'shortcut',
     q: 'The shapes of XeF<sub>2</sub>, XeF<sub>4</sub>, XeF<sub>6</sub>, XeO<sub>3</sub>, XeOF<sub>4</sub> and XeO<sub>4</sub>, fast?',
     a: 'Count xenon’s lone pairs, then name the shape. XeF<sub>2</sub>: 3 lone pairs, sp<sup>3</sup>d, linear. XeF<sub>4</sub>: 2, sp<sup>3</sup>d<sup>2</sup>, square planar. XeF<sub>6</sub>: 1, sp<sup>3</sup>d<sup>3</sup>, distorted octahedral. XeO<sub>3</sub>: 1, sp<sup>3</sup>, pyramidal. XeOF<sub>4</sub>: 1, sp<sup>3</sup>d<sup>2</sup>, square pyramidal. XeO<sub>4</sub>: 0, sp<sup>3</sup>, tetrahedral. Along the fluorides, more fluorines and fewer lone pairs step the shape from linear to square planar to distorted octahedral',
@@ -352,7 +357,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Topic 07 · Worked examples & exam practice ──
   // pp. 543–545
   {
-    topic: 6,
+    topic: 12,
     kind: 'remember',
     q: 'At STP (273 K and 1 atm, 22.4 L mol<sup>−1</sup>), what volume of gas do 19.05 g of copper give with dilute and with concentrated HNO<sub>3</sub>, and 4.9 g of KClO<sub>3</sub> on heating?',
     a: 'Cu: 19.05/63.5 = 0.300 mol. Dilute: 3Cu → 2NO, 0.200 mol, 4.48 L. Concentrated: Cu → 2NO<sub>2</sub>, 0.600 mol, 13.44 L (13.4 L to three significant figures): the concentration changes both the gas and its amount. KClO<sub>3</sub>: 4.9/122.5 = 0.0400 mol, and 2KClO<sub>3</sub> → 2KCl + 3O<sub>2</sub> gives 0.0600 mol O<sub>2</sub>, 1.344 L (1.3 L to two significant figures)',
@@ -361,7 +366,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 544, 546
   {
-    topic: 6,
+    topic: 12,
     kind: 'mistake',
     q: 'H<sub>3</sub>PO<sub>2</sub> has three hydrogens. Does 100 mL of 0.05 M H<sub>3</sub>PO<sub>2</sub> need 150 mL of 0.1 M NaOH?',
     a: 'No, 50 mL. H<sub>3</sub>PO<sub>2</sub> has one P–OH group and two P–H bonds, and only the P–OH proton ionises, so it is monobasic: 5.0 × 10<sup>−3</sup> mol of acid needs 5.0 × 10<sup>−3</sup> mol of NaOH. 150 mL treats it as tribasic, from the formula alone',
@@ -370,7 +375,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 548, 550
   {
-    topic: 6,
+    topic: 12,
     kind: 'remember',
     q: 'Which member breaks each Group 15–18 trend, and what is the reason?',
     a: 'Nitrogen breaks the halide-expansion trend, with no pentahalide (no d orbitals); fluorine has the anomalously weak F–F bond (lone-pair repulsion) and a less negative electron gain enthalpy than chlorine (repulsion in its compact 2p); oxygen breaks the hydride boiling-point trend (hydrogen bonding); and concentration itself changes the product of nitric acid with copper. Examiners state a trend, then ask for the member that breaks it: learn the reason, not just the exception',
@@ -381,7 +386,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional A · Group 15: Hydride Data, Nitrogen versus Phosphorus, and the Oxides of Nitrogen ──
   // pp. 551–552
   {
-    topic: 7,
+    topic: 24,
     kind: 'remember',
     q: 'The Group 15 hydrides by numbers: boiling point, bond angle and stability?',
     a: 'Boiling point (K): NH<sub>3</sub> 238.5, PH<sub>3</sub> 185.5, AsH<sub>3</sub> 210.6, SbH<sub>3</sub> 254.6, BiH<sub>3</sub> 290; NH<sub>3</sub> boils 53 K above PH<sub>3</sub> because it is hydrogen-bonded. ∠HEH: 107.8°, 93.6°, 91.8°, 91.3°, collapsing towards 90° as the bonding from P down uses nearly pure p orbitals. Δ<sub>f</sub><i>H</i>° climbs from −46.1 kJ mol<sup>−1</sup> (NH<sub>3</sub>) to +278 kJ mol<sup>−1</sup> (BiH<sub>3</sub>) and the E–H bond enthalpy falls from 389 to 255 kJ mol<sup>−1</sup> (SbH<sub>3</sub>): less stable, more reducing',
@@ -390,7 +395,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 553–554
   {
-    topic: 7,
+    topic: 24,
     kind: 'remember',
     q: 'The oxides of nitrogen: which are paramagnetic, which acidic, and why does NO<sub>2</sub> dimerise?',
     a: 'Only the odd-electron NO (11 valence electrons) and NO<sub>2</sub> (17) are paramagnetic. NO’s eleventh electron sits in a π* orbital, cutting the bond order from 3 (in N<sub>2</sub> and NO<sup>+</sup>) to 2.5 and lengthening the bond, 115 pm against 106 pm in NO<sup>+</sup>. NO<sub>2</sub> pairs up into even-electron, colourless N<sub>2</sub>O<sub>4</sub>, 2NO<sub>2</sub> ⇌ N<sub>2</sub>O<sub>4</sub>, cooling favouring the dimer. N<sub>2</sub>O and NO are neutral; N<sub>2</sub>O<sub>3</sub> and N<sub>2</sub>O<sub>5</sub> are the anhydrides of HNO<sub>2</sub> and HNO<sub>3</sub>; NO<sub>2</sub> is a mixed anhydride, 2NO<sub>2</sub> + H<sub>2</sub>O → HNO<sub>2</sub> + HNO<sub>3</sub>',
@@ -401,7 +406,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional B · Ammonia and Nitric Acid in Depth ──
   // pp. 557–559
   {
-    topic: 8,
+    topic: 25,
     kind: 'remember',
     q: 'Nitric acid as an oxidant: electrons gained per product, and the equivalent mass of HNO<sub>3</sub> for each?',
     a: 'Nitrogen starts at +5. To NO<sub>2</sub> (+4): 1 electron per molecule; to NO (+2): 3; to N<sub>2</sub>O (+1): 8, two N at 4 each; to NH<sub>4</sub><sup>+</sup> (−3): 8. So, with <i>M</i> = 63, the equivalent mass is 63 to NO<sub>2</sub>, 21 to NO and 15.75 to N<sub>2</sub>O. To balance, electrons per metal atom against electrons per product fix metal∶product, and HNO<sub>3</sub> = nitrate in the salt + nitrate reduced: 4Zn + 10HNO<sub>3</sub> → 4Zn(NO<sub>3</sub>)<sub>2</sub> + N<sub>2</sub>O + 5H<sub>2</sub>O',
@@ -410,7 +415,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 556
   {
-    topic: 8,
+    topic: 25,
     kind: 'remember',
     q: 'The Haber enthalpy read correctly, and how much HNO<sub>3</sub> does the Ostwald process make from 17 g of NH<sub>3</sub>?',
     a: '−46.1 kJ is Δ<sub>f</sub><i>H</i>° per mole of NH<sub>3</sub>; N<sub>2</sub> + 3H<sub>2</sub> ⇌ 2NH<sub>3</sub> makes two moles, so it releases 92.2 kJ per mole of reaction as written. A catalyst speeds the approach to equilibrium but never raises the yield. With the NO recycled, the Ostwald process nets NH<sub>3</sub> + 2O<sub>2</sub> → HNO<sub>3</sub> + H<sub>2</sub>O, so 17 g of NH<sub>3</sub> ultimately gives 63 g of HNO<sub>3</sub>',
@@ -421,7 +426,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional C · Phosphorus: Allotropes, Phosphine, the Chlorides and the Oxoacids ──
   // pp. 561–562
   {
-    topic: 9,
+    topic: 26,
     kind: 'remember',
     q: 'The phosphorus oxoacids: which carry P–H, P–P or P–O–P, and how much NaOH does each need?',
     a: 'P–H: H<sub>3</sub>PO<sub>2</sub> (two; basicity 1), H<sub>3</sub>PO<sub>3</sub> (one; 2) and H<sub>4</sub>P<sub>2</sub>O<sub>5</sub> (two, with P–O–P; 2). P–P: H<sub>4</sub>P<sub>2</sub>O<sub>6</sub> (4). P–O–P alone: H<sub>4</sub>P<sub>2</sub>O<sub>7</sub> (4) and the ring (HPO<sub>3</sub>)<sub>3</sub> (3); H<sub>3</sub>PO<sub>4</sub> has none (3). An acid with P below +5 has P–H or P–P, never both. NaOH = basicity × moles of acid: 100 mL of 0.10 M H<sub>3</sub>PO<sub>2</sub>, H<sub>3</sub>PO<sub>3</sub> or H<sub>3</sub>PO<sub>4</sub> needs 100, 200 or 300 mL of 0.10 M NaOH',
@@ -430,7 +435,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 560–561
   {
-    topic: 9,
+    topic: 26,
     kind: 'remember',
     q: 'PCl<sub>3</sub> or PCl<sub>5</sub>: what does each give with water and with ethanol, and why are PCl<sub>5</sub>’s axial bonds longer?',
     a: 'PCl<sub>3</sub> + 3H<sub>2</sub>O → H<sub>3</sub>PO<sub>3</sub> + 3HCl; 3C<sub>2</sub>H<sub>5</sub>OH + PCl<sub>3</sub> → 3C<sub>2</sub>H<sub>5</sub>Cl + H<sub>3</sub>PO<sub>3</sub>. PCl<sub>5</sub> + H<sub>2</sub>O → POCl<sub>3</sub> + 2HCl, then on to H<sub>3</sub>PO<sub>4</sub>; C<sub>2</sub>H<sub>5</sub>OH + PCl<sub>5</sub> → C<sub>2</sub>H<sub>5</sub>Cl + POCl<sub>3</sub> + HCl. In PCl<sub>5</sub> each axial pair has three neighbours at 90°, each equatorial pair two at 90° and two at 120°, so the axial pairs are repelled more and their bonds lengthen (equatorial P–Cl 202 pm, axial longer)',
@@ -441,7 +446,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional D · Group 16: Data, Ozone, Sulphur and its Oxoacids ──
   // pp. 566, 568
   {
-    topic: 10,
+    topic: 27,
     kind: 'remember',
     q: 'The oxidation state of sulphur in its oxoacids and in tetrathionate?',
     a: 'H<sub>2</sub>SO<sub>3</sub> +4; H<sub>2</sub>SO<sub>4</sub> and H<sub>2</sub>S<sub>2</sub>O<sub>7</sub> (S–O–S bridge) +6; H<sub>2</sub>S<sub>2</sub>O<sub>6</sub> (S–S bond) +5; H<sub>2</sub>S<sub>2</sub>O<sub>3</sub> (S–S bond) an average +2, one S at +6 and the terminal S at −2 (counting the terminal S like the O it replaces; equal sharing of the S–S bond gives +5 and −1). The peroxo acids H<sub>2</sub>SO<sub>5</sub> and H<sub>2</sub>S<sub>2</sub>O<sub>8</sub> stay at +6, because the two peroxide oxygens are at −1 (for H<sub>2</sub>S<sub>2</sub>O<sub>8</sub>, 2 + 2<i>x</i> + 6(−2) + 2(−1) = 0). S<sub>4</sub>O<sub>6</sub><sup>2−</sup>: 4<i>x</i> − 12 = −2, an average +2.5 (two end S at +5, two bridging S at 0)',
@@ -450,7 +455,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 567–568, 583
   {
-    topic: 10,
+    topic: 27,
     kind: 'remember',
     q: 'What does an oleum label such as 104.5% mean, and how much free SO<sub>3</sub> is in an oleum labelled 118%?',
     a: '100 g of the oleum gives 104.5 g of pure H<sub>2</sub>SO<sub>4</sub> on adding just enough water, by SO<sub>3</sub> + H<sub>2</sub>O → H<sub>2</sub>SO<sub>4</sub> (80 + 18 = 98): 20% free SO<sub>3</sub> is 0.25 mol, which takes 4.5 g of water and gives 24.5 g of acid, 80 + 24.5 = 104.5 g. For 118%, the 18 g (1 mol) of water converts 80 g of SO<sub>3</sub>, so 80% free SO<sub>3</sub>. 122.5% is the limit, pure SO<sub>3</sub>',
@@ -461,7 +466,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional E · Group 17: Why Fluorine Differs, Chlorine, Interhalogens and the Oxoacids ──
   // pp. 570, 573
   {
-    topic: 11,
+    topic: 28,
     kind: 'remember',
     q: 'Fluorine’s electron gain is less negative than chlorine’s. Why is F<sub>2</sub> still the stronger oxidant?',
     a: 'Reducing X<sub>2</sub>(g) to X<sup>−</sup>(aq) sums ½Δ<sub>diss</sub><i>H</i> + Δ<sub>eg</sub><i>H</i> + Δ<sub>hyd</sub><i>H</i>: for F, +79.4 − 333 − 515 = −768.6 kJ mol<sup>−1</sup>; for Cl, +121.3 − 349 − 381 = −608.7 kJ mol<sup>−1</sup>. Fluorine’s weak F–F bond and the very high hydration enthalpy of the small F<sup>−</sup> outweigh the 16 kJ mol<sup>−1</sup> by which its electron gain is less negative, so its sum is about 160 kJ mol<sup>−1</sup> more negative and its <i>E</i>° the highest',
@@ -470,7 +475,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 572–573
   {
-    topic: 11,
+    topic: 28,
     kind: 'remember',
     q: 'Shapes from pair counting: ClF<sub>3</sub>, IF<sub>5</sub>, IF<sub>7</sub>, ICl<sub>2</sub><sup>−</sup> and ICl<sub>4</sub><sup>−</sup>?',
     a: 'Pairs = (7 + <i>n</i>)/2, with one more electron for a negative charge. ClF<sub>3</sub>: 5 pairs, 3 bonding and 2 lone, both equatorial: bent T-shaped, sp<sup>3</sup>d. IF<sub>5</sub>: 6 pairs, 5 and 1: square pyramidal, sp<sup>3</sup>d<sup>2</sup>. IF<sub>7</sub>: 7 pairs, none lone: pentagonal bipyramidal, sp<sup>3</sup>d<sup>3</sup>. I<sub>3</sub><sup>−</sup> and ICl<sub>2</sub><sup>−</sup>: 5 pairs, 3 lone, all equatorial: linear. ICl<sub>4</sub><sup>−</sup>: 6 pairs, 2 lone: square planar',
@@ -481,7 +486,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional F · Group 18: Xenon Compounds from VSEPR ──
   // pp. 575–576, 582
   {
-    topic: 12,
+    topic: 29,
     kind: 'remember',
     q: 'How are xenon’s lone pairs counted, and which iodine species share the xenon compounds’ shapes?',
     a: 'Xe has 8 valence electrons: 1 goes to each Xe–F bond and 2 to each Xe=O, and half of what is left gives the lone pairs (XeOF<sub>4</sub>: 8 − 2 − 4 = 2, one lone pair). Equal valence-electron counts and atom numbers mean the same shape: XeF<sub>2</sub> 22, as I<sub>3</sub><sup>−</sup>; XeF<sub>4</sub> 36, as ICl<sub>4</sub><sup>−</sup>; XeF<sub>6</sub> 50, as IF<sub>6</sub><sup>−</sup>; XeO<sub>3</sub> 26, as IO<sub>3</sub><sup>−</sup> and ClO<sub>3</sub><sup>−</sup>; XeOF<sub>4</sub> 42, as IF<sub>5</sub>',
@@ -490,7 +495,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 577, 580
   {
-    topic: 12,
+    topic: 29,
     kind: 'mistake',
     q: 'Is every hydrolysis of a xenon fluoride free of redox?',
     a: 'No: XeF<sub>2</sub> and XeF<sub>4</sub> hydrolyse with redox, XeF<sub>6</sub> without. 2XeF<sub>2</sub> + 2H<sub>2</sub>O → 2Xe + 4HF + O<sub>2</sub> (Xe +2 → 0, O −2 → 0). 6XeF<sub>4</sub> + 12H<sub>2</sub>O → 4Xe + 2XeO<sub>3</sub> + 24HF + 3O<sub>2</sub>: four Xe fall from +4 to 0 (16 electrons gained), two rise to +6 (4 lost) and six O rise from −2 to 0 (12 lost). XeF<sub>6</sub> to XeO<sub>3</sub>, XeOF<sub>4</sub> or XeO<sub>2</sub>F<sub>2</sub> keeps Xe at +6',
@@ -501,7 +506,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional G · Multiple-Choice Drill with Distractor Analysis ──
   // pp. 534, 578–579
   {
-    topic: 13,
+    topic: 30,
     kind: 'mixup',
     q: 'The brown-ring complex [Fe(H<sub>2</sub>O)<sub>5</sub>(NO)]<sup>2+</sup>: the oxidation state of iron and its spin-only moment, and what do the wrong options assume?',
     a: 'Counting NO as NO<sup>+</sup>, <i>x</i> + 1 = +2 gives Fe(+1), 3d<sup>7</sup> with three unpaired electrons in the high-spin arrangement: √15 ≈ 3.87 BM. The distractors: +2 with 4.90 BM reads it as an ordinary high-spin Fe<sup>2+</sup> (d<sup>6</sup>); +3 with 5.92 BM as high-spin Fe<sup>3+</sup> (d<sup>5</sup>); +1 with 1.73 BM has the right state but forces a low-spin d<sup>7</sup> with one unpaired electron',
@@ -510,7 +515,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // p. 580
   {
-    topic: 13,
+    topic: 30,
     kind: 'remember',
     q: 'Among N<sub>2</sub>O, NO, N<sub>2</sub>O<sub>4</sub>, NO<sub>2</sub>, ClO<sub>2</sub> and O<sub>3</sub>, how many are paramagnetic?',
     a: 'Three: NO (11 valence electrons), NO<sub>2</sub> (17) and ClO<sub>2</sub> (19) have odd counts and an unpaired electron; N<sub>2</sub>O (16), N<sub>2</sub>O<sub>4</sub> (34) and O<sub>3</sub> (18) are even-electron and diamagnetic. Two forgets ClO<sub>2</sub>; four or five counts N<sub>2</sub>O<sub>4</sub> or O<sub>3</sub>, confused with NO<sub>2</sub> and O<sub>2</sub>',
@@ -521,7 +526,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional H · Common Pitfalls and a Cheat Sheet ──
   // pp. 580–581
   {
-    topic: 14,
+    topic: 31,
     kind: 'mixup',
     q: 'Pyramidal or planar: how do you tell ClO<sub>3</sub><sup>−</sup> from NO<sub>3</sub><sup>−</sup>, or SO<sub>3</sub><sup>2−</sup> from SO<sub>3</sub>?',
     a: 'By lone pairs, not by formula pattern. Three bonding domains and one lone pair (sp<sup>3</sup>) make a pyramid: NH<sub>3</sub>, PCl<sub>3</sub>, XeO<sub>3</sub>, ClO<sub>3</sub><sup>−</sup>, IO<sub>3</sub><sup>−</sup>, SO<sub>3</sub><sup>2−</sup>. Three bonding domains and no lone pair (sp<sup>2</sup>) make a trigonal plane: NO<sub>3</sub><sup>−</sup>, SO<sub>3</sub>, CO<sub>3</sub><sup>2−</sup>',
@@ -530,7 +535,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 564, 581
   {
-    topic: 14,
+    topic: 31,
     kind: 'remember',
     q: 'The cheat-sheet orders: boiling points of the EH<sub>3</sub>, halogen oxide stability, the O–N–O angle and the oxygen species’ bond lengths?',
     a: 'Boiling point PH<sub>3</sub> < AsH<sub>3</sub> < NH<sub>3</sub> < SbH<sub>3</sub> < BiH<sub>3</sub>. Stability of halogen oxides I > Cl > Br. O–N–O angle NO<sub>2</sub><sup>+</sup> > NO<sub>2</sub> > NO<sub>2</sub><sup>−</sup>. Bond length O<sub>2</sub><sup>+</sup> < O<sub>2</sub> < O<sub>2</sub><sup>−</sup> < O<sub>2</sub><sup>2−</sup>, opposite to bond order (2.5, 2, 1.5, 1). Acid strength of same-state oxoacids HOCl > HOBr > HOI',
@@ -541,7 +546,7 @@ export const KEY_POINTS: KeyPoint[] = [
   // ── Additional I · What JEE and NEET Actually Ask ──
   // pp. 582–583
   {
-    topic: 15,
+    topic: 32,
     kind: 'remember',
     q: 'In what forms are Groups 15 to 18 tested?',
     a: 'Small facts more than long derivations: trend and order questions (confirm the order with its one-line reason, watching for the second-period anomaly); shapes, hybridisation and lone pairs, often summed over a list; concentration-dependent products; oxoacid bond counts (P–OH, P=O, P–H, P–P, P–O–P; S–S, S–O–S, O–O); hydrolysis products; statement pairs with one swapped word; stoichiometric and iodometric numericals; magnetism and isostructural pairs',
@@ -550,7 +555,7 @@ export const KEY_POINTS: KeyPoint[] = [
   },
   // pp. 582–583
   {
-    topic: 15,
+    topic: 32,
     kind: 'mistake',
     q: 'Which traps recur in Group 15 to 18 questions?',
     a: 'Counting hydrogens for basicity (count P–OH); swapping the two fluorine orders (bond enthalpy Cl<sub>2</sub> > Br<sub>2</sub> > F<sub>2</sub> > I<sub>2</sub>, electron gain Cl > F > Br > I); HF taken as the strongest acid (it is the weakest); SO<sub>3</sub> absorbed into water (it goes into concentrated H<sub>2</sub>SO<sub>4</sub>); a planar ClO<sub>3</sub><sup>−</sup> (it is pyramidal); XeF<sub>6</sub> hydrolysis treated as redox (it is not)',

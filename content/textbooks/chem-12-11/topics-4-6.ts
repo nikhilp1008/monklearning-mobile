@@ -22,9 +22,9 @@ import type { Topic } from '@/lib/textbooks';
  * condition sits on the line after the equation, as in Chapter 9.
  */
 export const TOPICS: Topic[] = [
-  // ───────────────────────── Topic 04 · Section 4 · pp. 537–539 ─────────────────────────
+  // ───────────────────────── Topic 10 · Section 4 · pp. 537–539 ─────────────────────────
   {
-    n: '04',
+    n: '10',
     title: 'Important Compounds of Sulphur',
     kalam: 'Concentrated H₂SO₄ is a dense, oily, colourless liquid whose chemistry rests on four properties.',
     blocks: [
@@ -72,9 +72,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Topic 05 · Section 5 · pp. 539–541 ─────────────────────────
+  // ───────────────────────── Topic 11 · Section 5 · pp. 539–541 ─────────────────────────
   {
-    n: '05',
+    n: '11',
     title: 'Group 17: The Halogens',
     kalam: 'Group 17 (fluorine, chlorine, bromine, iodine, astatine) shows the greatest family resemblance of any p-block group.',
     blocks: [
@@ -138,9 +138,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Topic 06 · Section 6 · pp. 541–543 ─────────────────────────
+  // ───────────────────────── Topic 12 · Section 6 · pp. 541–543 ─────────────────────────
   {
-    n: '06',
+    n: '12',
     title: 'Group 18: The Noble Gases',
     kalam: 'Group 18 consists of He, Ne, Ar, Kr, Xe and the radioactive Rn.',
     blocks: [

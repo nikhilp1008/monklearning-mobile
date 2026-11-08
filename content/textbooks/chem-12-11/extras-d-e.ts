@@ -25,9 +25,9 @@ import type { Topic } from '@/lib/textbooks';
  * condition over an arrow; ranges with an en dash (96–98%).
  */
 export const TOPICS: Topic[] = [
-  // ───────────────────────── Additional topic D · pp. 563–569 ─────────────────────────
+  // ───────────────────────── Additional topic O · pp. 563–569 ─────────────────────────
   {
-    n: 'D',
+    n: 'O',
     title: 'Group 16: Data, Ozone, Sulphur and its Oxoacids',
     extra: true,
     kalam: 'Oxygen cannot expand its octet (covalence at most 4, usually 2); S, Se and Te can.',
@@ -253,9 +253,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Additional topic E · pp. 569–575 ─────────────────────────
+  // ───────────────────────── Additional topic P · pp. 569–575 ─────────────────────────
   {
-    n: 'E',
+    n: 'P',
     title: 'Group 17: Why Fluorine Differs, Chlorine, Interhalogens and the Oxoacids',
     extra: true,
     kalam: 'Fluorine has no d orbitals and is the most electronegative element, so it shows only −1 and forms a single oxoacid, HOF.',

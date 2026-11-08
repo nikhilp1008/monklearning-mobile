@@ -50,6 +50,10 @@ import type { Check, Diagram } from '@/lib/diagrams/types';
  *   G — every silicate panel is Si, bridging O and terminal O⁻ as atoms and
  *     bonds; the check counts corners shared, formula and charge, and tests
  *     the rule SiO₄₋ₛ/₂, −(4 − s) on each.
+ *
+ * JOINED (2026-11-07): `topic` is the index in the one p-Block chapter
+ * (content/textbooks/chem-12-11-p-block.ts: Class 11 Topics 01–06, Class 12
+ * Topics 07–13, Class 11 Additional A–K, Class 12 Additional L–T).
  */
 
 const W = 340;
@@ -222,7 +226,7 @@ const CASESA1: BarCase[] = [
 ];
 const figA1: Diagram = {
   id: 'c11-10-A-d1',
-  topic: 6,
+  topic: 13,
   name: 'Summed ionisation enthalpies, groups 13 and 14',
   cases: CASESA1,
   draw: (c: BarCase) => drawBars(c),
@@ -244,7 +248,7 @@ const CASESA2: BarCase[] = [
 ];
 const figA2: Diagram = {
   id: 'c11-10-A-d2',
-  topic: 6,
+  topic: 13,
   name: 'Cost of reaching the group oxidation state',
   cases: CASESA2,
   draw: (c: BarCase) => drawBars(c),
@@ -280,7 +284,7 @@ function borax(): { atoms: BAtom[]; bonds: [string, string][] } {
 const TET = ['Bl', 'Br'];
 const figC1: Diagram = {
   id: 'c11-10-C-d1',
-  topic: 8,
+  topic: 15,
   name: 'The borax anion',
   cases: [{ chip: '[B₄O₅(OH)₄]²⁻', cap: CAPC1 }],
   draw() {
@@ -349,7 +353,7 @@ const projDB = (v: V3): P => {
 const planeCorners = (): V3[] => [[-DB.plane[0], -DB.plane[1], 0], [DB.plane[0], -DB.plane[1], 0], [DB.plane[0], DB.plane[1], 0], [-DB.plane[0], DB.plane[1], 0]];
 const figC2: Diagram = {
   id: 'c11-10-C-d2',
-  topic: 8,
+  topic: 15,
   name: 'Diborane',
   cases: [{ chip: 'B₂H₆', cap: CAPC2 }],
   draw() {
@@ -418,7 +422,7 @@ const sideLayers = () => { const { k, n, x0, y0 } = GR.side, dx = GR.cc * Math.c
 const HIBOND = { hex: 2, from: -60, to: 0 };
 const figE1: Diagram = {
   id: 'c11-10-E-d1',
-  topic: 10,
+  topic: 17,
   name: 'Graphite',
   cases: [
     { chip: 'Plan view', part: 'plan', cap: CAPE1 },
@@ -486,7 +490,7 @@ const rotDM = (v: V3): V3 => {
 const projDM = (v: V3): P => { const r = rotDM(v); return [DM.c[0] + DM.k * r[0], DM.c[1] - DM.k * r[1]]; };
 const figE2: Diagram = {
   id: 'c11-10-E-d2',
-  topic: 10,
+  topic: 17,
   name: 'Tetrahedral carbon in diamond',
   cases: [{ chip: 'Diamond', cap: CAPE2 }],
   draw() {
@@ -576,7 +580,7 @@ const RULE = ['all 4 corners shared', 'SiO<sub>2</sub>, neutral 3D network', 'co
 const PARTS = ['ortho', 'pyro', 'ring', 'chain', 'sheet'];
 const figG1: Diagram = {
   id: 'c11-10-G-d1',
-  topic: 12,
+  topic: 19,
   name: 'Silicate anions',
   cases: [
     { chip: 'Ortho', part: 'ortho', cap: CAPG1 },
@@ -683,7 +687,7 @@ function network() {
 }
 const figG2: Diagram = {
   id: 'c11-10-G-d2',
-  topic: 12,
+  topic: 19,
   name: 'SiO₄ tetrahedron and the SiO₂ network',
   cases: [
     { chip: 'SiO₄ tetrahedron', part: 'tetra', cap: CAPG2 },

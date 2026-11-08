@@ -26,16 +26,16 @@ import type { Topic } from '@/lib/textbooks';
  * (“weaker”, “not”, “excess”, “less”, the IUPAC names) are dropped.
  */
 export const TOPICS: Topic[] = [
-  // ───────────────────────── Topic 01 · Section 1 · pp. 530–531 ─────────────────────────
+  // ───────────────────────── Topic 07 · Section 1 · pp. 530–531 ─────────────────────────
   {
-    n: '01',
+    n: '07',
     title: 'Group 15: The Nitrogen Family',
     kalam: 'Group 15 contains nitrogen, phosphorus, arsenic, antimony and bismuth, with the general valence configuration ns² np³.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'This chapter closes out the p-block by covering four groups at once — nitrogen’s family, oxygen’s family, the halogens, and the noble gases. The common thread across all four is the general valence configuration <i>n</i>s<sup>2</sup> <i>n</i>p<sup>3–6</sup> (helium, 1s<sup>2</sup>, the one exception), and the same organising logic you used for Groups 13 and 14 carries over directly: atomic size sets ionisation enthalpy and electronegativity, the second-period member of each group (N, O, F) behaves anomalously because it is small, highly electronegative and has no valence d-orbitals, and oxidation states are governed by the number of unpaired electrons a promoted configuration can offer. What changes from group to group is the number of oxidation states available — three “slots” for Group 15 (−3, +3, +5), a maximum of +6 for Group 16, four odd oxidation states for Group 17 (+1, +3, +5, +7), and, for Group 18, essentially none at all until fluorine and oxygen force xenon’s hand. This chapter is also where JEE and NEET concentrate some of their favourite conceptual traps — the basicity of phosphorus oxoacids, the concentration-dependent products of nitric acid, the anomalous bond enthalpy of fluorine, and the shapes of xenon compounds — so each of these is flagged explicitly as it comes up, and revisited together in the last part of Topic 07.',
+        html: 'This chapter closes out the p-block by covering four groups at once — nitrogen’s family, oxygen’s family, the halogens, and the noble gases. The common thread across all four is the general valence configuration <i>n</i>s<sup>2</sup> <i>n</i>p<sup>3–6</sup> (helium, 1s<sup>2</sup>, the one exception), and the same organising logic you used for Groups 13 and 14 carries over directly: atomic size sets ionisation enthalpy and electronegativity, the second-period member of each group (N, O, F) behaves anomalously because it is small, highly electronegative and has no valence d-orbitals, and oxidation states are governed by the number of unpaired electrons a promoted configuration can offer. What changes from group to group is the number of oxidation states available — three “slots” for Group 15 (−3, +3, +5), a maximum of +6 for Group 16, four odd oxidation states for Group 17 (+1, +3, +5, +7), and, for Group 18, essentially none at all until fluorine and oxygen force xenon’s hand. This chapter is also where JEE and NEET concentrate some of their favourite conceptual traps — the basicity of phosphorus oxoacids, the concentration-dependent products of nitric acid, the anomalous bond enthalpy of fluorine, and the shapes of xenon compounds — so each of these is flagged explicitly as it comes up, and revisited together in the last part of Topic 13.',
       },
       {
         t: 'p',
@@ -84,9 +84,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Topic 02 · Section 2 · pp. 532–535 ─────────────────────────
+  // ───────────────────────── Topic 08 · Section 2 · pp. 532–535 ─────────────────────────
   {
-    n: '02',
+    n: '08',
     title: 'Important Compounds of Nitrogen and Phosphorus',
     kalam: 'The rule that decides basicity is the number of ionisable P–OH groups, not the total number of hydrogen atoms in the formula.',
     blocks: [
@@ -225,9 +225,9 @@ export const TOPICS: Topic[] = [
     ],
   },
 
-  // ───────────────────────── Topic 03 · Section 3 · pp. 536–537 ─────────────────────────
+  // ───────────────────────── Topic 09 · Section 3 · pp. 536–537 ─────────────────────────
   {
-    n: '03',
+    n: '09',
     title: 'Group 16: The Oxygen Family',
     kalam: 'Group 16 (oxygen, sulphur, selenium, tellurium, polonium — the chalcogens) has the general valence configuration ns² np⁴.',
     blocks: [
@@ -242,7 +242,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Oxidation states.</b> −2 is the characteristic state, but its stability falls down the group (polonium barely shows −2 at all); in its compounds oxygen shows only negative oxidation states except in OF<sub>2</sub> (where it is +2, since fluorine is more electronegative), O<sub>2</sub>F<sub>2</sub> (+1) and the dioxygenyl ion O<sub>2</sub><sup>+</sup> (+½, in Bartlett’s O<sub>2</sub><sup>+</sup>PtF<sub>6</sub><sup>−</sup>, Topic 06, Group 18: The Noble Gases). The other elements commonly show +4 and +6, with +6 becoming less stable and +4 more stable down the group — inert-pair effect again. Oxygen itself is restricted to a maximum covalency of four (and rarely exceeds two) because it has no valence d orbitals, while sulphur, selenium and tellurium can expand their valence shells and readily exceed a covalency of four, as in SF<sub>6</sub>.',
+        html: '<b>Oxidation states.</b> −2 is the characteristic state, but its stability falls down the group (polonium barely shows −2 at all); in its compounds oxygen shows only negative oxidation states except in OF<sub>2</sub> (where it is +2, since fluorine is more electronegative), O<sub>2</sub>F<sub>2</sub> (+1) and the dioxygenyl ion O<sub>2</sub><sup>+</sup> (+½, in Bartlett’s O<sub>2</sub><sup>+</sup>PtF<sub>6</sub><sup>−</sup>, Topic 12, Group 18: The Noble Gases). The other elements commonly show +4 and +6, with +6 becoming less stable and +4 more stable down the group — inert-pair effect again. Oxygen itself is restricted to a maximum covalency of four (and rarely exceeds two) because it has no valence d orbitals, while sulphur, selenium and tellurium can expand their valence shells and readily exceed a covalency of four, as in SF<sub>6</sub>.',
       },
       {
         t: 'p',

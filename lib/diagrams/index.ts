@@ -98,7 +98,6 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'chemistry|11|7': DIAGRAMS_CHEMISTRY_11_07,
   'chemistry|11|8': DIAGRAMS_CHEMISTRY_11_08,
   'chemistry|11|9': [...DIAGRAMS_CHEMISTRY_11_09, ...DIAGRAMS_CHEMISTRY_11_09B],
-  'chemistry|11|10': DIAGRAMS_CHEMISTRY_11_10,
   'chemistry|12|1': DIAGRAMS_CHEMISTRY_12_01,
   'chemistry|12|2': DIAGRAMS_CHEMISTRY_12_02,
   'chemistry|12|3': DIAGRAMS_CHEMISTRY_12_03,
@@ -109,7 +108,8 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'chemistry|12|8': DIAGRAMS_CHEMISTRY_12_08,
   'chemistry|12|9': DIAGRAMS_CHEMISTRY_12_09,
   'chemistry|12|10': DIAGRAMS_CHEMISTRY_12_10,
-  'chemistry|12|11': DIAGRAMS_CHEMISTRY_12_11,
+  // One chapter from two books: the Class 11 p-Block (Groups 13–14) then the Class 12 (Groups 15–18), in topic order.
+  'chemistry|12|11': [...DIAGRAMS_CHEMISTRY_11_10, ...DIAGRAMS_CHEMISTRY_12_11].sort((a, b) => a.topic - b.topic),
 };
 
 const BY_ID = new Map(Object.values(DIAGRAMS).flat().map((d) => [d.id, d]));
