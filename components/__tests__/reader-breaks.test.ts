@@ -25,6 +25,9 @@ describe('a reading line keeps a term whole', () => {
     expect(plainSpaces('(a) 75 min (d) 240 min').some((p) => p.includes('(d)\u00a0240'))).toBe(true);
     expect(plainSpaces('[A] = 0.133 mol L<sup>−1</sup> to two').some((p) => p.includes('mol\u00a0L−1'))).toBe(true);
     expect(plainSpaces('2: L mol<sup>−1</sup> s<sup>−1</sup>').some((p) => p.includes('L\u00a0mol−1'))).toBe(true);
+    // "kJ" | "mol⁻¹" split at a line end (Android check of Chemistry 12 Ch 11, the Contact process).
+    expect(plainSpaces('Δ<sub>r</sub><i>H</i>° = −196.6 kJ mol<sup>−1</sup>').some((p) => p.includes('kJ\u00a0mol−1'))).toBe(true);
+    expect(plainSpaces('a value of 46.1 J mol<sup>−1</sup> K<sup>−1</sup>').some((p) => p.includes('J\u00a0mol−1'))).toBe(true);
     expect(readerBreaks('<i>k</i>′[A]')).toContain('′\u2060[');
   });
   it('a coefficient stays with its species (Chemistry 12 Ch 4)', () => {

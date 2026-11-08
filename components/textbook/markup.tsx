@@ -616,8 +616,8 @@ export function readerBreaks(html: string): string {
       (/^[0-9]{1,2}$/.test(a) && /^(?:R|Ar)[′″]?–/.test(b)) ||
       // An option's letter with its value: "(d)" | "240 min".
       /^\([a-e]\)$/.test(a) ||
-      // A unit stays whole: "0.133 mol" | "L⁻¹", "2: L" | "mol⁻¹".
-      (/(?:^|[^A-Za-z])(?:mol|L)$/.test(a) && /^(?:L|mol|s|min|K|h)(?:[−0-9]|$)/.test(b)) ||
+      // A unit stays whole: "0.133 mol" | "L⁻¹", "2: L" | "mol⁻¹", "−196.6 kJ" | "mol⁻¹" (Chemistry 12 Ch 11).
+      (/(?:^|[^A-Za-z])(?:mol|L|kJ|J|g|kg)$/.test(a) && /^(?:L|mol|s|min|K|h)(?:[−0-9]|$)/.test(b)) ||
       (READER_OPS.has(a) && b.length > 0 && b.length <= 7) ||
       // "× 10⁻⁹" stays with its number however much follows it: "(550 ×" | "10⁻⁹)/(4 …".
       (a === '×' && toks[k].startsWith('10<sup>')) ||
