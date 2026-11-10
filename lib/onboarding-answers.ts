@@ -1,34 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { SubjectKey } from '@/constants/onboarding-chapters';
-
 /**
- * WHAT A STUDENT TOLD US IN THE ONBOARDING QUESTIONS.
+ * WHERE A STUDENT IS IN ONBOARDING, ON THIS DEVICE.
  *
- * Device-only, on purpose and for now: the `profiles` table has no columns
- * for any of this yet (the server is not ours to change from here). Name, exam, class and phone still go to the server
- * through lib/profile.ts as before. These stay on the phone until the server
- * grows somewhere to keep them, at which point `pushProfile` can send them.
- *
- * Every field is optional: each question has a Skip.
+ * The questionnaire (goal, last mock score, strongest and weakest subject,
+ * hard chapters, AI use) was removed on 9 Nov 2026 (Nikhil): too many
+ * questions before a student sees the app. What is left is the exam year,
+ * asked with the exam, and the flags that let a student who closes the app
+ * part-way resume at the right screen. Name, exam, class and phone go to the
+ * server through lib/profile.ts.
  */
 export type ExamYear = '2027' | '2028' | 'unsure';
-export type AiUse = 'often' | 'sometimes' | 'once' | 'never';
 
 export interface OnboardingAnswers {
   examYear?: ExamYear;
-  /** The goal row's id, e.g. 'iit', 'gov-mbbs'. */
-  goal?: string;
-  /** The band's id, e.g. '100-150', or 'none' for "Haven't taken one". */
-  mockBand?: string;
-  /** Asked only when there is no mock to report. */
-  syllabus?: string;
-  strongest?: SubjectKey;
-  weakest?: SubjectKey;
-  hardChapters?: string[];
-  confidentChapter?: string;
-  ai?: AiUse;
-  aiFeelings?: string[];
 
   /** Set when the name is typed: this device is part-way through the
    *  questions, so a stored name no longer means "finished". */
@@ -36,26 +21,13 @@ export interface OnboardingAnswers {
   /** The class screen was answered, so the profile's class is a real pick
    *  and not its default. */
   classPicked?: boolean;
-  /** Set when the last question is answered or skipped: a student who signs
+  /** Set when the class is picked, the last question: a student who signs
    *  in after this resumes at the pass, not at the name. */
   questionsDone?: boolean;
   /** Set once onboarding is finished (the profile reached the server, or an
    *  existing account was signed into). */
   finished?: boolean;
 }
-
-/** What a change of exam or class makes stale: every answer that was given
- *  in terms of the old one (Maths chapters for a NEET student, a mock band
- *  out of 300 for one now marked out of 720). */
-export const ANSWERS_TIED_TO_EXAM: Partial<OnboardingAnswers> = {
-  goal: undefined,
-  mockBand: undefined,
-  syllabus: undefined,
-  strongest: undefined,
-  weakest: undefined,
-  hardChapters: undefined,
-  confidentChapter: undefined,
-};
 
 const KEY = 'onboarding.answers';
 
