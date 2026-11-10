@@ -6,12 +6,14 @@
  * a writer's slip is caught when the chapter is written, not on a phone.
  * Book-chapters.test.ts holds the structural rules; these are about text.
  */
+import { DIAGRAMS } from '@/lib/diagrams';
+import { KEY_POINTS } from '@/lib/revise/keypoints';
 import type { Block, Chapter, Topic } from '@/lib/textbooks';
 import { BOOK_CHAPTERS } from '../test-support/book-list';
 import { REF, width } from '../test-support/measure';
 
 /** The text as read: only the reader's own tags are dropped (a "<" in "√(2gR) < u" is text). */
-const plain = (h: string) => h.replace(/<\/?(?:b|i|sup|sub)>|<br\s*\/?>/gi, (t) => (/br/i.test(t) ? '\n' : '')).replace(/&nbsp;|\u00a0/g, ' ');
+const plain = (h: string) => h.replace(/<\/?(?:b|i|sup|sub|frac|num|den)>|<br\s*\/?>/gi, (t) => (/br/i.test(t) ? '\n' : '')).replace(/&nbsp;|\u00a0/g, ' ');
 
 /** Unicode letters set as raised or lowered (ᵢ ₙ ˣ): the phone's fonts lack most of them. */
 const SCRIPT_LETTERS = /[ᴬ-ᵪₐ-ₜʰ-ʸˠ-ˤⁱⁿ]/;
@@ -93,6 +95,72 @@ describe('the text of every book chapter', () => {
         }
       }),
     ).toEqual([]);
+  });
+
+  // MATHEMATICS PRINTS EVERY FRACTION STACKED, and so does the app (the
+  // founder's rule, 2026-11-10): <frac><num>a</num><den>b</den></frac>,
+  // drawn by components/textbook/markup.tsx. One on a line, "1/2" or ½, is a slip.
+  it('writes a fraction as <frac><num>…</num><den>…</den></frac>, whole', () => {
+    const SHAPE = /<frac><num>(?:(?!<\/?frac>|<\/?num>|<\/?den>)[\s\S])*<\/num><den>(?:(?!<\/?frac>|<\/?num>|<\/?den>)[\s\S])*<\/den><\/frac>/;
+    expect(
+      breaches(({ block }, say) => {
+        if (!block) return;
+        for (const h of htmls(block)) {
+          if (!/<\/?(?:frac|num|den)>/.test(h)) continue;
+          // Innermost first: what is left once every well-formed fraction is gone holds no fraction tag.
+          let rest = h;
+          for (let m = SHAPE.exec(rest); m; m = SHAPE.exec(rest)) rest = rest.slice(0, m.index) + 'F' + rest.slice(m.index + m[0].length);
+          if (/<\/?(?:frac|num|den)>/.test(rest)) say(`malformed fraction: ${clip(h)}`);
+          // Inside a raised or lowered run a stack is too small to read: x<sup>1/2</sup> keeps its slash.
+          if (/<su[bp]>(?:(?!<\/su[bp]>).)*<frac>/.test(h)) say(`fraction inside a script: ${clip(plain(h))}`);
+        }
+      }),
+    ).toEqual([]);
+  });
+
+  it('in Mathematics, sets no fraction on one line (1/2, π/4, (a + b)/2, ½)', () => {
+    // A slash with a number, a letter in italics, a bracket, π or a root on both sides,
+    // outside a raised run. "and/or", "km/h" and "A/B testing" are words, not fractions.
+    const SIDE = String.raw`(?:\d|<\/i>|\)|π|√\d)`;
+    const AFTER = String.raw`(?:\d|<i>|\(|π|√)`;
+    const SLASH = new RegExp(`${SIDE}\\s?\\/\\s?${AFTER}`);
+    expect(
+      breaches(({ chapter, block }, say) => {
+        if (!block || chapter.subject !== 'Mathematics') return;
+        for (const h of htmls(block)) {
+          const outside = h.replace(/<su([bp])>(?:(?!<\/su\1>).)*<\/su\1>/g, '');
+          if (SLASH.test(outside) || /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/.test(outside)) say(clip(plain(h)));
+        }
+      }),
+    ).toEqual([]);
+  });
+
+  // NO EM DASHES IN MATHEMATICS (the founder, 2026-11-10: they read as
+  // machine-written). Each is rewritten as a colon, commas, brackets or a full
+  // stop; ranges keep their en dash (–). Physics and Chemistry later.
+  it('in Mathematics, writes no em dash (—)', () => {
+    expect(
+      breaches(({ chapter, topic, block }, say) => {
+        if (chapter.subject !== 'Mathematics') return;
+        const all = block ? htmls(block) : [topic.title, topic.kalam ?? ''];
+        for (const h of all) if (h.includes('—')) say(clip(plain(h)));
+      }),
+    ).toEqual([]);
+  });
+
+  it('in Mathematics, writes no em dash in key points or figure captions and labels either', () => {
+    const bad: string[] = [];
+    for (const [key, points] of Object.entries(KEY_POINTS))
+      if (key.startsWith('mathematics|'))
+        for (const p of points) for (const v of [p.q, p.a, p.why, p.say]) if (v?.includes('—')) bad.push(`${key} key point: ${clip(plain(v))}`);
+    for (const [key, figs] of Object.entries(DIAGRAMS))
+      if (key.startsWith('mathematics|'))
+        for (const f of figs) {
+          const texts = [f.name, ...f.cases.flatMap((c) => [c.chip, c.cap])];
+          for (const c of f.cases) for (const t of f.draw(c).texts) texts.push(t.html);
+          for (const v of texts) if (v?.includes('—')) bad.push(`${f.id}: ${clip(plain(v))}`);
+        }
+    expect(bad).toEqual([]);
   });
 
   it('opens quotation marks the right way round (an opening ” is a slip)', () => {

@@ -85,3 +85,12 @@ describe('a long run breaks before a pair, not inside it', () => {
     expect(pieces.some((p) => /^eV/.test(p))).toBe(false);
   });
 });
+
+describe('intervals (Android check of Mathematics 11 Ch 1)', () => {
+  it('keeps a short interval or pair on one line', () => {
+    const out = readerBreaks('so A<sub>1</sub> = [1, 6], A<sub>2</sub> = [1.5, 5.5] and (0, 1) shrink');
+    expect(out).not.toMatch(/\[1, 6\]/);
+    expect(out).toMatch(/\[1 6\]|\[1, 6\]/);
+    expect(out).toMatch(/\(0, 1\)/);
+  });
+});

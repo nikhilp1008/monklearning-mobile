@@ -206,7 +206,8 @@ export function cutAtSpaces(html: string): string[] {
   const out: string[] = [];
   const open: string[] = [];
   let cur = '';
-  const TAG = /^<(\/?)(b|i|sup|sub)>/i;
+  // A drawn fraction (<frac>, components/textbook/markup.tsx) is never cut either.
+  const TAG = /^<(\/?)(b|i|sup|sub|frac|num|den)>/i;
   for (let k = 0; k < html.length; k++) {
     const m = html[k] === '<' ? TAG.exec(html.slice(k)) : null;
     if (m) {
@@ -218,7 +219,7 @@ export function cutAtSpaces(html: string): string[] {
       k += m[0].length - 1;
       continue;
     }
-    if (html[k] === ' ' && !open.some((t) => t === 'sub' || t === 'sup')) {
+    if (html[k] === ' ' && !open.some((t) => t === 'sub' || t === 'sup' || t === 'frac')) {
       out.push(cur + [...open].reverse().map((t) => `</${t}>`).join(''));
       cur = open.map((t) => `<${t}>`).join('');
       continue;

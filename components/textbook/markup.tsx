@@ -31,19 +31,24 @@ type Node =
   | { kind: 'text'; value: string }
   | { kind: 'br' }
   /** `cond`: a raised run straight after an arrow, a reaction's condition, not an exponent. */
-  | { kind: 'tag'; name: 'b' | 'i' | 'sup' | 'sub'; children: Node[]; cond?: boolean }
+  | { kind: 'tag'; name: TagName; children: Node[]; cond?: boolean }
   /** A run under one or more NOT bars (see overlines). */
   | Over;
+/**
+ * <frac><num>…</num><den>…</den></frac> is a fraction drawn stacked, the
+ * numerator over the denominator with a rule between (see fracRun).
+ */
+type TagName = 'b' | 'i' | 'sup' | 'sub' | 'frac' | 'num' | 'den';
 type Over = { kind: 'over'; feet: number[]; onest: boolean; lean: [boolean, boolean]; children: Node[] };
 
-const TAG = /<(\/?)(b|i|sup|sub|br)\s*\/?>/gi;
+const TAG = /<(\/?)(b|i|sup|sub|br|frac|num|den)\s*\/?>/gi;
 
 function parse(html: string): Node[] {
   const root: Node[] = [];
   // Open elements, innermost last. An unclosed or stray closing tag is
   // tolerated rather than thrown: a malformed string should cost its own
   // formatting, never the whole screen.
-  const stack: { name: 'b' | 'i' | 'sup' | 'sub'; children: Node[] }[] = [];
+  const stack: { name: TagName; children: Node[] }[] = [];
   const current = () => (stack.length ? stack[stack.length - 1].children : root);
 
   let cursor = 0;
@@ -52,7 +57,7 @@ function parse(html: string): Node[] {
   while (match) {
     if (match.index > cursor) current().push({ kind: 'text', value: html.slice(cursor, match.index) });
     const closing = match[1] === '/';
-    const name = match[2].toLowerCase() as 'b' | 'i' | 'sup' | 'sub' | 'br';
+    const name = match[2].toLowerCase() as TagName | 'br';
 
     if (name === 'br') {
       current().push({ kind: 'br' });
@@ -214,8 +219,9 @@ const isItalicFamily = (f?: string) => f === STIX.italic || f === STIX.semiboldI
  * STIX Two Math. The arrows, operators, letterlike and bracket blocks, minus
  * what Onest draws itself (→ − ≈ ≤ ≥) and what Roboto draws well (√ ∫ ∂ ∞ ⟨ ⟩
  * stay as they were, checked in content/textbooks/__tests__/display-fonts).
+ * And △, the symmetric difference (Mathematics 11 Ch 1), which Onest lacks.
  */
-const PILOT_MATH = /[\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF]+/g;
+const PILOT_MATH = /[\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3]+/g;
 const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF]+/g;
 /**
  * The reader's text with its maths symbols in STIX Two Math (see PILOT_MATH),
@@ -223,7 +229,14 @@ const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u2
  * in STIX Two Text: Onest has no combining arrow, so Android drew it from
  * another font, off its letter.
  */
-const PILOT_RUN = new RegExp(`${PILOT_MATH.source}|\\S\u20d7`, 'g');
+/**
+ * Double-struck letters past ℕ ℤ ℚ ℝ (which Letterlike Symbols carries): 𝕎 the
+ * whole numbers and 𝕋 the irrationals in Mathematics 11 Ch 1. They live in
+ * Mathematical Alphanumeric Symbols (U+1D538–U+1D56B, surrogate pairs here),
+ * which neither Onest nor Roboto draws; STIX Two Math does.
+ */
+const DOUBLE_STRUCK = '\uD835[\uDD38-\uDD6B]';
+const PILOT_RUN = new RegExp(`${PILOT_MATH.source}|${DOUBLE_STRUCK}|\\S\u20d7`, 'g');
 function pilotRuns(text: string, key: string) {
   const out: ReactNode[] = [];
   let at = 0;
@@ -240,7 +253,8 @@ function pilotRuns(text: string, key: string) {
   return out;
 }
 
-function stixRuns(text: string, key: string, only: RegExp = STIX_MATH_ONLY) {
+const STIX_RUN = new RegExp(`${STIX_MATH_ONLY.source}|(?:${DOUBLE_STRUCK})+`, 'g');
+function stixRuns(text: string, key: string, only: RegExp = STIX_RUN) {
   const out: ReactNode[] = [];
   let at = 0;
   for (const m of text.matchAll(only)) {
@@ -614,6 +628,8 @@ export function readerBreaks(html: string): string {
       (/^[0-9]{1,2}$/.test(a) && /^(?:(?:[A-Z][a-z]?)+|e)<su[bp]>/.test(toks[k])) ||
       // A coefficient with a group formula: "3" | "R–CH₂–CH₂–OH", "2" | "Ar–OH" (Chemistry 12 Ch 7).
       (/^[0-9]{1,2}$/.test(a) && /^(?:R|Ar)[′″]?–/.test(b)) ||
+      // A short interval or pair stays whole: "A₁ = [1," | "6]" (Android check of Mathematics 11 Ch 1).
+      (/(?:^|[^A-Za-z])[[(][^\])[(]{1,8},$/.test(a) && /^[^\s[(]{1,8}[\])]/.test(b)) ||
       // An option's letter with its value: "(d)" | "240 min".
       /^\([a-e]\)$/.test(a) ||
       // A unit stays whole: "0.133 mol" | "L⁻¹", "2: L" | "mol⁻¹", "−196.6 kJ" | "mol⁻¹" (Chemistry 12 Ch 11).
@@ -709,7 +725,7 @@ function scriptPair(nodes: Node[], i: number): { sup: Script; sub: Script; pre: 
  * it are put back round its characters (a tag a run starts or ends inside is
  * split in two, the same style either side).
  */
-type Frame = { name: 'b' | 'i' | 'sup' | 'sub'; id: number };
+type Frame = { name: TagName; id: number };
 type Atom = { ch: string; path: Frame[]; bars: number; br?: boolean };
 
 function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }): Atom[] {
@@ -865,6 +881,101 @@ function overRun(node: Over, size: number, key: string, look: MarkupLook, ink: I
   );
 }
 
+/**
+ * A FRACTION, STACKED: the numerator over the denominator with a rule
+ * between, as the book prints it, never "a/b" on one line (the founder's
+ * rule for Mathematics, 2026-11-10). Written <frac><num>a</num><den>b</den></frac>.
+ *
+ * Set as printed maths sets a fraction inside a line of text (TeX's text
+ * style): the two halves smaller than the line (FRAC.size), the rule on the
+ * maths axis, the numerator's baseline FRAC.num above the line's baseline and
+ * the denominator's FRAC.den below it. So a fraction stays inside the line's
+ * own height (top about 1.06 em above the baseline, bottom about 0.45 em
+ * below it, 0.6 em with a descender), and a paragraph with fractions in it is
+ * spaced like one without. The first Android sample (0.74, 0.43, 0.36) was
+ * too small to read and set π, n(E) and √3 touching the rule.
+ *
+ * Placed the way overRun is (see there): on Android an inline View is a
+ * placeholder rising from the baseline, and one taller than the line's ascent
+ * pushes the line's baseline down. So the View is FRAC.box high, its bottom
+ * on the baseline, and the stack inside it is moved by margins, drawn outside
+ * the box above and below it. Each half is a Text of its own, OVER_LINE high,
+ * whose baseline sits overBaseline() of its size from its top.
+ *
+ * The halves are set in the face of the line around them (Onest in the
+ * reader, STIX on the cards), with their letters in <i> as everywhere else.
+ * A fraction inside a half is drawn the same way, smaller again.
+ */
+const FRAC = {
+  /** Each half, as a share of the line's size (a superscript is 0.7). */
+  size: 0.8,
+  /** The rule's centre above the baseline: the maths axis, where a minus sits. */
+  axis: 0.26,
+  /** The numerator's baseline above the line's baseline. */
+  num: 0.5,
+  /** The denominator's baseline below the line's baseline. */
+  den: 0.45,
+  /** The rule's thickness. */
+  thick: 0.05,
+  /** How far the rule reaches past the wider half, each side. */
+  over: 0.07,
+  /** Room either side of the whole fraction. */
+  side: 0.06,
+  box: 0.7,
+  /** How much further off the rule a half holding a fraction sits, in its own size. */
+  nest: 0.45,
+  /** A block holding a fraction: its line height times this (see Markup). */
+  lead: 1.18,
+} as const;
+
+function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink) {
+  const s = size * FRAC.size;
+  const onest = !!ink.family?.startsWith('Onest');
+  const line = s * OVER_LINE;
+  const base = s * overBaseline(onest);
+  const box = size * FRAC.box;
+  const thick = Math.max(1, size * FRAC.thick);
+  // Measured down from the top of the box, whose bottom is the line's baseline.
+  // A half holding a fraction of its own reaches FRAC.nest of its size
+  // further towards the rule, so it is moved that much further off it: drawn
+  // where a plain half goes, 1 over (1 − ⅓) ran its ⅓ into the rule (Android
+  // sample, 2026-11-10).
+  const nested = (nodes: Node[]): boolean => nodes.some((c) => c.kind !== 'text' && c.kind !== 'br' && ((c.kind === 'tag' && c.name === 'frac') || nested(c.children)));
+  const numTop = box - size * FRAC.num - base - (nested(num) ? s * FRAC.nest : 0);
+  const ruleTop = box - size * FRAC.axis - thick / 2;
+  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0);
+  const half = (nodes: Node[], k: string, extra?: TextStyle) => (
+    <Text style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
+      {render(nodes, s, k, look, ink)}
+    </Text>
+  );
+  return (
+    <View key={key} style={{ height: box, marginHorizontal: size * FRAC.side }}>
+      <View style={{ marginTop: numTop, alignItems: 'stretch' }}>
+        {half(num, `${key}.n`)}
+        <View style={{ height: thick, marginTop: ruleTop - (numTop + line), backgroundColor: ink.color ?? '#000' }} />
+        {half(den, `${key}.d`, { marginTop: denTop - (ruleTop + thick) })}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * A fraction as text, for places that need a plain string: "n(E)/n(S)", and
+ * a half with an operator or a space in it bracketed, "(a + b)/2".
+ */
+function fracToText(html: string): string {
+  const FRAC_TAG = /<frac>\s*<num>((?:(?!<\/?frac>|<\/?num>).)*)<\/num>\s*<den>((?:(?!<\/?frac>|<\/?den>).)*)<\/den>\s*<\/frac>/s;
+  const wrap = (t: string) => {
+    const plain = t.replace(/<\/?[a-zA-Z][^>]*>/g, '').trim();
+    return /[\s+−\-×·/=]/.test(plain) ? `(${plain})` : plain;
+  };
+  let out = html;
+  // Innermost first, so a fraction inside a half is text by the time its parent is read.
+  for (let m = FRAC_TAG.exec(out); m; m = FRAC_TAG.exec(out)) out = out.slice(0, m.index) + `${wrap(m[1])}/${wrap(m[2])}` + out.slice(m.index + m[0].length);
+  return out;
+}
+
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
   const out: ReactNode[] = [];
   // A raised run over an arrow names the reaction's conditions ("273–278 K", "H⁺"), so its
@@ -901,6 +1012,22 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
   }
   if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
   if (node.kind === 'over') return overRun(node, size, key, look, ink);
+  if (node.name === 'frac') {
+    const num = node.children.find((c) => c.kind === 'tag' && c.name === 'num');
+    const den = node.children.find((c) => c.kind === 'tag' && c.name === 'den');
+    // Malformed: its text as it stands, never a lost numerator.
+    if (!num || !den || num.kind !== 'tag' || den.kind !== 'tag') return <Fragment key={key}>{render(node.children, size, key, look, ink)}</Fragment>;
+    // Joined on both sides like a drawn script (see WJ): "(", "," and "²" stay with it; a space still breaks.
+    return (
+      <Fragment key={key}>
+        {WJ}
+        {fracRun(num.children, den.children, size, `${key}.f`, look, ink)}
+        {WJ}
+      </Fragment>
+    );
+  }
+  // A half outside a fraction: its text, with "/" between the two (see fracRun).
+  if (node.name === 'num' || node.name === 'den') return <Fragment key={key}>{render(node.children, size, key, look, ink)}</Fragment>;
 
   if (node.name === 'sup' || node.name === 'sub') {
     const run = plainText(node.children);
@@ -956,7 +1083,8 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
   }
 
   // Maths letters in a SemiBold run (a card's name) are SemiBold italic.
-  const style = node.name === 'i' && look === 'stix' && (ink.family === STIX.semibold || ink.family === STIX.semiboldItalic) ? { fontFamily: STIX.semiboldItalic } : styleFor(node.name, size, look);
+  const name = node.name;
+  const style = name === 'i' && look === 'stix' && (ink.family === STIX.semibold || ink.family === STIX.semiboldItalic) ? { fontFamily: STIX.semiboldItalic } : styleFor(name, size, look);
   return (
     <Text key={key} style={style}>
       {render(node.children, size, key, look, look === 'stix' ? { ...ink, family: style.fontFamily } : ink)}
@@ -982,8 +1110,12 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
   // A drawn raised run sits in a View, which does not inherit from the Text
   // around it, so it is handed the face and colour it is set in.
   const flat = StyleSheet.flatten(style) ?? {};
+  // Lines with fractions on them, one above the other, touched ("total number
+  // of outcomes" into the n(E) below it; Android sample, 2026-11-10), so a
+  // block that holds a fraction is spaced FRAC.lead times wider, all of it.
+  const lead = flat.lineHeight && /<frac>/i.test(html) ? { lineHeight: flat.lineHeight * FRAC.lead } : null;
   return (
-    <Text style={style} numberOfLines={numberOfLines}>
+    <Text style={lead ? [style, lead] : style} numberOfLines={numberOfLines}>
       {render(nodes, size, 'm', look, { family: flat.fontFamily, color: flat.color })}
     </Text>
   );
@@ -993,5 +1125,5 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
  *  string (accessibility labels, a one-line preview). */
 /** Only real tags go: a comparison ("t∗ < 0 … <i>") is text, not the start of one. */
 export function markupToText(html: string): string {
-  return html.replace(/<\/?[a-zA-Z][^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  return fracToText(html).replace(/<\/?[a-zA-Z][^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }

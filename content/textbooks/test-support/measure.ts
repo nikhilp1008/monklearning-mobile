@@ -26,8 +26,21 @@ const ZERO = /[ ​⁠︎️̀-ͯ⃐-⃿]/;
 
 export type Look = 'stix' | 'pilot';
 
+/**
+ * A drawn fraction (<frac><num>a</num><den>b</den></frac>, components/textbook/markup.tsx fracRun):
+ * the wider half at FRAC_SIZE of the size, plus the rule's overhang and the room either side.
+ * Innermost first, so a fraction inside a half is measured inside it.
+ */
+const FRAC_SIZE = 0.8, FRAC_ROOM = 2 * (0.07 + 0.06);
+const INNER_FRAC = /<frac>\s*<num>((?:(?!<\/?frac>|<\/?num>)[\s\S])*)<\/num>\s*<den>((?:(?!<\/?frac>|<\/?den>)[\s\S])*)<\/den>\s*<\/frac>/i;
+
 /** Width of markup set at `size`, in the look's fonts. Unknown glyphs count 0.55 em (a typical fallback). */
 export function width(html: string, size: number, look: Look): number {
+  const f = INNER_FRAC.exec(html);
+  if (f) {
+    const half = Math.max(width(f[1], size * FRAC_SIZE, look), width(f[2], size * FRAC_SIZE, look));
+    return half + FRAC_ROOM * size + width(html.slice(0, f.index) + html.slice(f.index + f[0].length), size, look);
+  }
   let w = 0;
   let italic = 0, bold = 0, script = 0;
   const re = /<(\/?)(b|i|sup|sub)>|<br\s*\/?>|&nbsp;|([\s\S])/gi;
@@ -62,8 +75,17 @@ export function width(html: string, size: number, look: Look): number {
 /** The pieces a line may break between: the markup cut at its plain (breakable) spaces, tags kept whole per piece. */
 export function pieces(html: string): string[] {
   // Android also breaks after a hyphen, and after a slash with no joiner after it.
-  return html
+  // Never inside a drawn fraction: it is one inline box, its spaces are not break points.
+  const HELD = '\u0000';
+  let depth = 0;
+  const held = html.replace(/<(\/?)frac>| /gi, (t, close?: string) => {
+    if (t === ' ') return depth > 0 ? HELD : ' ';
+    depth += close ? -1 : 1;
+    return t;
+  });
+  return held
     .split(' ')
+    .map((p) => p.split(HELD).join(' '))
     .flatMap((p) => p.split(/(?<=[a-z]-)(?=[a-z])|(?<=\/)(?!\u2060)(?=[A-Za-z])/))
     .filter((p) => p.replace(/<[^>]*>/g, '').length > 0);
 }

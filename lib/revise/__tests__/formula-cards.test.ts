@@ -357,3 +357,11 @@ describe('card names: hyphens, signs and brackets', () => {
     }
   });
 });
+
+describe('a non-breaking space the content set (Android check of Mathematics 11 Ch 1)', () => {
+  it('stays non-breaking on the card', () => {
+    const a = keepTogether('max(0, <i>a</i> + <i>b</i> − <i>N</i>) ≤ <i>n</i>(<i>A</i> ∩ <i>B</i>) ≤ min(<i>a</i>, <i>b</i>)');
+    expect(a.slice(0, a.indexOf('N</i>)'))).not.toContain(' ');
+    expect(keepTogether('for at least one <i>i</i> ∈ <i>I</i>}')).toMatch(/<i>i<\/i> ∈ <i>I<\/i>/);
+  });
+});

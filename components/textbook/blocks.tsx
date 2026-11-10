@@ -62,6 +62,12 @@ export interface BlockCtx {
   topicNumber: string;
   /** Topics in the chapter: the pilot's exam briefing splits by them. */
   topicCount?: number;
+  /**
+   * No em dashes drawn by the reader itself (a formula's "symbol — meaning"
+   * becomes "symbol: meaning"). The founder's rule for Mathematics
+   * (2026-11-10): em dashes read as machine-written. Physics and Chemistry later.
+   */
+  noDash?: boolean;
 }
 
 function Chevron({ open, scale }: { open: boolean; scale: (n: number) => number }) {

@@ -343,7 +343,10 @@ const SHORT_CLAUSE = 24;
  * operator after it.
  */
 export function keepTogether(expr: string): string {
-  const joined = markBrackets(expr.replace(TIMES_NUMBER, `$1${GLUE}×${GLUE}`))
+  // A non-breaking space the content set on purpose stays one: "for at least one
+  // i ∈ I}" broke "i" | "∈ I}", and "max(0, a + b − N)" broke inside its bracket
+  // (Android check of Mathematics 11 Ch 1). GLUE becomes a plain one at the end.
+  const joined = markBrackets(expr.replace(/\u00a0/g, GLUE).replace(TIMES_NUMBER, `$1${GLUE}×${GLUE}`))
     .replace(/ /g, '\u00a0')
     .replace(new RegExp(`\u00a0([${OPS}])\u00a0`, 'g'), ' $1\u00a0')
     // A long line mostly in words ("= constant (angular momentum conserved)")

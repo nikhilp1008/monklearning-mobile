@@ -108,7 +108,7 @@ export function TextbookBlockPilot({ block, ctx }: { block: RenderBlock; ctx: Bl
       return <PilotTable block={block} scale={scale} type={type} />;
 
     case 'formula':
-      return <PilotFormula block={block} scale={scale} type={type} />;
+      return <PilotFormula block={block} scale={scale} type={type} noDash={ctx.noDash} />;
 
     case 'proc':
       return <PilotHowTo block={block} scale={scale} type={type} />;
