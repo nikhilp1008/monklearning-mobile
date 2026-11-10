@@ -314,9 +314,11 @@ function createStyles(scale: (n: number) => number) {
          Skia draws, and the rounded clip smooths the edge of every layer it
          holds separately, so that ground showed through as a dark hairline
          round both bottom corners on device. The sky carries its own fallback
-         colour (NightSky's) for a phone where the shader will not compile. */
-      borderBottomLeftRadius: scale(34),
-      borderBottomRightRadius: scale(34),
+         colour (NightSky's) for a phone where the shader will not compile.
+         24, down from 34 (Nikhil, 9 Nov 2026): 34 was the roundest corner in
+         the app. 24 steps down evenly to the console (20) and button (14). */
+      borderBottomLeftRadius: scale(24),
+      borderBottomRightRadius: scale(24),
       overflow: 'hidden',
     },
 
