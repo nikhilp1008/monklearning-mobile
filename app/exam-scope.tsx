@@ -221,8 +221,9 @@ export default function ExamScopeScreen() {
             }}>
             <CardSky width={cardSize.width} height={cardSize.height} teacher={teacher} />
 
+            {/* One line (Nikhil, 9 Nov 2026): the instruction that sat under
+                it is now the search box's placeholder, where it is acted on. */}
             <Text style={styles.heading}>Is it in your exam?</Text>
-            <Text style={styles.subheading}>Type any topic or chapter.</Text>
 
             <View style={styles.toggleWrap}>
               <SlidingToggle
@@ -429,7 +430,7 @@ function SearchField({
       <TextInput
         value={value}
         onChangeText={onChange}
-        placeholder="Search"
+        placeholder="Type any topic or chapter"
         placeholderTextColor={colors.faint}
         style={styles.input}
         returnKeyType="search"
@@ -740,20 +741,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       overflow: 'hidden',
       backgroundColor: colors.night,
     },
-    /** Regular, because the page title just above it is the bold one. */
+    /** The page-title size, in regular, because the page title just above it
+        is the bold one. At 30 it was louder than the title itself. */
     heading: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(30),
-      lineHeight: scale(36),
+      fontSize: scale(24),
+      lineHeight: scale(29),
       letterSpacing: scale(-0.6),
       color: '#FFFDF8',
-    },
-    subheading: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22),
-      color: 'rgba(255,253,248,.82)',
-      marginTop: verticalScale(6),
     },
 
     toggleWrap: { marginTop: verticalScale(22) },
@@ -855,8 +850,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
 
     lede: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(20),
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.slate,
       paddingHorizontal: scale(24),
       paddingTop: verticalScale(18),
