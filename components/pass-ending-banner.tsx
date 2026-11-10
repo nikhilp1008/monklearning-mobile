@@ -56,7 +56,7 @@ function createStyles(scale: (n: number) => number) {
       borderColor: 'rgba(28,26,22,.12)',
     },
     text: { flex: 1 },
-    title: { fontFamily: 'Onest_600SemiBold', fontSize: scale(14.5), lineHeight: scale(20), color: colors.ink },
+    title: { fontFamily: 'Onest_600SemiBold', fontSize: scale(15), lineHeight: scale(22), color: colors.ink },
     line: { fontFamily: 'Onest_400Regular', fontSize: scale(13), lineHeight: scale(18), color: colors.slate, marginTop: scale(2) },
   });
 }

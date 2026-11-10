@@ -177,7 +177,8 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     fill: { height: '100%', borderRadius: 2, backgroundColor: colors.marigold },
     count: {
       fontFamily: 'Onest_500Medium',
-      fontSize: scale(12),
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.slate,
       fontVariant: ['tabular-nums'],
     },

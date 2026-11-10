@@ -177,7 +177,10 @@ export function HomeHeader({
       <View
         style={styles.content}
         onLayout={(e) => setContent({ x: e.nativeEvent.layout.x, y: e.nativeEvent.layout.y })}>
-        <Text style={styles.heading}>{`Pick a chapter and ${teacherName(teacher)} teaches it live.`}</Text>
+        {/* One line at the title tier (Nikhil, 9 Nov 2026). It used to name the
+            teacher and wrapped to two lines; the console just below already
+            says who teaches. */}
+        <Text style={styles.heading}>Pick a chapter, start learning.</Text>
 
         <View
           style={styles.console}
@@ -377,7 +380,9 @@ function createStyles(scale: (n: number) => number) {
       fontSize: scale(24),
       /* 29 and -0.6 are PAGE_TITLE's own metrics, so this line is the app's
          title tier exactly — in the header's 600 rather than its 700, which
-         is enough weight reversed out of a dark ground. */
+         is enough weight reversed out of a dark ground. The line fits on one
+         line at this size (about 313 of 342 points), so it is not enlarged to
+         fill the width: 26 would fit too, but no other title in the app is 26. */
       lineHeight: scale(29),
       letterSpacing: scale(-0.6),
       color: colors.paper,
