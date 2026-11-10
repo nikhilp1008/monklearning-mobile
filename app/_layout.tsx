@@ -538,6 +538,7 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen name="textbook-chapters" options={{ headerShown: false }} />
+          <Stack.Screen name="textbook-book" options={{ headerShown: false }} />
           <Stack.Screen name="textbook-reader" options={{ headerShown: false }} />
           <Stack.Screen name="textbook-chapter" options={{ headerShown: false }} />
           <Stack.Screen name="textbook-part" options={{ headerShown: false }} />
