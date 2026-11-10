@@ -343,7 +343,7 @@ export default function SnapCaptureScreen() {
                 title={free ? "You've used your free snaps" : "You've used today's snaps"}
                 line={failure.message}
                 action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
-                quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                quiet={{ label: 'Open Snaps', onPress: () => router.replace('/(tabs)/doubts') }}
               />
             </View>
           ) : phase === 'failed' && failure?.stage === 'quota' ? (
@@ -355,7 +355,7 @@ export default function SnapCaptureScreen() {
                 line={`Snaps open again tomorrow. Everything you've solved is in Doubts.${
                   failure.daily_limit != null ? ` (${failure.used_today ?? failure.daily_limit} of ${failure.daily_limit} today)` : ''
                 }`}
-                action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                action={{ label: 'Open Snaps', onPress: () => router.replace('/(tabs)/doubts') }}
                 quiet={{ label: 'Close', onPress: close }}
               />
             </View>

@@ -19,7 +19,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { StateMoment, StatePlate } from '@/components/states';
 import { recoverPendingSnap } from '@/lib/snap-pending';
@@ -382,6 +382,42 @@ export default function HomeScreen() {
             </PressableScale>
           </View>
 
+          {/* THE SCORE, right under Snap and Practice (Nikhil, 9 Nov 2026), so a
+              student sees it the moment Home opens. It used to sit below the
+              notes row and the starting-point card, under the tab bar. */}
+          {stats.kind === 'ready' && (
+            <View style={[styles.stats, styles.statsUp]}>
+              <View style={styles.stat}>
+                <Text style={styles.statNumber}>{stats.score}</Text>
+                <Text style={styles.statLabel}>Monk Score</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statNumber}>{stats.practised}</Text>
+                <Text style={styles.statLabel}>Practised</Text>
+              </View>
+            </View>
+          )}
+
+          {/*
+            CLASS NOTES, moved here from the tab bar (Nikhil, 9 Nov 2026), when
+            Videos took its place. The same plate, title and arrow as Snap and
+            Practice above it, as one full-width row of the same document, so
+            the notes from every class are still on the first screen.
+          */}
+          <PressableScale style={styles.notesRow} onPress={() => router.push('/(tabs)/notes')}>
+            {/* A quiet ink mark, not a third sky plate (Nikhil, 9 Nov): the
+                plates are what make Snap and Practice the two daily actions,
+                and Notes sits one step below them. */}
+            <View style={styles.notesIcon}>
+              <ClassNotesIcon size={scale(24)} />
+            </View>
+            <View style={styles.notesText}>
+              <Text style={[styles.stripTitle, styles.notesTitle]}>Class notes</Text>
+              <Text style={styles.stripBody}>Notes you saved from your classes</Text>
+            </View>
+            <ArrowRightIcon color={colors.ink} size={scale(16)} />
+          </PressableScale>
+
           {/* One observation, or nothing. Silence is a valid answer — see
               lib/noticed.ts — so this renders nothing at all rather than a
               placeholder, and the section below simply moves up. */}
@@ -407,18 +443,6 @@ export default function HomeScreen() {
 
           <PassEndingBanner />
 
-          {stats.kind === 'ready' && (
-            <View style={styles.stats}>
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>{stats.score}</Text>
-                <Text style={styles.statLabel}>Monk Score</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statNumber}>{stats.practised}</Text>
-                <Text style={styles.statLabel}>Practised</Text>
-              </View>
-            </View>
-          )}
 
           <View style={styles.section}>
             <View style={styles.planHeaderRow}>
@@ -633,6 +657,26 @@ function runObservationAction(action: ObservationAction | undefined) {
   }
 }
 
+/**
+ * Class notes, drawn to the Revise marks' rules (components/revise/revise-icons):
+ * a 24 grid, one 1.8 ink line, one marigold dot. A notebook with its spine; the
+ * dot sits where the second written line would be, the note itself.
+ */
+function ClassNotesIcon({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M7.2 3.75h9.6A2.2 2.2 0 0 1 19 5.95v12.1a2.2 2.2 0 0 1-2.2 2.2H7.2A2.2 2.2 0 0 1 5 18.05V5.95a2.2 2.2 0 0 1 2.2-2.2zM9 3.75v16.5M12.2 9h3.6"
+        stroke={colors.ink}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={13} cy={12.8} r={1.4} fill={colors.marigold} />
+    </Svg>
+  );
+}
+
 function CheckIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -727,6 +771,35 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       lineHeight: scale(18),
       color: colors.slate,
       marginTop: verticalScale(4),
+    },
+
+    // --- class notes (the row under the strip) ---
+    notesRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: scale(12),
+      paddingVertical: verticalScale(16),
+      borderBottomWidth: 1,
+      borderBottomColor: RULE,
+    },
+    notesIcon: {
+      width: scale(36),
+      height: scale(36),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    /** Under the strip, the score row is a row of the same document: no gap
+     *  above it, the strip's hairline is its top edge. */
+    statsUp: {
+      marginTop: 0,
+      paddingTop: verticalScale(16),
+    },
+    notesText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    notesTitle: {
+      marginTop: 0,
     },
 
     // The row closes itself with a hairline, matching the stats row below it,

@@ -1,9 +1,11 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
+  FadeIn,
+  FadeOut,
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
@@ -13,7 +15,10 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 
+import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
 import { shadow } from '@/lib/shadow';
+import { hapticKey } from '@/lib/haptics';
+import { getTeacherPreference, teacherName, type TeacherId } from '@/lib/preferences';
 import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
@@ -107,11 +112,31 @@ export function NotesIcon({ color, size }: IconProps) {
   );
 }
 
+/**
+ * A play mark in a tall 9:16 frame: the Videos tab, short concept videos you
+ * scroll. Same 1.6 stroke as its neighbours; the triangle is filled so it
+ * reads as "play" at 22pt rather than as an arrow.
+ */
+export function VideosIcon({ color, size }: IconProps) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={6.3} y={3.4} width={11.4} height={17.2} rx={2.6} stroke={color} strokeWidth={1.6} />
+      <Path d="M10.6 9.4 14.6 12l-4 2.6z" fill={color} stroke={color} strokeWidth={1.2} />
+    </Svg>
+  );
+}
+
+/**
+ * The bar, in order: Home, Textbooks, Videos, Snaps (Nikhil, 9 Nov 2026).
+ * Notes left the bar for a row on Home, under Snap and Practice; its screen
+ * is still a route in this group, reached from there. Doubts is called Snaps
+ * now, to match Snap and Solve; the route keeps its name.
+ */
 const ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   index: HomeIcon,
   textbooks: TextbooksIcon,
+  videos: VideosIcon,
   doubts: DoubtsIcon,
-  notes: NotesIcon,
 };
 
 /**
@@ -212,6 +237,63 @@ function TabItem({
   );
 }
 
+/**
+ * ASK — the quick ask, the bar's fifth item, on Home only (Nikhil, 9 Nov 2026).
+ *
+ * The other four switch pages; this one is an action: hold it and ask the
+ * teacher anything, with no photo, chapter or page first. A hairline sits
+ * before it for that reason. Its icon is the student's own teacher's orb and
+ * its name is "Ask", drawn exactly like the tab labels beside it, and the name
+ * stays under the orb in every state.
+ *
+ * NOT CONNECTED YET. The server side (an answer that needs no doubt, question
+ * or page behind it) is Raasikh's to build. Until it exists, pressing Ask says
+ * "Coming soon" in a small note above it instead of listening. The full design
+ * — hold to talk, the bar turning into the ask bar, the small line above it,
+ * the board, the first-time tip and every edge case — is the "Quick ask on
+ * Home" page; wire it here when the endpoint lands.
+ */
+function AskItem({
+  teacher,
+  styles,
+  onPress,
+  orbSize,
+}: {
+  teacher: TeacherId;
+  styles: ReturnType<typeof createStyles>;
+  onPress: () => void;
+  orbSize: number;
+}) {
+  const held = useSharedValue(0);
+  const move = useAnimatedStyle(() => ({ transform: [{ scale: 1 - 0.08 * held.value }] }));
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Ask ${teacherName(teacher)}. Coming soon.`}
+      style={styles.askItem}
+      onPressIn={() => {
+        held.value = withTiming(1, PRESS_IN);
+        hapticKey();
+      }}
+      onPressOut={() => {
+        held.value = withTiming(0, PRESS_OUT);
+      }}
+      onPress={onPress}
+      onLongPress={onPress}
+      delayLongPress={350}>
+      <Animated.View style={move}>
+        <TeacherOrbPoster teacher={teacher} size={orbSize} />
+      </Animated.View>
+      <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={[styles.label, styles.askLabel]}>
+        Ask
+      </Text>
+    </Pressable>
+  );
+}
+
+/** How long the "Coming soon" note stays before it fades. */
+const SOON_MS = 2800;
+
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { scale, verticalScale } = useScale();
   const insets = useSafeAreaInsets();
@@ -221,6 +303,31 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // this group (`href: null`), and having no icon here is what keeps them out
   // of the bar -- one list to edit rather than two that can disagree.
   const routes = state.routes.filter((route) => ICONS[route.name]);
+
+  // Ask is on Home only; every other tab keeps its four items.
+  const onHome = state.routes[state.index]?.name === 'index';
+  const [teacher, setTeacher] = useState<TeacherId>('drona');
+  useEffect(() => {
+    // Read again each time Home comes back: the teacher may have been changed.
+    if (onHome) getTeacherPreference().then(setTeacher).catch(() => {});
+  }, [onHome]);
+
+  const [soon, setSoon] = useState(false);
+  const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showSoon = useCallback(() => {
+    setSoon(true);
+    AccessibilityInfo.announceForAccessibility('Coming soon');
+    if (soonTimer.current) clearTimeout(soonTimer.current);
+    soonTimer.current = setTimeout(() => setSoon(false), SOON_MS);
+  }, []);
+  useEffect(() => {
+    if (!onHome) setSoon(false);
+  }, [onHome]);
+  useEffect(() => () => {
+    if (soonTimer.current) clearTimeout(soonTimer.current);
+  }, []);
+
+  const barBottom = Math.max(verticalScale(26), insets.bottom);
 
   return (
     <>
@@ -232,8 +339,24 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         locations={[0, 0.55]}
         style={[styles.fade, { height: verticalScale(120) }]}
       />
+      {soon && onHome ? (
+        <Animated.View
+          entering={FadeIn.duration(160)}
+          exiting={FadeOut.duration(220)}
+          pointerEvents="none"
+          accessibilityLiveRegion="polite"
+          style={[styles.soon, { bottom: barBottom + verticalScale(64) + verticalScale(10) }]}>
+          <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.soonTitle}>
+            Coming soon
+          </Text>
+          <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.soonLine}>
+            {`Ask ${teacherName(teacher)} anything, right from Home.`}
+          </Text>
+          <View style={styles.soonArrow} />
+        </Animated.View>
+      ) : null}
       <View
-        style={[styles.bar, { bottom: Math.max(verticalScale(26), insets.bottom) }]}
+        style={[styles.bar, { bottom: barBottom }]}
         accessibilityRole="tablist">
         {routes.map((route) => {
           const { options } = descriptors[route.key];
@@ -261,6 +384,12 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             />
           );
         })}
+        {onHome ? (
+          <>
+            <View style={styles.askDivider} />
+            <AskItem teacher={teacher} styles={styles} onPress={showSoon} orbSize={scale(30)} />
+          </>
+        ) : null}
       </View>
     </>
   );
@@ -305,6 +434,63 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     },
     labelOn: {
       fontFamily: 'Onest_700Bold',
+    },
+    // --- Ask (Home only) ---
+    /** The hairline before Ask: one bar, but the one item that acts. */
+    askDivider: {
+      width: StyleSheet.hairlineWidth * 2,
+      height: verticalScale(30),
+      alignSelf: 'center',
+      backgroundColor: 'rgba(28,26,22,.10)',
+    },
+    askItem: {
+      width: scale(64),
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: verticalScale(3),
+    },
+    askLabel: {
+      fontFamily: 'Onest_700Bold',
+      color: colors.ink,
+    },
+    /** "Coming soon", above Ask, until the quick ask is connected. */
+    soon: {
+      position: 'absolute',
+      right: scale(16),
+      maxWidth: scale(260),
+      paddingVertical: verticalScale(9),
+      paddingHorizontal: scale(13),
+      borderRadius: scale(12),
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      ...shadow({ color: colors.ink, opacity: 0.14, radius: scale(16), y: verticalScale(6), elevation: 8 }),
+    },
+    // Both lines on Home's 13 / 18 support step.
+    soonTitle: {
+      fontFamily: 'Onest_600SemiBold',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.ink,
+    },
+    soonLine: {
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(13),
+      lineHeight: scale(18),
+      color: colors.slate,
+    },
+    /** Points down at Ask's orb. */
+    soonArrow: {
+      position: 'absolute',
+      right: scale(34),
+      bottom: -scale(6),
+      width: scale(12),
+      height: scale(12),
+      backgroundColor: '#fff',
+      borderRightWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
+      transform: [{ rotate: '45deg' }],
     },
   });
 }

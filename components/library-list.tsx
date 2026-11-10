@@ -613,7 +613,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerFixed}>
           <View style={styles.headerRow}>
-            <Text style={styles.heading}>{kind === 'notes' ? 'Notes' : 'Doubts'}</Text>
+            <Text style={styles.heading}>{kind === 'notes' ? 'Notes' : 'Snaps'}</Text>
             {canErase && <EraseTool active={eraseMode} onPress={toggleErase} />}
           </View>
           {/* THE ONLY ONE OF THESE.

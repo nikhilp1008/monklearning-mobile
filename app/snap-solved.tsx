@@ -184,7 +184,7 @@ export default function SnapSolvedScreen() {
                 title={free ? "You've used your free snaps" : "You've used today's snaps"}
                 line={job.failure.message}
                 action={{ label: 'See plans', onPress: () => router.replace('/plans') }}
-                quiet={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                quiet={{ label: 'Open Snaps', onPress: () => router.replace('/(tabs)/doubts') }}
               />
             ) : job.failure.stage === 'quota' ? (
               // The day's limit, said as the camera screen says it. It was
@@ -194,7 +194,7 @@ export default function SnapSolvedScreen() {
                 glyph="clock"
                 title="You've used today's snaps"
                 line="Snaps open again tomorrow. Everything you've solved is in Doubts."
-                action={{ label: 'Open Doubts', onPress: () => router.replace('/(tabs)/doubts') }}
+                action={{ label: 'Open Snaps', onPress: () => router.replace('/(tabs)/doubts') }}
                 quiet={{ label: 'Close', onPress: close }}
               />
             ) : job.failure.stage === 'pass' ? (

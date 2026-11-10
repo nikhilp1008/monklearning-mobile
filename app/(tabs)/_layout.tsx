@@ -54,7 +54,12 @@ export default function TabLayout() {
       <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
         <Tabs.Screen name="index" options={{ title: 'Home' }} />
         <Tabs.Screen name="textbooks" options={{ title: 'Textbooks' }} />
-        <Tabs.Screen name="doubts" options={{ title: 'Doubts' }} />
+        <Tabs.Screen name="videos" options={{ title: 'Videos' }} />
+        {/* Doubts is called Snaps in the app now (it holds what was snapped
+            in Snap and Solve); the route keeps its name so links still work. */}
+        <Tabs.Screen name="doubts" options={{ title: 'Snaps' }} />
+        {/* Notes is not in the bar any more: Home opens it from the "Class
+            notes" row. Kept here so its links (/(tabs)/notes) still work. */}
         <Tabs.Screen name="notes" options={{ title: 'Notes' }} />
         {/* Lessons is on hold, not deleted -- the screen stays routable so the
             work survives, but nothing in the bar points at it. */}

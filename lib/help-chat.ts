@@ -139,7 +139,7 @@ export function buildChat(local: LocalItem[], threads: HelpThread[], active: Hel
 export const HELP_ROUTES: Record<string, { path: string; label: string }> = {
   home: { path: '/', label: 'Open Home' },
   textbooks: { path: '/(tabs)/textbooks', label: 'Open Textbooks' },
-  doubts: { path: '/(tabs)/doubts', label: 'Open Doubts' },
+  doubts: { path: '/(tabs)/doubts', label: 'Open Snaps' },
   notes: { path: '/(tabs)/notes', label: 'Open Notes' },
   snap: { path: '/snap-capture', label: 'Open Snap and Solve' },
   class_picker: { path: '/drona', label: 'Start a class' },
