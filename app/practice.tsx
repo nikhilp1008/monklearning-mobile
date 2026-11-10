@@ -1417,9 +1417,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     /** The app’s one page-title tier — see constants/page-title.ts. */
     heading: pageTitle(scale),
-    /** The subject keeps the weight -- it is the part that changes. */
-    /** The subject, same tier. It used to be the bold half of a medium title; the title tier is bold now, so the row is one weight and the dropdown chevron marks the part that changes. */
-    headingSubject: pageTitle(scale),
+    /** The subject, same size but NOT bold (Nikhil, 9 Nov 2026). New students
+     *  did not see that it could be changed: with "Practice" and the subject in
+     *  one weight the title read as one fixed label, and the small chevron was
+     *  easy to miss. Bold "Practice", regular subject: the change of weight
+     *  says the second word is a different thing, the one you can tap. */
+    headingSubject: { ...pageTitle(scale), fontFamily: 'Onest_400Regular' },
     subjectButton: {
       flexDirection: 'row',
       alignItems: 'center',

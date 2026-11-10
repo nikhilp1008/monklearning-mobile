@@ -777,7 +777,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
 
     key: {
       marginTop: verticalScale(12),
-      borderRadius: scale(16),
+      borderRadius: scale(14),
       backgroundColor: '#FFFDF8',
       overflow: 'hidden',
       ...shadow({
@@ -792,14 +792,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
-      minHeight: scale(56),
-      paddingHorizontal: scale(16),
+      /* 48 and 15 regular (Nikhil, 9 Nov 2026): it was 56 and 16 medium, the
+         biggest field in the app, and read as oversized under the heading.
+         Now the size of the app's other text fields. */
+      minHeight: scale(48),
+      paddingHorizontal: scale(14),
     },
     input: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(16),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
       color: colors.ink,
       paddingVertical: Platform.OS === 'android' ? 0 : undefined,
     },

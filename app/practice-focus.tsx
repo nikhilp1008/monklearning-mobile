@@ -7,10 +7,10 @@ import Svg, { Path } from 'react-native-svg';
 
 import { StateLine } from '@/components/states';
 import { friendlyError } from '@/lib/api';
-import { PressableScale } from '@/components/pressable-scale';
+import { ObButton } from '@/components/onboarding-kit';
+import { SettingsHeader } from '@/components/settings-page';
 import { Skeleton, stagger } from '@/components/skeleton';
 import { colors } from '@/constants/brand';
-import { pageTitle } from '@/constants/page-title';
 import { useScale } from '@/constants/scale';
 import { CatalogueChapter, getCatalogue } from '@/lib/drona';
 import { normalizePracticeSubject, usePracticeFocus } from '@/lib/practice-focus-context';
@@ -43,9 +43,8 @@ export default function PracticeFocusScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
   const { focus, setFocus } = usePracticeFocus();
-  const params = useLocalSearchParams<{ subject?: string; subjectLabel?: string }>();
+  const params = useLocalSearchParams<{ subject?: string }>();
   const subjectQuery = params.subject ?? 'physics';
-  const subjectLabel = params.subjectLabel ?? 'Physics';
 
   const [chapters, setChapters] = useState<CatalogueChapter[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,12 +129,8 @@ export default function PracticeFocusScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backButton}>
-            <ChevronLeftIcon size={scale(14)} />
-          </Pressable>
-          <Text style={styles.title}>Focus mode</Text>
-        </View>
+        {/* The app's back-and-title header, as on Exam scope and Settings. */}
+        <SettingsHeader title="Focus mode" />
 
         <ScrollView
           style={styles.scroll}
@@ -150,8 +145,10 @@ export default function PracticeFocusScreen() {
               can make it. Still ONE chapter: the parameter is singular, so
               multi-select remains on hold rather than silently honouring the
               first pick. */}
+          {/* No subject name: the student came here from that subject's
+              Practice, and the chapters below already belong to it. */}
           <Text style={styles.subtitle}>
-            {subjectLabel} · pick a chapter and every question comes from it
+            Practise every chapter, your weak areas first, or just one chapter.
           </Text>
 
           <View style={styles.modeList}>
@@ -163,7 +160,7 @@ export default function PracticeFocusScreen() {
                   style={styles.modeRow}
                   onPress={() => setPending({ kind: 'mode', mode: mode.key })}>
                   <Text style={styles.rowLabel}>{mode.label}</Text>
-                  <Radio on={on} shape="circle" scale={scale} />
+                  <Radio on={on} scale={scale} />
                 </Pressable>
               );
             })}
@@ -171,7 +168,7 @@ export default function PracticeFocusScreen() {
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or focus on one chapter</Text>
+            <Text style={styles.dividerText}>Or one chapter</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -205,7 +202,7 @@ export default function PracticeFocusScreen() {
                       style={styles.chapterRow}
                       onPress={() => setPending({ kind: 'chapter', id: chapter.id })}>
                       <Text style={styles.rowLabel}>{chapter.name}</Text>
-                      <Radio on={on} shape="square" scale={scale} />
+                      <Radio on={on} scale={scale} />
                     </Pressable>
                   );
                 })}
@@ -220,12 +217,8 @@ export default function PracticeFocusScreen() {
               cannot find the chapter. Tapping Apply in that window was a
               total no-op: no feedback, no navigation, no error. It now looks
               refused, and takes a press when it isn't. */}
-          <PressableScale
-            style={[styles.applyButton, !canApply && styles.applyButtonWaiting]}
-            disabled={!canApply}
-            onPress={applyFocus}>
-            <Text style={styles.applyButtonText}>Apply focus</Text>
-          </PressableScale>
+          {/* The app's own key (ObButton), not a one-off dark pill. */}
+          <ObButton label="Apply focus" disabled={!canApply} onPress={applyFocus} />
         </View>
       </SafeAreaView>
     </View>
@@ -233,19 +226,11 @@ export default function PracticeFocusScreen() {
 }
 
 /**
- * The bundle draws two radios from one function: a circle for the modes and
- * a rounded square for the chapters, both filling marigold with a white tick
- * when they are on. The shape is the only thing that differs.
+ * One radio for every row. It used to be a circle for the modes and a square
+ * for the chapters, but it is one choice from the whole list (picking either
+ * clears the other), and a square reads as "tick as many as you like".
  */
-function Radio({
-  on,
-  shape,
-  scale,
-}: {
-  on: boolean;
-  shape: 'circle' | 'square';
-  scale: (n: number) => number;
-}) {
+function Radio({ on, scale }: { on: boolean; scale: (n: number) => number }) {
   const size = scale(22);
   return (
     <View
@@ -253,7 +238,7 @@ function Radio({
         width: size,
         height: size,
         flexShrink: 0,
-        borderRadius: shape === 'circle' ? size / 2 : scale(7),
+        borderRadius: size / 2,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: on ? colors.marigold : '#fff',
@@ -275,20 +260,6 @@ function Radio({
   );
 }
 
-function ChevronLeftIcon({ size }: { size: number }) {
-  return (
-    <Svg viewBox="0 0 16 16" width={size} height={size} fill="none">
-      <Path
-        d="M10 3 5 8l5 5"
-        stroke={colors.ink}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     screen: {
@@ -298,23 +269,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     safeArea: {
       flex: 1,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(10),
-      paddingTop: verticalScale(14),
-      paddingBottom: verticalScale(12),
-      paddingHorizontal: scale(24),
-    },
-    backButton: {
-      width: scale(28),
-      height: scale(28),
-      marginLeft: scale(-6),
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    /** The app’s one page-title tier — see constants/page-title.ts. */
-    title: pageTitle(scale),
     scroll: {
       flex: 1,
     },
@@ -325,7 +279,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     subtitle: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.slate,
+      marginTop: verticalScale(4),
     },
     modeList: {
       marginTop: verticalScale(14),
@@ -334,22 +290,23 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(12),
-      paddingVertical: verticalScale(13),
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(28,25,20,.1)',
+      paddingVertical: verticalScale(12),
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(28,25,20,.08)',
     },
     rowLabel: {
       flex: 1,
       minWidth: 0,
       fontFamily: 'Onest_400Regular',
       fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.ink,
     },
     dividerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(12),
-      marginTop: verticalScale(10),
+      marginTop: verticalScale(20),
       marginBottom: verticalScale(4),
     },
     dividerLine: {
@@ -357,18 +314,22 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       height: 1,
       backgroundColor: 'rgba(28,25,20,.1)',
     },
+    /* Home's overline, not the red pen: red is the wrong-answer mark. */
     dividerText: {
       fontFamily: 'Onest_700Bold',
-      fontSize: scale(13),
-      color: colors.red,
-      transform: [{ rotate: '-1deg' }],
+      fontSize: scale(11),
+      lineHeight: scale(14),
+      letterSpacing: scale(1.1),
+      textTransform: 'uppercase',
+      color: colors.slate,
     },
     classLabel: {
-      fontFamily: 'Onest_800ExtraBold',
-      fontSize: scale(9.9),
-      letterSpacing: scale(1.16),
+      fontFamily: 'Onest_700Bold',
+      fontSize: scale(11),
+      lineHeight: scale(14),
+      letterSpacing: scale(1.1),
       textTransform: 'uppercase',
-      color: colors.faint,
+      color: colors.amberText,
       marginTop: verticalScale(28),
       marginBottom: verticalScale(6),
     },
@@ -399,23 +360,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderTopWidth: 1,
       borderTopColor: 'rgba(28,25,20,.08)',
       backgroundColor: '#fff',
-    },
-    applyButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: verticalScale(52),
-      borderRadius: scale(99),
-      backgroundColor: '#241A08',
-    },
-    /** Waiting on the chapter list, not permanently unavailable. */
-    applyButtonWaiting: {
-      opacity: 0.4,
-    },
-    applyButtonText: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(16),
-      color: '#FFF7E6',
     },
   });
 }
