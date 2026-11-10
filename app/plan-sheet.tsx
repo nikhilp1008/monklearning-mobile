@@ -5,18 +5,22 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { shadow } from '@/lib/shadow';
 import { ArrowRightIcon } from '@/components/arrow-right-icon';
+import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
+import { useTeacherId } from '@/components/states';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { MAX_PLAN_ITEMS, PlanItem, getTodayPlan, newPlanId, saveTodayPlan } from '@/lib/plan';
+import { teacherName } from '@/lib/preferences';
 
-const SUGGESTIONS = [
+/** The class one names the student's own teacher. It said "lesson", the word
+ *  for the Lessons feature that is on hold; the live class is the class. */
+const suggestionsFor = (teacher: string) => [
   '20 min practice',
   'Revise a weak chapter',
   'Clear 2 doubts',
-  'One lesson with Drona',
+  `One class with ${teacher}`,
 ];
 
 export default function PlanSheetScreen() {
@@ -24,6 +28,8 @@ export default function PlanSheetScreen() {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
+  const teacher = useTeacherId();
+  const SUGGESTIONS = suggestionsFor(teacherName(teacher));
   const [items, setItems] = useState<PlanItem[]>([]);
   const [draft, setDraft] = useState('');
 
@@ -180,9 +186,11 @@ export default function PlanSheetScreen() {
           </>
         )}
 
-        <PressableScale style={styles.doneButton} onPress={() => router.back()}>
-          <Text style={styles.doneButtonText}>Done</Text>
-        </PressableScale>
+        {/* The app's own key (ObButton), as on the topic sheet: rounded
+            corners, not the pill this sheet used to have. */}
+        <View style={styles.doneWrap}>
+          <ObButton label="Done" onPress={() => router.back()} />
+        </View>
       </Animated.View>
     </View>
   );
@@ -222,7 +230,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderTopLeftRadius: scale(24),
       borderTopRightRadius: scale(24),
       paddingHorizontal: scale(20),
-      ...shadow({ color: '#16130E', opacity: 0.25, radius: scale(20), y: verticalScale(-10), elevation: 12 }),
+      // No shadow: the scrim already separates the sheet from the page, and a
+      // shadow cast up onto the scrim read as a dark smudge above the sheet.
     },
     handle: {
       width: scale(40),
@@ -264,6 +273,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     subtitle: {
       fontFamily: 'Onest_400Regular',
       fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.slate,
       marginTop: verticalScale(3),
     },
@@ -304,8 +314,9 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     planText: {
       flex: 1,
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(14),
+      fontFamily: 'Onest_500Medium',
+      fontSize: scale(15),
+      lineHeight: scale(22),
       color: colors.ink,
     },
     planRemove: {
@@ -332,7 +343,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingVertical: verticalScale(12),
       paddingHorizontal: scale(16),
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
+      fontSize: scale(15),
       color: colors.ink,
     },
     submitButton: {
@@ -375,23 +386,12 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
     chipText: {
       fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(12),
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.slate,
     },
-    doneButton: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: verticalScale(50),
-      borderRadius: scale(99),
-      backgroundColor: colors.ink,
-      marginTop: verticalScale(18),
-      ...shadow({ color: colors.ink, opacity: 0.3, radius: scale(10), y: verticalScale(6), elevation: 6 }),
-    },
-    doneButtonText: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(15),
-      color: colors.paper,
+    doneWrap: {
+      marginTop: verticalScale(20),
     },
   });
 }

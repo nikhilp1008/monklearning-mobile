@@ -26,6 +26,37 @@ import { getProfile } from '@/lib/profile';
  * It reads the same status Mock tests reads; while it loads, or offline, it
  * still says what it is and still opens the page.
  */
+/** Where the student stands with mock tests, in a few words, for Home's list
+ *  ("Ready", "In progress", "41 of 75"); null until the status has loaded. */
+export function useMockStanding(): string | null {
+  const [standing, setStanding] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          const { exam } = await getProfile();
+          const s = await getMockStatus(exam === 'neet' ? 'neet' : 'jee');
+          if (cancelled) return;
+          setStanding(
+            s.active_paper && !s.active_paper.expired
+              ? 'In progress'
+              : (s.credits_available ?? 0) > 0
+                ? 'Ready'
+                : `${earnedTowardNext(s)} of ${s.threshold}`
+          );
+        } catch {
+          // Offline: the row still names the page and opens it.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
+  return standing;
+}
+
 export function MockTestsCard() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -118,7 +149,7 @@ export function MockTestsCard() {
 
 /** A paper with a clock: the 24 grid, one 1.8 line, the marigold dot as the
  *  clock's centre (components/monk-icons.tsx rules). */
-function MockTestsIcon({ size }: { size: number }) {
+export function MockTestsIcon({ size }: { size: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <G stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">

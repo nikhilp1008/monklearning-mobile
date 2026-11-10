@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ArrowRightIcon } from '@/components/arrow-right-icon';
-import { RingSweep } from '@/components/gradient-select';
 import { PressableScale } from '@/components/pressable-scale';
+import { CardButton } from '@/components/card-button';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { openWaitingPaper, type WaitingPaper } from '@/lib/waiting-paper';
@@ -48,7 +47,6 @@ export function PaperWaitingCard({ paper }: { paper: WaitingPaper }) {
         setOpening(false);
       }}
     >
-      <RingSweep radius={scale(14) + RING} still={RING_ANGLE} />
       <View style={styles.row}>
         <View style={styles.text}>
           <Text style={styles.overline}>{over ? 'Time is up' : 'Mock test in progress'}</Text>
@@ -61,7 +59,7 @@ export function PaperWaitingCard({ paper }: { paper: WaitingPaper }) {
           </Text>
           <Text style={[styles.body, !over && styles.mono]}>{detail}</Text>
         </View>
-        <ArrowRightIcon color={colors.ink} size={scale(16)} />
+        <CardButton label={over ? 'See your score' : 'Resume'} />
       </View>
     </PressableScale>
   );
@@ -87,27 +85,22 @@ function clock(total: number) {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
-/** As on the starting-point card: the ring's width, and its bright side at the upper right. */
-const RING = 2;
-const RING_ANGLE = 140;
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
+    /* Home's Up next, as the Calmer Home design drew it (Nikhil, 9 Nov
+       2026): an even marigold line all the way round, not the fading ring. */
     ring: {
-      padding: RING,
-      borderRadius: scale(14) + RING,
-      backgroundColor: 'rgba(28,26,22,.10)',
-      overflow: 'hidden',
+      borderWidth: 1.5,
+      borderColor: 'rgba(238,163,31,.55)',
+      borderRadius: scale(18),
+      backgroundColor: '#FFFFFF',
       marginTop: verticalScale(24),
     },
     row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(16),
-      paddingVertical: verticalScale(18),
-      paddingHorizontal: scale(16),
-      borderRadius: scale(14),
-      backgroundColor: '#FFFFFF',
+      gap: verticalScale(16),
+      paddingVertical: verticalScale(20),
+      paddingHorizontal: scale(22),
     },
     text: { flex: 1, minWidth: 0 },
     overline: {

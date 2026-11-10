@@ -1,57 +1,34 @@
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  useWindowDimensions,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import Animated, {
-  Extrapolation,
-  interpolate,
-  runOnJS,
-  useAnimatedScrollHandler,
-  useDerivedValue,
-  useSharedValue,
-  withTiming,
-  Easing,
-  type SharedValue,
-} from 'react-native-reanimated';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { StateMoment, StatePlate } from '@/components/states';
 import { recoverPendingSnap } from '@/lib/snap-pending';
-import { ArrowRightIcon } from '@/components/arrow-right-icon';
 import { HomeHeader } from '@/components/home-header';
-import { NightSkyAbove, NightSkyStrip, ThemedSky } from '@/components/night-sky';
-import { PracticeIcon, SnapADoubtIcon } from '@/components/monk-icons';
 import { hapticTicked, hapticUnticked } from '@/lib/haptics';
 import { NoticedCard } from '@/components/noticed-card';
 import { PressableScale } from '@/components/pressable-scale';
-import { MockTestsCard } from '@/components/mock-tests-card';
+import { HomeMoreList } from '@/components/home-more-list';
 import { PaperWaitingCard } from '@/components/paper-waiting-card';
 import { StartingPointCard } from '@/components/starting-point-card';
 import { colors } from '@/constants/brand';
 import { MOMENTS_VISIBLE } from '@/constants/features';
 import { useScale } from '@/constants/scale';
-import { SKY_THEMES } from '@/constants/teachers';
 import { observe, type Observation, type ObservationAction } from '@/lib/noticed';
 import { PlanItem, getTodayPlan, saveTodayPlan } from '@/lib/plan';
 import { pullPersona } from '@/lib/persona-sync';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 import { getStoredName } from '@/lib/profile';
 import { PassEndingBanner } from '@/components/pass-ending-banner';
-import { useFreeTier, usePlan } from '@/lib/free-tier';
 import { openClass } from '@/lib/open-class';
 import { getCachedProgress, getProgress } from '@/lib/progress';
 import { useStartingPointOffer } from '@/lib/starting-point';
 import { useWaitingPaper } from '@/lib/waiting-paper';
 import { classesTaken } from '@/lib/proof';
-
-/** Drona's sky, then Vedha's — the order `skyMix` runs 0 to 1 in. */
-const TEACHER_SKIES = [SKY_THEMES.drona, SKY_THEMES.vedha] as const;
 
 /**
  * Home — export-10a.
@@ -82,12 +59,10 @@ type StatsState =
   | { kind: 'hidden' };
 
 export default function HomeScreen() {
-  const freeTier = useFreeTier();
-  const plan = usePlan();
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
 
-  const [initial, setInitial] = useState('');
+  const [firstName, setFirstName] = useState('');
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
   const [stats, setStats] = useState<StatsState>(() => {
     const c = getCachedProgress();
@@ -123,51 +98,10 @@ export default function HomeScreen() {
   /** The finished plan folds into its moment; a tap opens the list again. */
   const [planOpen, setPlanOpen] = useState(false);
 
-  /**
-   * THE STATUS BAR FOLLOWS THE HEADER, because the header scrolls away.
-   *
-   * The glyphs are paper while the dark block is under them and ink the moment
-   * white is. Declared here rather than in the tabs layout so this screen's
-   * `<StatusBar>` sits on top of that one's `style="dark"` — and only while
-   * this screen is the one being looked at, or the light setting would follow
-   * the student onto a white tab and leave an invisible clock there.
-   */
+  /** Home is white to the top now, so the clock is always ink, and a white
+   *  strip under it keeps the page from scrolling up behind it. */
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
-  const [header, setHeader] = useState({ width: 0, height: 0 });
-  const [barLight, setBarLight] = useState(true);
   const [focused, setFocused] = useState(false);
-
-  /** How far the header can travel before its bottom edge reaches the clock. */
-  const skyTravel = Math.max(1, header.height - insets.top);
-  /** Where the clock flips to ink: the header's bottom is about to leave. */
-  const flipAt = skyTravel - scale(8);
-  /** The page's scroll, on the UI thread, so the strip behind the clock moves
-   *  with the header frame for frame rather than a frame behind it. */
-  const scrollY = useSharedValue(0);
-  const lightNow = useSharedValue(true);
-  const onScroll = useAnimatedScrollHandler(
-    (e) => {
-      scrollY.value = e.contentOffset.y;
-      const covered = e.contentOffset.y < flipAt;
-      if (covered !== lightNow.value) {
-        lightNow.value = covered;
-        runOnJS(setBarLight)(covered);
-      }
-    },
-    [flipAt]
-  );
-  const skyOffset = useDerivedValue(
-    () => Math.min(Math.max(scrollY.value, 0), skyTravel),
-    [skyTravel]
-  );
-  /** Gone over the last stretch before the flip, so it fades rather than cuts.
-   *  Worked out here, not in the worklet: `scale` cannot run on the UI thread. */
-  const fadeFrom = flipAt - scale(24);
-  const skyFade = useDerivedValue(
-    () => interpolate(scrollY.value, [fadeFrom, flipAt], [1, 0], Extrapolation.CLAMP),
-    [fadeFrom, flipAt]
-  );
 
   // Refetch on focus, not just mount — the plan is edited on a separate screen
   // this one stays mounted underneath, and the score moves while the student
@@ -181,7 +115,7 @@ export default function HomeScreen() {
       // The stored name only — a fresh install shows the neutral glyph, never
       // a sample profile's initial presented as the student's own.
       getStoredName().then((name) => {
-        if (!cancelled) setInitial(name?.trim()[0]?.toUpperCase() ?? '');
+        if (!cancelled) setFirstName(name?.trim().split(/\s+/)[0] ?? '');
       });
       getTodayPlan().then((items) => {
         if (!cancelled) setPlanItems(items);
@@ -271,116 +205,29 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      {focused ? <StatusBar style={barLight ? 'light' : 'dark'} animated /> : null}
+      {focused ? <StatusBar style="dark" animated /> : null}
       <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}>
-        {/*
-          THE SKY ABOVE THE SKY, for a pull past the top.
-
-          The page bounces at both ends, as an iPhone page should. Pulled down
-          past the top, though, the header slid down and opened a white gap
-          above it, under the strip of sky that stays behind the clock — the
-          header and the status bar came apart. This sits directly above the
-          header, off the top of the page, and moves with it: a pull reveals
-          more of the sky's own top edge, grain and all, so it reads as the
-          header stretching rather than tearing away. At rest and in an
-          ordinary scroll it is above the screen and never seen.
-        */}
-        {header.width > 0 ? (
-          <NightSkyAbove
-            width={header.width}
-            height={windowHeight}
-            style={[styles.skyAbove, { top: -windowHeight }]}
-          />
-        ) : null}
+        showsVerticalScrollIndicator={false}>
         {/* The app bar and the live-class card, as one block. See
             components/home-header.tsx — the copy is unchanged, the two pieces
             are not two pieces any more, and the teacher now has a row of its
             own above the button that starts the class. */}
         <HomeHeader
           teacher={teacher}
-          initial={initial}
+          firstName={firstName}
           onSelectTeacher={() =>
             router.push({ pathname: '/select-teacher', params: { teacher } })
           }
           onStartClass={() => openClass('/drona')}
+          onSnap={() => router.push('/snap-capture')}
+          onPractice={() => router.push('/practice')}
           onProgress={() => router.push('/progress')}
           onProfile={() => router.push('/profile')}
-          onMeasure={setHeader}
           skyMix={skyMix}
         />
 
         <View style={styles.body}>
-
-          {/*
-            Two cells of one strip, not two cards. A vertical rule between them
-            and a horizontal rule above and below: the pair reads as a single
-            row of the document, one rank below the block.
-
-            THE LAYOUT IS THE ORIGINAL ONE. An inline head — plate beside the
-            title — was tried and reverted: beside a 36pt plate there is not
-            enough width left for "Snap and Solve" to hold one line, so it
-            wrapped while "Practice" did not, and the only ways out were a
-            smaller title or a shorter name. With the title on its own full
-            width it fits at 16pt, which is where it started.
-
-            WHAT IS NOT REVERTED IS THE ICON. It was a 24pt outline in the same
-            colour as the body copy, sitting in a corner at the weight of a
-            footnote directly beneath a black card with a white button on it.
-            It reverses out of an ink plate now.
-
-            AND THERE IS NO PER-FEATURE COLOUR. A red plate for Snap and a
-            green one for Practice was colour-CODING something with no code:
-            nothing about practising is green, nothing about a camera is red,
-            and a pastel square with a matching glyph in it is the most
-            templated component on the internet. Both plates are identical; the
-            DRAWING is what separates the two cards, because that is the part
-            carrying meaning. The colour that remains is the app's own
-            marigold, already inside both icons — the camera's aperture and the
-            card's bullet.
-          */}
-          <View style={styles.strip}>
-            <PressableScale
-              style={[styles.stripCell, styles.stripCellLeft]}
-              onPress={() => router.push('/snap-capture')}>
-              <View style={styles.stripHead}>
-                <View style={styles.stripPlate}>
-                  <PlateGround size={scale(36)} mix={skyMix} />
-                  <SnapADoubtIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
-                </View>
-                <ArrowRightIcon color={colors.ink} size={scale(16)} />
-              </View>
-              <Text style={styles.stripTitle}>Snap and Solve</Text>
-              <Text style={styles.stripBody}>Up to 3 questions, solved step by step</Text>
-            </PressableScale>
-            <PressableScale
-              style={[styles.stripCell, styles.stripCellRight]}
-              onPress={() => router.push('/practice')}>
-              <View style={styles.stripHead}>
-                <View style={styles.stripPlate}>
-                  <PlateGround size={scale(36)} mix={skyMix} />
-                  <PracticeIcon size={scale(19)} color={colors.paper} accent={colors.paper} />
-                </View>
-                <ArrowRightIcon color={colors.ink} size={scale(16)} />
-              </View>
-              <Text style={styles.stripTitle}>Practice</Text>
-              {/* The student's own number: the free tier's, or their plan's from the
-                  server's tier_limits (lib/pass.ts). 150 is what a paying student
-                  had before plans, and what the app says until the server has
-                  said which plan this is (the tiers are switched on after the
-                  app that knows them is out). */}
-              <Text style={styles.stripBody}>
-                {freeTier.free
-                  ? `${freeTier.limits.practice_questions} free a day, across all subjects`
-                  : plan.tier === 'day' || plan.tier === 'week'
-                    ? 'Every day, across all subjects'
-                    : `${plan.tier && plan.tier !== 'free' ? plan.tiers[plan.tier].practice_questions : 150} a day, across all subjects`}
-              </Text>
-            </PressableScale>
-          </View>
 
           {/* THE SCORE, right under Snap and Practice (Nikhil, 9 Nov 2026), so a
               student sees it the moment Home opens. It used to sit below the
@@ -397,26 +244,6 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
-
-          {/*
-            CLASS NOTES, moved here from the tab bar (Nikhil, 9 Nov 2026), when
-            Videos took its place. The same plate, title and arrow as Snap and
-            Practice above it, as one full-width row of the same document, so
-            the notes from every class are still on the first screen.
-          */}
-          <PressableScale style={styles.notesRow} onPress={() => router.push('/(tabs)/notes')}>
-            {/* A quiet ink mark, not a third sky plate (Nikhil, 9 Nov): the
-                plates are what make Snap and Practice the two daily actions,
-                and Notes sits one step below them. */}
-            <View style={styles.notesIcon}>
-              <ClassNotesIcon size={scale(24)} />
-            </View>
-            <View style={styles.notesText}>
-              <Text style={[styles.stripTitle, styles.notesTitle]}>Class notes</Text>
-              <Text style={styles.stripBody}>Notes you saved from your classes</Text>
-            </View>
-            <ArrowRightIcon color={colors.ink} size={scale(16)} />
-          </PressableScale>
 
           {/* One observation, or nothing. Silence is a valid answer — see
               lib/noticed.ts — so this renders nothing at all rather than a
@@ -477,7 +304,7 @@ export default function HomeScreen() {
                 <StatePlate glyph="plan" size={scale(40)} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.planEmptyLabel}>Set your first plan for today</Text>
-                  <Text style={styles.planEmptySub}>Up to 3. Pick a chapter, a paper or your own.</Text>
+                  <Text style={styles.planEmptySub}>Up to 3 things you want to get done today.</Text>
                 </View>
               </PressableScale>
             ) : doneCount === planItems.length && !planOpen ? (
@@ -518,64 +345,14 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* Deliberately quiet: this is a reference students visit once or
-              twice, not a daily action. */}
-          <PressableScale style={styles.scopeRow} onPress={() => router.push('/exam-scope')}>
-            <View style={styles.scopeTextBlock}>
-              <Text style={styles.overline}>Exam scope</Text>
-              <Text style={styles.scopeTitle}>What&apos;s actually in your exam</Text>
-              <Text style={styles.scopeBody}>
-                Not every NCERT chapter is examinable. See what counts, and what you can stop
-                studying.
-              </Text>
-            </View>
-            <ArrowRightIcon color={colors.slate} size={scale(15)} />
-          </PressableScale>
-
-          {/* MOCK TESTS: the one way in, under Exam scope. It used to live
-              only in a card far down Progress. */}
-          <MockTestsCard />
+          {/* Class notes, Exam scope and Mock tests: places visited now and
+              then, together in one quiet list (Nikhil, 9 Nov 2026). */}
+          <HomeMoreList />
         </View>
       </Animated.ScrollView>
 
-      {/*
-        THE STRIP OF SKY BEHIND THE CLOCK.
-
-        The header scrolls, and the status bar does not. Without this, the
-        teacher row slides up behind the clock and the two sets of pale text
-        overlap on an amber field — which the web mock could not show, because
-        there the status bar is drawn inside the page and scrolls away with it.
-
-        So a copy of the same sky is pinned at the top, clipped to the safe
-        area, for exactly as long as the header is still under the status bar.
-        It is the SAME shader at the SAME size, so while the page is at rest it
-        is indistinguishable from the header behind it.
-
-        AND IT SCROLLS WITH THE HEADER. It used to show the top of the sky —
-        its darkest band — wherever the page was, so once the header moved up
-        and its amber middle was under the clock, the strip sat over it as a
-        dark bar. Now the sky inside the strip slides up with the scroll, so
-        the strip always shows the very slice of sky that is beneath it: one
-        continuous sky, with the header's words and buttons passing out of
-        sight under it, its lower edge dissolving rather than slicing them.
-        It is clipped to the header's own rounded bottom, and over the last
-        stretch before the header leaves it fades out, so it is gone — not
-        cut — by the time the status bar flips to ink. See NightSkyStrip.
-      */}
-      {barLight && header.width > 0 ? (
-        <NightSkyStrip
-          width={header.width}
-          skyHeight={header.height}
-          height={insets.top}
-          feather={Math.min(scale(16), insets.top * 0.3)}
-          corner={scale(34)}
-          offset={skyOffset}
-          fade={skyFade}
-          themes={TEACHER_SKIES}
-          mix={skyMix}
-          style={styles.statusScrim}
-        />
-      ) : null}
+      {/* A white strip behind the clock, so the page scrolls under it. */}
+      <View pointerEvents="none" style={[styles.statusScrim, { height: insets.top }]} />
     </View>
   );
 }
@@ -615,21 +392,6 @@ export default function HomeScreen() {
  * one shader evaluation over 36x36 points, drawn once and cached like every
  * other static Skia picture on the page.
  */
-function PlateGround({ size, mix }: { size: number; mix: SharedValue<number> }) {
-  /* Absolutely positioned, or the canvas takes layout space inside a plate
-     that centres its children and shoves the glyph off the bottom edge. In
-     the teacher's light, like the header it is a miniature of. */
-  return (
-    <ThemedSky
-      width={size}
-      height={size}
-      themes={TEACHER_SKIES}
-      mix={mix}
-      style={StyleSheet.absoluteFillObject}
-    />
-  );
-}
-
 function toStatsState(score: number, practised: number): StatsState {
   if (score === 0 && practised === 0) return { kind: 'hidden' };
   return { kind: 'ready', score, practised };
@@ -662,21 +424,6 @@ function runObservationAction(action: ObservationAction | undefined) {
  * a 24 grid, one 1.8 ink line, one marigold dot. A notebook with its spine; the
  * dot sits where the second written line would be, the note itself.
  */
-function ClassNotesIcon({ size }: { size: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M7.2 3.75h9.6A2.2 2.2 0 0 1 19 5.95v12.1a2.2 2.2 0 0 1-2.2 2.2H7.2A2.2 2.2 0 0 1 5 18.05V5.95a2.2 2.2 0 0 1 2.2-2.2zM9 3.75v16.5M12.2 9h3.6"
-        stroke={colors.ink}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={13} cy={12.8} r={1.4} fill={colors.marigold} />
-    </Svg>
-  );
-}
-
 function CheckIcon({ size, color }: { size: number; color: string }) {
   return (
     <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
@@ -705,101 +452,22 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       paddingBottom: verticalScale(130),
     },
     body: {
-      paddingTop: verticalScale(28),
+      paddingTop: verticalScale(20),
       paddingHorizontal: scale(24),
     },
-    skyAbove: { position: 'absolute', left: 0 },
     statusScrim: {
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
-      overflow: 'hidden',
+      backgroundColor: '#fff',
     },
 
-    // --- snap / practice ---
-    strip: {
-      flexDirection: 'row',
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: RULE,
-    },
-    stripCell: {
-      flex: 1,
-      paddingVertical: verticalScale(20),
-    },
-    stripCellLeft: {
-      paddingRight: scale(20),
-      borderRightWidth: 1,
-      borderRightColor: RULE,
-    },
-    stripCellRight: {
-      paddingLeft: scale(20),
-    },
-    stripHead: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-    },
-    /** Ink, and the glyph reverses out of it. The plate is what makes the icon
-     *  the first thing read in the cell rather than the last. */
-    stripPlate: {
-      width: scale(36),
-      height: scale(36),
-      borderRadius: scale(11),
-      alignItems: 'center',
-      justifyContent: 'center',
-      /* NO DARK GROUND UNDER THE SKY, as on the header: the rounded clip
-         smooths each layer's edge separately, and a `night` ground showed
-         through as a dark rim round the plate's corners and edges. The sky
-         carries its own fallback colour for a phone where it cannot draw. */
-      /** Clips the glow and the grain to the plate's corners — the same thing
-       *  the card needed once it held more than one layer. */
-      overflow: 'hidden',
-    },
-    stripTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 16),
-      color: colors.ink,
-      marginTop: verticalScale(12),
-    },
-    stripBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(18),
-      color: colors.slate,
-      marginTop: verticalScale(4),
-    },
-
-    // --- class notes (the row under the strip) ---
-    notesRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(12),
-      paddingVertical: verticalScale(16),
-      borderBottomWidth: 1,
-      borderBottomColor: RULE,
-    },
-    notesIcon: {
-      width: scale(36),
-      height: scale(36),
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    /** Under the strip, the score row is a row of the same document: no gap
-     *  above it, the strip's hairline is its top edge. */
+    /* Snap and Practice moved up under the header, so the score row sits
+       directly beneath them. */
     statsUp: {
       marginTop: 0,
       paddingTop: verticalScale(16),
-    },
-    notesText: {
-      flex: 1,
-      minWidth: 0,
-    },
-    notesTitle: {
-      marginTop: 0,
     },
 
     // The row closes itself with a hairline, matching the stats row below it,
@@ -954,34 +622,5 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     },
 
 
-    // --- exam scope ---
-    scopeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(16),
-      marginTop: verticalScale(32),
-      paddingTop: verticalScale(24),
-      borderTopWidth: 1,
-      borderTopColor: RULE,
-    },
-    scopeTextBlock: {
-      flex: 1,
-      minWidth: 0,
-    },
-    scopeTitle: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(16),
-      lineHeight: scale(22),
-      letterSpacing: scale(-0.012 * 16),
-      color: colors.ink,
-      marginTop: verticalScale(10),
-    },
-    scopeBody: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(13),
-      lineHeight: scale(18),
-      color: colors.slate,
-      marginTop: verticalScale(4),
-    },
   });
 }

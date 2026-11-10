@@ -2,9 +2,8 @@ import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ArrowRightIcon } from '@/components/arrow-right-icon';
-import { RingSweep } from '@/components/gradient-select';
 import { PressableScale } from '@/components/pressable-scale';
+import { CardButton } from '@/components/card-button';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { MockDiagnosticOffer } from '@/lib/mock';
@@ -25,6 +24,10 @@ import type { MockDiagnosticOffer } from '@/lib/mock';
  * A white card inside the app's "picked" ring, held still, as on the Mock
  * tests card it leads to: the one marigold detail on this part of Home, and
  * never the yellow tint the app has dropped.
+ *
+ * HOME'S "UP NEXT" (Nikhil, 9 Nov 2026): the one thing to do next, with a
+ * button that says what happens instead of an arrow in the corner. The paper
+ * waiting card takes this place when a paper is running.
  */
 export function StartingPointCard({ offer }: { offer: MockDiagnosticOffer }) {
   const { scale, verticalScale } = useScale();
@@ -37,44 +40,38 @@ export function StartingPointCard({ offer }: { offer: MockDiagnosticOffer }) {
       accessibilityLabel="Find your starting point. A short paper."
       onPress={() => router.push('/mocks')}
     >
-      <RingSweep radius={scale(14) + RING} still={RING_ANGLE} />
       <View style={styles.row}>
         <View style={styles.text}>
-          <Text style={styles.overline}>Start here</Text>
+          <Text style={styles.overline}>Up next</Text>
           <Text style={styles.title}>Find your starting point</Text>
           <Text style={styles.body}>
             {offer.questions} questions, {offer.duration_minutes} minutes. It shows what you know
             and where to practise first.
           </Text>
         </View>
-        <ArrowRightIcon color={colors.ink} size={scale(16)} />
+        <CardButton label="Start" />
       </View>
     </PressableScale>
   );
 }
 
-/** The ring's width, and where its bright side sits (upper right), as on Mock tests. */
-const RING = 2;
-const RING_ANGLE = 140;
 
 function createStyles(scale: (n: number) => number, verticalScale: (n: number) => number) {
   return StyleSheet.create({
     /** A hairline under the ring, so its fading side still has an edge. */
+    /* Home's Up next, as the Calmer Home design drew it (Nikhil, 9 Nov
+       2026): an even marigold line all the way round, not the fading ring. */
     ring: {
-      padding: RING,
-      borderRadius: scale(14) + RING,
-      backgroundColor: 'rgba(28,26,22,.10)',
-      overflow: 'hidden',
+      borderWidth: 1.5,
+      borderColor: 'rgba(238,163,31,.55)',
+      borderRadius: scale(18),
+      backgroundColor: '#FFFFFF',
       marginTop: verticalScale(24),
     },
     row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: scale(16),
-      paddingVertical: verticalScale(18),
-      paddingHorizontal: scale(16),
-      borderRadius: scale(14),
-      backgroundColor: '#FFFFFF',
+      gap: verticalScale(16),
+      paddingVertical: verticalScale(20),
+      paddingHorizontal: scale(22),
     },
     text: { flex: 1, minWidth: 0 },
     overline: {
