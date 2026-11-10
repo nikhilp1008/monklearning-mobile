@@ -59,6 +59,9 @@ const DPR = PixelRatio.get();
 /** `uMix` closes this fraction of the remaining gap per second. */
 const MIX_RATE = 3.2;
 
+/** How fast the light moves, against the handoff's pace. 1.15 = 15% faster. */
+const MOTION_PACE = 1.15;
+
 /**
  * The handoff's `shaders/teacher.sksl`, with ONE edit, on the last line.
  *
@@ -225,7 +228,9 @@ export function TeacherField({
       uRes: [width, height],
       // Wrapped so the shader's trigonometry never runs out of float precision
       // on a screen left open, which shows up as the motion going jerky.
-      uT: t % 1000,
+      // MOTION_PACE runs the orb and field 15% faster than designed (Nikhil,
+      // 9 Nov 2026), to match the drift the still orbs were given.
+      uT: (t * MOTION_PACE) % 1000,
       uMode: 3,
       uMix: mix.value,
       uLvl: 0,
