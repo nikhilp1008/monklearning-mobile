@@ -124,11 +124,14 @@ describe('the text of every book chapter', () => {
     const SIDE = String.raw`(?:\d|<\/i>|\)|π|√\d)`;
     const AFTER = String.raw`(?:\d|<i>|\(|π|√)`;
     const SLASH = new RegExp(`${SIDE}\\s?\\/\\s?${AFTER}`);
+    // Not fractions, written as the book writes them: a cricket score, runs for wickets
+    // (Mathematics 11 Ch 2 Topic 01, "180/4").
+    const NOT_FRACTIONS = /“180\/4”/g;
     expect(
       breaches(({ chapter, block }, say) => {
         if (!block || chapter.subject !== 'Mathematics') return;
         for (const h of htmls(block)) {
-          const outside = h.replace(/<su([bp])>(?:(?!<\/su\1>).)*<\/su\1>/g, '');
+          const outside = h.replace(/<su([bp])>(?:(?!<\/su\1>).)*<\/su\1>/g, '').replace(NOT_FRACTIONS, '');
           if (SLASH.test(outside) || /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/.test(outside)) say(clip(plain(h)));
         }
       }),

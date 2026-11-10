@@ -49,6 +49,7 @@ import chem12ch9 from '@/content/textbooks/chem-12-09-amines';
 import chem12ch10 from '@/content/textbooks/chem-12-10-biomolecules';
 import chem12ch11 from '@/content/textbooks/chem-12-11-p-block';
 import math11ch1 from '@/content/textbooks/math-11-01-sets';
+import math11ch2 from '@/content/textbooks/math-11-02-relations';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import { KEY_POINTS } from '@/lib/revise/keypoints';
 import type { Chapter } from '@/lib/textbooks';
@@ -75,7 +76,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
@@ -91,9 +92,13 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
       if (firstExtra >= 0) expect(chapter.topics.slice(firstExtra).every((t) => t.extra)).toBe(true);
     });
 
+    // The additional ones run on from the book's own first letter: Mathematics 11
+    // Chapter 2's start at F, continuing the supplement's Procedure E.
+    const FIRST_EXTRA: Record<string, string> = { 'Mathematics 11 02': 'F' };
     it('numbers topics 01, 02, … and letters the additional ones A, B, …', () => {
       expect(regular.map((t) => t.n)).toEqual(regular.map((_, i) => String(i + 1).padStart(2, '0')));
-      expect(extras.map((t) => t.n)).toEqual(extras.map((_, i) => String.fromCharCode(65 + i)));
+      const first = (FIRST_EXTRA[`${chapter.subject} ${klass} ${chapter.chapter}`] ?? 'A').charCodeAt(0);
+      expect(extras.map((t) => t.n)).toEqual(extras.map((_, i) => String.fromCharCode(first + i)));
     });
 
     it('splits every topic at the book\'s own sections, starting with one', () => {

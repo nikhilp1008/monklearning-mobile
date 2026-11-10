@@ -22,6 +22,7 @@ import { DIAGRAMS_CHEMISTRY_12_09 } from '@/lib/diagrams/chemistry-12-09';
 import { DIAGRAMS_CHEMISTRY_12_10 } from '@/lib/diagrams/chemistry-12-10';
 import { DIAGRAMS_CHEMISTRY_12_11 } from '@/lib/diagrams/chemistry-12-11';
 import { DIAGRAMS_MATHEMATICS_11_01 } from '@/lib/diagrams/mathematics-11-01';
+import { DIAGRAMS_MATHEMATICS_11_02 } from '@/lib/diagrams/mathematics-11-02';
 import { DIAGRAMS_PHYSICS_11_01 } from '@/lib/diagrams/physics-11-01';
 import { DIAGRAMS_PHYSICS_11_02 } from '@/lib/diagrams/physics-11-02';
 import { DIAGRAMS_PHYSICS_11_03 } from '@/lib/diagrams/physics-11-03';
@@ -112,6 +113,7 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   // One chapter from two books: the Class 11 p-Block (Groups 13–14) then the Class 12 (Groups 15–18), in topic order.
   'chemistry|12|11': [...DIAGRAMS_CHEMISTRY_11_10, ...DIAGRAMS_CHEMISTRY_12_11].sort((a, b) => a.topic - b.topic),
   'mathematics|11|1': DIAGRAMS_MATHEMATICS_11_01,
+  'mathematics|11|2': DIAGRAMS_MATHEMATICS_11_02,
 };
 
 const BY_ID = new Map(Object.values(DIAGRAMS).flat().map((d) => [d.id, d]));
