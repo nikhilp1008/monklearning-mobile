@@ -4,7 +4,7 @@ import { ApiError, apiFetch } from '@/lib/api';
 import type { PassKind } from '@/lib/pass';
 
 /**
- * WHERE A PASS CAN BE BOUGHT: ANDROID ONLY, FOR NOW (founder, 2026-10-17).
+ * WHERE A PASS CAN BE BOUGHT: ANDROID, ONLY WHEN THE BUILD TURNS IT ON.
  *
  * Selling access to the app's own features outside Apple's in-app purchase is
  * against App Store rule 3.1.1, so an iPhone build that opened Razorpay would
@@ -12,8 +12,17 @@ import type { PassKind } from '@/lib/pass';
  * TestFlight for team and teacher accounts (which the paywall never stops),
  * and every screen that sells asks this before showing a Pay button. A promo
  * code that makes a pass free is not a sale and still works everywhere.
+ *
+ * ANDROID IS OFF UNLESS `EXPO_PUBLIC_ANDROID_PAYMENTS=1` WAS SET WHEN THE BUILD
+ * WAS MADE (2026-11-11). Google Play requires digital goods sold inside an app
+ * to go through Google Play Billing; Razorpay alone is allowed only beside it
+ * (India user choice billing). Until that is built, the Play build sells
+ * nothing: every Pay button becomes "Enter a promo code", the same as iPhone,
+ * for every user alike. Turn it back on only together with Play Billing. The
+ * UPI manifest plugin (plugins/with-upi-queries.js) reads the same flag.
  */
-export const PAYMENTS_ON_THIS_DEVICE = Platform.OS === 'android';
+export const ANDROID_PAYMENTS_ON = process.env.EXPO_PUBLIC_ANDROID_PAYMENTS === '1';
+export const PAYMENTS_ON_THIS_DEVICE = Platform.OS === 'android' && ANDROID_PAYMENTS_ON;
 
 /** The price the server would charge is not the price the student was shown. */
 export class PriceMismatchError extends Error {

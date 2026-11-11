@@ -13,6 +13,10 @@ const UPI_PACKAGES = [
 ];
 
 module.exports = function withUpiQueries(config) {
+  // Only when Android payments are on (same flag as lib/payments.ts). A build
+  // that sells nothing has no reason to ask Android which payment apps are
+  // installed, and Google Play asks developers to justify such <queries>.
+  if (process.env.EXPO_PUBLIC_ANDROID_PAYMENTS !== '1') return config;
   return withAndroidManifest(config, (cfg) => {
     const manifest = cfg.modResults.manifest;
     const queries = (manifest.queries = manifest.queries ?? [{}]);
