@@ -74,7 +74,8 @@ export function width(html: string, size: number, look: Look): number {
 
 /** The pieces a line may break between: the markup cut at its plain (breakable) spaces, tags kept whole per piece. */
 export function pieces(html: string): string[] {
-  // Android also breaks after a hyphen, and after a slash with no joiner after it.
+  // Android also breaks after a hyphen, and after a text slash with no joiner after it
+  // (not the slash of a closing tag, </num>, which cut every fraction apart: Mathematics 11 Ch 3).
   // Never inside a drawn fraction: it is one inline box, its spaces are not break points.
   const HELD = '\u0000';
   let depth = 0;
@@ -86,6 +87,6 @@ export function pieces(html: string): string[] {
   return held
     .split(' ')
     .map((p) => p.split(HELD).join(' '))
-    .flatMap((p) => p.split(/(?<=[a-z]-)(?=[a-z])|(?<=\/)(?!\u2060)(?=[A-Za-z])/))
+    .flatMap((p) => p.split(/(?<=[a-z]-)(?=[a-z])|(?<=[^<]\/)(?!\u2060)(?=[A-Za-z])/))
     .filter((p) => p.replace(/<[^>]*>/g, '').length > 0);
 }

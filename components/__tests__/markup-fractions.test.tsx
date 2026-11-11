@@ -56,6 +56,21 @@ describe('stacked fractions', () => {
     expect(rules(tree)).toHaveLength(2);
   });
 
+  it('spaces a block with a fraction wider, and wider still when a fraction holds a fraction (Mathematics 11 Ch 3)', () => {
+    const lineHeight = (html: string) => {
+      let r!: TestRenderer.ReactTestRenderer;
+      act(() => {
+        r = TestRenderer.create(<Markup html={html} size={16} look="pilot" style={{ fontFamily: 'Onest_400Regular', lineHeight: 24 }} />);
+      });
+      const st = (r.toJSON() as Json).props.style;
+      return (Array.isArray(st) ? Object.assign({}, ...st) : st).lineHeight as number;
+    };
+    expect(lineHeight('plain text')).toBe(24);
+    const one = lineHeight('<frac><num>1</num><den>2</den></frac>');
+    const two = lineHeight('tan 2<i>x</i> = <frac><num><frac><num>2</num><den>3</den></frac></num><den><frac><num>8</num><den>9</den></frac></den></frac>');
+    expect(one).toBeGreaterThan(24);
+    expect(two).toBeGreaterThan(one);
+  });
   it('draws in the cards’ STIX look too', () => {
     expect(rules(draw('sin <i>θ</i> = <frac><num>1</num><den>2</den></frac>', 'stix'))).toHaveLength(1);
   });

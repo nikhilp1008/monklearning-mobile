@@ -927,7 +927,12 @@ const FRAC = {
   nest: 0.45,
   /** A block holding a fraction: its line height times this (see Markup). */
   lead: 1.18,
+  /** A block holding a fraction inside a fraction, whose halves sit further off the rule (nest). */
+  leadNested: 1.5,
 } as const;
+
+/** A fraction inside a fraction's half: the block needs FRAC.leadNested. */
+const NESTED_FRAC = /<(num|den)>(?:(?!<\/\1>)[\s\S])*<frac>/i;
 
 function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink) {
   const s = size * FRAC.size;
@@ -1114,7 +1119,10 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
   // Lines with fractions on them, one above the other, touched ("total number
   // of outcomes" into the n(E) below it; Android sample, 2026-11-10), so a
   // block that holds a fraction is spaced FRAC.lead times wider, all of it.
-  const lead = flat.lineHeight && /<frac>/i.test(html) ? { lineHeight: flat.lineHeight * FRAC.lead } : null;
+  // A fraction inside a fraction is taller still and ran into the lines above
+  // and below ("tan 2x = (2/3)/(8/9)"; Android check of Mathematics 11 Ch 3).
+  const leadBy = /<frac>/i.test(html) ? (NESTED_FRAC.test(html) ? FRAC.leadNested : FRAC.lead) : 1;
+  const lead = flat.lineHeight && leadBy !== 1 ? { lineHeight: flat.lineHeight * leadBy } : null;
   return (
     <Text style={lead ? [style, lead] : style} numberOfLines={numberOfLines}>
       {render(nodes, size, 'm', look, { family: flat.fontFamily, color: flat.color })}

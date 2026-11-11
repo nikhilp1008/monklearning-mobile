@@ -21,6 +21,7 @@ import { KEY_POINTS as C12_10 } from '@/lib/revise/keypoints-chemistry-12-10';
 import { KEY_POINTS as C12_11 } from '@/lib/revise/keypoints-chemistry-12-11';
 import { KEY_POINTS as M11_01 } from '@/lib/revise/keypoints-mathematics-11-01';
 import { KEY_POINTS as M11_02 } from '@/lib/revise/keypoints-mathematics-11-02';
+import { KEY_POINTS as M11_03 } from '@/lib/revise/keypoints-mathematics-11-03';
 import { KEY_POINTS as P11_01 } from '@/lib/revise/keypoints-physics-11-01';
 import { KEY_POINTS as P11_02 } from '@/lib/revise/keypoints-physics-11-02';
 import { KEY_POINTS as P11_03 } from '@/lib/revise/keypoints-physics-11-03';
@@ -122,4 +123,5 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'chemistry|12|11': [...C11_10, ...C12_11].sort((a, b) => a.topic - b.topic),
   'mathematics|11|1': M11_01,
   'mathematics|11|2': M11_02,
+  'mathematics|11|3': M11_03,
 };
