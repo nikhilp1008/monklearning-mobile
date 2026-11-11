@@ -727,11 +727,16 @@ function scriptPair(nodes: Node[], i: number): { sup: Script; sub: Script; pre: 
  * split in two, the same style either side).
  */
 type Frame = { name: TagName; id: number };
-type Atom = { ch: string; path: Frame[]; bars: number; br?: boolean };
+type Atom = { ch: string; path: Frame[]; bars: number; br?: boolean; node?: Node };
 
-function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }): Atom[] {
+function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }, look: MarkupLook): Atom[] {
   for (const n of nodes) {
     if (n.kind === 'br') out.push({ ch: '\n', path, bars: 0, br: true });
+    // A fraction is kept whole, its halves barred on their own: cut into runs at a
+    // bar inside it, it lost its shape and z̄₁/z̄₂ read as z̄₁z̄₂ (Android check of
+    // Mathematics 11 Ch 4). It stands in the line as one character, never barred.
+    else if (n.kind === 'tag' && n.name === 'frac')
+      out.push({ ch: '\ufffc', path, bars: 0, node: { ...n, children: n.children.map((h) => (h.kind === 'tag' ? { ...h, children: overlines(h.children, look) } : h)) } });
     else if (n.kind === 'text')
       for (const ch of n.value) {
         const bars = barsOf(ch);
@@ -740,7 +745,7 @@ function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }):
         if (!bars) out.push({ ch, path, bars: 0 });
         else if (last && !last.br) last.bars += bars;
       }
-    else atomsOf(n.children, n.kind === 'tag' ? [...path, { name: n.name, id: ids.n++ }] : path, out, ids);
+    else atomsOf(n.children, n.kind === 'tag' ? [...path, { name: n.name, id: ids.n++ }] : path, out, ids, look);
   }
   return out;
 }
@@ -752,8 +757,9 @@ function nest(atoms: Atom[], depth = 0): Node[] {
     const frame = atoms[k].path[depth];
     let j = k + 1;
     if (atoms[k].br) out.push({ kind: 'br' });
+    else if (!frame && atoms[k].node) out.push(atoms[k].node!);
     else if (!frame) {
-      while (j < atoms.length && !atoms[j].br && !atoms[j].path[depth]) j++;
+      while (j < atoms.length && !atoms[j].br && !atoms[j].node && !atoms[j].path[depth]) j++;
       out.push({ kind: 'text', value: atoms.slice(k, j).map((a) => a.ch).join('') });
     } else {
       while (j < atoms.length && atoms[j].path[depth]?.id === frame.id) j++;
@@ -817,7 +823,7 @@ function overGroups(atoms: Atom[], level: number, look: MarkupLook): Node[] {
 }
 
 function overlines(nodes: Node[], look: MarkupLook): Node[] {
-  const atoms = atomsOf(nodes, [], [], { n: 0 });
+  const atoms = atomsOf(nodes, [], [], { n: 0 }, look);
   const levels = spreadOverGlue(atoms.map((a) => a.bars), atoms.map((a) => isOverGlue(a.ch)));
   atoms.forEach((a, k) => (a.bars = levels[k]));
   return overGroups(atoms, 0, look);
@@ -862,9 +868,17 @@ function overRun(node: Over, size: number, key: string, look: MarkupLook, ink: I
   const thick = Math.max(1, size * OVER.thick);
   return (
     <View key={key} style={{ height: box }}>
-      <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: size, lineHeight: size * OVER_LINE, color: ink.color, includeFontPadding: false, marginTop: box - size * overBaseline(node.onest) }}>
-        {render(node.children, size, key, look, ink)}
-      </Text>
+      {/* The run's box ends on the baseline: below it Android cut whatever the run's
+          layout reached, the tail of z and the subscripts of a barred z₁ ± z₂
+          (Android check of Mathematics 11 Ch 4), as a margin on the Text or on a View
+          around it alike. So the Text's View ends there too, and the Text is moved
+          down onto the baseline by a transform, which Android draws in full, as it
+          draws a subscript's (drawnRun). */}
+      <View style={{ height: size * OVER_LINE, marginTop: box - size * OVER_LINE, transform: [{ translateY: size * (OVER_LINE - overBaseline(node.onest)) }] }}>
+        <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: size, lineHeight: size * OVER_LINE, color: ink.color, includeFontPadding: false }}>
+          {render(node.children, size, key, look, ink)}
+        </Text>
+      </View>
       {node.feet.map((foot, n) => (
         <View
           key={n}

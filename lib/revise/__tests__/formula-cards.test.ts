@@ -216,6 +216,9 @@ describe('softBreaks: labels and meanings', () => {
 describe('card names', () => {
   it('sets the maths letters italic, not the article or a possessive', () => {
     expect(italicMaths('Rolling down an incline of angle θ')).toBe('Rolling down an incline of angle <i>θ</i>');
+    // A less-than sign is not a tag: "<" then "<i>k</i>" once italicised k a second time (Mathematics 11 Ch 4).
+    expect(italicMaths('Both roots < <i>k</i>')).toBe('Both roots < <i>k</i>');
+    expect(italicMaths('Roots straddle (α < k₁ < k₂ < β)')).not.toMatch(/<i><i>/);
     expect(italicMaths('Case 3 — acceleration depends on position, a = f(x)')).toBe('Case 3 — acceleration depends on position, <i>a</i> = <i>f</i>(<i>x</i>)');
     expect(italicMaths('Thrust on a Variable-Mass Body (e.g., a rocket)')).toBe('Thrust on a Variable-Mass Body (e.g., a rocket)');
     expect(italicMaths('Newton’s law of cooling')).toBe('Newton’s law of cooling');

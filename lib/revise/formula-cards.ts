@@ -205,7 +205,8 @@ const LETTER = /[A-Za-zα-ωϕϑ]/;
 export function italicMaths(name: string): string {
   let inside = 0;
   return name
-    .split(/(<[^>]+>)/)
+    // Only real tags: a "<" before a space is the less-than sign ("Both roots < <i>k</i>", Mathematics 11 Ch 4).
+    .split(/(<\/?[a-zA-Z][^>]*>)/)
     .map((part, k, all) => {
       if (part.startsWith('<')) {
         if (/^<(i|sub|sup)>$/.test(part)) inside++;

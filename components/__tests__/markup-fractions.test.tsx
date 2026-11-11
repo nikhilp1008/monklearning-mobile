@@ -56,6 +56,18 @@ describe('stacked fractions', () => {
     expect(rules(tree)).toHaveLength(2);
   });
 
+  it('keeps a fraction whole when its halves carry conjugate bars (Mathematics 11 Ch 4)', () => {
+    // z̄₁/z̄₂ was cut apart at the bars and drawn as "z̄₁z̄₂", a product.
+    for (const look of ['pilot', 'stix'] as const) {
+      const tree = draw('<i>w</i>\u0305 = <frac><num><i>z</i>\u0305<sub>1</sub></num><den><i>z</i>\u0305<sub>2</sub></den></frac> for <i>w</i> = <frac><num><i>z</i><sub>1</sub></num><den><i>z</i><sub>2</sub></den></frac>', look);
+      // Two fraction rules (laid in the flow) and three bars (laid over w, z₁ and z₂).
+      const absolute = (r: Json) => (r.props.style as { position?: string }).position === 'absolute';
+      expect(rules(tree).filter((r) => !absolute(r))).toHaveLength(2);
+      expect(rules(tree).filter(absolute)).toHaveLength(3);
+      expect(strings(tree).join('')).not.toContain('\ufffc');
+    }
+  });
+
   it('spaces a block with a fraction wider, and wider still when a fraction holds a fraction (Mathematics 11 Ch 3)', () => {
     const lineHeight = (html: string) => {
       let r!: TestRenderer.ReactTestRenderer;

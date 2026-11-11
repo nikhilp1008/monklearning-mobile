@@ -47,7 +47,8 @@ function groups(n: Json): Json[] {
 }
 const bars = (g: Json) => kids(g).filter(isBar);
 /** A run's own Text: its characters, and the runs inside it. */
-const body = (g: Json) => kids(g).find((c) => c.type === 'Text')!;
+// The run's Text sits in a View of its own (see overRun).
+const body = (g: Json) => kids(g).find((c) => c.type === 'Text') ?? kids(kids(g).find((c) => c.type === 'View' && !isBar(c))!).find((c) => c.type === 'Text')!;
 
 function noMarks(n: Json) {
   expect(textOf(n)).not.toMatch(/[\u0305\u033f]/);
@@ -123,6 +124,18 @@ describe.each<Look>(['stix', 'pilot'])('the %s look', (look) => {
     noMarks(tree);
   });
 
+  it('a barred run keeps room below its line for a subscript (z̅₁z̅₂ under one bar; Mathematics 11 Ch 4)', () => {
+    const tree = draw('<i>z</i>\u0305<sub>1\u0305</sub><i>z</i>\u0305<sub>2\u0305</sub>', look);
+    const [g] = groups(tree);
+    // Android cut off whatever the run's layout reached below its baseline: the Text's
+    // View ends on the baseline, and the Text is moved down onto it by a transform.
+    const holder = kids(g).find((c) => c.type === 'View' && !isBar(c))!;
+    const h = styleOf(holder);
+    expect((h.marginTop as number) + (h.height as number)).toBeCloseTo(styleOf(g).height as number);
+    expect((h.transform as { translateY: number }[])[0].translateY).toBeGreaterThan(0);
+    expect(styleOf(body(g)).marginTop).toBeUndefined();
+    expect(seen(g)).toBe('z₁z₂');
+  });
   it('a bar ending on a barred subscript and an unbarred letter after it: T̅₃̅ = A', () => {
     const tree = draw('<i>T</i>\u0305<sub>3\u0305</sub> = <i>A</i>\u0305+\u0305<i>B</i>\u0305', look);
     expect(groups(tree).map(seen)).toEqual(['T₃', 'A+B']);
