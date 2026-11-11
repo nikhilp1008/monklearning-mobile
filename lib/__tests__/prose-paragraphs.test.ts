@@ -112,4 +112,13 @@ describe('splitProse', () => {
       expect(splitProse(html).join('')).toBe(html);
     }
   });
+
+  // Android check of Mathematics 11 Ch 6: a factorial and a glued ■ each opened a new paragraph.
+  it('never splits at a factorial or before a no-break space', () => {
+    const long = 'The number of ways to place them is counted by inclusion–exclusion over every subset of the boxes, term by term, with alternating signs throughout. ';
+    const fact = `${long}${long}So D<sub><i>n</i></sub> = <i>n</i>! Σ (−1)<sup><i>r</i></sup>/<i>r</i>! for every <i>n</i>, and 5! = 120 here. ${long}`;
+    expect(splitProse(fact).some((p) => /^\s*Σ|^\s*for every|^\s*= 120/.test(p))).toBe(false);
+    const box = `${long}${long}That completes the proof.\u00a0■ ${long}`;
+    expect(splitProse(box).some((p) => p.trimStart().startsWith('■'))).toBe(false);
+  });
 });

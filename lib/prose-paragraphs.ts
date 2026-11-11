@@ -143,6 +143,9 @@ function sentences(html: string): string[] {
     }
     if (ch !== '.' && ch !== '?' && ch !== '!') continue;
     if (inBulletItem(html, i)) continue;
+    // A factorial is not an exclamation: "= n! Σ", "1/2! · C" were cut into two
+    // paragraphs at the "!" (Android check of Mathematics 11 Ch 6).
+    if (ch === '!' && /(?:[0-9)\]]|<\/i>)$/.test(html.slice(Math.max(0, i - 4), i))) continue;
 
     // Run past a closing tag or quote that belongs to this sentence.
     let j = i + 1;
@@ -152,8 +155,9 @@ function sentences(html: string): string[] {
       if (close === -1) break;
       j = close + 1;
     }
-    // A sentence break needs whitespace after it.
-    if (j >= html.length || !/\s/.test(html[j])) continue;
+    // A sentence break needs whitespace after it, and not a no-break space: that one glues
+    // what follows to the sentence (". ■", Android check of Mathematics 11 Ch 6).
+    if (j >= html.length || !/[^\S\u00a0\u202f]/.test(html[j])) continue;
     if (ch === '.' && !endsSentence(html, i + 1)) continue;
 
     // Take the whitespace with the sentence that ends here.

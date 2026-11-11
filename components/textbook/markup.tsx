@@ -1,5 +1,6 @@
 import { Fragment, ReactNode, useMemo } from 'react';
 import { Platform, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { barFoot, barsOf, hasOverline, inkTop, isOverGlue, OVER, SCRIPT_TOP, spreadOverGlue } from '@/lib/overline';
 
@@ -37,11 +38,13 @@ type Node =
 /**
  * <frac><num>…</num><den>…</den></frac> is a fraction drawn stacked, the
  * numerator over the denominator with a rule between (see fracRun).
+ * <binom><num>n</num><den>r</den></binom> is a binomial coefficient, drawn
+ * the same way without the rule, in tall round brackets.
  */
-type TagName = 'b' | 'i' | 'sup' | 'sub' | 'frac' | 'num' | 'den';
+type TagName = 'b' | 'i' | 'sup' | 'sub' | 'frac' | 'binom' | 'num' | 'den';
 type Over = { kind: 'over'; feet: number[]; onest: boolean; lean: [boolean, boolean]; children: Node[] };
 
-const TAG = /<(\/?)(b|i|sup|sub|br|frac|num|den)\s*\/?>/gi;
+const TAG = /<(\/?)(b|i|sup|sub|br|frac|binom|num|den)\s*\/?>/gi;
 
 function parse(html: string): Node[] {
   const root: Node[] = [];
@@ -604,6 +607,9 @@ export function readerBreaks(html: string): string {
   const toks = html
     .replace(/(<\/sub>)(?=[()[\]/])/g, `$1${HAIR}${WJ}`)
     .replace(/([([{|])(?=<i>f)/g, `$1${HAIR}${WJ}`)
+    // An opening modulus bar stays with what it encloses: Android may break after "|", leaving
+    // a lone bar at a line's end and "x − 2|" on the next (Android check of Mathematics 11 Ch 5).
+    .replace(/(^|[\s([{=−+])\|(?=[^\s|\u2060])/g, `$1|${WJ}`)
     .replace(/(<i>[^<]*[A-Z]<\/i>)(?=′)/g, `$1${HAIR}${WJ}`)
     // Only a maths slash: "1/N_A", "10⁻¹⁰/0.1", "[salt]/[base]"; a list of words ("linear/trigonal-planar/…") may still break.
     .replace(/([^<\s])\/(?=[\d([√]|<[isb]|[A-Za-zα-ωΑ-Ω](?![a-z]))/g, `$1/${WJ}`)
@@ -735,7 +741,7 @@ function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }, 
     // A fraction is kept whole, its halves barred on their own: cut into runs at a
     // bar inside it, it lost its shape and z̄₁/z̄₂ read as z̄₁z̄₂ (Android check of
     // Mathematics 11 Ch 4). It stands in the line as one character, never barred.
-    else if (n.kind === 'tag' && n.name === 'frac')
+    else if (n.kind === 'tag' && (n.name === 'frac' || n.name === 'binom'))
       out.push({ ch: '\ufffc', path, bars: 0, node: { ...n, children: n.children.map((h) => (h.kind === 'tag' ? { ...h, children: overlines(h.children, look) } : h)) } });
     else if (n.kind === 'text')
       for (const ch of n.value) {
@@ -939,6 +945,8 @@ const FRAC = {
   box: 0.7,
   /** How much further off the rule a half holding a fraction sits, in its own size. */
   nest: 0.45,
+  /** How much lower a denominator holding a bracket sits in Onest, in its own size. */
+  bracketDrop: 0.12,
   /** A block holding a fraction: its line height times this (see Markup). */
   lead: 1.18,
   /** A block holding a fraction inside a fraction, whose halves sit further off the rule (nest). */
@@ -946,9 +954,9 @@ const FRAC = {
 } as const;
 
 /** A fraction inside a fraction's half: the block needs FRAC.leadNested. */
-const NESTED_FRAC = /<(num|den)>(?:(?!<\/\1>)[\s\S])*<frac>/i;
+const NESTED_FRAC = /<(num|den)>(?:(?!<\/\1>)[\s\S])*<(?:frac|binom)>/i;
 
-function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink) {
+function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink, binom = false) {
   const s = size * FRAC.size;
   const onest = !!ink.family?.startsWith('Onest');
   const line = s * OVER_LINE;
@@ -960,22 +968,71 @@ function fracRun(num: Node[], den: Node[], size: number, key: string, look: Mark
   // further towards the rule, so it is moved that much further off it: drawn
   // where a plain half goes, 1 over (1 − ⅓) ran its ⅓ into the rule (Android
   // sample, 2026-11-10).
-  const nested = (nodes: Node[]): boolean => nodes.some((c) => c.kind !== 'text' && c.kind !== 'br' && ((c.kind === 'tag' && c.name === 'frac') || nested(c.children)));
+  const nested = (nodes: Node[]): boolean => nodes.some((c) => c.kind !== 'text' && c.kind !== 'br' && ((c.kind === 'tag' && (c.name === 'frac' || c.name === 'binom')) || nested(c.children)));
   const numTop = box - size * FRAC.num - base - (nested(num) ? s * FRAC.nest : 0);
   const ruleTop = box - size * FRAC.axis - thick / 2;
-  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0);
+  // Onest's brackets rise well above its letters: a bracket in the denominator
+  // touched the rule, r!(n − r)! (Android sample for Mathematics 11 Ch 6).
+  const tallDen = onest && /[()[\]{}|]/.test(plainText(den));
+  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0) + (tallDen ? s * FRAC.bracketDrop : 0);
   const half = (nodes: Node[], k: string, extra?: TextStyle) => (
     <Text style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
       {render(nodes, s, k, look, ink)}
     </Text>
   );
+  // A binomial coefficient: no rule, and a bracket either side as tall as the
+  // two halves' ink, from the top of the numerator to the foot of the denominator.
+  const bracket = binom ? { w: size * BINOM.width, top: numTop + base - s * BINOM.over, bottom: denTop + base + s * BINOM.under } : null;
   return (
-    <View key={key} style={{ height: box, marginHorizontal: size * FRAC.side }}>
-      <View style={{ marginTop: numTop, alignItems: 'stretch' }}>
+    <View key={key} style={{ height: box, marginHorizontal: size * (FRAC.side + (binom ? BINOM.side : 0)) }}>
+      <View style={{ marginTop: numTop, alignItems: 'stretch', marginHorizontal: bracket ? bracket.w + size * BINOM.gap : 0 }}>
         {half(num, `${key}.n`)}
-        <View style={{ height: thick, marginTop: ruleTop - (numTop + line), backgroundColor: ink.color ?? '#000' }} />
+        <View style={{ height: thick, marginTop: ruleTop - (numTop + line), backgroundColor: binom ? 'transparent' : (ink.color ?? '#000') }} />
         {half(den, `${key}.d`, { marginTop: denTop - (ruleTop + thick) })}
       </View>
+      {bracket && ([0, 1] as const).map((side) => brackets(side, bracket, size, box, ink))}
+    </View>
+  );
+}
+
+/**
+ * A binomial coefficient's brackets (<binom>), drawn: no font has a round
+ * bracket that grows to the height of a stack. Each is a crescent, thickest
+ * at its middle, BINOM.width wide. Its View ends on the baseline and is moved
+ * down by a transform, which Android draws in full; laid out below the
+ * baseline it would be cut there, as a barred run was (see overRun).
+ */
+const BINOM = {
+  /** Each bracket's width, in the line's size. */
+  width: 0.3,
+  /** The gap between a bracket and the stack. */
+  gap: 0.06,
+  /** Room outside the brackets, on top of a fraction's (FRAC.side): (5 2)(4 2) touched. */
+  side: 0.04,
+  /** How far each reaches past the halves' ink: above the numerator's baseline, below the denominator's (in their size). */
+  over: 0.8,
+  under: 0.28,
+  /** The stroke at its thickest: at 0.06 it read as a hairline beside the digits. */
+  thick: 0.085,
+} as const;
+
+function brackets(side: 0 | 1, b: { w: number; top: number; bottom: number }, size: number, box: number, ink: Ink) {
+  const h = b.bottom - b.top;
+  const t = size * BINOM.thick;
+  const w = b.w;
+  // The outer curve's middle 0.12 of the width in from the outside, the inner one t further in.
+  const outer = -0.76 * w;
+  const inner = 2 * (0.12 * w + t) - w;
+  const x = (v: number) => (side === 0 ? v : w - v);
+  const d = `M${x(w)} 0 Q${x(outer)} ${h / 2} ${x(w)} ${h} Q${x(inner)} ${h / 2} ${x(w)} 0 Z`;
+  return (
+    <View
+      key={side}
+      style={{ position: 'absolute', [side === 0 ? 'left' : 'right']: 0, top: box - h, width: w, height: h, transform: [{ translateY: b.bottom - box }] }}
+    >
+      <Svg width={w} height={h}>
+        <Path d={d} fill={(ink.color as string) ?? '#000'} />
+      </Svg>
     </View>
   );
 }
@@ -990,7 +1047,8 @@ function fracToText(html: string): string {
     const plain = t.replace(/<\/?[a-zA-Z][^>]*>/g, '').trim();
     return /[\s+−\-×·/=]/.test(plain) ? `(${plain})` : plain;
   };
-  let out = html;
+  // A binomial coefficient as text reads as its count: "C(n, r)".
+  let out = html.replace(/<binom>\s*<num>((?:(?!<\/?num>).)*)<\/num>\s*<den>((?:(?!<\/?den>).)*)<\/den>\s*<\/binom>/gs, (_, n: string, r: string) => `C(${n}, ${r})`);
   // Innermost first, so a fraction inside a half is text by the time its parent is read.
   for (let m = FRAC_TAG.exec(out); m; m = FRAC_TAG.exec(out)) out = out.slice(0, m.index) + `${wrap(m[1])}/${wrap(m[2])}` + out.slice(m.index + m[0].length);
   return out;
@@ -1032,7 +1090,7 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
   }
   if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
   if (node.kind === 'over') return overRun(node, size, key, look, ink);
-  if (node.name === 'frac') {
+  if (node.name === 'frac' || node.name === 'binom') {
     const num = node.children.find((c) => c.kind === 'tag' && c.name === 'num');
     const den = node.children.find((c) => c.kind === 'tag' && c.name === 'den');
     // Malformed: its text as it stands, never a lost numerator.
@@ -1041,7 +1099,7 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
     return (
       <Fragment key={key}>
         {WJ}
-        {fracRun(num.children, den.children, size, `${key}.f`, look, ink)}
+        {fracRun(num.children, den.children, size, `${key}.f`, look, ink, node.name === 'binom')}
         {WJ}
       </Fragment>
     );
@@ -1135,7 +1193,7 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
   // block that holds a fraction is spaced FRAC.lead times wider, all of it.
   // A fraction inside a fraction is taller still and ran into the lines above
   // and below ("tan 2x = (2/3)/(8/9)"; Android check of Mathematics 11 Ch 3).
-  const leadBy = /<frac>/i.test(html) ? (NESTED_FRAC.test(html) ? FRAC.leadNested : FRAC.lead) : 1;
+  const leadBy = /<(?:frac|binom)>/i.test(html) ? (NESTED_FRAC.test(html) ? FRAC.leadNested : FRAC.lead) : 1;
   const lead = flat.lineHeight && leadBy !== 1 ? { lineHeight: flat.lineHeight * leadBy } : null;
   return (
     <Text style={lead ? [style, lead] : style} numberOfLines={numberOfLines}>

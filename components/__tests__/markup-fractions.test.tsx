@@ -102,6 +102,19 @@ describe('stacked fractions', () => {
     expect(pieces).toEqual(['<i>S</i>', '=', '<frac><num><i>a</i> + <i>b</i></num><den>1 − <i>r</i></den></frac>', 'here']);
   });
 
+  // Chapter 6 prints the binomial coefficient as n over r in tall brackets (decision 24).
+  it('draws a binomial coefficient stacked, without a rule, in two drawn brackets', () => {
+    const tree = draw('in <binom><num><i>n</i> − 1</num><den><i>k</i> − 1</den></binom> ways');
+    const text = strings(tree).join('').replace(/\u00a0/g, ' ');
+    expect(text).toContain('n − 1');
+    expect(text).toContain('k − 1');
+    expect(text).not.toMatch(/[()]|binom/);
+    expect(rules(tree).filter((r) => (r.props.style as { backgroundColor?: string }).backgroundColor !== 'transparent')).toHaveLength(0);
+    expect(JSON.stringify(tree).match(/"d":"M/g)).toHaveLength(2);
+    expect(markupToText('<binom><num>5</num><den>2</den></binom><binom><num>4</num><den>2</den></binom>')).toBe('C(5, 2)C(4, 2)');
+    expect(cutAtSpaces('in <binom><num><i>n</i> − 1</num><den><i>k</i> − 1</den></binom> ways')).toHaveLength(3);
+  });
+
   it('sets the double-struck 𝕎 and 𝕋 in STIX Two Math, which has them', () => {
     const find = (j: Json | string | null): string[] => {
       if (j == null || typeof j === 'string') return [];
