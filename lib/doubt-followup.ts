@@ -4,7 +4,7 @@ import { base64ToBytes } from '@/lib/audio-pcm';
 import { isPassRequired, signalPassRequired } from '@/lib/pass-events';
 import { pcmAvailable } from '@/lib/pcm-player';
 import { supabase } from '@/lib/supabase';
-import { teacherNameNow } from '@/lib/preferences';
+import { getLanguagePreference, teacherNameNow } from '@/lib/preferences';
 
 /**
  * Asking about a solution that is already on screen.
@@ -499,6 +499,13 @@ function streamAsk(
         return;
       }
 
+      // The language this phone SHOWS, sent so the reply follows it. The server keeps
+      // its own copy (profiles.teaching_language) and the two can disagree — a pull
+      // that never ran, a write that never landed — in which case the student heard
+      // a language the screen said they had not picked. For this request only the
+      // header wins; nothing is written (app/drona/persona.py).
+      const language = await getLanguagePreference();
+
       // XMLHttpRequest, not fetch: React Native's fetch has no readable body,
       // so this is the same route `snap-stream` takes for the same reason.
       const xhr = new XMLHttpRequest();
@@ -540,6 +547,7 @@ function streamAsk(
 
       xhr.open('POST', `${baseUrl.replace(/\/$/, '')}/${surface}/${doubtId}/${path}`);
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.setRequestHeader('X-Teaching-Language', language);
       // FormData sets its own multipart boundary; setting it by hand breaks it.
       if (typeof body === 'string') {
         xhr.setRequestHeader('Content-Type', 'application/json');
