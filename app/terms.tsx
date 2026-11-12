@@ -5,7 +5,7 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'The agreement',
-    body: 'Creating an account or using monklearning means you accept these terms. If you’re under 18, a parent or guardian accepts them at sign-up and stays responsible for the account.',
+    body: 'Creating an account or using monklearning means you accept these terms. If you’re under 18, you must have a parent or guardian’s permission to use monklearning, and they stay responsible for the account.',
   },
   {
     title: 'What monklearning is',
