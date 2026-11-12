@@ -110,6 +110,12 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
 describe('keepTogether', () => {
   const nb = (s: string) => s.replace(/\u00a0/g, '·').replace(/\u2060/g, '');
 
+  it('lets a long log start a line, and holds a prime to its bracket (Chemistry 12 Ch 3)', () => {
+    const line = keepTogether('<i>k</i>′ = (2.303/<i>t</i>) log((<i>V</i><sub>∞</sub> − <i>V</i><sub>0</sub>)/(<i>V</i><sub>∞</sub> − <i>V</i><sub>t</sub>))');
+    expect(line).toContain(') log(');
+    expect(keepTogether('Rate = <i>k</i>′[A]')).toContain('′\u2060[');
+  });
+
   it('keeps a bracket of maths whole: (m₁ + m₂), (1 + k²/R²), (v² − v₀²)', () => {
     expect(nb(keepTogether('<i>r</i> = <i>m</i>/(<i>m</i><sub>1</sub> + <i>m</i><sub>2</sub>)'))).toContain('(<i>m</i><sub>1</sub>·+·<i>m</i><sub>2</sub>)');
     expect(nb(keepTogether('<i>K</i> = ½<i>mv</i><sup>2</sup>(1 + <i>k</i><sup>2</sup>/<i>R</i><sup>2</sup>)'))).toContain('(1·+·');
@@ -210,6 +216,9 @@ describe('softBreaks: labels and meanings', () => {
 describe('card names', () => {
   it('sets the maths letters italic, not the article or a possessive', () => {
     expect(italicMaths('Rolling down an incline of angle θ')).toBe('Rolling down an incline of angle <i>θ</i>');
+    // A less-than sign is not a tag: "<" then "<i>k</i>" once italicised k a second time (Mathematics 11 Ch 4).
+    expect(italicMaths('Both roots < <i>k</i>')).toBe('Both roots < <i>k</i>');
+    expect(italicMaths('Roots straddle (α < k₁ < k₂ < β)')).not.toMatch(/<i><i>/);
     expect(italicMaths('Case 3 — acceleration depends on position, a = f(x)')).toBe('Case 3 — acceleration depends on position, <i>a</i> = <i>f</i>(<i>x</i>)');
     expect(italicMaths('Thrust on a Variable-Mass Body (e.g., a rocket)')).toBe('Thrust on a Variable-Mass Body (e.g., a rocket)');
     expect(italicMaths('Newton’s law of cooling')).toBe('Newton’s law of cooling');
@@ -349,5 +358,13 @@ describe('card names: hyphens, signs and brackets', () => {
       expect([c.name, /[=≈∝≤≥→⇒+−×] /.test(c.name)]).toEqual([c.name, false]);
       expect([c.name, /\((?:<i>[^<]{1,3}<\/i>) /.test(c.name)]).toEqual([c.name, false]);
     }
+  });
+});
+
+describe('a non-breaking space the content set (Android check of Mathematics 11 Ch 1)', () => {
+  it('stays non-breaking on the card', () => {
+    const a = keepTogether('max(0, <i>a</i> + <i>b</i> − <i>N</i>) ≤ <i>n</i>(<i>A</i> ∩ <i>B</i>) ≤ min(<i>a</i>, <i>b</i>)');
+    expect(a.slice(0, a.indexOf('N</i>)'))).not.toContain(' ');
+    expect(keepTogether('for at least one <i>i</i> ∈ <i>I</i>}')).toMatch(/<i>i<\/i> ∈ <i>I<\/i>/);
   });
 });

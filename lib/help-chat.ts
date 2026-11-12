@@ -65,6 +65,39 @@ export function activeThread(threads: HelpThread[], now: number = Date.now()): H
 }
 
 /**
+ * The requests the Support screen shows when it is opened: the ones still to be sorted out.
+ * A request is carried over while the team owes the student an answer, or when the team has
+ * spoken since the student last looked (`seenAt`, ms; null when they never have). Everything
+ * else is finished, and the chat starts blank. The server keeps it all; this only decides
+ * what is on the screen.
+ */
+export function carriedThreads(threads: HelpThread[], seenAt: number | null): string[] {
+  return threads
+    .filter((t) => {
+      if (t.awaiting_team && t.status !== 'closed') return true;
+      if (seenAt === null) return false;
+      return threadTurns(t).some((turn) => turn.from === 'team' && time(turn.at) > seenAt);
+    })
+    .map((t) => t.id);
+}
+
+/**
+ * What the assistant said on this phone that belongs with a carried request: from the
+ * question that led to the hand-over, to the end. The line that handed it over names the
+ * request. A request made on another phone has no such line, so nothing is kept.
+ */
+export function localForThread(local: LocalItem[], threadId: string): LocalItem[] {
+  const handover = local.findIndex((i) => i.kind === 'bot' && i.threadId === threadId);
+  if (handover < 0) return [];
+  let start = handover;
+  for (let i = handover - 1; i >= 0; i--) {
+    start = i;
+    if (local[i].kind === 'me') break;
+  }
+  return local.slice(start);
+}
+
+/**
  * One chat, oldest first. A thread's question is left out when this phone already
  * shows it being handed over; "joined" is said once, before the team's first words;
  * the server's waiting note is only for the thread still being written in.
@@ -106,7 +139,7 @@ export function buildChat(local: LocalItem[], threads: HelpThread[], active: Hel
 export const HELP_ROUTES: Record<string, { path: string; label: string }> = {
   home: { path: '/', label: 'Open Home' },
   textbooks: { path: '/(tabs)/textbooks', label: 'Open Textbooks' },
-  doubts: { path: '/(tabs)/doubts', label: 'Open Doubts' },
+  doubts: { path: '/(tabs)/doubts', label: 'Open Snaps' },
   notes: { path: '/(tabs)/notes', label: 'Open Notes' },
   snap: { path: '/snap-capture', label: 'Open Snap and Solve' },
   class_picker: { path: '/drona', label: 'Start a class' },

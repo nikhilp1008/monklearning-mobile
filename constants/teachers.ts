@@ -63,7 +63,9 @@ export const TEACHERS: {
  */
 export const TEACHER_PALETTES: Record<TeacherId, readonly string[]> = {
   drona: ['#6E2A06', '#B8481A', '#E2601C', '#F2A93B', '#8A3A0E', '#FFB85C'],
-  vedha: ['#8A5E0C', '#EEA31F', '#FBDDA0', '#F2B23A', '#B06A0E', '#FFE9B8'],
+  // V1 "richer honey" (Nikhil, 9 Nov 2026): the dark end is a warm brown
+  // now, not the olive that made Vedha read as dull beside Drona.
+  vedha: ['#8F4A08', '#F5A623', '#FFD98F', '#FFB838', '#C2700E', '#FFEBC2'],
 };
 
 /**
@@ -76,7 +78,7 @@ export const TEACHER_PALETTES: Record<TeacherId, readonly string[]> = {
  */
 export const ORB_POSTERS: Record<TeacherId, { body: string[]; stops: number[] }> = {
   drona: { body: ['#F2A93B', '#E2601C', '#6E2A06'], stops: [0, 0.45, 0.9] },
-  vedha: { body: ['#FBDDA0', '#EEA31F', '#8A5E0C'], stops: [0, 0.5, 0.92] },
+  vedha: { body: ['#FFE2A6', '#F5A623', '#9A4E0A'], stops: [0, 0.5, 0.92] },
 };
 
 /**
@@ -125,14 +127,14 @@ export const SKY_THEMES: Record<TeacherId, SkyTheme> = {
     bronze: '#8A3A0E',
   },
   vedha: {
-    gold: '#F2B23A',
-    mari: '#EEA31F',
-    pale: '#FBDDA0',
-    ember: '#F2B23A',
-    rust: '#B06A0E',
-    bronze: '#8A5E0C',
+    gold: '#FFB838',
+    mari: '#F5A623',
+    pale: '#FFD98F',
+    ember: '#F7A928',
+    rust: '#C2700E',
+    bronze: '#8F4A08',
   },
 };
 
 /** The Start arrow's colour, the teacher's own marigold. */
-export const START_ARROW: Record<TeacherId, string> = { drona: '#E2601C', vedha: '#EEA31F' };
+export const START_ARROW: Record<TeacherId, string> = { drona: '#E2601C', vedha: '#F5A623' };

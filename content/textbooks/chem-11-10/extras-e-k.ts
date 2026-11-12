@@ -570,7 +570,7 @@ export const TOPICS: Topic[] = [
   // ─────────────── Additional topic K (the book's Addendum P) · pp. 500–502 ───────────────
   {
     n: 'K',
-    title: 'What JEE and NEET Actually Ask',
+    title: 'What JEE and NEET Actually Ask: Groups 13 and 14',
     extra: true,
     kalam: 'Groups 13 and 14 are tested through a few question modes, usually one idea per question.',
     blocks: [

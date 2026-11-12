@@ -12,6 +12,7 @@ import { hapticSoft, hapticSuccess, hapticSwitched } from '@/lib/haptics';
 import { useLabelCase } from '@/components/textbook/book-text';
 import { DiagramBody } from '@/components/revise/diagram-card';
 import { diagramById } from '@/lib/diagrams';
+import { splitProse } from '@/lib/prose-paragraphs';
 
 /**
  * THE QUESTION CARDS, for the reader pilot (see pilot.ts): solved examples,
@@ -55,6 +56,18 @@ export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) 
   const read = (html: string, style?: StyleProp<TextStyle>, key?: number) => (
     <Markup key={key} html={html} size={type(READ_SIZE)} style={[s.read, style]} look="pilot" />
   );
+  // A long answer in short paragraphs, as the reading pages set prose: drawn as one
+  // long paragraph, Android measured it a line longer than it drew it, and a stacked
+  // binomial near its end was placed a line low (Android check of Mathematics 11 Ch 6).
+  const readLong = (html: string) => {
+    const paras = html
+      .split(/(?:<br\s*\/?>\s*){2,}/i)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .flatMap(splitProse)
+      .map((part) => part.replace(/^(?:\s*<br\s*\/?>)+\s*/i, ''));
+    return paras.length < 2 ? read(html) : <View style={s.paras}>{paras.map((para, i) => read(para, undefined, i))}</View>;
+  };
   const items: (ExItem | McqItem | PracticeItem)[] = block.items;
   const count = items.length;
   const page = Math.min(ctx.state.page[ctx.uid] ?? 0, count - 1);
@@ -153,13 +166,13 @@ export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) 
           {!!nudge && (
             <View style={s.answer}>
               <Text style={[kicker(type), s.answerLabel]}>not quite. here&apos;s the trap</Text>
-              {read(nudge)}
+              {readLong(nudge)}
             </View>
           )}
           {state.solved && (
             <View style={s.answer}>
               <Text style={[kicker(type), s.answerLabel]}>solved</Text>
-              {read(q.solution)}
+              {readLong(q.solution)}
             </View>
           )}
         </>
@@ -174,7 +187,7 @@ export function PilotCards({ block, ctx }: { block: CardBlock; ctx: BlockCtx }) 
         {shown ? (
           <View style={s.answer}>
             <Text style={[kicker(type), s.answerLabel]}>answer</Text>
-            {read(item.a)}
+            {readLong(item.a)}
           </View>
         ) : (
           <Pressable
@@ -249,6 +262,7 @@ function makeStyles(scale: (n: number) => number, type: (n: number) => number) {
     color: READ_INK,
   };
   return StyleSheet.create({
+    paras: { gap: scale(12) },
     fig: { marginTop: scale(16) },
     read,
     grow: { flex: 1 },

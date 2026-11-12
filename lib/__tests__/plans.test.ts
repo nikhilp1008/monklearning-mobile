@@ -32,14 +32,14 @@ describe('the plans and what they cost', () => {
   });
 
   test('the built-in numbers are the server\'s defaults (app/tiers.py)', () => {
-    expect(DEFAULT_TIERS.pro).toMatchObject({ classes: 45, classes_per_day: 2, snap_questions: 25, practice_questions: 100 });
-    expect(DEFAULT_TIERS.max).toMatchObject({ classes: 60, classes_per_day: 3, snap_questions: 50, practice_questions: 200 });
+    expect(DEFAULT_TIERS.pro).toMatchObject({ classes: 45, classes_per_day: 3, snap_questions: 25, practice_questions: 100 });
+    expect(DEFAULT_TIERS.max).toMatchObject({ classes: 90, classes_per_day: 7, snap_questions: 50, practice_questions: 200 });
     expect(DEFAULT_TIERS.day.classes).toBe(2);
     expect(DEFAULT_TIERS.week.classes).toBe(10);
-    // A day or week pass is Pro for that long.
+    // A day or week pass is Pro for that long (its classes stay at two a day).
     for (const t of ['day', 'week'] as const) {
       expect(DEFAULT_TIERS[t]).toMatchObject({
-        classes_per_day: DEFAULT_TIERS.pro.classes_per_day,
+        classes_per_day: 2,
         snap_questions: DEFAULT_TIERS.pro.snap_questions,
         practice_questions: DEFAULT_TIERS.pro.practice_questions,
       });
@@ -74,7 +74,7 @@ describe('reading the pass the server sends', () => {
     expect(plan.tier).toBe('pro');
     expect(plan.tiers.pro.classes).toBe(50);
     expect(plan.tiers.pro.snap_questions).toBe(25);          // not sent: the built-in one stays
-    expect(plan.tiers.max.classes).toBe(60);
+    expect(plan.tiers.max.classes).toBe(90);
     expect(plan.classes).toMatchObject({ limit: 50, left: 38 });
     expect(plan.starterUsed).toEqual(['day']);
     expect(plan.starterEnds).toBeNull();
@@ -98,8 +98,8 @@ describe('Pro and Max side by side', () => {
   test('the unit is in the label and each cell is just the number', () => {
     const rows = compareRows(DEFAULT_TIERS.pro, DEFAULT_TIERS.max);
     expect(rows).toEqual([
-      { label: 'Live classes a month', pro: '45', max: '60' },
-      { label: 'Most classes in a day', pro: '2', max: '3' },
+      { label: 'Live classes a month', pro: '45', max: '90' },
+      { label: 'Most classes in a day', pro: '3', max: '7' },
       { label: 'Snapped questions a day', pro: '25', max: '50' },
       { label: 'Practice questions a day', pro: '100', max: '200' },
       { label: 'Follow-up questions', pro: 'Unlimited', max: 'Unlimited' },

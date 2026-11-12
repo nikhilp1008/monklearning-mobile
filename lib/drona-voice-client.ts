@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { REGISTRY_MANIFEST } from '@/lib/widgets/registry';
 
 import { AudioPlaybackQueue } from '@/lib/audio-playback-queue';
-import { PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
+import { FIRST_AUDIO_HOLD_S, PcmPlaybackQueue } from '@/lib/pcm-playback-queue';
 import { pcmAvailable } from '@/lib/pcm-player';
 import { base64ToBytes } from '@/lib/audio-pcm';
 
@@ -263,6 +263,14 @@ export interface DronaState {
    *  on arrival — see the buffering note in handleMessage. */
   check_options?: string[];
   question_text?: string;
+  /**
+   * The verdict on the student's own answer, riding inside the state frame the
+   * answer's reply turn ends with: `correct | partial | incorrect`, else null
+   * (app/drona/tutor.py, the `answer_result` of its final state payload). It is
+   * not a separate frame; see the `state` case in handleMessage, which hands it
+   * to `onAnswerResult`.
+   */
+  answer_result?: 'correct' | 'partial' | 'incorrect' | string | null;
 }
 
 /** Verdict for a checkpoint answer, painted on the chosen chip. */
@@ -277,7 +285,10 @@ export interface DronaMeta {
   session_complete: boolean;
 }
 
-export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed';
+/** `ended` follows `closed` when the server refused for good (a class that is
+ *  over, a sign-in that is no longer valid): nothing is retrying, so a screen
+ *  must not say it is reconnecting. */
+export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed' | 'ended';
 
 export type CheckinChoice = 'ok' | 'doubt' | 'repeat';
 /**
@@ -335,9 +346,71 @@ export interface DronaVoiceHandlers {
   /** Server signalled the lesson itself is finished (not a disconnect). */
   onSessionEnded?: () => void;
   onError?: (message: string) => void;
+  /**
+   * What became of an answer tapped while the socket was not open: `queued`
+   * (held for the reopen), `sent` (it went out on the reopen). Nothing is
+   * dropped silently; an answer that waited too long goes to `onError`.
+   */
+  onPendingAnswer?: (event: 'queued' | 'sent') => void;
 }
 
 const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 8000, 8000];
+/**
+ * After the six quick retries (about 31s) the client used to stop for good: a
+ * student whose train left the tunnel a minute later, or who came back to the
+ * app from another one, sat on a dead class until they rejoined by hand. It
+ * now keeps going, slowly, until the class ends. The server's own refusals
+ * (PERMANENT_CLOSE_CODES) still end it, so a dead session is not hammered.
+ */
+export const SLOW_RETRY_MS = 30000;
+/**
+ * The client's own heartbeat. The server answers `ping` with `pong`
+ * (live_session_ws.py, the `ping` control message) and sends nothing at all on
+ * an idle socket, so a half-open connection — a phone that changed network, a
+ * NAT that forgot the mapping — looked open forever and every tap went into
+ * the void. Any frame from the server counts as a sign of life, so a healthy
+ * turn never trips it.
+ */
+export const PING_INTERVAL_MS = 15000;
+/** How long a ping may go unanswered before the socket is declared dead and
+ *  the ordinary reconnect path takes over. */
+export const PONG_TIMEOUT_MS = 10000;
+/**
+ * How long an answer may wait for a socket before it is not worth sending.
+ * After this the question on the server has moved on or been re-asked; sending
+ * a stale tap would answer something else. The student is told instead.
+ */
+const PENDING_ANSWER_MAX_AGE_MS = 120000;
+/** The longest a double-tap guard holds without hearing from the server. */
+const ANSWER_LOCK_MAX_MS = 20000;
+/** Aborted turns remembered, for dropping their late frames. */
+const ABORTED_TURNS_KEPT = 8;
+
+/**
+ * `<turn>_s<n>` — the server's sentence id (live_session_ws.py:623,
+ * `f"{turn_id}_s{chunks_sent}"`). `n` is the speech CHUNK number within the
+ * turn, 1-indexed, which is what the board's pairing counts. A resumed lesson
+ * is its own turn, `<turn>_resume`, numbering from 1 again. The pool filler
+ * (`<turn>_filler_<ms>`) has no `_s<n>` tail and is not a sentence.
+ */
+const SENTENCE_ID = /^(.*)_s(\d+)$/;
+function parseSentenceId(id: string): { turn: string; n: number } | null {
+  const m = SENTENCE_ID.exec(id);
+  return m ? { turn: m[1], n: Number(m[2]) } : null;
+}
+
+/** A unique-enough id for one outbound message, so the server can tell a
+ *  resend from a second message. 128 random bits, uuid-shaped. */
+let clientMsgCounter = 0;
+function newClientMsgId(): string {
+  const hex = (n: number) =>
+    Array.from({ length: n }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  clientMsgCounter += 1;
+  return `${hex(8)}-${hex(4)}-4${hex(3)}-${'89ab'[Math.floor(Math.random() * 4)]}${hex(3)}-${hex(8)}${clientMsgCounter
+    .toString(16)
+    .padStart(4, '0')
+    .slice(-4)}`;
+}
 /**
  * Close codes the server uses to mean "do not come back", so the client does
  * not. 4004 is a session that does not exist, 4401 a missing/expired/invalid
@@ -438,6 +511,42 @@ export class DronaVoiceClient {
   private openedAt = 0;
   /** Consecutive sockets that opened and died before proving themselves. */
   private diedYoung = 0;
+  /** An `openSocket` is between its start and the socket it creates. */
+  private opening = false;
+  /** Whether any socket has opened yet: a later attempt is a RE-connect even
+   *  when its backoff counter has been reset to zero. */
+  private everOpened = false;
+  private slowRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // --- Liveness ---
+  private pingTimer: ReturnType<typeof setTimeout> | null = null;
+  private pongTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // --- What the student sent, and whether the server has it ---
+  /**
+   * The ONE answer waiting for a socket. A chip tap while the socket is not
+   * open used to be dropped without a word (`sendJson` checks `readyState` and
+   * returns), so the student tapped, saw the chip hold, and nothing ever came.
+   */
+  private pendingAnswer: { text: string; id: string; at: number } | null = null;
+  /**
+   * An answer that went out on a socket the server has not yet answered on. If
+   * that socket dies first the frame may have died with it, so it is queued
+   * again — under the SAME `client_msg_id`, which is what lets the server
+   * recognise it if the first copy did arrive.
+   */
+  private unackedAnswer: { text: string; id: string; at: number; socket: WebSocket } | null = null;
+  /** When a chip was answered, or 0. Until a new question arrives (the next
+   *  state frame that names a phase) further taps on the chips are ignored —
+   *  but only for ANSWER_LOCK_MAX_MS, so a reply that never comes cannot leave
+   *  the student unable to answer. */
+  private answerLockedAt = 0;
+  private get answerLocked(): boolean {
+    return this.answerLockedAt > 0 && Date.now() - this.answerLockedAt < ANSWER_LOCK_MAX_MS;
+  }
+  private set answerLocked(on: boolean) {
+    this.answerLockedAt = on ? Date.now() : 0;
+  }
 
   /** Playback id -> {speech, board entry, duration_ms} for chunks currently
    *  queued/playing, so the playback queue's onItemStart can look up what to
@@ -458,6 +567,17 @@ export class DronaVoiceClient {
   private chunkSeq = 0;
 
   private currentChunkDurationMs: number | null = null;
+
+  // --- How much of the current turn the student has heard ---
+  /** The turn the newest accepted audio frame belongs to (`t_<ms>`). */
+  private receivedTurn: string | null = null;
+  /** The turn of the clip that most recently started playing, and the highest
+   *  sentence number of that turn to have started. */
+  private heardTurn: string | null = null;
+  private heardSeq = 0;
+  /** Turns the student cut off. The server aborts them, but frames already on
+   *  the wire still arrive, and are dropped rather than played over the student. */
+  private abortedTurns: string[] = [];
   /**
    * Measured playback length of the clip that most recently started playing,
    * in milliseconds, or null when the server did not send one (a pre-
@@ -496,6 +616,14 @@ export class DronaVoiceClient {
       const meta = this.chunkMeta.get(id);
       this.maybeCheckIn(meta);
       const startedAt = Date.now();
+      const sentence = meta?.sentenceId ? parseSentenceId(meta.sentenceId) : null;
+      if (sentence) {
+        if (sentence.turn !== this.heardTurn) {
+          this.heardTurn = sentence.turn;
+          this.heardSeq = 0;
+        }
+        this.heardSeq = Math.max(this.heardSeq, sentence.n);
+      }
       if (meta?.board?.length || meta?.speech) {
         probe(
           `AUDIO_START sentence=${meta.sentenceId ?? '-'} playback=${id} at=${startedAt}` +
@@ -531,6 +659,14 @@ export class DronaVoiceClient {
       // started meant the student always heard it first and saw it after.
       this.revealNextSentenceLines(meta?.sentenceId);
     };
+
+    // BOARD_LEAD_S before a sentence is heard: the lines a teacher WRITES go up
+    // (and only those). Everything else about the sentence — caption, speaking
+    // flag, figures, widgets, the cue clock — still waits for onItemStart.
+    // Only the native queue has this signal; the file queue never fires it and
+    // keeps today's behaviour.
+    (this.playback as { onItemApproach?: (id: string) => void }).onItemApproach = (id) =>
+      this.revealWrittenLinesAhead(id);
 
     // The turn's audio has actually finished playing — see `flushHeldTurn`.
     this.playback.onQueueDrained = () => {
@@ -570,6 +706,11 @@ export class DronaVoiceClient {
   disconnect() {
     this.manualDisconnect = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.slowRetryTimer) clearTimeout(this.slowRetryTimer);
+    this.slowRetryTimer = null;
+    this.stopHeartbeat();
+    this.pendingAnswer = null;
+    this.unackedAnswer = null;
     if (this.drainWatchdog) clearTimeout(this.drainWatchdog);
     this.drainWatchdog = null;
     this.clearTurnErrorRecovery();
@@ -619,7 +760,10 @@ export class DronaVoiceClient {
   }
 
   private async openSocket() {
-    this.handlers.onConnectionChange?.(this.reconnectAttempt > 0 ? 'reconnecting' : 'connecting');
+    this.handlers.onConnectionChange?.(
+      this.reconnectAttempt > 0 || this.everOpened ? 'reconnecting' : 'connecting'
+    );
+    this.opening = true;
 
     let token: string | null = null;
     try {
@@ -627,6 +771,7 @@ export class DronaVoiceClient {
     } catch {
       token = null;
     }
+    this.opening = false;
     if (this.manualDisconnect) return;
     if (!token) {
       this.handlers.onError?.('Lost your sign-in. Go back and start the class again.');
@@ -690,15 +835,27 @@ export class DronaVoiceClient {
     ws.onopen = () => {
       this.openedAt = Date.now();
       this.turnActivitySinceOpen = false;
+      this.everOpened = true;
       this.reconnectAttempt = 0;
       this.reconnectScheduled = false;
+      if (this.slowRetryTimer) {
+        clearTimeout(this.slowRetryTimer);
+        this.slowRetryTimer = null;
+      }
       this.handlers.onConnectionChange?.('open');
+      this.startHeartbeat();
       // Release anyone waiting to send the first utterance.
       const waiters = this.readyWaiters;
       this.readyWaiters = [];
       waiters.forEach((resolve) => resolve());
+      this.flushPendingAnswer();
     };
-    ws.onmessage = (event) => this.handleMessage(event.data);
+    ws.onmessage = (event) => {
+      // Any frame at all is proof the connection is alive, so the pong timer
+      // is for silence rather than for the pong specifically.
+      if (ws === this.ws) this.heardFromServer();
+      this.handleMessage(event.data);
+    };
     // Web schedules from onerror too: a failed handshake does not reliably
     // deliver a close event on every platform, and without this the socket
     // would sit dead with the UI still saying "Connecting".
@@ -729,6 +886,7 @@ export class DronaVoiceClient {
               ? 'Your pass has ended. Take a new one to rejoin the class.'
               : 'Your sign-in is no longer valid here. Go back and rejoin the class.'
         );
+        this.handlers.onConnectionChange?.('ended');
         return;
       }
       this.noteSocketLost();
@@ -747,9 +905,138 @@ export class DronaVoiceClient {
    * `onclose` can both fire for one drop.
    */
   private noteSocketLost() {
+    this.stopHeartbeat();
+    // An answer that went out and was never acknowledged may have died with
+    // the socket: queue it again for the reopen. And the chips are tappable
+    // again — the question is whatever the new connection says it is.
+    this.requeueUnackedAnswer();
+    this.answerLocked = false;
     if (!this.serverTurnOpen) return;
     this.serverTurnOpen = false;
     this.cutOffBatch = this.boardBatches[this.boardBatches.length - 1] ?? null;
+    // THE CUT-OFF TURN IS OVER, and nothing it was holding is ever released.
+    //
+    // `turn_complete` is what lets go of a held question, and it was never
+    // sent: the old connection died first. Left set, `turnInFlight` made the
+    // next connection's resume frame — the bare state frame carrying
+    // `check_options` that `live_session_ws.py:250-270` sends onto a session
+    // already in `awaiting_answer` — look like the chips of a running turn,
+    // and it was held for a `turn_complete` that was never coming. The student
+    // reopened the app to a silent board with nothing to answer, indefinitely
+    // (idle audit, scenario A). What the dead turn was holding goes with it:
+    // if its question still stands the server says so again on reopen, and if
+    // the server re-teaches the turn it brings its own.
+    this.turnInFlight = false;
+    this.pendingState = null;
+    this.awaitingDrain = false;
+    if (this.drainWatchdog) {
+      clearTimeout(this.drainWatchdog);
+      this.drainWatchdog = null;
+    }
+    this.clearTurnErrorRecovery();
+  }
+
+  // --- Liveness: ping, pong, and what a silent socket means ---
+
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    this.schedulePing();
+  }
+
+  private stopHeartbeat() {
+    if (this.pingTimer) clearTimeout(this.pingTimer);
+    if (this.pongTimer) clearTimeout(this.pongTimer);
+    this.pingTimer = null;
+    this.pongTimer = null;
+  }
+
+  private schedulePing() {
+    if (this.pingTimer) clearTimeout(this.pingTimer);
+    this.pingTimer = setTimeout(() => {
+      this.pingTimer = null;
+      if (this.manualDisconnect || this.ws?.readyState !== WebSocket.OPEN) return;
+      this.sendPing();
+      this.schedulePing();
+    }, PING_INTERVAL_MS);
+  }
+
+  /** Asks the server to prove the socket is alive, and starts the clock on it. */
+  private sendPing() {
+    if (this.manualDisconnect || this.ws?.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ type: 'ping' }));
+    if (!this.pongTimer) {
+      const ws = this.ws;
+      this.pongTimer = setTimeout(() => {
+        this.pongTimer = null;
+        if (ws === this.ws) this.declareSocketDead();
+      }, PONG_TIMEOUT_MS);
+    }
+  }
+
+  private heardFromServer() {
+    if (this.pongTimer) {
+      clearTimeout(this.pongTimer);
+      this.pongTimer = null;
+    }
+    // Quiet and healthy: the next probe is a full interval from the last sign
+    // of life, so a turn that talks all the time never sends one.
+    if (this.pingTimer) this.schedulePing();
+  }
+
+  /**
+   * Nothing came back. The socket reports itself open, but it is not carrying
+   * anything: take it down by hand and go through the ordinary reconnect path.
+   * Its handlers are cut first — a half-open socket can fire its `onclose` a
+   * minute later, long after its replacement is up, and that would start a
+   * second reconnect cycle against the live one.
+   */
+  private declareSocketDead() {
+    const ws = this.ws;
+    this.ws = null;
+    if (ws) {
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      ws.onclose = null;
+      try { ws.close(); } catch { /* already gone */ }
+    }
+    if (this.manualDisconnect) return;
+    this.handlers.onConnectionChange?.('reconnecting');
+    this.noteSocketLost();
+    this.scheduleReconnect();
+  }
+
+  /**
+   * The app is back in front of the student (or the network is back). Whatever
+   * the socket says about itself, check: reconnect now if it is not open, with
+   * a fresh retry budget, else send a ping and let the 10s clock decide.
+   *
+   * Without this the quick retries (about 31s) ran out while the phone was in a
+   * pocket and nothing ever tried again.
+   */
+  onForeground() {
+    if (this.manualDisconnect) return;
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.sendPing();
+      return;
+    }
+    this.reconnectNow();
+  }
+
+  /** Reconnects immediately with the whole retry budget, unless a socket is
+   *  already being opened. */
+  reconnectNow() {
+    if (this.manualDisconnect || this.opening) return;
+    if (this.ws?.readyState === WebSocket.OPEN) return;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.slowRetryTimer) clearTimeout(this.slowRetryTimer);
+    this.reconnectTimer = null;
+    this.slowRetryTimer = null;
+    this.reconnectScheduled = false;
+    this.reconnectAttempt = 0;
+    this.diedYoung = 0;
+    this.openedAt = 0;
+    void this.openSocket();
   }
 
   private scheduleReconnect() {
@@ -770,6 +1057,12 @@ export class DronaVoiceClient {
       // Previously a bare return: the UI kept showing "Reconnecting" forever
       // with nothing left retrying behind it.
       this.handlers.onError?.("Couldn't reconnect to the classroom. Check your connection and rejoin.");
+      // And keep trying, slowly: see SLOW_RETRY_MS.
+      if (this.slowRetryTimer) clearTimeout(this.slowRetryTimer);
+      this.slowRetryTimer = setTimeout(() => {
+        this.slowRetryTimer = null;
+        this.reconnectNow();
+      }, SLOW_RETRY_MS);
       return;
     }
     this.reconnectScheduled = true;
@@ -817,11 +1110,24 @@ export class DronaVoiceClient {
          * prevent. Reconnects are routine on a phone — `RECONNECT_DELAYS_MS`
          * has six entries — so this was the common case, not the exotic one.
          */
-        // Held whenever a turn is under way on this socket — including a
-        // question turn whose state frame is its FIRST frame (no board lines,
-        // the question sentence synthesised after it): that turn never set
-        // `turnInFlight`, so its chips went up before Drona asked. The resume
-        // frame on a fresh socket (no activity since open) still shows at once.
+        // THE VERDICT, which rides in this frame. `answer_result` was documented
+        // on the server as the outcome of the student's own answer — "lets the
+        // UI colour the chip they tapped" (tutor.py) — but it is a field of the
+        // reply turn's final state frame, never a frame of its own, and this
+        // client only listened for a frame called `answer_result`: the verdict
+        // display existed and nothing ever fed it. Handed over the moment the
+        // frame arrives, ahead of the hold below — the hold is about the NEXT
+        // question's chips, and the verdict belongs to the chip just tapped.
+        if (typeof state.answer_result === 'string' && state.answer_result) {
+          this.handlers.onAnswerResult?.({ verdict: state.answer_result });
+        }
+        // The server has seen the answer, and the question has moved: the chips
+        // are live again. The small state frames (mute, timers) name no phase
+        // and prove only that the answer arrived.
+        this.acknowledgeAnswer();
+        if (state.phase) this.answerLocked = false;
+        // (main) a question turn whose state frame is its first frame holds too, and the
+        // resume frame on a fresh socket (no activity since open) still shows at once.
         if (state.check_options?.length && (this.turnInFlight || this.turnActivitySinceOpen)) {
           this.pendingState = state;
           this.pendingStateAwaitsComplete = true;
@@ -831,14 +1137,19 @@ export class DronaVoiceClient {
         if (state.phase === 'complete') this.handlers.onSessionEnded?.();
         break;
       }
-      case 'board_events':
+      case 'board_events': {
+        // Read BEFORE this frame opens its turn: only a board that arrives into
+        // a finished, silent class may show a line before its audio.
+        const classIsQuiet =
+          !this.turnInFlight && !this.awaitingDrain && !this.userPaused && this.chunkMeta.size === 0 && this.playback.idle;
         this.turnActivitySinceOpen = true;
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
         this.serverTurnOpen = true;
         this.clearTurnErrorRecovery();
-        this.bufferBoardEvents((msg.events as BoardEvent[]) ?? []);
+        this.bufferBoardEvents((msg.events as BoardEvent[]) ?? [], classIsQuiet);
         break;
+      }
       case 'board_replay': {
         /**
          * History, for a board this client has not started writing.
@@ -865,14 +1176,23 @@ export class DronaVoiceClient {
         this.handlers.onBoardReplay?.(events.map((event, row) => ({ ...event, key: `h:${row}` })));
         break;
       }
-      case 'audio_chunk':
+      case 'audio_chunk': {
         this.turnActivitySinceOpen = true;
+        const sentence = parseSentenceId(String(msg.sentence_id ?? ''));
+        if (sentence && this.abortedTurns.includes(sentence.turn)) {
+          // A frame of a turn the student already cut off, sent before the
+          // server heard the interruption. Playing it talked over them.
+          probe(`DROPPED ${String(msg.sentence_id)} — its turn was aborted`);
+          break;
+        }
+        if (sentence) this.receivedTurn = sentence.turn;
         if (!this.turnInFlight) this.handlers.onTurnStarted?.();
         this.turnInFlight = true;
         this.serverTurnOpen = true;
         this.clearTurnErrorRecovery();
         this.handleAudioChunk(msg);
         break;
+      }
       case 'transcript_partial':
         this.handlers.onTranscriptPartial?.(String(msg.transcript ?? ''));
         break;
@@ -886,6 +1206,7 @@ export class DronaVoiceClient {
         break;
       }
       case 'answer_result':
+        this.acknowledgeAnswer();
         this.handlers.onAnswerResult?.(msg as unknown as DronaAnswerResult);
         break;
       case 'turn_complete':
@@ -921,6 +1242,7 @@ export class DronaVoiceClient {
         }
         break;
       case 'turn_error':
+        this.answerLocked = false;
         this.handlers.onTurnError?.(String(msg.message ?? 'Something went wrong.'));
         // A turn that errors and never recovers never sends `turn_complete`
         // either, so anything held for it would be held forever. Give the
@@ -939,10 +1261,17 @@ export class DronaVoiceClient {
         this.handlers.onSttTooShort?.(String(msg.message ?? 'That was too short to hear.'));
         break;
       case 'error':
+        // e.g. "You're muted — unmute to answer": the answer was refused, so
+        // the chips are live again.
+        this.answerLocked = false;
         this.handlers.onError?.(String(msg.message ?? 'Something went wrong.'));
         break;
       case 'ping':
-        // One-directional server heartbeat while a turn is active — no reply expected.
+        // One-directional server heartbeat while a turn is active — no reply
+        // expected. It is a sign of life, which `onmessage` already counted.
+        break;
+      case 'pong':
+        // The answer to our own ping; `onmessage` already counted it.
         break;
       default:
         break;
@@ -1218,6 +1547,147 @@ export class DronaVoiceClient {
   }
 
   /**
+   * THE BOARD LEADS THE VOICE BY ~BOARD_LEAD_S (lib/pcm-playback-queue.ts).
+   *
+   * Only plain writing goes early — text, heading, note, formula, and none of
+   * the figure kinds — and only a PREFIX of the chunk's lines, so a figure
+   * never ends up below a line that comes after it. Everything else stays with
+   * onItemStart, which runs at the old time and reveals the rest (this is
+   * idempotent by key, so it writes nothing twice).
+   *
+   * Three things keep the sync:
+   * - The caption, the speaking flag and figures/widgets are not touched: the
+   *   classroom's cue captions rely on onItemStart running just before
+   *   onBoardReveal of the same sentence (app/live-classroom.tsx).
+   * - The cue clock is the last revealed line's `seq` (activeSeq), and a
+   *   widget's cues and steps are selected by it. Early text would move it, so
+   *   a turn whose board holds any registry widget does not lead at all — it
+   *   keeps today's reveal times.
+   * - Board order is arrival order: if an earlier chunk still holds a line that
+   *   has not been revealed (a figure waiting for its sentence), this chunk
+   *   waits behind it.
+   */
+  private revealWrittenLinesAhead(id: string) {
+    const meta = this.chunkMeta.get(id);
+    const entries = meta?.board;
+    if (!meta || !entries?.length) return;
+    for (const [otherId, other] of this.chunkMeta) {
+      if (otherId === id) break;
+      if (other.board?.some((e) => !this.revealedBoardKeys.has(e.key))) return;
+    }
+    const n = this.writtenPrefix(entries).length;
+    if (n === 0) return;
+    const now = Date.now();
+    const pace = paceLines(
+      entries.map((e) => e.event),
+      this.sentenceMs(meta)
+    );
+    entries.slice(0, n).forEach((entry, i) =>
+      this.revealBoardEntry(
+        entry,
+        `ahead(${meta.sentenceId ?? id})`,
+        { sentenceId: meta.sentenceId ?? '-', receivedAt: meta.receivedAt ?? now, startedAt: now },
+        pace[i]
+      )
+    );
+  }
+
+  /**
+   * The lines of `entries` that may be shown ahead of their voice: the plain
+   * written lines at the front, and none at all when the turn's board holds a
+   * registry widget (its cues and steps run off the last revealed `seq`).
+   */
+  private writtenPrefix(entries: BoardEntry[]): BoardEntry[] {
+    let n = 0;
+    while (n < entries.length && this.isWrittenLine(entries[n].event)) n += 1;
+    const prefix = entries.slice(0, n);
+    for (const entry of prefix) {
+      const batch = this.boardBatches.find((b) => b.serial === entry.batch);
+      if (!batch || batch.entries.some((e) => e.event.payload)) return [];
+    }
+    return prefix;
+  }
+
+  /** Lines shown the moment their turn's board arrived (before any audio), and
+   *  when. See `revealOnArrival`. Read once, by the turn's first audio. */
+  private earlyRevealAt = new Map<string, number>();
+
+  /**
+   * THE FIRST LINE, AS SOON AS IT IS SAFE.
+   *
+   * A turn's board arrives ahead of its audio by the TTS latency. When the
+   * class is silent and the previous turn is over — flushed, drained, nothing
+   * queued, not paused — the turn's first line may go up at once, and that
+   * time counts against the hold on the first audio. Anywhere else it must
+   * not: the next turn's board used to arrive while the last one was still
+   * being spoken and was written over it (see flushPendingBoardEvents).
+   *
+   * Only the first entry, and only if it is plain writing, the turn has no
+   * widget, and nothing earlier in the session has the same content (a turn
+   * re-sent after a resume or a drop is re-keyed to the copy already on the
+   * board, and an early line under the new key would be written twice).
+   */
+  private revealOnArrival(batch: BoardBatch) {
+    const first = batch.entries[0];
+    if (!first || !pcmAvailable || FIRST_AUDIO_HOLD_S <= 0) return;
+    if (this.writtenPrefix([first]).length === 0 || this.revealedBoardKeys.has(first.key)) return;
+    const repeats = this.boardBatches.some(
+      (b) => b !== batch && b.entries.some((e) => e.fingerprint === first.fingerprint)
+    );
+    if (repeats) return;
+    const now = Date.now();
+    this.revealBoardEntry(first, 'arrival', { sentenceId: '-', receivedAt: now, startedAt: now });
+    this.earlyRevealAt.set(first.key, now);
+  }
+
+  /**
+   * How much of the opening hold a run's first chunk still owes, after
+   * showing its plain lines. 0 when it has none (or the turn has a widget):
+   * nothing is delayed for a sentence with nothing to show.
+   *
+   * The clock starts at the LATEST of its lines' reveal times — a line shown
+   * on arrival has been up since then — so a board that beat its audio by the
+   * TTS latency pays only the rest. A line that was already on the board
+   * before this turn counts as seen long ago.
+   */
+  private holdForFirstAudio(
+    entries: BoardEntry[],
+    sentence: { speech?: string; durationMs?: number; sentenceId: string; receivedAt: number }
+  ): number {
+    const prefix = this.writtenPrefix(entries);
+    if (prefix.length === 0) return 0;
+    const now = Date.now();
+    const pace = paceLines(
+      entries.map((e) => e.event),
+      this.sentenceMs(sentence)
+    );
+    let latest = -Infinity;
+    prefix.forEach((entry, i) => {
+      const early = this.earlyRevealAt.get(entry.key);
+      this.earlyRevealAt.delete(entry.key);
+      if (early !== undefined) latest = Math.max(latest, early);
+      else if (!this.revealedBoardKeys.has(entry.key)) {
+        this.revealBoardEntry(
+          entry,
+          `hold(${sentence.sentenceId})`,
+          { sentenceId: sentence.sentenceId, receivedAt: sentence.receivedAt, startedAt: now },
+          pace[i]
+        );
+        latest = now;
+      }
+    });
+    if (latest === -Infinity) return 0;
+    const owed = FIRST_AUDIO_HOLD_S - (now - latest) / 1000;
+    return owed < 0.1 ? 0 : Math.min(owed, FIRST_AUDIO_HOLD_S);
+  }
+
+  /** What a teacher writes: not a figure, a widget or an illustration. */
+  private isWrittenLine(e: BoardEvent): boolean {
+    if (e.payload || e.svg || e.illustration_slug) return false;
+    return e.type === 'text' || e.type === 'heading' || e.type === 'note' || e.type === 'formula';
+  }
+
+  /**
    * Reveals the board lines of the next sentence still queued after
    * `currentSentenceId`, ahead of its audio. Its chunk keeps its metadata (for
    * the caption); the reveal is idempotent by key, so its own onItemStart
@@ -1248,7 +1718,7 @@ export class DronaVoiceClient {
    *  not shown yet, until each item's paired audio_chunk starts playing. An
    *  entry leaves this list when a chunk claims it, not when it is revealed. */
   private pendingBoardEvents: BoardEntry[] = [];
-  private bufferBoardEvents(events: BoardEvent[]) {
+  private bufferBoardEvents(events: BoardEvent[], classIsQuiet = false) {
     const batch = this.openBatch(events);
     if (this.cutOffBatch) {
       // The first turn after a drop that cut one off: if it is that turn
@@ -1256,6 +1726,7 @@ export class DronaVoiceClient {
       this.adoptKeys(batch, [this.cutOffBatch]);
       this.cutOffBatch = null;
     }
+    if (classIsQuiet) this.revealOnArrival(batch);
     // INSTRUMENTATION, temporary and deliberately verbose. The question this
     // answers: which board events ever get carried by an audio chunk, and
     // which sit in this queue until the end-of-turn safety net. A figure has
@@ -1391,7 +1862,17 @@ export class DronaVoiceClient {
     // the lines wait to be written as their sentence plays.
     const opensRun = this.playback.idle && !this.userPaused;
     const pcm = base64ToBytes(audioBase64);
-    this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
+    // The first word of a run waits for its lines to have been on screen for a
+    // while (FIRST_AUDIO_HOLD_S), net of what they have already had.
+    const holdS =
+      opensRun && pcmAvailable && FIRST_AUDIO_HOLD_S > 0 && entries.length > 0
+        ? this.holdForFirstAudio(entries, { speech, durationMs, sentenceId, receivedAt })
+        : 0;
+    if (holdS > 0) {
+      (this.playback as PcmPlaybackQueue).enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE }, { holdS });
+    } else {
+      this.playback.enqueue({ id: playbackId, pcm, sampleRate: TTS_SAMPLE_RATE });
+    }
     if (opensRun && entries.length > 0) {
       const pace = paceLines(
         entries.map((e) => e.event),
@@ -1410,26 +1891,103 @@ export class DronaVoiceClient {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(payload));
   }
 
+  /**
+   * `client_msg_id` on every utterance: a string unique to this send, which the
+   * server can dedupe on. The same id is reused when the SAME message is sent
+   * again after a drop, so a resend is recognisable as one.
+   */
   sendUtterance(text: string) {
     this.endUserPause();
     this.dropHeldTurn();
-    this.sendJson({ type: 'utterance', text });
+    this.sendJson({ type: 'utterance', text, client_msg_id: newClientMsgId() });
   }
 
-  /** The student's answer to a checkpoint question, from a chip tap. */
-  sendAnswer(text: string) {
+  /**
+   * The student's answer to a checkpoint question, from a chip tap.
+   *
+   * Returns what happened to it, so nothing is dropped without anyone knowing:
+   * `sent`; `queued` (the socket is not open — it goes out when it reopens, and
+   * `onPendingAnswer` says so); or `ignored` (a chip was already answered and
+   * no new question has arrived — a double tap, or a second chip before the
+   * first one's reply).
+   */
+  sendAnswer(text: string): 'sent' | 'queued' | 'ignored' {
+    if (this.answerLocked) return 'ignored';
+    this.answerLocked = true;
     this.endUserPause();
     this.dropHeldTurn();
-    this.sendJson({ type: 'utterance', text });
+    const id = newClientMsgId();
+    const ws = this.ws;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'utterance', text, client_msg_id: id }));
+      this.unackedAnswer = { text, id, at: Date.now(), socket: ws };
+      return 'sent';
+    }
+    this.pendingAnswer = { text, id, at: Date.now() };
+    this.handlers.onPendingAnswer?.('queued');
+    return 'queued';
+  }
+
+  /** The server has the answer: nothing to resend if the socket now dies. */
+  private acknowledgeAnswer() {
+    if (this.unackedAnswer && this.unackedAnswer.socket === this.ws) this.unackedAnswer = null;
+  }
+
+  /** An answer the dead socket may not have delivered goes back in the queue. */
+  private requeueUnackedAnswer() {
+    const unacked = this.unackedAnswer;
+    this.unackedAnswer = null;
+    if (!unacked || this.pendingAnswer) return;
+    this.pendingAnswer = { text: unacked.text, id: unacked.id, at: unacked.at };
+  }
+
+  /** The socket is open again: the queued answer goes out, unless it has gone
+   *  stale, in which case the student is told rather than answered for. */
+  private flushPendingAnswer() {
+    const pending = this.pendingAnswer;
+    if (!pending) return;
+    this.pendingAnswer = null;
+    if (Date.now() - pending.at > PENDING_ANSWER_MAX_AGE_MS) {
+      this.answerLocked = false;
+      this.handlers.onError?.("Your answer didn't go through before the connection came back. Tap it again.");
+      return;
+    }
+    const ws = this.ws;
+    if (ws?.readyState !== WebSocket.OPEN) {
+      this.pendingAnswer = pending;
+      return;
+    }
+    ws.send(JSON.stringify({ type: 'utterance', text: pending.text, client_msg_id: pending.id }));
+    this.unackedAnswer = { text: pending.text, id: pending.id, at: pending.at, socket: ws };
+    this.answerLocked = true;
+    this.handlers.onPendingAnswer?.('sent');
+  }
+
+  /**
+   * How many of the current turn's sentences the student has heard: the
+   * 1-indexed number of the last one whose audio has started playing (a clip
+   * that has started has been heard, at least in part), 0 if none of this
+   * turn's has.
+   *
+   * "The current turn" is the turn of the newest audio frame accepted — the one
+   * a barge-in aborts. Sentences are numbered by the server's speech chunk
+   * (`<turn>_s<n>`), the same count the board's pairing uses, so the server can
+   * resend from the next one.
+   */
+  private heardThroughSeq(): number {
+    if (!this.receivedTurn || this.heardTurn !== this.receivedTurn) return 0;
+    return this.heardSeq;
   }
 
   sendPttStart() {
+    // Said BEFORE the queue is cleared and the turn forgotten below.
+    const heard = this.heardThroughSeq();
     // Barge-in: stop Drona mid-sentence before the mic opens. Without this she
     // keeps talking into a live mic and speech-to-text transcribes her own
     // voice as the student's answer.
     this.endUserPause();
     this.bargeIn();
-    this.sendJson({ type: 'ptt_start' });
+    this.sendJson({ type: 'ptt_start', heard_through_seq: heard });
   }
 
   /**
@@ -1453,6 +2011,7 @@ export class DronaVoiceClient {
     this.lastStartedSentence = null;
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.earlyRevealAt.clear();
     this.currentChunkDurationMs = null;
     this.playback.clear();
     this.handlers.onSpeakingChange?.(false);
@@ -1474,6 +2033,17 @@ export class DronaVoiceClient {
       this.checkinOpen = false;
       this.handlers.onCheckinClosed?.();
     }
+    // The turn being abandoned is aborted server-side, but frames it already
+    // sent are still coming down the wire. Remember which turn it was so they
+    // are dropped on arrival (audio only: the protocol's other frames carry no
+    // turn id, so a late `board_events` frame cannot be told from a new one).
+    if (this.receivedTurn && !this.abortedTurns.includes(this.receivedTurn)) {
+      this.abortedTurns.push(this.receivedTurn);
+      if (this.abortedTurns.length > ABORTED_TURNS_KEPT) this.abortedTurns.shift();
+    }
+    this.receivedTurn = null;
+    this.heardTurn = null;
+    this.heardSeq = 0;
     this.turnInFlight = false;
     this.pendingState = null;
     this.pendingStateAwaitsComplete = false;
@@ -1508,11 +2078,18 @@ export class DronaVoiceClient {
   /** Unused today — no caller in app/, lib/ or components/. Kept consistent
    *  with the other two abort paths so it cannot become the next leak. */
   interrupt(playbackPosition: number, cutoffText: string) {
+    const heard = this.heardThroughSeq();
     this.dropHeldTurn();
     this.chunkMeta.clear();
+    this.earlyRevealAt.clear();
     this.currentChunkDurationMs = null;
     this.playback.clear();
-    this.sendJson({ type: 'interrupt', playback_position: playbackPosition, cutoff_text: cutoffText });
+    this.sendJson({
+      type: 'interrupt',
+      playback_position: playbackPosition,
+      cutoff_text: cutoffText,
+      heard_through_seq: heard,
+    });
   }
 
   mute() {

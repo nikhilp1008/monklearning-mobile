@@ -1,22 +1,17 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { View } from 'react-native';
 
-import { OnbCard, OnbLabel, OnbScreen } from '@/components/onboarding/onb-screen';
+import { OnbLabel, OnbScreen } from '@/components/onboarding/onb-screen';
 import { ChoiceGrid, SkyChoice } from '@/components/onboarding/sky-choice';
-import { EXAMS, ob, obFont, useDesignScale, type ExamKey } from '@/constants/onboarding';
-import { examCountdown } from '@/lib/exam-countdown';
-import { ANSWERS_TIED_TO_EXAM, getAnswers, saveAnswers, type ExamYear } from '@/lib/onboarding-answers';
+import { EXAMS, useDesignScale, type ExamKey } from '@/constants/onboarding';
+import { getAnswers, saveAnswers, type ExamYear } from '@/lib/onboarding-answers';
 import { getProfile, saveProfile } from '@/lib/profile';
 
 /**
- * Screen 3: which exam, which year, and how many days that leaves.
- *
- * One screen rather than two. The year only means something next to the exam,
- * and the countdown is the payoff for answering both: the moment a student
- * sees "99 days" with their exam's name on it, the questions that follow stop
- * feeling like a form.
+ * Which exam, and which year. One screen rather than two: the year only means
+ * something next to the exam. The days-left card that used to sit under it
+ * was removed (Nikhil, 9 Nov 2026).
  */
 const EXAM_ORDER: ExamKey[] = ['jee', 'neet'];
 const YEARS: { id: ExamYear; label: string }[] = [
@@ -26,11 +21,9 @@ const YEARS: { id: ExamYear; label: string }[] = [
 ];
 
 export default function ExamScreen() {
-  const { ds, fs, tracking } = useDesignScale();
+  const { ds } = useDesignScale();
   const [exam, setExam] = useState<ExamKey | null>(null);
   const [year, setYear] = useState<ExamYear | null>(null);
-  /** The exam already saved, if this is a return visit. */
-  const [saved, setSaved] = useState<ExamKey | null>(null);
 
   // Coming back to this screen keeps the answers already given. Exam and year
   // are saved together, so a saved year means the profile's exam is a real
@@ -41,14 +34,12 @@ export default function ExamScreen() {
       if (!live || !a.examYear) return;
       setYear(a.examYear);
       setExam(p.exam);
-      setSaved(p.exam);
     });
     return () => {
       live = false;
     };
   }, []);
 
-  const countdown = exam ? examCountdown(exam, year ?? undefined) : null;
   const ready = !!exam && !!year;
 
   return (
@@ -61,9 +52,7 @@ export default function ExamScreen() {
         onPress: () => {
           if (!exam || !year) return;
           saveProfile({ exam });
-          // A different exam makes the later answers mean something else.
-          saveAnswers({ examYear: year, ...(saved && saved !== exam ? ANSWERS_TIED_TO_EXAM : {}) });
-          setSaved(exam);
+          saveAnswers({ examYear: year });
           router.push('/class');
         },
       }}>
@@ -94,37 +83,6 @@ export default function ExamScreen() {
         ))}
       </ChoiceGrid>
 
-      {countdown ? (
-        <Animated.View key={countdown.label} entering={FadeIn.duration(320)} style={{ marginTop: ds(18) }}>
-          <OnbCard style={{ flexDirection: 'row', alignItems: 'center', gap: ds(16) }}>
-            <Text
-              style={{
-                fontFamily: obFont.m500,
-                fontSize: fs(44),
-                letterSpacing: tracking(-0.035, 44),
-                color: ob.ink,
-                fontVariant: ['tabular-nums'],
-              }}>
-              {countdown.days}
-            </Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: obFont.m500, fontSize: fs(15), color: ob.ink }}>
-                days to {countdown.label}
-              </Text>
-              <Text
-                style={{
-                  marginTop: ds(2),
-                  fontFamily: obFont.r400,
-                  fontSize: fs(13),
-                  lineHeight: fs(18),
-                  color: ob.ink55,
-                }}>
-                {countdown.note}
-              </Text>
-            </View>
-          </OnbCard>
-        </Animated.View>
-      ) : null}
     </OnbScreen>
   );
 }

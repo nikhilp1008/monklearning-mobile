@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type TextStyle,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -1854,7 +1855,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Onest_500Medium',
     fontSize: 15,
     color: INK,
-    ...PLATE,
+    // React Native draws `boxShadow` on a TextInput (it is a view) but types
+    // it for a View only: TextStyle.boxShadow accepts a string and not the
+    // array, so the plate is cast, not changed.
+    ...(PLATE as unknown as TextStyle),
   },
   typeSend: {
     width: 48,

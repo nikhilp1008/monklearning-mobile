@@ -56,6 +56,23 @@ describe('splitProse', () => {
     }
   });
 
+  it('does not split after m.p. or b.p. (melting and boiling points)', () => {
+    for (const ab of ['m.p.', 'b.p.']) {
+      const html = `${S(22)} Glucose exists in two crystalline forms — α (${ab} 419 K, from concentrated solution at 303 K) and β. ${S(22)} ${S(22)}`;
+      for (const chunk of splitProse(html)) expect(chunk.trimStart()).not.toMatch(/^419 K/);
+    }
+  });
+
+  it('splits a bullet list between items, never inside one', () => {
+    const item = (lead: string) => `<br>• <b>${lead}</b> ${S(12)} ${S(12)} A last short sentence of this item.`;
+    const html = `Limiting conditions:${item('One')}${item('Two')}${item('Three')}${item('Four')}`;
+    const chunks = splitProse(html);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.join('')).toBe(html);
+    // Every piece after the first opens on an item; none on an item's middle sentence.
+    for (const chunk of chunks.slice(1)) expect(chunk).toMatch(/^<br>• /);
+  });
+
   it('does not split inside maths', () => {
     const html = `${S(22)} The result is $v = 3.5\\,\\text{m s}^{-1}. $ and it holds. ${S(22)} ${S(22)}`;
     for (const chunk of splitProse(html)) {
@@ -94,5 +111,14 @@ describe('splitProse', () => {
     for (const html of samples) {
       expect(splitProse(html).join('')).toBe(html);
     }
+  });
+
+  // Android check of Mathematics 11 Ch 6: a factorial and a glued ■ each opened a new paragraph.
+  it('never splits at a factorial or before a no-break space', () => {
+    const long = 'The number of ways to place them is counted by inclusion–exclusion over every subset of the boxes, term by term, with alternating signs throughout. ';
+    const fact = `${long}${long}So D<sub><i>n</i></sub> = <i>n</i>! Σ (−1)<sup><i>r</i></sup>/<i>r</i>! for every <i>n</i>, and 5! = 120 here. ${long}`;
+    expect(splitProse(fact).some((p) => /^\s*Σ|^\s*for every|^\s*= 120/.test(p))).toBe(false);
+    const box = `${long}${long}That completes the proof.\u00a0■ ${long}`;
+    expect(splitProse(box).some((p) => p.trimStart().startsWith('■'))).toBe(false);
   });
 });

@@ -198,7 +198,7 @@ export function Insight({ text, style }: { text: string; style?: StyleProp<ViewS
   );
 }
 
-/** A white card with a hairline: the countdown, the weekends, the admit card. */
+/** A white card with a hairline, used on the onboarding screens. */
 export function OnbCard({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { ds } = useDesignScale();
   return (

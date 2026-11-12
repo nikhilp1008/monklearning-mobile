@@ -53,7 +53,7 @@ export function formulaTitle(kickerText: string, asPrinted = false): string {
 /** A symbol line written "n₁, n₂ = the numerical values…" reads "n₁, n₂ — the
  *  numerical values…", its symbol in SemiBold. About half the corpus's lines
  *  are written this way; the rest are plain sentences and stay plain. */
-function legendHtml(line: string): string {
+export function legendHtml(line: string, noDash = false): string {
   const at = line.indexOf(' = ');
   if (at < 0 || line.slice(0, at).replace(/<[^>]*>/g, '').length > 24) return line;
   // A line that defines several symbols ("ℕ = naturals · W = wholes") keeps
@@ -61,9 +61,14 @@ function legendHtml(line: string): string {
   // conventions on one line.
   if (line.indexOf(' = ', at + 3) >= 0) return line;
   // A value keeps its "=": "pKa — −log Ka" read as minus minus, and
-  // "z₁ — 2 for an α-particle" as z₁ minus 2.
+  // "z₁ — 2 for an α-particle" as z₁ minus 2. A name opening on its locant
+  // ("3-hydroxybutanal", "2,4,6-tribromophenol") is no value (Chemistry 12 Ch 8), nor is
+  // a class ("1° amine", Chemistry 12 Ch 9).
   const rest = line.slice(at + 3);
-  const sign = /^[0-9−+±.½]/.test(rest.replace(/<[^>]*>/g, '')) ? '=' : '—';
+  const restText = rest.replace(/<[^>]*>/g, '');
+  const sign = /^[0-9−+±.½]/.test(restText) && !/^\d+(?:,\d+)*-[a-zα-ω]|^\d+°\s*[a-z]/i.test(restText) ? '=' : '—';
+  // Without dashes (Mathematics): "a: the first term".
+  if (noDash && sign === '—') return `<b>${line.slice(0, at)}</b>: ${rest}`;
   return `<b>${line.slice(0, at)}</b> ${sign} ${rest}`;
 }
 
@@ -71,10 +76,13 @@ export function PilotFormula({
   block,
   scale,
   type,
+  noDash = false,
 }: {
   block: FormulaBlock;
   scale: (n: number) => number;
   type: (n: number) => number;
+  /** "symbol: meaning" instead of "symbol — meaning" (Mathematics; see BlockCtx.noDash). */
+  noDash?: boolean;
 }) {
   const book = useContext(BookText);
   const s = makeStyles(scale, type);
@@ -94,7 +102,7 @@ export function PilotFormula({
       )}
       <Markup html={block.main} size={type(FORMULA_SIZE)} style={s.main} look="pilot" />
       {block.legend.length > 0 && (
-        <View style={s.symbols}>{block.legend.map((line, i) => read(legendHtml(line), i))}</View>
+        <View style={s.symbols}>{block.legend.map((line, i) => read(legendHtml(line, noDash), i))}</View>
       )}
       {!!block.note && (
         <>

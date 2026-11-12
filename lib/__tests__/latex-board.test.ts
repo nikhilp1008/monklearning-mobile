@@ -75,6 +75,7 @@ describe('xrightarrow with an optional [below] argument', () => {
   }
 
   test('both labels are kept when both are given', () => {
-    expect(latexToText('A \\xrightarrow[heat]{cat} B')).toContain('→(cat/heat)');
+    // Above first, then below, joined with ", ". A slash read as one reagent over another.
+    expect(latexToText('A \\xrightarrow[heat]{cat} B')).toContain('→(cat, heat)');
   });
 });

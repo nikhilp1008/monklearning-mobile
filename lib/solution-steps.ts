@@ -1,4 +1,4 @@
-import { latexToText } from '@/lib/latex-text';
+import { clearControlChars, isLatexCommand, latexToText } from '@/lib/latex-text';
 
 export type SolutionLine = {
   kind: 'text' | 'math';
@@ -61,7 +61,64 @@ const WHOLE_LINE_MATH = /^\s*(?:\$\$?[^$]+\$\$?|\\\([^)]*\\\)|\\\[[^\]]*\\\])\s*
  */
 export function normaliseDisplayMath(raw: string): string {
   const ownLine = (_: string, tex: string) => `\n$${tex.replace(/\s+/g, ' ').trim()}$\n`;
-  return raw.replace(/\$\$([\s\S]+?)\$\$/g, ownLine).replace(/\\\[([\s\S]+?)\\\]/g, ownLine);
+  return splitMathBlocks(
+    clearControlChars(raw).replace(/\$\$([\s\S]+?)\$\$/g, ownLine).replace(/\\\[([\s\S]+?)\\\]/g, ownLine)
+  );
+}
+
+const dollars = (line: string) => line.match(/(?<!\\)\$/g)?.length ?? 0;
+
+/** Words that do join two lines of working. Any other lone word in a maths block is noise. */
+const BLOCK_CONNECTIVE = /^(?:or|and|so|hence|thus|then|therefore|since|because|where|given|also|similarly|but|now)$/i;
+/** What makes a line of a maths block a formula rather than words. */
+const MATHY = /[0-9⁰-₟=+\-*/^<>≤≥≈×÷\\]/;
+
+function isNoiseLine(line: string): boolean {
+  const word = /^\\?([A-Za-z]{5,})[.,;:]?$/.exec(line);
+  return !!word && !BLOCK_CONNECTIVE.test(word[1]) && !isLatexCommand(word[1]);
+}
+
+/**
+ * A single `$…$` written across several lines, as one `$…$` per line.
+ *
+ * Steps are split on newlines before anything looks for maths, so a block left
+ * whole reached the screen as prose with a literal `$` at each end. The server's
+ * `normalize_step` does this for the stored question bank; a live snap never goes
+ * through it. A lone word on a line of the block is the solver running off the
+ * rails ("$y = (2/5)^x,\or\nutomatically$", seen on a live snap, 3 Nov 2026), and
+ * it goes, along with the "or" it left hanging. Only when the shape is certain:
+ * a closing `$` must end its line, so two prices on two lines are never joined.
+ */
+function splitMathBlocks(text: string): string {
+  if (!text.includes('\n')) return text;
+  const lines = text.split('\n');
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    let closes = -1;
+    if (dollars(line) === 1) {
+      let j = i + 1;
+      while (j < lines.length && dollars(lines[j]) === 0) j += 1;
+      if (j < lines.length && dollars(lines[j]) === 1 && /\$\s*[.,;:]?\s*$/.test(lines[j])) closes = j;
+    }
+    if (closes === -1) {
+      out.push(line);
+      continue;
+    }
+    const open = line.indexOf('$');
+    const before = line.slice(0, open).trim();
+    if (before) out.push(before);
+    const pieces = [line.slice(open + 1), ...lines.slice(i + 1, closes), lines[closes].replace(/\$\s*[.,;:]?\s*$/, '')]
+      .map((piece) => piece.trim())
+      .filter((piece) => piece && !isNoiseLine(piece));
+    if (pieces.length) {
+      const last = pieces.length - 1;
+      pieces[last] = pieces[last].replace(/[\s,;]*\\or\s*$/, '').replace(/[,;]\s*$/, '').trim();
+    }
+    pieces.filter(Boolean).forEach((piece) => out.push(MATHY.test(piece) ? `$${piece}$` : piece));
+    i = closes;
+  }
+  return out.join('\n');
 }
 
 export function parseSolutionStep(raw: string): ParsedStep {

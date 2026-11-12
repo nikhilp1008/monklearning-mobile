@@ -37,8 +37,29 @@ import chem11ch6 from '@/content/textbooks/chem-11-06-equilibrium';
 import chem11ch7 from '@/content/textbooks/chem-11-07-redox';
 import chem11ch8 from '@/content/textbooks/chem-11-08-organic-basics';
 import chem11ch9 from '@/content/textbooks/chem-11-09-hydrocarbons';
-import chem11ch10 from '@/content/textbooks/chem-11-10-p-block';
+import chem12ch1 from '@/content/textbooks/chem-12-01-solutions';
+import chem12ch2 from '@/content/textbooks/chem-12-02-electrochemistry';
+import chem12ch3 from '@/content/textbooks/chem-12-03-chemical-kinetics';
+import chem12ch4 from '@/content/textbooks/chem-12-04-d-and-f-block';
+import chem12ch5 from '@/content/textbooks/chem-12-05-coordination-compounds';
+import chem12ch6 from '@/content/textbooks/chem-12-06-haloalkanes-haloarenes';
+import chem12ch7 from '@/content/textbooks/chem-12-07-alcohols-phenols-ethers';
+import chem12ch8 from '@/content/textbooks/chem-12-08-aldehydes-ketones-carboxylic-acids';
+import chem12ch9 from '@/content/textbooks/chem-12-09-amines';
+import chem12ch10 from '@/content/textbooks/chem-12-10-biomolecules';
+import chem12ch11 from '@/content/textbooks/chem-12-11-p-block';
+import math11ch1 from '@/content/textbooks/math-11-01-sets';
+import math11ch2 from '@/content/textbooks/math-11-02-relations';
+import math11ch3 from '@/content/textbooks/math-11-03-trigonometry';
+import math11ch4 from '@/content/textbooks/math-11-04-complex';
+import math11ch5 from '@/content/textbooks/math-11-05-inequalities';
+import math11ch6 from '@/content/textbooks/math-11-06-permutations';
+import math11ch7 from '@/content/textbooks/math-11-07-binomial';
+import math11ch8 from '@/content/textbooks/math-11-08-sequences';
+import math11ch9 from '@/content/textbooks/math-11-09-straight-lines';
+import math11ch10 from '@/content/textbooks/math-11-10-conics';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
+import { KEY_POINTS } from '@/lib/revise/keypoints';
 import type { Chapter } from '@/lib/textbooks';
 
 /**
@@ -49,9 +70,12 @@ import type { Chapter } from '@/lib/textbooks';
  * the PDF's maths letters (𝑥, 𝜃), which the app's fonts do not carry and
  * which would also hide a letter from the Markup italics.
  */
-const ALLOWED_TAGS = /<\/?(b|i|sup|sub)>|<br\s*\/?>/gi;
-/** Mathematical Alphanumeric Symbols, U+1D400 to U+1D7FF: the PDF's italic letters. */
-const PDF_MATH = /[\u{1D400}-\u{1D7FF}]/u;
+const ALLOWED_TAGS = /<\/?(b|i|sup|sub|frac|binom|num|den)>|<br\s*\/?>/gi;
+/**
+ * Mathematical Alphanumeric Symbols, U+1D400 to U+1D7FF: the PDF's italic letters.
+ * Not the double-struck capitals (𝕎, 𝕋: U+1D538–U+1D56B), which are symbols of their own and drawn in STIX Two Math.
+ */
+const PDF_MATH = /(?![\u{1D538}-\u{1D56B}])[\u{1D400}-\u{1D7FF}]/u;
 
 function strings(v: unknown, out: string[] = []): string[] {
   if (typeof v === 'string') out.push(v);
@@ -60,7 +84,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem11ch10] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
@@ -76,9 +100,14 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
       if (firstExtra >= 0) expect(chapter.topics.slice(firstExtra).every((t) => t.extra)).toBe(true);
     });
 
+    // The additional ones run on from the book's own first letter: Mathematics 11
+    // Chapter 2's start at F, continuing the supplement's Procedure E; Chapter 3's
+    // are the supplement's addendum C (examples C1–C4) and the closing "Topic D".
+    const FIRST_EXTRA: Record<string, string> = { 'Mathematics 11 02': 'F', 'Mathematics 11 03': 'C' };
     it('numbers topics 01, 02, … and letters the additional ones A, B, …', () => {
       expect(regular.map((t) => t.n)).toEqual(regular.map((_, i) => String(i + 1).padStart(2, '0')));
-      expect(extras.map((t) => t.n)).toEqual(extras.map((_, i) => String.fromCharCode(65 + i)));
+      const first = (FIRST_EXTRA[`${chapter.subject} ${klass} ${chapter.chapter}`] ?? 'A').charCodeAt(0);
+      expect(extras.map((t) => t.n)).toEqual(extras.map((_, i) => String.fromCharCode(first + i)));
     });
 
     it('splits every topic at the book\'s own sections, starting with one', () => {
@@ -89,7 +118,9 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
         const practiceOnly = !!t.extra && t.blocks.length === 2 && t.blocks[1].t === 'practice';
         // So is a chapter's opening that is only one box of the book's (Physics 12 Ch 14's syllabus scope).
         const oneBoxGuide = t.n === '00' && t.blocks.length === 2;
-        expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly || oneBoxGuide ? 1 : 2);
+        // And the book's "Summary Checklist" printed with no lead-in of its own (Chemistry 12 Ch 9 E).
+        const checklistOnly = !!t.extra && t.title === 'Summary Checklist' && t.blocks.length === 2;
+        expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly || oneBoxGuide || checklistOnly ? 1 : 2);
       }
     });
 
@@ -119,7 +150,7 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
 
     it('closes every tag it opens', () => {
       for (const s of strings(chapter.topics))
-        for (const tag of ['b', 'i', 'sup', 'sub']) {
+        for (const tag of ['b', 'i', 'sup', 'sub', 'frac', 'binom', 'num', 'den']) {
           const open = (s.match(new RegExp(`<${tag}>`, 'g')) ?? []).length;
           const close = (s.match(new RegExp(`</${tag}>`, 'g')) ?? []).length;
           expect(`${tag}:${open}`).toBe(`${tag}:${close}`);
@@ -152,5 +183,26 @@ describe('the chapter registry', () => {
     const keys = [...src.matchAll(/^\s+'([^']+\|\d+\|[^']+)':\s*\(\)\s*=>/gm)].map((m) => m[1]);
     expect(keys.length).toBeGreaterThan(50);
     expect(keys.filter((k) => !/^[a-z]+\|\d+\|[a-z0-9]+(?: [a-z0-9]+)*$/.test(k))).toEqual([]);
+  });
+});
+
+// The p-Block is one chapter from two books (Class 11 Groups 13–14, then Class 12
+// Groups 15–18), so its drawings and key points carry topic indexes in the joined
+// order. A wrong index files a drawing or a point under the wrong topic.
+describe('Chemistry 12 p-Block, joined from two books', () => {
+  const where = new Map<string, number>();
+  chem12ch11.topics.forEach((t, i) => t.blocks.forEach((b) => b.t === 'fig' && where.set(b.id, i)));
+  it('files every drawing under the topic that shows it', () => {
+    const off = (DIAGRAMS['chemistry|12|11'] ?? []).filter((d) => where.get(d.id) !== d.topic).map((d) => `${d.id}: ${d.topic} ≠ ${where.get(d.id)}`);
+    expect(off).toEqual([]);
+    expect((DIAGRAMS['chemistry|12|11'] ?? []).length).toBe(17);
+  });
+  it('files every key point under a real topic, Groups 13–14 first', () => {
+    const points = KEY_POINTS['chemistry|12|11'] ?? [];
+    expect(points.length).toBeGreaterThan(90);
+    expect(points.every((p) => p.topic >= 0 && p.topic < chem12ch11.topics.length)).toBe(true);
+    expect(points.map((p) => p.topic)).toEqual([...points.map((p) => p.topic)].sort((a, b) => a - b));
+    expect(chem12ch11.topics[0].title).toBe('General Introduction to the p-Block');
+    expect(chem12ch11.topics[6].title).toBe('Group 15: The Nitrogen Family');
   });
 });

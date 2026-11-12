@@ -1,8 +1,34 @@
 import { Canvas, Circle, RadialGradient, Shadow, vec } from '@shopify/react-native-skia';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { type ViewStyle } from 'react-native';
+import {
+  useDerivedValue,
+  useFrameCallback,
+  useReducedMotion,
+  useSharedValue,
+  type FrameInfo,
+} from 'react-native-reanimated';
 
 import { ORB_POSTERS } from '@/constants/teachers';
 import type { TeacherId } from '@/lib/preferences';
+
+/**
+ * THE DRIFT (Nikhil, 9 Nov 2026: "15%").
+ *
+ * The still orb read as a picture. Now the light inside it drifts: the
+ * gradient's bright centre wanders by up to 15% of the orb's width on a slow,
+ * uneven loop of about nine seconds, and the catch-light follows it at 60% so
+ * the sphere keeps its shape. The gradient, its colours, the rim and the shade
+ * are all unchanged; only where the light sits moves.
+ *
+ * It runs only while the screen holding the orb is in focus, and not at all
+ * when the phone asks for reduced motion. Two teachers start the loop at
+ * different points, so a screen showing both does not move in step.
+ */
+const DRIFT = 0.15;
+const DRIFT_PHASE: Record<TeacherId, number> = { drona: 0, vedha: 1.7 };
+const TAU = Math.PI * 2;
 
 /**
  * THE TEACHER'S ORB AS A STILL — the 34pt mark in Home's header.
@@ -67,12 +93,46 @@ export function TeacherOrbPoster({
   const c = r + PAD;
   const box = size + PAD * 2;
 
+  // The drift's clock, in seconds, advanced only while the frame callback runs.
+  const clock = useSharedValue(0);
+  const tick = useCallback(
+    (frame: FrameInfo) => {
+      'worklet';
+      clock.value += (frame.timeSincePreviousFrame ?? 16) / 1000;
+    },
+    [clock]
+  );
+  const frame = useFrameCallback(tick, false);
+  const reduced = useReducedMotion();
+  useFocusEffect(
+    useCallback(() => {
+      if (reduced) return;
+      frame.setActive(true);
+      return () => frame.setActive(false);
+    }, [frame, reduced])
+  );
+
+  const amp = size * DRIFT * 0.5;
+  const phase = DRIFT_PHASE[teacher];
+  const bodyCentre = useDerivedValue(() => {
+    const s = clock.value;
+    const dx = amp * (Math.sin((s * TAU) / 9 + phase) + 0.35 * Math.sin((s * TAU) / 5.3 + phase * 2));
+    const dy = amp * (Math.cos((s * TAU) / 11 + phase) + 0.35 * Math.sin((s * TAU) / 6.7 + phase));
+    return vec(PAD + size * BODY_C.x + dx, PAD + size * BODY_C.y + dy);
+  }, [amp, phase, size]);
+  const highlightCentre = useDerivedValue(() => {
+    const b = bodyCentre.value;
+    const dx = (b.x - (PAD + size * BODY_C.x)) * 0.6;
+    const dy = (b.y - (PAD + size * BODY_C.y)) * 0.6;
+    return vec(PAD + size * HIGHLIGHT_C.x + dx, PAD + size * HIGHLIGHT_C.y + dy);
+  }, [size]);
+
   return (
     <Canvas pointerEvents="none" style={[{ width: box, height: box, margin: -PAD }, style]}>
       {/* The body. */}
       <Circle cx={c} cy={c} r={r}>
         <RadialGradient
-          c={vec(PAD + size * BODY_C.x, PAD + size * BODY_C.y)}
+          c={bodyCentre}
           r={size * BODY_R}
           positions={poster.stops}
           colors={poster.body}
@@ -82,7 +142,7 @@ export function TeacherOrbPoster({
       {/* The catch-light, over it. */}
       <Circle cx={c} cy={c} r={r}>
         <RadialGradient
-          c={vec(PAD + size * HIGHLIGHT_C.x, PAD + size * HIGHLIGHT_C.y)}
+          c={highlightCentre}
           r={size * HIGHLIGHT_R}
           colors={['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']}
         />

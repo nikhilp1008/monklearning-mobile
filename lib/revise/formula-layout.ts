@@ -69,7 +69,7 @@ function openCount(s: string): number {
   return n;
 }
 const hasSpace = (h: string) => /[\s]/.test(h);
-const SYMBOL = /^(?:<i>[^<]+<\/i>|[A-Za-z0-9]+)(?:<su([bp])>(?:<\/?i>|[^<])*<\/su\1>)*/;
+const SYMBOL = /^(?:<i>[^<]+<\/i>°?|[A-Za-z0-9]+)(?:<su([bp])>(?:<\/?i>|[^<])*<\/su\1>)*/;
 const FUNCTION = /^(?:sin|cos|tan|cot|sec|cosec|log|ln)\d*$/;
 
 type Found = { start: number; end: number; top: string; bottom: string; tall: boolean };
@@ -206,7 +206,8 @@ export function cutAtSpaces(html: string): string[] {
   const out: string[] = [];
   const open: string[] = [];
   let cur = '';
-  const TAG = /^<(\/?)(b|i|sup|sub)>/i;
+  // A drawn fraction (<frac>, components/textbook/markup.tsx) is never cut either.
+  const TAG = /^<(\/?)(b|i|sup|sub|frac|binom|num|den)>/i;
   for (let k = 0; k < html.length; k++) {
     const m = html[k] === '<' ? TAG.exec(html.slice(k)) : null;
     if (m) {
@@ -218,7 +219,7 @@ export function cutAtSpaces(html: string): string[] {
       k += m[0].length - 1;
       continue;
     }
-    if (html[k] === ' ' && !open.some((t) => t === 'sub' || t === 'sup')) {
+    if (html[k] === ' ' && !open.some((t) => t === 'sub' || t === 'sup' || t === 'frac' || t === 'binom')) {
       out.push(cur + [...open].reverse().map((t) => `</${t}>`).join(''));
       cur = open.map((t) => `<${t}>`).join('');
       continue;

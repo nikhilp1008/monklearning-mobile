@@ -23,8 +23,9 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
+let mockUser: string | null = null;
 jest.mock('@/lib/supabase', () => ({
-  supabase: { auth: { getSession: () => Promise.resolve({ data: { session: null } }) } },
+  supabase: { auth: { getSession: () => Promise.resolve({ data: { session: mockUser ? { user: { id: mockUser } } : null } }) } },
 }));
 jest.mock('@/lib/profile', () => ({ getStoredName: () => Promise.resolve('Nikhil Kumar') }));
 jest.mock('@/components/keyboard-spacer', () => ({ KeyboardSpacer: () => null }));
@@ -47,7 +48,12 @@ jest.mock('@/components/pressable-scale', () => {
   };
 });
 
+// The mock above needs `mockUser` declared first, so these two imports follow it.
+/* eslint-disable import/first */
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import SupportScreen from '@/app/help';
+/* eslint-enable import/first */
 
 const REQUEST = {
   id: 'e1',
@@ -117,7 +123,9 @@ async function say(tree: ReactTestRenderer, text: string) {
 
 const calledWith = (endpoint: string) => mockApi.mock.calls.filter((c) => c[0] === endpoint);
 
-beforeEach(() => {
+beforeEach(async () => {
+  mockUser = null;
+  await AsyncStorage.clear();
   jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
   mockApi.mockReset();
   mockApi.mockImplementation(respond);
@@ -171,4 +179,70 @@ test('once with the team, messages go to the team; going back returns them to th
   await say(tree, 'How do I change my teacher?');
   expect(calledWith('/help/ask')).toHaveLength(2);
   expect(calledWith('/help/escalations/e1/messages')).toHaveLength(1);
+});
+
+describe('leaving Support and coming back', () => {
+  const T = (min: number) => new Date(Date.parse('2026-11-03T10:00:00.000Z') + min * 60000).toISOString();
+  const oldChat = [
+    { kind: 'me', key: 'a', text: 'My plan did not start', at: T(0) },
+    { kind: 'bot', key: 'b', text: 'Do not pay again.', at: T(0), askId: 7, route: 'subscription', covered: true },
+    { kind: 'bot', key: 'c', text: 'Sent to the team.', at: T(1), threadId: 'e1' },
+  ];
+  const withTeam = (at: string) => [{ id: 1, from: 'team', text: 'It is fixed now.', at }];
+
+  async function reopen(escalations: unknown[], seenAtMin: number | null) {
+    mockUser = 'u1';
+    await AsyncStorage.setItem('help.chat.v1:u1', JSON.stringify(oldChat));
+    if (seenAtMin !== null) await AsyncStorage.setItem('help.chat.seen:u1', String(Date.parse(T(seenAtMin))));
+    mockApi.mockImplementation((endpoint: string) => (endpoint === '/help/escalations' ? Promise.resolve({ escalations }) : respond(endpoint)));
+    return open();
+  }
+
+  test('a request that is over starts a blank chat', async () => {
+    const done = { ...REQUEST, status: 'answered', awaiting_team: false, created_at: T(1), messages: withTeam(T(5)) };
+    const tree = await reopen([done], 10);
+    expect(words(tree)).toContain('Hi Nikhil.');
+    expect(words(tree)).not.toContain('Do not pay again.');
+    expect(words(tree)).not.toContain('It is fixed now.');
+    expect(words(tree)).not.toContain('My plan did not start');
+  });
+
+  test('a request still waiting for the team is carried over', async () => {
+    const waiting = { ...REQUEST, created_at: T(1), awaiting_team: true };
+    const tree = await reopen([waiting], 10);
+    expect(words(tree)).toContain('Sent to the team.');
+    expect(words(tree)).toContain('My plan did not start');
+    expect(words(tree)).not.toContain('Hi Nikhil.');
+    expect(words(tree)).toContain('Message the team');
+  });
+
+  test('a reply that came while the student was away is shown once', async () => {
+    const replied = { ...REQUEST, status: 'answered', awaiting_team: false, created_at: T(1), messages: withTeam(T(20)) };
+    const tree = await reopen([replied], 10);
+    expect(words(tree)).toContain('It is fixed now.');
+    expect(words(tree)).toContain('Do not pay again.');
+  });
+
+  test('a first visit with finished requests on the server is blank', async () => {
+    const done = { ...REQUEST, status: 'answered', awaiting_team: false, created_at: T(1), messages: withTeam(T(5)) };
+    const tree = await reopen([done], null);
+    expect(words(tree)).toContain('Hi Nikhil.');
+    expect(words(tree)).not.toContain('It is fixed now.');
+  });
+
+  test('offline, the chat stays as the phone has it', async () => {
+    mockUser = 'u1';
+    await AsyncStorage.setItem('help.chat.v1:u1', JSON.stringify(oldChat));
+    mockApi.mockImplementation((endpoint: string) => (endpoint === '/help/escalations' ? Promise.reject(new Error('offline')) : respond(endpoint)));
+    const tree = await open();
+    expect(words(tree)).toContain('Do not pay again.');
+  });
+
+  test('a new chat is saved, so the old one does not come back', async () => {
+    const done = { ...REQUEST, status: 'answered', awaiting_team: false, created_at: T(1), messages: withTeam(T(5)) };
+    const tree = await reopen([done], 10);
+    await say(tree, 'How do I change my teacher?');
+    const saved = JSON.parse((await AsyncStorage.getItem('help.chat.v1:u1')) as string);
+    expect(saved.map((i: { text: string }) => i.text)).toEqual(['How do I change my teacher?', 'Do not pay again.']);
+  });
 });

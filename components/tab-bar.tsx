@@ -21,7 +21,8 @@ import { useScale } from '@/constants/scale';
 /**
  * The bottom island — export-10a.
  *
- * One white pill holding four labelled items: Home, Textbooks, Doubts, Notes.
+ * One white pill holding four labelled items: Home, Textbooks, Videos, Snaps.
+ * (Quick ask was a fifth, parked 9 Nov 2026: docs/parked/quick-ask.)
  *
  * The centre "Class" pill is gone. It was a fifth control that did not belong
  * to the bar's own job: the other four switch which page you are looking at,
@@ -107,11 +108,31 @@ export function NotesIcon({ color, size }: IconProps) {
   );
 }
 
+/**
+ * A play mark in a tall 9:16 frame: the Videos tab, short concept videos you
+ * scroll. Same 1.6 stroke as its neighbours; the triangle is filled so it
+ * reads as "play" at 22pt rather than as an arrow.
+ */
+export function VideosIcon({ color, size }: IconProps) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={6.3} y={3.4} width={11.4} height={17.2} rx={2.6} stroke={color} strokeWidth={1.6} />
+      <Path d="M10.6 9.4 14.6 12l-4 2.6z" fill={color} stroke={color} strokeWidth={1.2} />
+    </Svg>
+  );
+}
+
+/**
+ * The bar, in order: Home, Textbooks, Videos, Snaps (Nikhil, 9 Nov 2026).
+ * Notes left the bar for a row on Home, under Snap and Practice; its screen
+ * is still a route in this group, reached from there. Doubts is called Snaps
+ * now, to match Snap and Solve; the route keeps its name.
+ */
 const ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   index: HomeIcon,
   textbooks: TextbooksIcon,
+  videos: VideosIcon,
   doubts: DoubtsIcon,
-  notes: NotesIcon,
 };
 
 /**
@@ -222,6 +243,9 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // of the bar -- one list to edit rather than two that can disagree.
   const routes = state.routes.filter((route) => ICONS[route.name]);
 
+
+  const barBottom = Math.max(verticalScale(26), insets.bottom);
+
   return (
     <>
       {/* Content scrolls under the island rather than stopping short of it, so
@@ -233,7 +257,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         style={[styles.fade, { height: verticalScale(120) }]}
       />
       <View
-        style={[styles.bar, { bottom: Math.max(verticalScale(26), insets.bottom) }]}
+        style={[styles.bar, { bottom: barBottom }]}
         accessibilityRole="tablist">
         {routes.map((route) => {
           const { options } = descriptors[route.key];

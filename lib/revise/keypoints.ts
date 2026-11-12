@@ -8,6 +8,27 @@ import { KEY_POINTS as C11_07 } from '@/lib/revise/keypoints-chemistry-11-07';
 import { KEY_POINTS as C11_08 } from '@/lib/revise/keypoints-chemistry-11-08';
 import { KEY_POINTS as C11_09 } from '@/lib/revise/keypoints-chemistry-11-09';
 import { KEY_POINTS as C11_10 } from '@/lib/revise/keypoints-chemistry-11-10';
+import { KEY_POINTS as C12_01 } from '@/lib/revise/keypoints-chemistry-12-01';
+import { KEY_POINTS as C12_02 } from '@/lib/revise/keypoints-chemistry-12-02';
+import { KEY_POINTS as C12_03 } from '@/lib/revise/keypoints-chemistry-12-03';
+import { KEY_POINTS as C12_04 } from '@/lib/revise/keypoints-chemistry-12-04';
+import { KEY_POINTS as C12_05 } from '@/lib/revise/keypoints-chemistry-12-05';
+import { KEY_POINTS as C12_06 } from '@/lib/revise/keypoints-chemistry-12-06';
+import { KEY_POINTS as C12_07 } from '@/lib/revise/keypoints-chemistry-12-07';
+import { KEY_POINTS as C12_08 } from '@/lib/revise/keypoints-chemistry-12-08';
+import { KEY_POINTS as C12_09 } from '@/lib/revise/keypoints-chemistry-12-09';
+import { KEY_POINTS as C12_10 } from '@/lib/revise/keypoints-chemistry-12-10';
+import { KEY_POINTS as C12_11 } from '@/lib/revise/keypoints-chemistry-12-11';
+import { KEY_POINTS as M11_01 } from '@/lib/revise/keypoints-mathematics-11-01';
+import { KEY_POINTS as M11_02 } from '@/lib/revise/keypoints-mathematics-11-02';
+import { KEY_POINTS as M11_03 } from '@/lib/revise/keypoints-mathematics-11-03';
+import { KEY_POINTS as M11_04 } from '@/lib/revise/keypoints-mathematics-11-04';
+import { KEY_POINTS as M11_05 } from '@/lib/revise/keypoints-mathematics-11-05';
+import { KEY_POINTS as M11_06 } from '@/lib/revise/keypoints-mathematics-11-06';
+import { KEY_POINTS as M11_07 } from '@/lib/revise/keypoints-mathematics-11-07';
+import { KEY_POINTS as M11_08 } from '@/lib/revise/keypoints-mathematics-11-08';
+import { KEY_POINTS as M11_09 } from '@/lib/revise/keypoints-mathematics-11-09';
+import { KEY_POINTS as M11_10 } from '@/lib/revise/keypoints-mathematics-11-10';
 import { KEY_POINTS as P11_01 } from '@/lib/revise/keypoints-physics-11-01';
 import { KEY_POINTS as P11_02 } from '@/lib/revise/keypoints-physics-11-02';
 import { KEY_POINTS as P11_03 } from '@/lib/revise/keypoints-physics-11-03';
@@ -95,5 +116,26 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'chemistry|11|7': C11_07,
   'chemistry|11|8': C11_08,
   'chemistry|11|9': C11_09,
-  'chemistry|11|10': C11_10,
+  'chemistry|12|1': C12_01,
+  'chemistry|12|2': C12_02,
+  'chemistry|12|3': C12_03,
+  'chemistry|12|4': C12_04,
+  'chemistry|12|5': C12_05,
+  'chemistry|12|6': C12_06,
+  'chemistry|12|7': C12_07,
+  'chemistry|12|8': C12_08,
+  'chemistry|12|9': C12_09,
+  'chemistry|12|10': C12_10,
+  // One chapter from two books: the Class 11 p-Block (Groups 13–14) then the Class 12 (Groups 15–18), in topic order.
+  'chemistry|12|11': [...C11_10, ...C12_11].sort((a, b) => a.topic - b.topic),
+  'mathematics|11|1': M11_01,
+  'mathematics|11|2': M11_02,
+  'mathematics|11|3': M11_03,
+  'mathematics|11|4': M11_04,
+  'mathematics|11|5': M11_05,
+  'mathematics|11|6': M11_06,
+  'mathematics|11|7': M11_07,
+  'mathematics|11|8': M11_08,
+  'mathematics|11|9': M11_09,
+  'mathematics|11|10': M11_10,
 };

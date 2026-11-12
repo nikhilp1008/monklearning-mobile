@@ -62,6 +62,12 @@ export interface BlockCtx {
   topicNumber: string;
   /** Topics in the chapter: the pilot's exam briefing splits by them. */
   topicCount?: number;
+  /**
+   * No em dashes drawn by the reader itself (a formula's "symbol — meaning"
+   * becomes "symbol: meaning"). The founder's rule for Mathematics
+   * (2026-11-10): em dashes read as machine-written. Physics and Chemistry later.
+   */
+  noDash?: boolean;
 }
 
 function Chevron({ open, scale }: { open: boolean; scale: (n: number) => number }) {
@@ -138,7 +144,8 @@ export function TextbookBlock({ block, ctx }: { block: RenderBlock; ctx: BlockCt
        * one thought the author wrote long; a block is a different thought, and
        * the page should say which is which.
        */
-      const paras = splitProse(block.html);
+      // A piece split before a bullet item opens on that item's <br>.
+      const paras = splitProse(block.html).map((part) => part.replace(/^(?:\s*<br\s*\/?>)+\s*/i, ''));
       if (paras.length === 1) {
         return <Markup html={block.html} size={type(16.5)} style={s.body} />;
       }

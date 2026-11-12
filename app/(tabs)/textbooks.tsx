@@ -1,14 +1,11 @@
-import { TextbooksShelf } from '@/components/textbook/shelf';
+import { TextbooksGallery } from '@/components/textbook/gallery';
 
 /**
- * Textbooks — the shelf ("2a", design_handoff_textbooks_shelf): swipe between
- * book covers, read the chapter list under the book you are on. The reader
- * and everything past it are unchanged; see components/textbook/shelf.tsx.
- *
- * The subject grid this tab used to show (`components/textbook/textbooks-page`)
- * and the chapter list it opened (`app/textbook-chapters.tsx`) are left in
- * place but no longer reached from here: the shelf is both of them at once.
+ * Textbooks — a gallery of our own textbook covers, Class 11 and Class 12
+ * (Nikhil, 9 Nov 2026). A book opens its chapter list (app/textbook-book.tsx);
+ * a chapter opens the reader as before. The swipe carousel this replaced
+ * (components/textbook/shelf.tsx) is left in place but no longer reached.
  */
 export default function TextbooksScreen() {
-  return <TextbooksShelf />;
+  return <TextbooksGallery />;
 }

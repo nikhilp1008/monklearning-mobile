@@ -221,8 +221,9 @@ export default function ExamScopeScreen() {
             }}>
             <CardSky width={cardSize.width} height={cardSize.height} teacher={teacher} />
 
+            {/* One line (Nikhil, 9 Nov 2026): the instruction that sat under
+                it is now the search box's placeholder, where it is acted on. */}
             <Text style={styles.heading}>Is it in your exam?</Text>
-            <Text style={styles.subheading}>Type any topic or chapter.</Text>
 
             <View style={styles.toggleWrap}>
               <SlidingToggle
@@ -429,7 +430,7 @@ function SearchField({
       <TextInput
         value={value}
         onChangeText={onChange}
-        placeholder="Search"
+        placeholder="Type any topic or chapter"
         placeholderTextColor={colors.faint}
         style={styles.input}
         returnKeyType="search"
@@ -740,20 +741,14 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       overflow: 'hidden',
       backgroundColor: colors.night,
     },
-    /** Regular, because the page title just above it is the bold one. */
+    /** The page-title size, in regular, because the page title just above it
+        is the bold one. At 30 it was louder than the title itself. */
     heading: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(30),
-      lineHeight: scale(36),
+      fontSize: scale(24),
+      lineHeight: scale(29),
       letterSpacing: scale(-0.6),
       color: '#FFFDF8',
-    },
-    subheading: {
-      fontFamily: 'Onest_400Regular',
-      fontSize: scale(15),
-      lineHeight: scale(22),
-      color: 'rgba(255,253,248,.82)',
-      marginTop: verticalScale(6),
     },
 
     toggleWrap: { marginTop: verticalScale(22) },
@@ -782,7 +777,7 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
 
     key: {
       marginTop: verticalScale(12),
-      borderRadius: scale(16),
+      borderRadius: scale(14),
       backgroundColor: '#FFFDF8',
       overflow: 'hidden',
       ...shadow({
@@ -797,14 +792,17 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       flexDirection: 'row',
       alignItems: 'center',
       gap: scale(10),
-      minHeight: scale(56),
-      paddingHorizontal: scale(16),
+      /* 48 and 15 regular (Nikhil, 9 Nov 2026): it was 56 and 16 medium, the
+         biggest field in the app, and read as oversized under the heading.
+         Now the size of the app's other text fields. */
+      minHeight: scale(48),
+      paddingHorizontal: scale(14),
     },
     input: {
       flex: 1,
       minWidth: 0,
-      fontFamily: 'Onest_500Medium',
-      fontSize: scale(16),
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
       color: colors.ink,
       paddingVertical: Platform.OS === 'android' ? 0 : undefined,
     },
@@ -855,8 +853,8 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
 
     lede: {
       fontFamily: 'Onest_400Regular',
-      fontSize: scale(14),
-      lineHeight: scale(20),
+      fontSize: scale(13),
+      lineHeight: scale(18),
       color: colors.slate,
       paddingHorizontal: scale(24),
       paddingTop: verticalScale(18),

@@ -198,8 +198,12 @@ export const obFont = {
  * only because two errors cancelled. `npm run check:syllabus` re-counts against
  * the database so the next drift is caught rather than shipped.
  *
- *   physics 28 (11: 14 · 12: 14)      mathematics 28 (11: 15 · 12: 13)
- *   chemistry 19 (11: 9 · 12: 10)     biology     32 (11: 19 · 12: 13)
+ *   physics 29                        mathematics 28 (11: 15 · 12: 13)
+ *   chemistry 21                      biology     32 (11: 19 · 12: 13)
+ *
+ * Recounted 2026-11-05: physics gained Experimental Skills (Unit 20, both
+ * exams), chemistry gained p-Block Elements and Practical Chemistry (both exams
+ * now, migration 0116). The Class 11/12 split was not re-read.
  *
  * KNOWN GAP: chemistry is short by roughly ten chapters -- there is no
  * s-Block, p-Block, States of Matter, Solid State, Surface Chemistry or
@@ -236,8 +240,8 @@ export const EXAMS: Record<
     label: 'JEE Main',
     upper: 'JEE MAIN',
     subjects: [
-      { name: 'Physics', count: 28 },
-      { name: 'Chemistry', count: 19 },
+      { name: 'Physics', count: 29 },
+      { name: 'Chemistry', count: 21 },
       { name: 'Maths', count: 28 },
     ],
     sample:
@@ -249,8 +253,8 @@ export const EXAMS: Record<
     label: 'NEET UG',
     upper: 'NEET UG',
     subjects: [
-      { name: 'Physics', count: 28 },
-      { name: 'Chemistry', count: 19 },
+      { name: 'Physics', count: 29 },
+      { name: 'Chemistry', count: 21 },
       { name: 'Biology', count: 32 },
     ],
     sample:

@@ -1,5 +1,6 @@
 import { Fragment, ReactNode, useMemo } from 'react';
 import { Platform, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { barFoot, barsOf, hasOverline, inkTop, isOverGlue, OVER, SCRIPT_TOP, spreadOverGlue } from '@/lib/overline';
 
@@ -30,19 +31,27 @@ export const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default
 type Node =
   | { kind: 'text'; value: string }
   | { kind: 'br' }
-  | { kind: 'tag'; name: 'b' | 'i' | 'sup' | 'sub'; children: Node[] }
+  /** `cond`: a raised run straight after an arrow, a reaction's condition, not an exponent. */
+  | { kind: 'tag'; name: TagName; children: Node[]; cond?: boolean }
   /** A run under one or more NOT bars (see overlines). */
   | Over;
+/**
+ * <frac><num>…</num><den>…</den></frac> is a fraction drawn stacked, the
+ * numerator over the denominator with a rule between (see fracRun).
+ * <binom><num>n</num><den>r</den></binom> is a binomial coefficient, drawn
+ * the same way without the rule, in tall round brackets.
+ */
+type TagName = 'b' | 'i' | 'sup' | 'sub' | 'frac' | 'binom' | 'num' | 'den';
 type Over = { kind: 'over'; feet: number[]; onest: boolean; lean: [boolean, boolean]; children: Node[] };
 
-const TAG = /<(\/?)(b|i|sup|sub|br)\s*\/?>/gi;
+const TAG = /<(\/?)(b|i|sup|sub|br|frac|binom|num|den)\s*\/?>/gi;
 
 function parse(html: string): Node[] {
   const root: Node[] = [];
   // Open elements, innermost last. An unclosed or stray closing tag is
   // tolerated rather than thrown: a malformed string should cost its own
   // formatting, never the whole screen.
-  const stack: { name: 'b' | 'i' | 'sup' | 'sub'; children: Node[] }[] = [];
+  const stack: { name: TagName; children: Node[] }[] = [];
   const current = () => (stack.length ? stack[stack.length - 1].children : root);
 
   let cursor = 0;
@@ -51,7 +60,7 @@ function parse(html: string): Node[] {
   while (match) {
     if (match.index > cursor) current().push({ kind: 'text', value: html.slice(cursor, match.index) });
     const closing = match[1] === '/';
-    const name = match[2].toLowerCase() as 'b' | 'i' | 'sup' | 'sub' | 'br';
+    const name = match[2].toLowerCase() as TagName | 'br';
 
     if (name === 'br') {
       current().push({ kind: 'br' });
@@ -155,7 +164,8 @@ function toUnicode(text: string, table: Record<string, string>): string | null {
 const EMOJI_DEFAULTING = /([\u2194-\u2199\u21A9\u21AA\u2600-\u26FF\u2B05-\u2B07\u2190-\u2193])(?!\uFE0E)/g;
 
 function asText(value: string): string {
-  return value.replace(EMOJI_DEFAULTING, '$1\uFE0E');
+  // "&nbsp;" is a no-break space, never the five letters (Android check of Mathematics 11 Ch 8).
+  return value.replace(/&nbsp;/g, '\u00a0').replace(EMOJI_DEFAULTING, '$1\uFE0E');
 }
 
 function plainText(nodes: Node[]): string {
@@ -213,8 +223,11 @@ const isItalicFamily = (f?: string) => f === STIX.italic || f === STIX.semiboldI
  * STIX Two Math. The arrows, operators, letterlike and bracket blocks, minus
  * what Onest draws itself (→ − ≈ ≤ ≥) and what Roboto draws well (√ ∫ ∂ ∞ ⟨ ⟩
  * stay as they were, checked in content/textbooks/__tests__/display-fonts).
+ * And △, the symmetric difference (Mathematics 11 Ch 1), and the floor and
+ * ceiling brackets ⌊ ⌋ ⌈ ⌉ (Ch 2), which Onest lacks. And the primes ′ ″ ‴, which
+ * Onest draws as straight ticks: S″ read as S" (Ch 10).
  */
-const PILOT_MATH = /[\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF]+/g;
+const PILOT_MATH = /[\u2032-\u2034\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3\u2308-\u230B]+/g;
 const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF]+/g;
 /**
  * The reader's text with its maths symbols in STIX Two Math (see PILOT_MATH),
@@ -222,7 +235,14 @@ const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u2
  * in STIX Two Text: Onest has no combining arrow, so Android drew it from
  * another font, off its letter.
  */
-const PILOT_RUN = new RegExp(`${PILOT_MATH.source}|\\S\u20d7`, 'g');
+/**
+ * Double-struck letters past ℕ ℤ ℚ ℝ (which Letterlike Symbols carries): 𝕎 the
+ * whole numbers and 𝕋 the irrationals in Mathematics 11 Ch 1. They live in
+ * Mathematical Alphanumeric Symbols (U+1D538–U+1D56B, surrogate pairs here),
+ * which neither Onest nor Roboto draws; STIX Two Math does.
+ */
+const DOUBLE_STRUCK = '\uD835[\uDD38-\uDD6B]';
+const PILOT_RUN = new RegExp(`${PILOT_MATH.source}|${DOUBLE_STRUCK}|\\S\u20d7`, 'g');
 function pilotRuns(text: string, key: string) {
   const out: ReactNode[] = [];
   let at = 0;
@@ -239,7 +259,8 @@ function pilotRuns(text: string, key: string) {
   return out;
 }
 
-function stixRuns(text: string, key: string, only: RegExp = STIX_MATH_ONLY) {
+const STIX_RUN = new RegExp(`${STIX_MATH_ONLY.source}|(?:${DOUBLE_STRUCK})+`, 'g');
+function stixRuns(text: string, key: string, only: RegExp = STIX_RUN) {
   const out: ReactNode[] = [];
   let at = 0;
   for (const m of text.matchAll(only)) {
@@ -315,11 +336,11 @@ export const isWordScript = (run: string) => /[A-Za-z]{2,}/.test(run);
  */
 export const WJ = '\u2060';
 
-function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink, drop = SUB_DROP) {
+function drawnRun(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink, drop = SUB_DROP, cond = false) {
   const shift = name === 'sup' ? -size * SUP_RISE : size * drop;
   return (
     <View key={key} style={{ transform: [{ translateY: shift }] }}>
-      {scriptText(name, children, size, key, ink)}
+      {scriptText(name, children, size, key, ink, cond)}
     </View>
   );
 }
@@ -374,7 +395,7 @@ function italicBefore(nodes: Node[], i: number, ink: Ink): boolean {
   return prev.kind === 'text' && isItalicFamily(ink.family) && /\S$/.test(prev.value);
 }
 
-function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink) {
+function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: string, ink: Ink, cond = false) {
   const small = size * DRAWN_SUP;
   // A raised letter is an exponent, a variable (Mᵃ, xⁿ), so it is italic like
   // every other variable, even where the content left it upright. Not a word
@@ -382,7 +403,7 @@ function scriptText(name: 'sup' | 'sub', children: Node[], size: number, key: st
   const label = isWordScript(plainText(children.filter((c) => !(c.kind === 'tag' && c.name === 'i'))));
   // Only its letters, though: the digits, signs and brackets of an exponent
   // stay upright as they are everywhere else (V^(γ−1), not V^(γ−1) slanted whole).
-  const italic = name === 'sup' && !label && (!ink.family || ink.family === STIX.regular);
+  const italic = name === 'sup' && !label && !cond && (!ink.family || ink.family === STIX.regular);
   const kids = italic ? italicLetters(children) : children;
   return (
     <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: small, lineHeight: small * 1.1, color: ink.color }}>
@@ -588,9 +609,25 @@ export function readerBreaks(html: string): string {
   const toks = html
     .replace(/(<\/sub>)(?=[()[\]/])/g, `$1${HAIR}${WJ}`)
     .replace(/([([{|])(?=<i>f)/g, `$1${HAIR}${WJ}`)
+    // An opening modulus bar stays with what it encloses: Android may break after "|", leaving
+    // a lone bar at a line's end and "x − 2|" on the next (Android check of Mathematics 11 Ch 5).
+    .replace(/(^|[\s([{=−+])\|(?=[^\s|\u2060])/g, `$1|${WJ}`)
     .replace(/(<i>[^<]*[A-Z]<\/i>)(?=′)/g, `$1${HAIR}${WJ}`)
     // Only a maths slash: "1/N_A", "10⁻¹⁰/0.1", "[salt]/[base]"; a list of words ("linear/trigonal-planar/…") may still break.
     .replace(/([^<\s])\/(?=[\d([√]|<[isb]|[A-Za-zα-ωΑ-Ω](?![a-z]))/g, `$1/${WJ}`)
+    // A couple stays whole: "Ni²⁺/" | "Ni)", "AgCl/" | "Ag" (Android check of Chemistry 12 Ch 2). An element
+    // symbol has one lower-case letter at most, so a capitalised word after a slash may still break.
+    .replace(/([^<\s])\/(?=[A-Z][a-z]?(?:<su|[^A-Za-z]|$))/g, `$1/${WJ}`)
+    // A symbol with its couple: "E°" | "(Ni²⁺/Ni)".
+    .replace(/°(?=\()/g, `°${WJ}`)
+    // A prime with its bracket: "k′" | "[A]" (Android check of Chemistry 12 Ch 3).
+    .replace(/′(?=[[(])/g, `′${WJ}`)
+    // A closing bar before a glued space: Android breaks after "|" even before a no-break
+    // space, and "|r| < 1" split at the bar (Android check of Mathematics 11 Ch 8).
+    .replace(/\|(?=\u00a0)/g, `|${WJ}`)
+    // A sum or product stays with what it sums: "∑ʳ₌₁ⁿ" | "r²" left the Σ alone at a line's
+    // end (Android check of Mathematics 11 Ch 7).
+    .replace(/([∑∏](?:<su[bp]>(?:(?!<\/su[bp]>).)*<\/su[bp]>){0,2}) (?=\S)/g, '$1\u00a0')
     // A minus sign stays with the bracket it negates: "= −" | "(−30)/(−15)" (Physics 12 Ch 9).
     .replace(/−(?=[([])/g, `−${WJ}`)
     .split(' ');
@@ -600,6 +637,18 @@ export function readerBreaks(html: string): string {
     const a = plain(toks[k - 1]), b = plain(toks[k]);
     const glue =
       (READER_OPS.has(b) && (a.length <= 3 || (b === '×' && /[0-9]$/.test(a)))) ||
+      // A short bracket stays whole: "(0.50" | "− x)", "log(pᵢ/(2pᵢ" | "− pₜ))" (Chemistry 12 Ch 3).
+      (READER_OPS.has(b) && /\([^()]{1,6}$/.test(a)) ||
+      // A coefficient with its species: "+ 5" | "I₂", "+ 2" | "H₂O", "+ 5" | "e⁻" (Chemistry 12 Ch 4).
+      (/^[0-9]{1,2}$/.test(a) && /^(?:(?:[A-Z][a-z]?)+|e)<su[bp]>/.test(toks[k])) ||
+      // A coefficient with a group formula: "3" | "R–CH₂–CH₂–OH", "2" | "Ar–OH" (Chemistry 12 Ch 7).
+      (/^[0-9]{1,2}$/.test(a) && /^(?:R|Ar)[′″]?–/.test(b)) ||
+      // A short interval or pair stays whole: "A₁ = [1," | "6]" (Android check of Mathematics 11 Ch 1).
+      (/(?:^|[^A-Za-z])[[(][^\])[(]{1,8},$/.test(a) && /^[^\s[(]{1,8}[\])]/.test(b)) ||
+      // An option's letter with its value: "(d)" | "240 min".
+      /^\([a-e]\)$/.test(a) ||
+      // A unit stays whole: "0.133 mol" | "L⁻¹", "2: L" | "mol⁻¹", "−196.6 kJ" | "mol⁻¹" (Chemistry 12 Ch 11).
+      (/(?:^|[^A-Za-z])(?:mol|L|kJ|J|g|kg)$/.test(a) && /^(?:L|mol|s|min|K|h)(?:[−0-9]|$)/.test(b)) ||
       (READER_OPS.has(a) && b.length > 0 && b.length <= 7) ||
       // "× 10⁻⁹" stays with its number however much follows it: "(550 ×" | "10⁻⁹)/(4 …".
       (a === '×' && toks[k].startsWith('10<sup>')) ||
@@ -691,12 +740,17 @@ function scriptPair(nodes: Node[], i: number): { sup: Script; sub: Script; pre: 
  * it are put back round its characters (a tag a run starts or ends inside is
  * split in two, the same style either side).
  */
-type Frame = { name: 'b' | 'i' | 'sup' | 'sub'; id: number };
-type Atom = { ch: string; path: Frame[]; bars: number; br?: boolean };
+type Frame = { name: TagName; id: number };
+type Atom = { ch: string; path: Frame[]; bars: number; br?: boolean; node?: Node };
 
-function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }): Atom[] {
+function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }, look: MarkupLook): Atom[] {
   for (const n of nodes) {
     if (n.kind === 'br') out.push({ ch: '\n', path, bars: 0, br: true });
+    // A fraction is kept whole, its halves barred on their own: cut into runs at a
+    // bar inside it, it lost its shape and z̄₁/z̄₂ read as z̄₁z̄₂ (Android check of
+    // Mathematics 11 Ch 4). It stands in the line as one character, never barred.
+    else if (n.kind === 'tag' && (n.name === 'frac' || n.name === 'binom'))
+      out.push({ ch: '\ufffc', path, bars: 0, node: { ...n, children: n.children.map((h) => (h.kind === 'tag' ? { ...h, children: overlines(h.children, look) } : h)) } });
     else if (n.kind === 'text')
       for (const ch of n.value) {
         const bars = barsOf(ch);
@@ -705,7 +759,7 @@ function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }):
         if (!bars) out.push({ ch, path, bars: 0 });
         else if (last && !last.br) last.bars += bars;
       }
-    else atomsOf(n.children, n.kind === 'tag' ? [...path, { name: n.name, id: ids.n++ }] : path, out, ids);
+    else atomsOf(n.children, n.kind === 'tag' ? [...path, { name: n.name, id: ids.n++ }] : path, out, ids, look);
   }
   return out;
 }
@@ -717,8 +771,9 @@ function nest(atoms: Atom[], depth = 0): Node[] {
     const frame = atoms[k].path[depth];
     let j = k + 1;
     if (atoms[k].br) out.push({ kind: 'br' });
+    else if (!frame && atoms[k].node) out.push(atoms[k].node!);
     else if (!frame) {
-      while (j < atoms.length && !atoms[j].br && !atoms[j].path[depth]) j++;
+      while (j < atoms.length && !atoms[j].br && !atoms[j].node && !atoms[j].path[depth]) j++;
       out.push({ kind: 'text', value: atoms.slice(k, j).map((a) => a.ch).join('') });
     } else {
       while (j < atoms.length && atoms[j].path[depth]?.id === frame.id) j++;
@@ -782,7 +837,7 @@ function overGroups(atoms: Atom[], level: number, look: MarkupLook): Node[] {
 }
 
 function overlines(nodes: Node[], look: MarkupLook): Node[] {
-  const atoms = atomsOf(nodes, [], [], { n: 0 });
+  const atoms = atomsOf(nodes, [], [], { n: 0 }, look);
   const levels = spreadOverGlue(atoms.map((a) => a.bars), atoms.map((a) => isOverGlue(a.ch)));
   atoms.forEach((a, k) => (a.bars = levels[k]));
   return overGroups(atoms, 0, look);
@@ -827,9 +882,17 @@ function overRun(node: Over, size: number, key: string, look: MarkupLook, ink: I
   const thick = Math.max(1, size * OVER.thick);
   return (
     <View key={key} style={{ height: box }}>
-      <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: size, lineHeight: size * OVER_LINE, color: ink.color, includeFontPadding: false, marginTop: box - size * overBaseline(node.onest) }}>
-        {render(node.children, size, key, look, ink)}
-      </Text>
+      {/* The run's box ends on the baseline: below it Android cut whatever the run's
+          layout reached, the tail of z and the subscripts of a barred z₁ ± z₂
+          (Android check of Mathematics 11 Ch 4), as a margin on the Text or on a View
+          around it alike. So the Text's View ends there too, and the Text is moved
+          down onto the baseline by a transform, which Android draws in full, as it
+          draws a subscript's (drawnRun). */}
+      <View style={{ height: size * OVER_LINE, marginTop: box - size * OVER_LINE, transform: [{ translateY: size * (OVER_LINE - overBaseline(node.onest)) }] }}>
+        <Text style={{ fontFamily: ink.family ?? STIX.regular, fontSize: size, lineHeight: size * OVER_LINE, color: ink.color, includeFontPadding: false }}>
+          {render(node.children, size, key, look, ink)}
+        </Text>
+      </View>
       {node.feet.map((foot, n) => (
         <View
           key={n}
@@ -847,8 +910,181 @@ function overRun(node: Over, size: number, key: string, look: MarkupLook, ink: I
   );
 }
 
+/**
+ * A FRACTION, STACKED: the numerator over the denominator with a rule
+ * between, as the book prints it, never "a/b" on one line (the founder's
+ * rule for Mathematics, 2026-11-10). Written <frac><num>a</num><den>b</den></frac>.
+ *
+ * Set as printed maths sets a fraction inside a line of text (TeX's text
+ * style): the two halves smaller than the line (FRAC.size), the rule on the
+ * maths axis, the numerator's baseline FRAC.num above the line's baseline and
+ * the denominator's FRAC.den below it. So a fraction stays inside the line's
+ * own height (top about 1.06 em above the baseline, bottom about 0.45 em
+ * below it, 0.6 em with a descender), and a paragraph with fractions in it is
+ * spaced like one without. The first Android sample (0.74, 0.43, 0.36) was
+ * too small to read and set π, n(E) and √3 touching the rule.
+ *
+ * Placed the way overRun is (see there): on Android an inline View is a
+ * placeholder rising from the baseline, and one taller than the line's ascent
+ * pushes the line's baseline down. So the View is FRAC.box high, its bottom
+ * on the baseline, and the stack inside it is moved by margins, drawn outside
+ * the box above and below it. Each half is a Text of its own, OVER_LINE high,
+ * whose baseline sits overBaseline() of its size from its top.
+ *
+ * The halves are set in the face of the line around them (Onest in the
+ * reader, STIX on the cards), with their letters in <i> as everywhere else.
+ * A fraction inside a half is drawn the same way, smaller again.
+ */
+const FRAC = {
+  /** Each half, as a share of the line's size (a superscript is 0.7). */
+  size: 0.8,
+  /** The rule's centre above the baseline: the maths axis, where a minus sits. */
+  axis: 0.26,
+  /** The numerator's baseline above the line's baseline. */
+  num: 0.5,
+  /** The denominator's baseline below the line's baseline. */
+  den: 0.45,
+  /** The rule's thickness. */
+  thick: 0.05,
+  /** How far the rule reaches past the wider half, each side. */
+  over: 0.07,
+  /** Room either side of the whole fraction. */
+  side: 0.06,
+  box: 0.7,
+  /** How much further off the rule a half holding a fraction sits, in its own size. */
+  nest: 0.45,
+  /** How much lower a denominator holding a bracket sits in Onest, in its own size. */
+  bracketDrop: 0.12,
+  /** How much higher a numerator holding a subscript sits, in its own size. */
+  subLift: 0.22,
+  /** How much lower a denominator holding a power sits, in its own size. */
+  supDrop: 0.12,
+  /** The smallest a fraction's half is drawn, in px, however deeply it is nested. */
+  minPx: 10.5,
+  /** A block holding a fraction: its line height times this (see Markup). At 1.18 two
+   *  fractions on neighbouring lines touched once a subscripted numerator sat higher
+   *  (subLift; Android check of Mathematics 11 Ch 7–8). */
+  lead: 1.25,
+  /** A block holding a fraction inside a fraction, whose halves sit further off the rule (nest). */
+  leadNested: 1.5,
+} as const;
+
+/** A fraction inside a fraction's half: the block needs FRAC.leadNested. */
+const NESTED_FRAC = /<(num|den)>(?:(?!<\/\1>)[\s\S])*<(?:frac|binom)>/i;
+
+function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink, binom = false) {
+  // Each level of a fraction inside a fraction is smaller again; a continued fraction's
+  // innermost level was too small to read (Android check of Mathematics 11 Ch 8).
+  const s = Math.max(size * FRAC.size, FRAC.minPx);
+  const onest = !!ink.family?.startsWith('Onest');
+  const line = s * OVER_LINE;
+  const base = s * overBaseline(onest);
+  const box = size * FRAC.box;
+  const thick = Math.max(1, size * FRAC.thick);
+  // Measured down from the top of the box, whose bottom is the line's baseline.
+  // A half holding a fraction of its own reaches FRAC.nest of its size
+  // further towards the rule, so it is moved that much further off it: drawn
+  // where a plain half goes, 1 over (1 − ⅓) ran its ⅓ into the rule (Android
+  // sample, 2026-11-10).
+  const nested = (nodes: Node[]): boolean => nodes.some((c) => c.kind !== 'text' && c.kind !== 'br' && ((c.kind === 'tag' && (c.name === 'frac' || c.name === 'binom')) || nested(c.children)));
+  // A drawn subscript hangs well below its half's baseline: in T_(r+1)/T_r the "r+1"
+  // sat on the rule (Android check of Mathematics 11 Ch 7), so that numerator is lifted.
+  const hasSub = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sub' || (c.name !== 'frac' && c.name !== 'binom' && hasSub(c.children))));
+  const numTop = box - size * FRAC.num - base - (nested(num) ? s * FRAC.nest : 0) - (hasSub(num) ? s * FRAC.subLift : 0);
+  const ruleTop = box - size * FRAC.axis - thick / 2;
+  // Onest's brackets rise well above its letters: a bracket in the denominator
+  // touched the rule, r!(n − r)! (Android sample for Mathematics 11 Ch 6).
+  const tallDen = onest && /[()[\]{}|]/.test(plainText(den));
+  // A power in the denominator rises toward the rule: card "a/b^(n−1)" touched it (Mathematics 11 Ch 8).
+  const hasSup = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sup' || (c.name !== 'frac' && c.name !== 'binom' && hasSup(c.children))));
+  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0) + (tallDen ? s * FRAC.bracketDrop : 0) + (hasSup(den) ? s * FRAC.supDrop : 0);
+  const half = (nodes: Node[], k: string, extra?: TextStyle) => (
+    <Text style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
+      {render(nodes, s, k, look, ink)}
+    </Text>
+  );
+  // A binomial coefficient: no rule, and a bracket either side as tall as the
+  // two halves' ink, from the top of the numerator to the foot of the denominator.
+  const bracket = binom ? { w: size * BINOM.width, top: numTop + base - s * BINOM.over, bottom: denTop + base + s * BINOM.under } : null;
+  return (
+    <View key={key} style={{ height: box, marginHorizontal: size * (FRAC.side + (binom ? BINOM.side : 0)) }}>
+      <View style={{ marginTop: numTop, alignItems: 'stretch', marginHorizontal: bracket ? bracket.w + size * BINOM.gap : 0 }}>
+        {half(num, `${key}.n`)}
+        <View style={{ height: thick, marginTop: ruleTop - (numTop + line), backgroundColor: binom ? 'transparent' : (ink.color ?? '#000') }} />
+        {half(den, `${key}.d`, { marginTop: denTop - (ruleTop + thick) })}
+      </View>
+      {bracket && ([0, 1] as const).map((side) => brackets(side, bracket, size, box, ink))}
+    </View>
+  );
+}
+
+/**
+ * A binomial coefficient's brackets (<binom>), drawn: no font has a round
+ * bracket that grows to the height of a stack. Each is a crescent, thickest
+ * at its middle, BINOM.width wide. Its View ends on the baseline and is moved
+ * down by a transform, which Android draws in full; laid out below the
+ * baseline it would be cut there, as a barred run was (see overRun).
+ */
+const BINOM = {
+  /** Each bracket's width, in the line's size. */
+  width: 0.3,
+  /** The gap between a bracket and the stack. */
+  gap: 0.06,
+  /** Room outside the brackets, on top of a fraction's (FRAC.side): (5 2)(4 2) touched. */
+  side: 0.04,
+  /** How far each reaches past the halves' ink: above the numerator's baseline, below the denominator's (in their size). */
+  over: 0.8,
+  under: 0.28,
+  /** The stroke at its thickest: at 0.06 it read as a hairline beside the digits. */
+  thick: 0.085,
+} as const;
+
+function brackets(side: 0 | 1, b: { w: number; top: number; bottom: number }, size: number, box: number, ink: Ink) {
+  const h = b.bottom - b.top;
+  const t = size * BINOM.thick;
+  const w = b.w;
+  // The outer curve's middle 0.12 of the width in from the outside, the inner one t further in.
+  const outer = -0.76 * w;
+  const inner = 2 * (0.12 * w + t) - w;
+  const x = (v: number) => (side === 0 ? v : w - v);
+  const d = `M${x(w)} 0 Q${x(outer)} ${h / 2} ${x(w)} ${h} Q${x(inner)} ${h / 2} ${x(w)} 0 Z`;
+  return (
+    <View
+      key={side}
+      style={{ position: 'absolute', [side === 0 ? 'left' : 'right']: 0, top: box - h, width: w, height: h, transform: [{ translateY: b.bottom - box }] }}
+    >
+      <Svg width={w} height={h}>
+        <Path d={d} fill={(ink.color as string) ?? '#000'} />
+      </Svg>
+    </View>
+  );
+}
+
+/**
+ * A fraction as text, for places that need a plain string: "n(E)/n(S)", and
+ * a half with an operator or a space in it bracketed, "(a + b)/2".
+ */
+function fracToText(html: string): string {
+  const FRAC_TAG = /<frac>\s*<num>((?:(?!<\/?frac>|<\/?num>).)*)<\/num>\s*<den>((?:(?!<\/?frac>|<\/?den>).)*)<\/den>\s*<\/frac>/s;
+  const wrap = (t: string) => {
+    const plain = t.replace(/<\/?[a-zA-Z][^>]*>/g, '').trim();
+    return /[\s+−\-×·/=]/.test(plain) ? `(${plain})` : plain;
+  };
+  // A binomial coefficient as text reads as its count: "C(n, r)".
+  let out = html.replace(/<binom>\s*<num>((?:(?!<\/?num>).)*)<\/num>\s*<den>((?:(?!<\/?den>).)*)<\/den>\s*<\/binom>/gs, (_, n: string, r: string) => `C(${n}, ${r})`);
+  // Innermost first, so a fraction inside a half is text by the time its parent is read.
+  for (let m = FRAC_TAG.exec(out); m; m = FRAC_TAG.exec(out)) out = out.slice(0, m.index) + `${wrap(m[1])}/${wrap(m[2])}` + out.slice(m.index + m[0].length);
+  return out;
+}
+
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
   const out: ReactNode[] = [];
+  // A raised run over an arrow names the reaction's conditions ("273–278 K", "H⁺"), so its
+  // letters stay upright (Android check of Chemistry 12 Ch 9).
+  nodes.forEach((n, i) => {
+    const prev = nodes[i - 1];
+    if (n.kind === 'tag' && n.name === 'sup' && prev?.kind === 'text' && /[→⟶][⁠ ]*$/.test(prev.value)) n.cond = true;
+  });
   for (let i = 0; i < nodes.length; i++) {
     const pair = look === 'stix' || look === 'pilot' ? scriptPair(nodes, i) : null;
     if (pair) {
@@ -877,6 +1113,22 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
   }
   if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
   if (node.kind === 'over') return overRun(node, size, key, look, ink);
+  if (node.name === 'frac' || node.name === 'binom') {
+    const num = node.children.find((c) => c.kind === 'tag' && c.name === 'num');
+    const den = node.children.find((c) => c.kind === 'tag' && c.name === 'den');
+    // Malformed: its text as it stands, never a lost numerator.
+    if (!num || !den || num.kind !== 'tag' || den.kind !== 'tag') return <Fragment key={key}>{render(node.children, size, key, look, ink)}</Fragment>;
+    // Joined on both sides like a drawn script (see WJ): "(", "," and "²" stay with it; a space still breaks.
+    return (
+      <Fragment key={key}>
+        {WJ}
+        {fracRun(num.children, den.children, size, `${key}.f`, look, ink, node.name === 'binom')}
+        {WJ}
+      </Fragment>
+    );
+  }
+  // A half outside a fraction: its text, with "/" between the two (see fracRun).
+  if (node.name === 'num' || node.name === 'den') return <Fragment key={key}>{render(node.children, size, key, look, ink)}</Fragment>;
 
   if (node.name === 'sup' || node.name === 'sub') {
     const run = plainText(node.children);
@@ -898,7 +1150,7 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
       return (
         <Fragment key={key}>
           {WJ}
-          {drawnRun(node.name, node.children, size, `${key}.d`, ink)}
+          {drawnRun(node.name, node.children, size, `${key}.d`, ink, SUB_DROP, node.cond)}
           {WJ}
         </Fragment>
       );
@@ -932,7 +1184,8 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
   }
 
   // Maths letters in a SemiBold run (a card's name) are SemiBold italic.
-  const style = node.name === 'i' && look === 'stix' && (ink.family === STIX.semibold || ink.family === STIX.semiboldItalic) ? { fontFamily: STIX.semiboldItalic } : styleFor(node.name, size, look);
+  const name = node.name;
+  const style = name === 'i' && look === 'stix' && (ink.family === STIX.semibold || ink.family === STIX.semiboldItalic) ? { fontFamily: STIX.semiboldItalic } : styleFor(name, size, look);
   return (
     <Text key={key} style={style}>
       {render(node.children, size, key, look, look === 'stix' ? { ...ink, family: style.fontFamily } : ink)}
@@ -958,8 +1211,15 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
   // A drawn raised run sits in a View, which does not inherit from the Text
   // around it, so it is handed the face and colour it is set in.
   const flat = StyleSheet.flatten(style) ?? {};
+  // Lines with fractions on them, one above the other, touched ("total number
+  // of outcomes" into the n(E) below it; Android sample, 2026-11-10), so a
+  // block that holds a fraction is spaced FRAC.lead times wider, all of it.
+  // A fraction inside a fraction is taller still and ran into the lines above
+  // and below ("tan 2x = (2/3)/(8/9)"; Android check of Mathematics 11 Ch 3).
+  const leadBy = /<(?:frac|binom)>/i.test(html) ? (NESTED_FRAC.test(html) ? FRAC.leadNested : FRAC.lead) : 1;
+  const lead = flat.lineHeight && leadBy !== 1 ? { lineHeight: flat.lineHeight * leadBy } : null;
   return (
-    <Text style={style} numberOfLines={numberOfLines}>
+    <Text style={lead ? [style, lead] : style} numberOfLines={numberOfLines}>
       {render(nodes, size, 'm', look, { family: flat.fontFamily, color: flat.color })}
     </Text>
   );
@@ -969,5 +1229,5 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
  *  string (accessibility labels, a one-line preview). */
 /** Only real tags go: a comparison ("t∗ < 0 … <i>") is text, not the start of one. */
 export function markupToText(html: string): string {
-  return html.replace(/<\/?[a-zA-Z][^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  return fracToText(html).replace(/<\/?[a-zA-Z][^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }

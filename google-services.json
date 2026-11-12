@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:119592373028:android:da3dbeb88ca48bed2341b1",
+        "android_client_info": {
+          "package_name": "com.monklearning.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDewHlLKwhzINvsiZTQkv3ZLFwtGBwrVCo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:119592373028:android:c4cee267349cdcfb2341b1",
         "android_client_info": {
           "package_name": "com.monklearning.mobile"

@@ -6,7 +6,8 @@ import Animated, {
   withDecay,
   withTiming,
 } from 'react-native-reanimated';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import {
   DOUBLE_TAP_ZOOM,
@@ -139,6 +140,16 @@ export function ZoomableImage({ uri, label }: { uri: string; label: string }) {
       ty.value = withTiming(held.y, { duration: 180 });
     });
 
+  /** The − and + buttons: a step in or out about the middle of the view. */
+  const zoomTo = (target: number) => {
+    const next = clamp(target, MIN_ZOOM, MAX_ZOOM);
+    const k = next / scale.value;
+    const held = next <= MIN_ZOOM ? { x: 0, y: 0 } : clampPan({ x: tx.value * k, y: ty.value * k }, limitAt(next));
+    scale.value = withTiming(next, { duration: 180 });
+    tx.value = withTiming(held.x, { duration: 180 });
+    ty.value = withTiming(held.y, { duration: 180 });
+  };
+
   // A pinch and a drag work together; a double-tap is its own thing.
   const gesture = Gesture.Race(doubleTap, Gesture.Simultaneous(pinch, pan));
 
@@ -147,6 +158,7 @@ export function ZoomableImage({ uri, label }: { uri: string; label: string }) {
   }));
 
   return (
+    <View style={styles.wrap}>
     <GestureDetector gesture={gesture}>
       <Animated.View
         style={styles.frame}
@@ -166,21 +178,78 @@ export function ZoomableImage({ uri, label }: { uri: string; label: string }) {
         />
       </Animated.View>
     </GestureDetector>
+      {/* Zoom said out loud (Nikhil, 9 Nov 2026): pinch and double-tap were
+          always here, but nothing on screen told a student so. */}
+      <View style={styles.controls}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Zoom out"
+          hitSlop={8}
+          style={styles.zoomButton}
+          onPress={() => zoomTo(scale.value / 1.6)}>
+          <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
+            <Path d="M6 12h12" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
+          </Svg>
+        </Pressable>
+        <Text style={styles.hint}>Pinch or double-tap to zoom</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Zoom in"
+          hitSlop={8}
+          style={styles.zoomButton}
+          onPress={() => zoomTo(scale.value * 1.6)}>
+          <Svg viewBox="0 0 24 24" width={18} height={18} fill="none">
+            <Path d="M6 12h12M12 6v12" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
+          </Svg>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   /** The wrapper owns real size: the image's percentage height resolves
    *  against its parent, and an auto-sized parent gave it 85% of nothing. */
-  frame: {
+  wrap: {
     width: '100%',
-    height: '85%',
+    flex: 1,
+  },
+  frame: {
+    flex: 1,
+    width: '100%',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingTop: 16,
+    paddingBottom: 28,
+  },
+  zoomButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,.22)',
+  },
+  hint: {
+    fontFamily: 'Onest_500Medium',
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,.7)',
   },
   image: {
     width: '100%',
     height: '100%',
     borderRadius: 12,
-    backgroundColor: '#fff',
+    // No white box: the photo sits on the dark scrim at its own shape. A white
+    // ground filled the empty space above and below a wide photo and read as
+    // a blank page behind the question.
   },
 });

@@ -23,7 +23,7 @@ import { shadow } from '@/lib/shadow';
 import { SnapADoubtIcon } from '@/components/monk-icons';
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { EmptyState } from '@/components/library-empty';
-import { OfflineBanner, QuietLink, StateCard, StateLine } from '@/components/states';
+import { OfflineBanner, QuietLink, StateCard, StateLine, StatePlate } from '@/components/states';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -32,6 +32,7 @@ import { hapticSoft } from '@/lib/haptics';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
 import { pageTitle } from '@/constants/page-title';
+import { BackArrowIcon } from '@/components/settings-page';
 import { useScale } from '@/constants/scale';
 import {
   DoubtSubjectChip,
@@ -613,7 +614,21 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.headerFixed}>
           <View style={styles.headerRow}>
-            <Text style={styles.heading}>{kind === 'notes' ? 'Notes' : 'Doubts'}</Text>
+            {/* Notes is not in the tab bar any more: it opens from Home's
+                Class notes row, so it needs a way back like any pushed page. */}
+            <View style={styles.headingGroup}>
+              {kind === 'notes' && (
+                <PressableScale
+                  style={styles.backButton}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Back to Home"
+                  onPress={() => router.navigate('/(tabs)')}>
+                  <BackArrowIcon size={scale(15)} />
+                </PressableScale>
+              )}
+              <Text style={styles.heading}>{kind === 'notes' ? 'Notes' : 'Snaps'}</Text>
+            </View>
             {canErase && <EraseTool active={eraseMode} onPress={toggleErase} />}
           </View>
           {/* THE ONLY ONE OF THESE.
@@ -776,9 +791,14 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                   onPress={() => router.push('/snap-capture')}
                   accessibilityRole="button"
                   accessibilityLabel="Snap and Solve">
-                  {/* Home's Snap mark, the marigold as its lens: this line had
-                      kept the older copy with the dot off in the corner. */}
-                  <SnapADoubtIcon size={scale(21)} color={colors.ink} accent={colors.marigold} />
+                  {/* The same sky chip as Snap and Solve on Home (Nikhil, 9 Nov
+                      2026): it was a bare ink outline here and read as a
+                      different button from the one on Home. */}
+                  <StatePlate
+                    glyph="search"
+                    size={scale(34)}
+                    icon={(size, color) => <SnapADoubtIcon size={size} color={color} accent={color} />}
+                  />
                 </PressableScale>
               </View>
 
@@ -850,6 +870,7 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                               label={doubtText.get(doubt.id) ?? 'Snapped question'}
                               frameStyle={styles.doubtThumbImage}
                               disabled={eraseMode}
+                              showExpand={false}
                             />
                           ) : (
                             <PagePlaceholder subject={doubt.subject} />
@@ -1076,6 +1097,18 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       justifyContent: 'space-between',
       gap: scale(12),
       minHeight: verticalScale(40),
+    },
+    headingGroup: { flexDirection: 'row', alignItems: 'center', gap: scale(10) },
+    /** The app's back button (components/settings-page.tsx). */
+    backButton: {
+      width: scale(34),
+      height: scale(34),
+      borderRadius: scale(17),
+      borderWidth: scale(1.4),
+      borderColor: colors.inputBorder,
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     headerFixed: {
       paddingTop: verticalScale(12),

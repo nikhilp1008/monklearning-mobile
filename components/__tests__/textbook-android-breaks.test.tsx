@@ -12,7 +12,7 @@ import { StyleSheet } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
 import { captionBreaks, DiagramCard, hiddenBelow } from '@/components/revise/diagram-card';
-import { PilotFormula } from '@/components/textbook/formula-pilot';
+import { legendHtml, PilotFormula } from '@/components/textbook/formula-pilot';
 import type { Diagram } from '@/lib/diagrams/types';
 import { FormulaCard, symbolHtml } from '@/components/revise/formula-card';
 import { ARROW_ROOM, hairSpaces, ITALIC_G, isWordScript, Markup, SIGN_SUB_DROP, STIX, SUB_DROP, WJ } from '@/components/textbook/markup';
@@ -145,6 +145,19 @@ describe('a raised word is upright, a raised letter is italic', () => {
     expect(isWordScript('rms')).toBe(true);
     expect(isWordScript('a')).toBe(false);
     expect(isWordScript('−y+z')).toBe(false);
+  });
+  it('a condition over an arrow is upright: →<sup>273–278 K</sup>, →<sup>H⁺</sup> (Chemistry 12 Ch 9)', () => {
+    // Every Text inside the drawn script that holds a letter is upright.
+    const families = (html: string) => {
+      const r = draw(<Markup html={html} size={19} look="stix" />);
+      const view = nodes(r.toJSON() as Json).find((n) => n.type === 'View')!;
+      return nodes(view)
+        .filter((n) => n.type === 'Text' && (n.children ?? []).some((c) => typeof c === 'string' && /[A-Za-z]/.test(c)))
+        .map((n) => (StyleSheet.flatten(n.props.style) as { fontFamily?: string }).fontFamily);
+    };
+    expect(families('A →<sup>273–278 K</sup> B')).toEqual([STIX.regular]);
+    expect(families('A →\u2060<sup>H⁺</sup> B').every((f) => f === STIX.regular)).toBe(true);
+    expect(letterFamily('M<sup>a</sup>', 'a')).toBe(STIX.italic);
   });
 });
 
@@ -582,5 +595,15 @@ describe('Physics 12 Ch 4–8 re-check (2026-10-23)', () => {
     expect(syms().map((n) => (StyleSheet.flatten(n.props.style) as { minWidth: number }).minWidth)).toEqual([17, 17, 17]);
     // The symbol inside keeps its own width: the column does not stretch it, so measuring again changes nothing.
     expect(syms().every((n) => (StyleSheet.flatten(n.props.style) as { alignItems?: string }).alignItems === 'flex-start')).toBe(true);
+  });
+});
+
+describe('Chemistry 12 Ch 8 Android check (2026-11-05)', () => {
+  it('a legend meaning that opens on a locant reads as a name, with the dash; a value keeps its "="', () => {
+    expect(legendHtml('CH<sub>3</sub>CHOHCH<sub>2</sub>CHO = 3-hydroxybutanal, the aldol')).toBe('<b>CH<sub>3</sub>CHOHCH<sub>2</sub>CHO</b> — 3-hydroxybutanal, the aldol');
+    expect(legendHtml('A = 2,4,6-tribromophenol')).toBe('<b>A</b> — 2,4,6-tribromophenol');
+    expect(legendHtml('R<sub>2</sub>NH = 2° amine')).toBe('<b>R<sub>2</sub>NH</b> — 2° amine');
+    expect(legendHtml('<i>T</i> = 25 °C here')).toBe('<b><i>T</i></b> = 25 °C here');
+    expect(legendHtml('<i>z</i><sub>1</sub> = 2 for an α-particle')).toBe('<b><i>z</i><sub>1</sub></b> = 2 for an α-particle');
   });
 });

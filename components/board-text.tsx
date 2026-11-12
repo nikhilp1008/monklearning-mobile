@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { withAccents } from '@/components/accented';
 import { BoardDiagram, diagramVerdict, svgInvalidDetail } from '@/components/board-diagram';
 import { DEEP_AMBER, INK, INK_MUTED } from '@/components/classroom-chrome';
 import type { BoardEvent } from '@/lib/drona-voice-client';
@@ -339,7 +340,7 @@ export function BoardBlockView({
         {drawn ? (
           <MathLine text={raw} style={styles.boardEquation} fontSize={18} color={INK} align="center" />
         ) : (
-          <Text style={styles.boardEquation}>{text}</Text>
+          <Text style={styles.boardEquation}>{withAccents(text)}</Text>
         )}
       </View>
     );
@@ -350,7 +351,7 @@ export function BoardBlockView({
         {drawn ? (
           <MathLine text={raw} style={styles.boardEquation} fontSize={18} color={INK} align="center" />
         ) : (
-          <Text style={styles.boardEquation}>{text}</Text>
+          <Text style={styles.boardEquation}>{withAccents(text)}</Text>
         )}
       </View>
     );
@@ -457,7 +458,7 @@ function WrittenText({
   }));
 
   if (done) {
-    return <Animated.Text style={[style, colour]}>{text}</Animated.Text>;
+    return <Animated.Text style={[style, colour]}>{withAccents(text)}</Animated.Text>;
   }
   let words = Math.ceil(Math.max(0, progress) * wordCount);
   let cut = tokens.length;
@@ -471,8 +472,8 @@ function WrittenText({
   }
   return (
     <Animated.Text style={[style, colour]}>
-      {tokens.slice(0, cut).join('')}
-      <Text style={styles.unwritten}>{tokens.slice(cut).join('')}</Text>
+      {withAccents(tokens.slice(0, cut).join(''))}
+      <Text style={styles.unwritten}>{withAccents(tokens.slice(cut).join(''))}</Text>
     </Animated.Text>
   );
 }

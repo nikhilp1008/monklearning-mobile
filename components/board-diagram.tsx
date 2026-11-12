@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { SvgAst, parse } from 'react-native-svg';
 
 import { INK, INK_MUTED } from '@/components/classroom-chrome';
+import { placeHats } from '@/lib/diagrams/accent-text';
 import { decodeTextNodes, svgParseError, utf8ByteLength } from '@/lib/widgets/svg-parse';
 
 /**
@@ -874,7 +875,10 @@ function DiagramXml({ xml, width, height }: { xml: string; width: number; height
  * Exported for the test file; the component's only caller is below.
  */
 export function prepareDiagramSvg(svg: string): string {
-  return withFont(housePalette(remapWhitePaint(svg).svg));
+  // Hats are set by hand on iOS only: Android's text engine already puts a
+  // combining mark over its letter, and the hand-set shift would move it off
+  // (checked on the Pixel 8 emulator, Android 16, 2026-11-05).
+  return withFont(housePalette(remapWhitePaint(Platform.OS === 'ios' ? placeHats(svg) : svg).svg));
 }
 
 /**

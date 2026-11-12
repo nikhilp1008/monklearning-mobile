@@ -102,7 +102,16 @@ describe('every caption in the app', () => {
     for (const [, cap] of caps) expect(captionBreaks(cap).replace(/⁠/g, '').replace(/ /g, ' ')).toBe(cap.replace(/ /g, ' '));
   });
   it('leaves no unbreakable run longer than most of a phone line', () => {
-    const long = caps.flatMap(([id, cap]) => captionBreaks(cap).replace(/<[^>]+>/g, '').replace(/⁠/g, '').split(' ').filter((r) => r.length > 30).map((r) => `${id}: ${r}`));
+    // A stacked fraction (or binomial) is as wide as its wider half, not both halves in a row.
+    const STACK = /<(frac|binom)>\s*<num>((?:(?!<\/?(?:frac|binom|num)>)[\s\S])*)<\/num>\s*<den>((?:(?!<\/?(?:frac|binom|den)>)[\s\S])*)<\/den>\s*<\/\1>/;
+    const narrow = (h: string): string => {
+      for (let m = STACK.exec(h); m; m = STACK.exec(h)) {
+        const [a, b] = [m[2], m[3]].map((x) => x.replace(/<[^>]+>/g, ''));
+        h = h.slice(0, m.index) + (a.length >= b.length ? a : b) + h.slice(m.index + m[0].length);
+      }
+      return h;
+    };
+    const long = caps.flatMap(([id, cap]) => narrow(captionBreaks(cap)).replace(/<[^>]+>/g, '').replace(/⁠/g, '').split(' ').filter((r) => r.length > 30).map((r) => `${id}: ${r}`));
     expect(long).toEqual([]);
   });
 });

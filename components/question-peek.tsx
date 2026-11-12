@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
-import { ImageStyle, Modal, Pressable, StyleSheet, Text, View, ViewStyle, StyleProp } from 'react-native';
+import { ImageStyle, Modal, Pressable, StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
 
@@ -35,6 +35,7 @@ export function QuestionPeek({
   fromTop = false,
   fadeTo,
   disabled = false,
+  showExpand = true,
 }: {
   uri: string;
   label: string;
@@ -54,6 +55,10 @@ export function QuestionPeek({
   fadeTo?: string;
   /** Erase mode on the list: the row's gestures own the touch. */
   disabled?: boolean;
+  /** The expand mark. Off on the Snaps list (Nikhil, 9 Nov 2026): a mark on
+   *  every thumbnail was clutter, and a tap on a photo opens it anyway. On
+   *  in a snap's solution, where the one big photo needs the hint. */
+  showExpand?: boolean;
 }) {
   /**
    * WHETHER THERE IS ANYTHING BELOW THE FRAME, measured rather than assumed.
@@ -107,29 +112,37 @@ export function QuestionPeek({
             pointerEvents="none"
           />
         )}
-        {/* The invitation: a small chevron at the image's foot. */}
+        {/* The invitation: an expand mark (two corners pulling apart), the
+            sign phones use for "open this bigger". It was a down chevron,
+            which read as "show more below" (Nikhil, 9 Nov 2026). */}
+        {showExpand ? (
         <Svg
           style={styles.chevron}
-          width={scale(18)}
-          height={scale(18)}
-          viewBox="0 0 18 18"
+          width={scale(20)}
+          height={scale(20)}
+          viewBox="0 0 20 20"
           pointerEvents="none">
-          <Path d="M9 0a9 9 0 1 0 0 18A9 9 0 0 0 9 0Z" fill="rgba(28,26,22,0.55)" />
+          <Path d="M10 0a10 10 0 1 0 0 20A10 10 0 0 0 10 0Z" fill="rgba(28,26,22,0.6)" />
           <Path
-            d="M5.5 7.5 9 11l3.5-3.5"
+            d="M11.5 5.5h3v3M14.5 5.5l-3.6 3.6M8.5 14.5h-3v-3M5.5 14.5l3.6-3.6"
             stroke="#fff"
-            strokeWidth={1.8}
+            strokeWidth={1.6}
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
           />
         </Svg>
+        ) : null}
       </Pressable>
 
       <Modal
         visible={open}
         transparent
         animationType="fade"
+        // Edge to edge, so the dark scrim covers the status bar too and the
+        // page behind does not show above it.
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setOpen(false)}>
         {/* A Modal is its own native hierarchy: the app's root gesture view does
             not reach into it, and without one here the pinch and drag never
@@ -151,9 +164,12 @@ export function QuestionPeek({
               accessibilityLabel="Close enlarged question"
               // Clear of the status bar and camera: the Modal is drawn edge to
               // edge, and a fixed 48 sat on the punch-hole on some Androids.
-              style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
+              hitSlop={10}
+              style={[styles.closeButton, { top: insets.top + verticalScale(10) }]}
               onPress={() => setOpen(false)}>
-              <Text style={styles.closeText}>Close ✕</Text>
+              <Svg viewBox="0 0 24 24" width={scale(16)} height={scale(16)} fill="none">
+                <Path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
+              </Svg>
             </Pressable>
             <ZoomableImage uri={uri} label={label} />
           </View>
@@ -191,25 +207,28 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
     // button, deliberately NO blur.
     backdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.75)',
+      backgroundColor: 'rgba(12,10,8,0.9)',
       alignItems: 'center',
       justifyContent: 'center',
       padding: scale(16),
+      paddingTop: scale(72),
     },
+    /* A round 40pt close, the app's own circle buttons in glass on the dark
+       scrim (the page's back button, Home's profile button), at the top-right
+       where a viewer's close is looked for. It was a white "Close ✕" pill in
+       the system font, floating over the photo. */
     closeButton: {
       position: 'absolute',
-      top: verticalScale(48),
-      right: scale(20),
+      right: scale(16),
       zIndex: 2,
-      backgroundColor: '#fff',
-      borderRadius: scale(16),
-      paddingHorizontal: scale(14),
-      paddingVertical: verticalScale(6),
-    },
-    closeText: {
-      fontSize: scale(12),
-      fontWeight: '700',
-      color: '#1c1a16',
+      width: scale(40),
+      height: scale(40),
+      borderRadius: scale(20),
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,.14)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,.22)',
     },
   });
 }

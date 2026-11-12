@@ -19,7 +19,7 @@ import {
 } from '../chrome';
 import type { ValidationResult, WidgetModule, WidgetRenderProps } from '../types';
 import {
-  CELL_PITCH, CHARGE_WINDOW_TAU, ELEMENT_KINDS, ELEM_LEN, LAMP_R, MAX_CAPTION_CHARS,
+  CAP_PLATE_HALF, CELL_PITCH, CHARGE_WINDOW_TAU, ELEMENT_KINDS, ELEM_LEN, LAMP_R, MAX_CAPTION_CHARS,
   MAX_NAME_CHARS, NODE_R, NULL_CM_MAX, NULL_CM_MIN, REF_H, REF_W, SLOTS,
   SOURCE_V_MAX, SOURCE_V_MIN, INTERNAL_R_MAX, INTERNAL_R_MIN, TOPOLOGIES,
   VALUE_MIN, VALUE_MAX_BY_KIND,
@@ -48,7 +48,7 @@ const NEEDLE_STROKE = HAIRLINE_STROKE;
 const H = ELEM_LEN / 2;
 /** Half-height of a resistor's zig-zag and of a capacitor's plate. */
 const ZIG = 5;
-const PLATE_HALF = 9;
+const PLATE_HALF = CAP_PLATE_HALF;
 /** Plate separation of the capacitor symbol, either side of centre. */
 const PLATE_T = 3;
 /** How far the needle reaches inside the galvanometer's circle. */

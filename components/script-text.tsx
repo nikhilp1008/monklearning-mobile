@@ -10,6 +10,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
+import { withAccents } from '@/components/accented';
 import { MathLine } from '@/components/math-line';
 import { latexToSegments } from '@/lib/latex-text';
 
@@ -30,7 +31,7 @@ export function ScriptText({
   style?: StyleProp<TextStyle>;
 }) {
   const drawn = useMemo(() => hasDrawnScripts(raw), [raw]);
-  if (!drawn || !raw) return <Text style={style}>{text}</Text>;
+  if (!drawn || !raw) return <Text style={style}>{withAccents(text)}</Text>;
   const flat = StyleSheet.flatten(style) ?? {};
   /**
    * LAYOUT BELONGS TO THE LINE, NOT TO EACH WORD. MathLine sets the style on

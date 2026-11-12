@@ -344,7 +344,7 @@ export default function TextbookPartScreen() {
     return { ...askPage, text: pageTextAround(askPage.topic, units, seen) };
   }, [askPage, topic, page, onScreen, headSpace, away, verticalScale, state]);
 
-  const ctx = (uid: string) => ({ uid, scale, type, state, set, topicNumber: topic?.n ?? '', topicCount: chapter?.topics.length ?? 0 });
+  const ctx = (uid: string) => ({ uid, scale, type, state, set, topicNumber: topic?.n ?? '', topicCount: chapter?.topics.length ?? 0, noDash: chapter?.subject === 'Mathematics' });
 
   const body = (pg: Page) => {
     if (!chapter) return null;

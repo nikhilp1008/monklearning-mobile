@@ -205,7 +205,8 @@ const LETTER = /[A-Za-zα-ωϕϑ]/;
 export function italicMaths(name: string): string {
   let inside = 0;
   return name
-    .split(/(<[^>]+>)/)
+    // Only real tags: a "<" before a space is the less-than sign ("Both roots < <i>k</i>", Mathematics 11 Ch 4).
+    .split(/(<\/?[a-zA-Z][^>]*>)/)
     .map((part, k, all) => {
       if (part.startsWith('<')) {
         if (/^<(i|sub|sup)>$/.test(part)) inside++;
@@ -343,7 +344,10 @@ const SHORT_CLAUSE = 24;
  * operator after it.
  */
 export function keepTogether(expr: string): string {
-  const joined = markBrackets(expr.replace(TIMES_NUMBER, `$1${GLUE}×${GLUE}`))
+  // A non-breaking space the content set on purpose stays one: "for at least one
+  // i ∈ I}" broke "i" | "∈ I}", and "max(0, a + b − N)" broke inside its bracket
+  // (Android check of Mathematics 11 Ch 1). GLUE becomes a plain one at the end.
+  const joined = markBrackets(expr.replace(/\u00a0/g, GLUE).replace(TIMES_NUMBER, `$1${GLUE}×${GLUE}`))
     .replace(/ /g, '\u00a0')
     .replace(new RegExp(`\u00a0([${OPS}])\u00a0`, 'g'), ' $1\u00a0')
     // A long line mostly in words ("= constant (angular momentum conserved)")
@@ -352,6 +356,11 @@ export function keepTogether(expr: string): string {
     // An arrow may start a line, and its condition (→ with r≈R over it) stays on it.
     .replace(/\u00a0([→⇒⇔⟺])/g, ' $1')
     .replace(/([→⇒⇔⟺])(<su[bp]>)/g, '$1\u2060$2')
+    // A long log may start a line: "k′ = (2.303/t)" | "log((V∞ − V₀)/(V∞ − Vₜ))", which otherwise
+    // had nowhere to break and Android cut it inside a bracket (Chemistry 12 Ch 3).
+    .replace(/\)\u00a0(?=(?:log|ln)\b)/g, ') ')
+    // Nor between a prime and its bracket: "k′" | "[A]".
+    .replace(/′(?=[[(])/g, '′\u2060')
     // Not in a list of numbers: "n = 1, 2, 3, …" stays one piece.
     .replace(/([,;])\u00a0(?![0-9]+,|…|⋯)/g, '$1 ')
     // Nor between a degree sign and its bracket: "νS°" | "(reactants)".

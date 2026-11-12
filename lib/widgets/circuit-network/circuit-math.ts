@@ -940,8 +940,21 @@ export const OFF_ABOVE = LABEL_GAP;                 // 12
 export const OFF_BELOW = LABEL_GAP + 4;             // 16
 export const OFF_SIDE = ELEM_H / 2 + SIDE_GAP;      // 13
 export const OFF_GLYPH = GLYPH_R + 6;               // 16
+/** A capacitor's plate runs CAP_PLATE_HALF either side of the wire — taller than
+ *  ELEM_H/2, which is what OFF_BELOW's clearance was worked out against, and
+ *  drawn at EMPHASIS_STROKE with round caps, so it reaches 9 + 1.3 = 10.3pt.
+ *  Name box top at OFF_BELOW is 16 − 9.84 = 6.16pt: INSIDE the plate. A
+ *  capacitor on a horizontal wire therefore hangs its labels off OFF_BELOW_CAP,
+ *  whose name box top is 21 − 9.84 = 11.16pt, 0.86pt clear of the plate tip. */
+export const CAP_PLATE_HALF = 9;
+export const OFF_BELOW_CAP = 21;
 /** A bridge arm is diagonal, so its labels hang off the midpoint horizontally. */
 export const OFF_ARM = 10;
+
+/** `below` offset for an element on a horizontal wire: a capacitor's plates are
+ *  taller than every other symbol, so its labels sit further out. */
+const belowOff = (kind: ElementKind | undefined): number =>
+  kind === 'capacitor' ? OFF_BELOW_CAP : OFF_BELOW;
 
 const seg = (x0: number, y0: number, x1: number, y1: number): Seg => ({ x0, y0, x1, y1 });
 
@@ -1071,7 +1084,7 @@ export function layout(p: CircuitNetworkParams, width: number, height: number): 
       p,
       Array.from({ length: n }, (_, i) => ({
         axis: 'h' as Axis, cx: railL + pitch * (i + 0.5), cy: yTop,
-        side: 'below' as LabelSide, off: OFF_BELOW,
+        side: 'below' as LabelSide, off: belowOff(p.elements[i]?.kind),
       }))
     );
     wires = [
@@ -1085,9 +1098,9 @@ export function layout(p: CircuitNetworkParams, width: number, height: number): 
   } else if (p.topology === 'parallel') {
     const yTopRail = READOUT_BAND + 4;
     const yBotRail = height - PAD_EDGE;
-    // 20pt of lead above the first branch and 38 below the last — the last
-    // branch's own label band reaches y + 33.96.
-    const pitch = Math.max(CELL_PITCH, (yBotRail - yTopRail - 58) / Math.max(1, n - 1));
+    // 20pt of lead above the first branch and 43 below the last — the last
+    // branch's own label band reaches y + 38.96 (a capacitor's, at OFF_BELOW_CAP).
+    const pitch = Math.max(CELL_PITCH, (yBotRail - yTopRail - 63) / Math.max(1, n - 1));
     const ys = Array.from({ length: n }, (_, i) => yTopRail + 20 + pitch * i);
     const xA = x0 + 56;
     const xB = x1 - 20;
@@ -1096,9 +1109,9 @@ export function layout(p: CircuitNetworkParams, width: number, height: number): 
 
     elements = placeAll(
       p,
-      ys.map((y) => ({
+      ys.map((y, i) => ({
         axis: 'h' as Axis, cx: (xA + xB) / 2, cy: y,
-        side: 'below' as LabelSide, off: OFF_BELOW,
+        side: 'below' as LabelSide, off: belowOff(p.elements[i]?.kind),
       }))
     );
     wires = [
@@ -1266,7 +1279,7 @@ export function layout(p: CircuitNetworkParams, width: number, height: number): 
 
 export interface TextBox { x0: number; x1: number; y0: number; y1: number; s: string }
 
-function boxAt(pl: LabelPlacement, s: string): TextBox {
+export function boxAt(pl: LabelPlacement, s: string): TextBox {
   const w = textW(s);
   const x0 = pl.anchor === 'middle' ? pl.x - w / 2 : pl.anchor === 'end' ? pl.x - w : pl.x;
   const y0 = pl.y - LABEL_ASCENT;
