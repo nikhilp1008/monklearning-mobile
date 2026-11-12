@@ -12,10 +12,10 @@ import {
   cancelPlayChoice,
   chooseHowToPay,
   currentPlayAccountId,
+  confirmPlayPurchase,
   finishPlayPurchase,
   playPricePaise,
   recoverPlayPurchases,
-  verifyPlayPurchase,
 } from '@/lib/play-billing';
 import {
   PAYMENTS_ON_THIS_DEVICE,
@@ -470,27 +470,20 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
         // Google Play. Money has moved from here on: nothing below says "failed"
         // unless the server has said the purchase itself is bad.
         setConfirming(true);
-        let verified = false;
-        let refused = false;
-        try {
-          const res = await verifyPlayPurchase(choice.purchase);
-          verified = res.ok === true;
-          refused = !verified;
-        } catch (err) {
-          refused = err instanceof ApiError && (err.status === 400 || err.status === 403);
-          // Otherwise: no signal, or the server is busy. The purchase stays
-          // unfinished on purpose; recovery verifies it on the next visit, and
-          // Google would refund it after 3 days if it never is.
-        }
+        // Retries Google-unreachable and no-signal answers itself (see confirmPlayPurchase).
+        // A purchase that is not confirmed stays unfinished on purpose: recovery
+        // verifies it on the next visit, and Google refunds it after 3 days if never.
+        const confirmed = await confirmPlayPurchase(choice.purchase);
+        const verified = confirmed.outcome === 'granted';
+        // A starter pass already used: the server says so in a sentence for the student.
+        if (confirmed.outcome === 'refused') return { status: 'failed', message: confirmed.message };
         // Finished ONLY after the server confirmed it.
         if (verified) await finishPlayPurchase(choice.purchase);
-        const pass = await waitForPass(await before, verified ? 4 : refused ? 2 : POLL_TIMES, verified ? 700 : POLL_EVERY_MS);
+        // Google still clearing the payment (pending): one short look, then say so.
+        const pass = await waitForPass(await before, verified ? 4 : confirmed.outcome === 'pending' ? 1 : POLL_TIMES, verified ? 700 : POLL_EVERY_MS);
         if (pass) {
           const amountPaise = (await playPricePaise(kind)) ?? (opts.promo ? 0 : opts.expectedPaise ?? 0);
           return { status: 'paid', pass, amountPaise };
-        }
-        if (refused) {
-          return { status: 'failed', message: 'We could not verify this payment. If money left your account, Google will return it.' };
         }
         return { status: 'pending' };
       } finally {

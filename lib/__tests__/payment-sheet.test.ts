@@ -76,7 +76,7 @@ describe('Razorpay opens only after the student picks it on Google\'s screen', (
 
   test('a Play purchase is finished only after the server confirmed it', () => {
     expect(start).toContain('if (verified) await finishPlayPurchase(choice.purchase);');
-    expect(start.indexOf('verifyPlayPurchase(')).toBeLessThan(start.indexOf('finishPlayPurchase('));
+    expect(start.indexOf('confirmPlayPurchase(')).toBeLessThan(start.indexOf('finishPlayPurchase('));
   });
 
   test('one purchase at a time across Google\'s screens and the sheet', () => {

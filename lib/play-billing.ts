@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import type { Purchase } from 'expo-iap';
 
-import { apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from '@/lib/api';
 import type { PassKind } from '@/lib/pass';
 import { supabase } from '@/lib/supabase';
 
@@ -259,6 +259,53 @@ export function verifyPlayPurchase(purchase: Pick<Purchase, 'productId' | 'purch
   });
 }
 
+export type ConfirmOutcome =
+  /** The server verified it and the pass is granted: safe to finish the purchase. */
+  | { outcome: 'granted' }
+  /** Google has not cleared the payment yet (409 "still pending"): nothing granted, ask again later. */
+  | { outcome: 'pending' }
+  /** The server said no (400, 403, or 409 "already used your day/week pass"). Its sentence is for the student. */
+  | { outcome: 'refused'; message: string }
+  /** No answer worth trusting (offline, 502 Google unreachable, 503 flag off): keep the purchase unfinished. */
+  | { outcome: 'unknown' };
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * VERIFY, THE WAY THE API ANSWERS (billing/api-play-billing-contract.md):
+ * 200 `ok` granted; 409 "pending" ask later; 409 otherwise (starter pass already
+ * used) refused, NOT consumed, Google refunds it after 3 days; 400/403 refused;
+ * 502 Google unreachable and no signal both RETRY (never "failed"); 503 the API's
+ * flag is off. `tries` and `gapMs` are injectable for tests.
+ */
+export async function confirmPlayPurchase(
+  purchase: Pick<Purchase, 'productId' | 'purchaseToken'>,
+  tries = 3,
+  gapMs = 1500
+): Promise<ConfirmOutcome> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await verifyPlayPurchase(purchase);
+      if (res.ok === true) return { outcome: 'granted' };
+      return { outcome: 'refused', message: 'We could not verify this payment. If money left your account, Google will return it.' };
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 409) {
+          if (/pending/i.test(err.message)) return { outcome: 'pending' };
+          return { outcome: 'refused', message: err.message };
+        }
+        if (err.status === 400 || err.status === 403) {
+          return { outcome: 'refused', message: 'We could not verify this payment. If money left your account, Google will return it.' };
+        }
+        if (err.status === 503) return { outcome: 'unknown' };
+      }
+      // 502, a timeout, no signal: try again.
+    }
+    if (i < tries - 1) await wait(gapMs);
+  }
+  return { outcome: 'unknown' };
+}
+
 /**
  * FINISH A PURCHASE, ONLY AFTER THE SERVER CONFIRMED IT. Finishing consumes it, so
  * the product can be bought again, and acknowledges it; Google refunds a purchase
@@ -290,14 +337,10 @@ export async function recoverPlayPurchases(): Promise<number> {
     const held = await iap().getAvailablePurchases();
     for (const p of held ?? []) {
       if (!p.purchaseToken || p.purchaseState !== 'purchased' || !PLAY_SKUS.includes(p.productId)) continue;
-      try {
-        const res = await verifyPlayPurchase(p);
-        if (res.ok) {
-          granted += 1;
-          await finishPlayPurchase(p);
-        }
-      } catch {
-        // Offline, or the server said no: leave it for the next pass.
+      // One try each: pending, refused and unknown are all "leave it for the next pass".
+      if ((await confirmPlayPurchase(p, 1)).outcome === 'granted') {
+        granted += 1;
+        await finishPlayPurchase(p);
       }
     }
   } catch {

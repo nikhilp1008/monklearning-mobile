@@ -210,6 +210,54 @@ describe('verifying and finishing', () => {
   });
 });
 
+describe('confirmPlayPurchase: the API\'s status codes', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const err = (status: number, message: string) => Object.assign(new (require('@/lib/api').ApiError)(message), { status });
+
+  test('200 ok is granted', async () => {
+    apiFetch.mockResolvedValue({ ok: true, state: 'active' });
+    expect(await b.confirmPlayPurchase(PURCHASE as never, 3, 1)).toEqual({ outcome: 'granted' });
+  });
+
+  test('409 "still pending" is pending, not a failure', async () => {
+    apiFetch.mockRejectedValue(err(409, 'This purchase is still pending.'));
+    expect(await b.confirmPlayPurchase(PURCHASE as never, 3, 1)).toEqual({ outcome: 'pending' });
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('409 "already used your day pass" is refused with the server\'s own sentence, once', async () => {
+    apiFetch.mockRejectedValue(err(409, 'You have already used your day pass. Google will refund this.'));
+    expect(await b.confirmPlayPurchase(PURCHASE as never, 3, 1)).toEqual({
+      outcome: 'refused',
+      message: 'You have already used your day pass. Google will refund this.',
+    });
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('400 and 403 are refused', async () => {
+    for (const status of [400, 403]) {
+      apiFetch.mockRejectedValueOnce(err(status, 'no'));
+      expect((await b.confirmPlayPurchase(PURCHASE as never, 3, 1)).outcome).toBe('refused');
+    }
+  });
+
+  test('502 (Google unreachable) is retried, and a later 200 grants', async () => {
+    apiFetch.mockRejectedValueOnce(err(502, 'Google unreachable')).mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ ok: true, state: 'active' });
+    expect(await b.confirmPlayPurchase(PURCHASE as never, 3, 1)).toEqual({ outcome: 'granted' });
+    expect(apiFetch).toHaveBeenCalledTimes(3);
+  });
+
+  test('502 every time is unknown, never refused; 503 (flag off) is unknown at once', async () => {
+    apiFetch.mockRejectedValue(err(502, 'Google unreachable'));
+    expect(await b.confirmPlayPurchase(PURCHASE as never, 3, 1)).toEqual({ outcome: 'unknown' });
+    expect(apiFetch).toHaveBeenCalledTimes(3);
+    apiFetch.mockReset();
+    apiFetch.mockRejectedValue(err(503, 'off'));
+    expect(await b.confirmPlayPurchase(PURCHASE as never, 3, 1)).toEqual({ outcome: 'unknown' });
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('recoverPlayPurchases: paid, then never confirmed', () => {
   const held = (over: object = {}) => ({ productId: 'pass_day', purchaseToken: 't', purchaseState: 'purchased', ...over });
 
