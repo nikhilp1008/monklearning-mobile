@@ -115,6 +115,13 @@ describe('stacked fractions', () => {
     expect(cutAtSpaces('in <binom><num><i>n</i> − 1</num><den><i>k</i> − 1</den></binom> ways')).toHaveLength(3);
   });
 
+  // Android check of Mathematics 11 Ch 8: "31&nbsp;250&nbsp;000" showed the entity's letters.
+  it('reads &nbsp; as a no-break space, never as letters', () => {
+    const text = strings(draw('Check: 31&nbsp;250&nbsp;000 here')).join('');
+    expect(text).not.toContain('&nbsp;');
+    expect(text).toContain('31\u00a0250\u00a0000');
+  });
+
   it('sets the double-struck 𝕎 and 𝕋 in STIX Two Math, which has them', () => {
     const find = (j: Json | string | null): string[] => {
       if (j == null || typeof j === 'string') return [];

@@ -164,7 +164,8 @@ function toUnicode(text: string, table: Record<string, string>): string | null {
 const EMOJI_DEFAULTING = /([\u2194-\u2199\u21A9\u21AA\u2600-\u26FF\u2B05-\u2B07\u2190-\u2193])(?!\uFE0E)/g;
 
 function asText(value: string): string {
-  return value.replace(EMOJI_DEFAULTING, '$1\uFE0E');
+  // "&nbsp;" is a no-break space, never the five letters (Android check of Mathematics 11 Ch 8).
+  return value.replace(/&nbsp;/g, '\u00a0').replace(EMOJI_DEFAULTING, '$1\uFE0E');
 }
 
 function plainText(nodes: Node[]): string {
@@ -620,6 +621,12 @@ export function readerBreaks(html: string): string {
     .replace(/°(?=\()/g, `°${WJ}`)
     // A prime with its bracket: "k′" | "[A]" (Android check of Chemistry 12 Ch 3).
     .replace(/′(?=[[(])/g, `′${WJ}`)
+    // A closing bar before a glued space: Android breaks after "|" even before a no-break
+    // space, and "|r| < 1" split at the bar (Android check of Mathematics 11 Ch 8).
+    .replace(/\|(?=\u00a0)/g, `|${WJ}`)
+    // A sum or product stays with what it sums: "∑ʳ₌₁ⁿ" | "r²" left the Σ alone at a line's
+    // end (Android check of Mathematics 11 Ch 7).
+    .replace(/([∑∏](?:<su[bp]>(?:(?!<\/su[bp]>).)*<\/su[bp]>){0,2}) (?=\S)/g, '$1\u00a0')
     // A minus sign stays with the bracket it negates: "= −" | "(−30)/(−15)" (Physics 12 Ch 9).
     .replace(/−(?=[([])/g, `−${WJ}`)
     .split(' ');
@@ -947,8 +954,16 @@ const FRAC = {
   nest: 0.45,
   /** How much lower a denominator holding a bracket sits in Onest, in its own size. */
   bracketDrop: 0.12,
-  /** A block holding a fraction: its line height times this (see Markup). */
-  lead: 1.18,
+  /** How much higher a numerator holding a subscript sits, in its own size. */
+  subLift: 0.22,
+  /** How much lower a denominator holding a power sits, in its own size. */
+  supDrop: 0.12,
+  /** The smallest a fraction's half is drawn, in px, however deeply it is nested. */
+  minPx: 10.5,
+  /** A block holding a fraction: its line height times this (see Markup). At 1.18 two
+   *  fractions on neighbouring lines touched once a subscripted numerator sat higher
+   *  (subLift; Android check of Mathematics 11 Ch 7–8). */
+  lead: 1.25,
   /** A block holding a fraction inside a fraction, whose halves sit further off the rule (nest). */
   leadNested: 1.5,
 } as const;
@@ -957,7 +972,9 @@ const FRAC = {
 const NESTED_FRAC = /<(num|den)>(?:(?!<\/\1>)[\s\S])*<(?:frac|binom)>/i;
 
 function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink, binom = false) {
-  const s = size * FRAC.size;
+  // Each level of a fraction inside a fraction is smaller again; a continued fraction's
+  // innermost level was too small to read (Android check of Mathematics 11 Ch 8).
+  const s = Math.max(size * FRAC.size, FRAC.minPx);
   const onest = !!ink.family?.startsWith('Onest');
   const line = s * OVER_LINE;
   const base = s * overBaseline(onest);
@@ -969,12 +986,17 @@ function fracRun(num: Node[], den: Node[], size: number, key: string, look: Mark
   // where a plain half goes, 1 over (1 − ⅓) ran its ⅓ into the rule (Android
   // sample, 2026-11-10).
   const nested = (nodes: Node[]): boolean => nodes.some((c) => c.kind !== 'text' && c.kind !== 'br' && ((c.kind === 'tag' && (c.name === 'frac' || c.name === 'binom')) || nested(c.children)));
-  const numTop = box - size * FRAC.num - base - (nested(num) ? s * FRAC.nest : 0);
+  // A drawn subscript hangs well below its half's baseline: in T_(r+1)/T_r the "r+1"
+  // sat on the rule (Android check of Mathematics 11 Ch 7), so that numerator is lifted.
+  const hasSub = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sub' || (c.name !== 'frac' && c.name !== 'binom' && hasSub(c.children))));
+  const numTop = box - size * FRAC.num - base - (nested(num) ? s * FRAC.nest : 0) - (hasSub(num) ? s * FRAC.subLift : 0);
   const ruleTop = box - size * FRAC.axis - thick / 2;
   // Onest's brackets rise well above its letters: a bracket in the denominator
   // touched the rule, r!(n − r)! (Android sample for Mathematics 11 Ch 6).
   const tallDen = onest && /[()[\]{}|]/.test(plainText(den));
-  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0) + (tallDen ? s * FRAC.bracketDrop : 0);
+  // A power in the denominator rises toward the rule: card "a/b^(n−1)" touched it (Mathematics 11 Ch 8).
+  const hasSup = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sup' || (c.name !== 'frac' && c.name !== 'binom' && hasSup(c.children))));
+  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0) + (tallDen ? s * FRAC.bracketDrop : 0) + (hasSup(den) ? s * FRAC.supDrop : 0);
   const half = (nodes: Node[], k: string, extra?: TextStyle) => (
     <Text style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
       {render(nodes, s, k, look, ink)}

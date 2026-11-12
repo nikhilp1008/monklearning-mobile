@@ -119,7 +119,9 @@ export function PilotGrid({
               read(row[0] ?? '', s.key)
             )}
             {row.slice(1).map((cell, j) =>
-              block.head.length > 2 && block.head[j + 1] ? (
+              // An empty cell (the book's "—", no condition) shows nothing, not a bare
+              // column name (Android check of Mathematics 11 Ch 8).
+              !cell.replace(/<[^>]*>|[\s\u00a0–—-]/g, '') ? null : block.head.length > 2 && block.head[j + 1] ? (
                 // The column's name quiet on the left, the value beside it.
                 <View key={j} style={s.cellRow}>
                   <Markup html={block.head[j + 1]} size={type(READ_SIZE) - 1} style={s.cellHead} look="pilot" />
