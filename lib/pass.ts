@@ -51,7 +51,7 @@ export type PassRecord = {
   endsAt?: string | null;
   /** How it came to exist. 'exempt' is a founder or tester the paywall never
    *  stops: the server says so and the app believes it. */
-  source?: 'razorpay' | 'promo' | 'admin' | 'exempt' | null;
+  source?: 'razorpay' | 'play' | 'promo' | 'admin' | 'exempt' | null;
 };
 
 /** How long each pass runs. Months are counted as whole days, because a pass
@@ -322,7 +322,7 @@ export function recordFromServer(s: ServerPass, now: Date = new Date()): PassRec
   let real: PassRecord | null = null;
   const kind = s.plan_kind && s.plan_kind in DAYS ? s.plan_kind : s.kind;
   if (s.state !== 'none' && kind && kind in DAYS && s.started_at && s.ends_at) {
-    const source = (['razorpay', 'promo', 'admin'] as const).find((x) => x === s.source) ?? null;
+    const source = (['razorpay', 'play', 'promo', 'admin'] as const).find((x) => x === s.source) ?? null;
     real = { kind: kind as PassKind, startedAt: s.started_at, endsAt: s.ends_at, source };
   }
   if (s.exempt) {

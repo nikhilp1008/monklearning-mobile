@@ -1,7 +1,8 @@
 // 08 "Choose a pass".
 //
-// Pays through Razorpay (components/paywall/razorpay-checkout.tsx), or - with a
-// promo code that brings the total to zero - completes for free. The server
+// Pays through Google's choice screen - Google Play or Razorpay, the student's
+// pick (components/paywall/razorpay-checkout.tsx) - or, with a promo code that
+// brings the total to zero, completes for free. The server
 // prices the order and decides whether a code is good; this screen only asks.
 // The code itself is never printed here: it is the student's to know.
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,8 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ObButton } from '@/components/onboarding-kit';
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { PaymentNotice } from '@/components/paywall/payment-notice';
-import { UpiPay, useUpiApps } from '@/components/paywall/upi-pay';
-import type { UpiApp } from '@/lib/upi-apps';
+import { PromoPlayNote } from '@/components/paywall/promo-play-note';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PlanChooser, type PlansPick } from '@/components/paywall/plan-chooser';
 import { PLANS } from '@/components/paywall/plans';
@@ -65,14 +65,11 @@ export default function PassScreen() {
   const total = !active ? 0 : quote ? rupeesOf(quote.finalPaise) : active.price;
   const paid = !!active && !!quote?.free;
 
-  const { pay, checkout, confirming } = usePassCheckout();
+  const { startCheckout, checkout, confirming } = usePassCheckout({ onRecovered: () => checkPass.current() });
   const [paying, setPaying] = useState(false);
   /** True from the tap until the purchase is over: the return-to-app check
    *  below must not open the receipt alongside the purchase's own. */
   const payingNow = useRef(false);
-  /** The UPI apps on this phone (design B), and which one is starting. */
-  const upi = useUpiApps();
-  const [upiBusy, setUpiBusy] = useState<string | null>(null);
   /** A payment that did not happen: said in the banner at the top. 'unsure'
    *  when the student came back from a UPI app and the server has no answer yet. */
   const [notPaid, setNotPaid] = useState<null | 'sure' | 'unsure'>(null);
@@ -134,21 +131,19 @@ export default function PassScreen() {
     }, LATE_WATCH_EVERY_MS);
   };
 
-  const buy = async (app?: UpiApp) => {
+  const buy = async () => {
     // payingNow, not only `paying`: two taps in one frame both saw `paying`
     // false, and the second one flashed "Payment not made" over a live payment.
     if (!active || paying || payingNow.current) return;
     setNotPaid(null);
     setPaying(true);
     payingNow.current = true;
-    setUpiBusy(app?.packageName ?? null);
     try {
-      const result = await pay(active.id, {
+      const result = await startCheckout(active.id, {
         description: plan ? `${plan.name} plan` : `${active.name} pass`,
         promo: quote && !quote.free ? quote.code : undefined,
         // The sheet only opens for the amount on the button.
         expectedPaise: Math.round(total * 100),
-        upiApp: app?.packageName,
       });
       if (result.status === 'paid') {
         // The pass already exists on the server; the receipt must not start another.
@@ -177,7 +172,6 @@ export default function PassScreen() {
     } finally {
       payingNow.current = false;
       setPaying(false);
-      setUpiBusy(null);
       // A refused or just-spent code must not stay on the page.
       refresh();
     }
@@ -214,17 +208,6 @@ export default function PassScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
-          {active && !paid && PAYMENTS_ON_THIS_DEVICE && upi.apps && upi.apps.length > 0 ? (
-            <UpiPay
-              amount={rupees(total)}
-              apps={upi.apps}
-              last={upi.last}
-              busy={upiBusy}
-              disabled={paying || checking}
-              onPick={(app) => void buy(app)}
-              onOther={() => void buy()}
-            />
-          ) : (<>
           {/* Says what is owed, not what will happen. */}
           <ObButton
             label={
@@ -251,6 +234,10 @@ export default function PassScreen() {
               });
             }}
           />
+          {/* Google Play has one fixed price: a code counts only on Razorpay. */}
+          {active && !paid && PAYMENTS_ON_THIS_DEVICE && quote && !quote.free && discount > 0 ? (
+            <PromoPlayNote code={quote.code} savedRupees={discount} listRupees={active.price} />
+          ) : null}
           {freeTier.free && (
             // The free tier: a way past the price list. Not hidden and not
             // shouted: a plan is what this screen is for, and this is what the
@@ -266,7 +253,6 @@ export default function PassScreen() {
               <Text style={styles.freeLinkText}>Continue with the free plan</Text>
             </PressableScale>
           )}
-          </>)}
         </View>
       </SafeAreaView>
       <PaymentNotice visible={notPaid !== null} unsure={notPaid === 'unsure'} onGone={hideNotPaid} />

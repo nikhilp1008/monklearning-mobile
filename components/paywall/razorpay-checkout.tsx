@@ -9,6 +9,15 @@ import { getProfile } from '@/lib/profile';
 import { payInUpiApp, rememberUpiApp } from '@/lib/upi-apps';
 import { passStatus, type PassKind, type PassStatus } from '@/lib/pass';
 import {
+  cancelPlayChoice,
+  chooseHowToPay,
+  currentPlayAccountId,
+  finishPlayPurchase,
+  playPricePaise,
+  recoverPlayPurchases,
+  verifyPlayPurchase,
+} from '@/lib/play-billing';
+import {
   PAYMENTS_ON_THIS_DEVICE,
   PriceMismatchError,
   checkoutShellHtml,
@@ -28,16 +37,25 @@ import { ob, obFont } from '@/constants/onboarding';
 /**
  * PAYING FOR A PASS: ONE HOOK, ONE SHEET.
  *
- *   const { pay, checkout } = usePassCheckout();
+ *   const { startCheckout, checkout } = usePassCheckout();
  *   ...
- *   {checkout}                       // anywhere in the screen's tree
- *   const result = await pay('3m');  // opens Razorpay, resolves when it is over
+ *   {checkout}                                  // anywhere in the screen's tree
+ *   const result = await startCheckout('pro_1m', opts);
+ *
+ * `startCheckout` is the ONLY way a screen starts a purchase. It opens GOOGLE'S
+ * choice screen first (lib/play-billing.ts) and then:
+ *
+ *   Google Play  the server verifies the purchase (POST /payments/play/verify), the
+ *                purchase is finished only after it confirms, the pass is read back.
+ *   Razorpay     the student picked it on Google's screen: `pay` below runs, the order
+ *                is made WITH Google's external transaction token, and only then does
+ *                Razorpay's sheet open. The sheet never opens on the tap itself.
  *
  * The plans screen and the onboarding pass screen both buy a pass, and neither
- * should know how. `pay` can THROW (the order could not be created: no signal,
- * the server said no) - that is before any money moves, so the caller shows the
- * message and the student tries again. Once the sheet has opened, every outcome
- * is a RESULT:
+ * should know how. `startCheckout` can THROW (Google Play is not available, the
+ * order could not be created: no signal, the server said no) - that is before any
+ * money moves, so the caller shows the message and the student tries again. Once
+ * Google's screen or the sheet has opened, every outcome is a RESULT:
  *
  *   paid       the server verified the payment; `pass` is read back from it
  *   pending    the student paid but the server has not confirmed it yet. Money
@@ -192,7 +210,20 @@ async function waitForPass(before: number | null, times = POLL_TIMES, gapMs = PO
   return null;
 }
 
-export function usePassCheckout() {
+/** What a screen gives `startCheckout`. */
+export type StartCheckoutOpts = {
+  description: string;
+  offer?: 'winback';
+  promo?: string;
+  /** What the page showed, in paise: the Razorpay order is refused if it differs. */
+  expectedPaise?: number;
+};
+
+export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
+  /** Google's screen is open, or a Play purchase is being confirmed. */
+  const choosing = useRef(false);
+  const onRecovered = useRef(hookOpts.onRecovered);
+  onRecovered.current = hookOpts.onRecovered;
   /** The sheet opens the moment Pay is tapped, with no order yet (null): the order
    *  is made while Razorpay's script is already downloading, and handed to the page
    *  when it arrives. */
@@ -231,9 +262,20 @@ export function usePassCheckout() {
          *  server would charge anything else. */
         expectedPaise?: number;
         /**
+         * Google's token for a sale made through its choice screen. The order
+         * carries it so the server can report the sale to Google. `startCheckout`
+         * sets it; nothing else should call `pay` on Android.
+         */
+        externalTransactionToken?: string;
+        /**
          * A UPI app the student tapped on the page (its package name): the
          * order opens straight in that app, with no Razorpay screen. Without
          * it, Razorpay's checkout sheet opens as before.
+         *
+         * NOT USED ON ANDROID WITH PLAY BILLING: a row that goes straight to a UPI
+         * app is picking Razorpay before Google's screen. The rows are hidden
+         * (components/paywall/upi-pay.tsx); this path is kept for when Google's
+         * rules allow them.
          */
         upiApp?: string;
       }
@@ -264,7 +306,7 @@ export function usePassCheckout() {
         // The student's email and the phone they gave in onboarding, so Razorpay
         // does not ask for either again.
         const made = Promise.all([
-          createOrder(kind, opts.offer, opts.promo),
+          createOrder(kind, opts.offer, opts.promo, opts.externalTransactionToken),
           getSessionEmail().catch(() => null),
           getProfile()
             .then((p) => p.phone || null)
@@ -381,6 +423,99 @@ export function usePassCheckout() {
     []
   );
 
+  /**
+   * START A PURCHASE. Google's choice screen opens first, always (Google requires
+   * it and the price is already on the page). What follows depends on the pick:
+   * see the file header. One purchase at a time, across Google's screens and the
+   * Razorpay sheet alike: a second tap is `busy`.
+   */
+  const startCheckout = useCallback(
+    async (kind: PassKind, opts: StartCheckoutOpts): Promise<PayResult> => {
+      if (!PAYMENTS_ON_THIS_DEVICE) throw new Error('Payments are not available on this device.');
+      if (choosing.current || inFlight.current) return { status: 'busy' };
+      choosing.current = true;
+      try {
+        // Where the student stands BEFORE Google's screen opens, so a pass already
+        // running is never mistaken for this purchase arriving.
+        const before = passStatus({ timeoutMs: POLL_TIMEOUT_MS }).then(endOf, () => null);
+        const accountId = await currentPlayAccountId();
+
+        // A purchase Google still holds from an earlier try (paid, then no signal):
+        // verify it first. Buying the same pass again would be refused as already
+        // owned, and the student would be paying twice for one.
+        if ((await recoverPlayPurchases()) > 0) {
+          const st = await passStatus({ timeoutMs: POLL_TIMEOUT_MS });
+          if (st.state === 'active') return { status: 'paid', pass: st, amountPaise: (await playPricePaise(kind)) ?? 0 };
+        }
+
+        const choice = await chooseHowToPay(kind, accountId);
+        if (choice.type === 'cancelled') return { status: 'cancelled' };
+        if (choice.type === 'failed') return { status: 'failed', message: choice.message };
+        // Google is holding the money (e.g. a cash payment): nothing to grant yet.
+        // Recovery verifies it once it completes.
+        if (choice.type === 'pending') return { status: 'pending' };
+
+        if (choice.type === 'razorpay') {
+          // The student picked Razorpay on Google's screen: NOW the order is made
+          // (with Google's token) and the sheet opens.
+          return await pay(kind, {
+            description: opts.description,
+            offer: opts.offer,
+            promo: opts.promo,
+            expectedPaise: opts.expectedPaise,
+            externalTransactionToken: choice.externalTransactionToken,
+          });
+        }
+
+        // Google Play. Money has moved from here on: nothing below says "failed"
+        // unless the server has said the purchase itself is bad.
+        setConfirming(true);
+        let verified = false;
+        let refused = false;
+        try {
+          const res = await verifyPlayPurchase(choice.purchase);
+          verified = res.ok === true;
+          refused = !verified;
+        } catch (err) {
+          refused = err instanceof ApiError && (err.status === 400 || err.status === 403);
+          // Otherwise: no signal, or the server is busy. The purchase stays
+          // unfinished on purpose; recovery verifies it on the next visit, and
+          // Google would refund it after 3 days if it never is.
+        }
+        // Finished ONLY after the server confirmed it.
+        if (verified) await finishPlayPurchase(choice.purchase);
+        const pass = await waitForPass(await before, verified ? 4 : refused ? 2 : POLL_TIMES, verified ? 700 : POLL_EVERY_MS);
+        if (pass) {
+          const amountPaise = (await playPricePaise(kind)) ?? (opts.promo ? 0 : opts.expectedPaise ?? 0);
+          return { status: 'paid', pass, amountPaise };
+        }
+        if (refused) {
+          return { status: 'failed', message: 'We could not verify this payment. If money left your account, Google will return it.' };
+        }
+        return { status: 'pending' };
+      } finally {
+        choosing.current = false;
+        setConfirming(false);
+      }
+    },
+    [pay]
+  );
+
+  // Verify a Play purchase that was paid for but never confirmed (the app was killed,
+  // or there was no signal), so the pass appears without the student doing anything.
+  useEffect(() => {
+    if (!PAYMENTS_ON_THIS_DEVICE) return;
+    let live = true;
+    void recoverPlayPurchases().then((n) => {
+      if (live && n > 0) onRecovered.current?.();
+    });
+    return () => {
+      live = false;
+      // The screen went away with Google's screen open: stop waiting on it.
+      if (choosing.current) cancelPlayChoice();
+    };
+  }, []);
+
   const checkout = open ? (
     <CheckoutSheet
       order={open.order}
@@ -391,7 +526,7 @@ export function usePassCheckout() {
     />
   ) : null;
 
-  return { pay, checkout, confirming };
+  return { startCheckout, checkout, confirming };
 }
 
 function CheckoutSheet({

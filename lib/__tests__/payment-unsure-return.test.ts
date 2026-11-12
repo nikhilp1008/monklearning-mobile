@@ -67,6 +67,8 @@ describe('pay() after a UPI app', () => {
 
   test('a second purchase while one runs is busy, not cancelled', () => {
     expect(src).toContain("if (inFlight.current) return { status: 'busy' };");
+    // And the same across Google's screens, before pay() is reached.
+    expect(src).toContain("if (choosing.current || inFlight.current) return { status: 'busy' };");
   });
 });
 
@@ -81,6 +83,19 @@ describe('the banner', () => {
 
 describe('the pass page', () => {
   const src = read('app/(onboarding)/pass.tsx');
+
+  test('the UPI app rows are gone: a row that skips Google\'s choice screen is not allowed under user choice billing', () => {
+    // Deliberate change (Play billing): `upiApp`, `upiBusy` and the UpiPay branch used to
+    // live here. Every Android purchase now starts at Google's screen via startCheckout.
+    expect(src).not.toContain('UpiPay');
+    expect(src).not.toContain('useUpiApps');
+    expect(src).not.toContain('upiApp');
+    expect(src).toContain('await startCheckout(active.id, {');
+  });
+
+  test('a code that takes only some off says it counts on Razorpay only', () => {
+    expect(src).toContain('<PromoPlayNote code={quote.code} savedRupees={discount} listRupees={active.price} />');
+  });
 
   test('a second tap in the same frame is ignored (the ref is set on the tap)', () => {
     expect(src).toContain('if (!active || paying || payingNow.current) return;');

@@ -31,6 +31,12 @@ export function useUpiApps(): { apps: UpiApp[] | null; last: string | null } {
 }
 
 /**
+ * NOT SHOWN ANYWHERE WHILE PLAY BILLING IS ON (the onboarding pass page no longer
+ * renders it). A row that opens a UPI app is the student choosing Razorpay on OUR
+ * page, before Google's choice screen, which Google's user choice billing rules do
+ * not allow: every Android purchase must start at Google's screen. Kept, with
+ * `useUpiApps` and `pay`'s `upiApp` path, so it can return if Google permits it.
+ *
  * PAY WITH A UPI APP, ON OUR PAGE (design B, 26 Oct 2026).
  *
  * "Pay ₹499 with", then one white row per app (icon, name, chevron), the app

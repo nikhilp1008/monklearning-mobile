@@ -214,3 +214,36 @@ describe('razorpayContact', () => {
     expect(razorpayContact('0123456789')).toBeNull();
   });
 });
+
+describe('pay() under Play billing', () => {
+  const src = read('components/paywall/razorpay-checkout.tsx');
+  const pay = src.slice(src.indexOf('const pay = useCallback'), src.indexOf('const startCheckout = useCallback'));
+
+  test('pay() still opens the shell sheet before the order exists - but it is only reached after the Razorpay pick', () => {
+    // Unchanged on purpose: once the student has picked Razorpay on Google's screen,
+    // the script still downloads while the order is made.
+    expect(pay.indexOf('setOpen({ order: null')).toBeLessThan(pay.indexOf('createOrder('));
+    expect(pay).toContain('externalTransactionToken?: string;');
+  });
+
+  test('startCheckout never passes a UPI app: those rows would pick Razorpay before Google\'s screen', () => {
+    const start = src.slice(src.indexOf('const startCheckout = useCallback'), src.indexOf('// Verify a Play purchase that was paid for'));
+    expect(start).not.toContain('upiApp');
+  });
+});
+
+describe('both screens keep payingNow set for the whole purchase, Google\'s screens included', () => {
+  test('plans: set on the tap, before startCheckout, cleared only in finally', () => {
+    const src = read('app/plans.tsx');
+    expect(src.indexOf('payingNow.current = true;')).toBeLessThan(src.indexOf('await startCheckout('));
+    expect(src).toMatch(/finally \{\s*payingNow\.current = false;/);
+    expect(src).not.toMatch(/await pay\(/);
+  });
+
+  test('onboarding pass: set before startCheckout, cleared only in finally', () => {
+    const src = read('app/(onboarding)/pass.tsx');
+    expect(src.indexOf('payingNow.current = true;')).toBeLessThan(src.indexOf('await startCheckout('));
+    expect(src).toMatch(/finally \{\s*payingNow\.current = false;/);
+    expect(src).not.toMatch(/await pay\(/);
+  });
+});

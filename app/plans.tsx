@@ -31,7 +31,8 @@ const PENDING_RECHECK_MS = 15000;
  *
  *   - which of the two it is: no running pass is the gate (no way out but a
  *     pass), a running one is "Add more time" (it closes);
- *   - paying (Razorpay, components/paywall/razorpay-checkout.tsx), with the
+ *   - paying (Google's choice screen, then Google Play or Razorpay; see
+ *     components/paywall/razorpay-checkout.tsx), with the
  *     confirming page while the server catches up, and the receipt after;
  *   - a promo code that makes a plan free, which the server redeems;
  *   - LEAVING ON ITS OWN. A gated student whose pass arrives while this page
@@ -42,7 +43,10 @@ const PENDING_RECHECK_MS = 15000;
  */
 export default function PlansScreen() {
   const params = useLocalSearchParams<{ pick?: string; promo?: string }>();
-  const { pay, checkout, confirming } = usePassCheckout();
+  // A Play purchase paid for but never confirmed is verified when the page opens;
+  // when it lands the gate's own check sends the student on.
+  const recheckRef = useRef<() => void>(() => {});
+  const { startCheckout, checkout, confirming } = usePassCheckout({ onRecovered: () => recheckRef.current() });
   const { starterUsed } = usePlan();
 
   /** Where the student stands. Null until the first answer. */
@@ -123,6 +127,8 @@ export default function PlansScreen() {
     if (st.state === 'active') goHome();
   }, [done, goHome]);
 
+  recheckRef.current = () => void recheck();
+
   useFocusEffect(
     useCallback(() => {
       void recheck();
@@ -198,7 +204,7 @@ export default function PlansScreen() {
           setNotPaid(false);
           setPaying(true);
           try {
-            const result = await pay(kind, {
+            const result = await startCheckout(kind, {
               description: `${PASS_NAME[kind]} ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'}`,
               promo,
               expectedPaise,

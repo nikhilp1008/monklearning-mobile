@@ -20,6 +20,12 @@ import type { PassKind } from '@/lib/pass';
  * nothing: every Pay button becomes "Enter a promo code", the same as iPhone,
  * for every user alike. Turn it back on only together with Play Billing. The
  * UPI manifest plugin (plugins/with-upi-queries.js) reads the same flag.
+ *
+ * PLAY BILLING IS BUILT (lib/play-billing.ts) BUT STILL BEHIND THIS FLAG. With the
+ * flag on, every purchase opens Google's choice screen first and Razorpay opens
+ * only if the student picks it there. Do not build with the flag on until the Play
+ * Console side is ready (products, alternative billing enrolment, the API's
+ * PLAY_BILLING_ENABLED).
  */
 export const ANDROID_PAYMENTS_ON = process.env.EXPO_PUBLIC_ANDROID_PAYMENTS === '1';
 export const PAYMENTS_ON_THIS_DEVICE = Platform.OS === 'android' && ANDROID_PAYMENTS_ON;
@@ -79,12 +85,23 @@ export type CheckoutEvent =
   | { type: 'dismiss' }
   | { type: 'error'; message: string };
 
-export function createOrder(kind: PassKind, offer?: 'winback', promo?: string): Promise<Order> {
+export function createOrder(
+  kind: PassKind,
+  offer?: 'winback',
+  promo?: string,
+  /**
+   * Google's token for a sale made through its choice screen (Android). The server
+   * must report that sale to Google within 24 hours, so the order carries it from
+   * the start. Absent when the order was not made from Google's screen.
+   */
+  externalTransactionToken?: string
+): Promise<Order> {
   // Only the code travels. The server prices the order from it, and refuses a
   // code that is not good for this student on this pass.
   const body: Record<string, string> = { kind };
   if (offer) body.offer = offer;
   else if (promo) body.promo = promo;
+  if (externalTransactionToken) body.external_transaction_token = externalTransactionToken;
   return apiFetch<Order>('/payments/orders', {
     method: 'POST',
     body: JSON.stringify(body),

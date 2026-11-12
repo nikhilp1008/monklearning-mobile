@@ -54,6 +54,8 @@ function howGot(record: PassRecord): string {
   switch (record.source) {
     case 'razorpay':
       return 'Paid';
+    case 'play':
+      return 'Paid with Google Play';
     case 'promo':
       return record.promo ? `Promo code ${record.promo}` : 'Promo code';
     case 'admin':
