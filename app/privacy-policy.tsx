@@ -29,7 +29,7 @@ const SECTIONS = [
   },
   {
     title: 'If you’re under 18',
-    body: 'Most monklearning students are under 18. If you are under 18, a parent or guardian can write to support@monklearning.com to ask for a copy or deletion of your data on your behalf. We don’t run third-party ads or build marketing profiles on students.',
+    body: 'Most monklearning students are under 18. We don’t run third-party ads or build marketing profiles on students.',
   },
   {
     title: 'Contact us',
