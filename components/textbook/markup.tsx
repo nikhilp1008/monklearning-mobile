@@ -224,9 +224,10 @@ const isItalicFamily = (f?: string) => f === STIX.italic || f === STIX.semiboldI
  * what Onest draws itself (→ − ≈ ≤ ≥) and what Roboto draws well (√ ∫ ∂ ∞ ⟨ ⟩
  * stay as they were, checked in content/textbooks/__tests__/display-fonts).
  * And △, the symmetric difference (Mathematics 11 Ch 1), and the floor and
- * ceiling brackets ⌊ ⌋ ⌈ ⌉ (Ch 2), which Onest lacks.
+ * ceiling brackets ⌊ ⌋ ⌈ ⌉ (Ch 2), which Onest lacks. And the primes ′ ″ ‴, which
+ * Onest draws as straight ticks: S″ read as S" (Ch 10).
  */
-const PILOT_MATH = /[\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3\u2308-\u230B]+/g;
+const PILOT_MATH = /[\u2032-\u2034\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3\u2308-\u230B]+/g;
 const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF]+/g;
 /**
  * The reader's text with its maths symbols in STIX Two Math (see PILOT_MATH),
