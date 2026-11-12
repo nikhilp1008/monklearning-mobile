@@ -65,7 +65,7 @@ export default function PassScreen() {
   const total = !active ? 0 : quote ? rupeesOf(quote.finalPaise) : active.price;
   const paid = !!active && !!quote?.free;
 
-  const { startCheckout, checkout, confirming } = usePassCheckout({ onRecovered: () => checkPass.current() });
+  const { startCheckout, recover, checkout, confirming } = usePassCheckout({ onRecovered: () => checkPass.current() });
   const [paying, setPaying] = useState(false);
   /** True from the tap until the purchase is over: the return-to-app check
    *  below must not open the receipt alongside the purchase's own. */
@@ -103,7 +103,11 @@ export default function PassScreen() {
     // And again on every return to the app: a payment the bank confirmed late
     // (or one approved in a UPI app) moves the student on by itself.
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') void check();
+      if (next === 'active') {
+        void check();
+        // A pending Google Play purchase is finished by this app: ask again.
+        if (!payingNow.current) void recover();
+      }
     });
     return () => {
       live = false;
@@ -128,6 +132,7 @@ export default function PassScreen() {
         return;
       }
       checkPass.current();
+      if (!payingNow.current) void recover();
     }, LATE_WATCH_EVERY_MS);
   };
 
@@ -161,8 +166,15 @@ export default function PassScreen() {
       } else if (result.status === 'pending') {
         Alert.alert(
           'Payment received',
-          `Your bank is still confirming it. Your ${plan ? 'plan' : 'pass'} will start on its own in a few minutes — you don't need to pay again.`
+          result.play
+            ? `Google is still confirming it. Keep MonkLearning open for a few minutes: your ${plan ? 'plan' : 'pass'} will start on its own — you don't need to pay again.`
+            : `Your bank is still confirming it. Your ${plan ? 'plan' : 'pass'} will start on its own in a few minutes — you don't need to pay again.`
         );
+        // The pass page leaves by itself once it exists; for Google Play that
+        // needs the app to keep asking (recovery), as for an unsure UPI payment.
+        if (result.play) watchLate();
+      } else if (result.status === 'recovered') {
+        Alert.alert('Earlier purchase confirmed', result.message);
       } else if (result.status === 'failed' || result.status === 'cancelled') {
         setNotPaid(result.unsure ? 'unsure' : 'sure');
         if (result.unsure) watchLate();

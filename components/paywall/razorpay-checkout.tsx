@@ -7,9 +7,12 @@ import { ApiError } from '@/lib/api';
 import { getSessionEmail } from '@/lib/auth';
 import { getProfile } from '@/lib/profile';
 import { payInUpiApp, rememberUpiApp } from '@/lib/upi-apps';
-import { passStatus, type PassKind, type PassStatus } from '@/lib/pass';
+import { PASS_NAME, passStatus, type PassKind, type PassStatus } from '@/lib/pass';
 import {
   cancelPlayChoice,
+  kindOfPlayProduct,
+  markPlayCheckout,
+  playProductId,
   chooseHowToPay,
   currentPlayAccountId,
   confirmPlayPurchase,
@@ -67,7 +70,15 @@ import { ob, obFont } from '@/constants/onboarding';
 
 export type PayResult =
   | { status: 'paid'; pass: PassStatus; /** Paise charged, as the server priced the order. */ amountPaise: number }
-  | { status: 'pending' }
+  /** `play`: a Google Play purchase the server has not confirmed yet. The app itself
+   *  must finish it (recovery), so the screens keep asking while they are open. */
+  | { status: 'pending'; play?: boolean }
+  /**
+   * An EARLIER Google Play purchase was confirmed while this one was starting, and it
+   * is not the pass the student just tapped: nothing new was bought. `message` says
+   * what was confirmed and to tap Pay again.
+   */
+  | { status: 'recovered'; message: string }
   /**
    * `unsure`: the student went to their UPI app and came back with no success,
    * and the server has not said the payment failed either. Money may still be
@@ -223,7 +234,10 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
   /** Google's screen is open, or a Play purchase is being confirmed. */
   const choosing = useRef(false);
   const onRecovered = useRef(hookOpts.onRecovered);
-  onRecovered.current = hookOpts.onRecovered;
+  // Kept current from an effect, not written during render.
+  useEffect(() => {
+    onRecovered.current = hookOpts.onRecovered;
+  });
   /** The sheet opens the moment Pay is tapped, with no order yet (null): the order
    *  is made while Razorpay's script is already downloading, and handed to the page
    *  when it arrives. */
@@ -434,6 +448,7 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
       if (!PAYMENTS_ON_THIS_DEVICE) throw new Error('Payments are not available on this device.');
       if (choosing.current || inFlight.current) return { status: 'busy' };
       choosing.current = true;
+      markPlayCheckout(true);
       try {
         // Where the student stands BEFORE Google's screen opens, so a pass already
         // running is never mistaken for this purchase arriving.
@@ -443,9 +458,23 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
         // A purchase Google still holds from an earlier try (paid, then no signal):
         // verify it first. Buying the same pass again would be refused as already
         // owned, and the student would be paying twice for one.
-        if ((await recoverPlayPurchases()) > 0) {
-          const st = await passStatus({ timeoutMs: POLL_TIMEOUT_MS });
-          if (st.state === 'active') return { status: 'paid', pass: st, amountPaise: (await playPricePaise(kind)) ?? 0 };
+        // markPlayCheckout keeps recovery out while we are busy, so lift it for this call.
+        markPlayCheckout(false);
+        const recovered = await recoverPlayPurchases();
+        markPlayCheckout(true);
+        if (recovered.length > 0) {
+          onRecovered.current?.();
+          // Only if it is the pass the student just tapped is this the answer. An
+          // older purchase of some other pass was confirmed instead: say so and let
+          // them tap Pay again, rather than a receipt for a pass they did not pick.
+          if (recovered.includes(playProductId(kind) ?? '')) {
+            const st = await passStatus({ timeoutMs: POLL_TIMEOUT_MS });
+            if (st.state === 'active') return { status: 'paid', pass: st, amountPaise: (await playPricePaise(kind)) ?? 0 };
+          } else {
+            const names = recovered.map((id) => kindOfPlayProduct(id)).filter((k): k is PassKind => !!k).map((k) => PASS_NAME[k]);
+            const what = names.length ? `Your earlier Google Play purchase (${names.join(', ')}) has now been confirmed.` : 'Your earlier Google Play purchase has now been confirmed.';
+            return { status: 'recovered', message: `${what} Tap Pay again if you still want this one.` };
+          }
         }
 
         const choice = await chooseHowToPay(kind, accountId);
@@ -453,7 +482,7 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
         if (choice.type === 'failed') return { status: 'failed', message: choice.message };
         // Google is holding the money (e.g. a cash payment): nothing to grant yet.
         // Recovery verifies it once it completes.
-        if (choice.type === 'pending') return { status: 'pending' };
+        if (choice.type === 'pending') return { status: 'pending', play: true };
 
         if (choice.type === 'razorpay') {
           // The student picked Razorpay on Google's screen: NOW the order is made
@@ -485,9 +514,10 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
           const amountPaise = (await playPricePaise(kind)) ?? (opts.promo ? 0 : opts.expectedPaise ?? 0);
           return { status: 'paid', pass, amountPaise };
         }
-        return { status: 'pending' };
+        return { status: 'pending', play: true };
       } finally {
         choosing.current = false;
+        markPlayCheckout(false);
         setConfirming(false);
       }
     },
@@ -496,18 +526,26 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
 
   // Verify a Play purchase that was paid for but never confirmed (the app was killed,
   // or there was no signal), so the pass appears without the student doing anything.
+  /**
+   * Verify any Play purchase still unconfirmed. Screens call it from their "pending"
+   * rechecks and when the app returns to the foreground: only the app can finish a
+   * Play purchase, so a student who is waiting depends on this running.
+   */
+  const recover = useCallback(async (): Promise<number> => {
+    if (!PAYMENTS_ON_THIS_DEVICE || choosing.current || inFlight.current) return 0;
+    const got = await recoverPlayPurchases();
+    if (got.length > 0) onRecovered.current?.();
+    return got.length;
+  }, []);
+
   useEffect(() => {
     if (!PAYMENTS_ON_THIS_DEVICE) return;
-    let live = true;
-    void recoverPlayPurchases().then((n) => {
-      if (live && n > 0) onRecovered.current?.();
-    });
+    void recover();
     return () => {
-      live = false;
       // The screen went away with Google's screen open: stop waiting on it.
       if (choosing.current) cancelPlayChoice();
     };
-  }, []);
+  }, [recover]);
 
   const checkout = open ? (
     <CheckoutSheet
@@ -519,7 +557,7 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
     />
   ) : null;
 
-  return { startCheckout, checkout, confirming };
+  return { startCheckout, recover, checkout, confirming };
 }
 
 function CheckoutSheet({

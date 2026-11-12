@@ -46,7 +46,7 @@ export default function PlansScreen() {
   // A Play purchase paid for but never confirmed is verified when the page opens;
   // when it lands the gate's own check sends the student on.
   const recheckRef = useRef<() => void>(() => {});
-  const { startCheckout, checkout, confirming } = usePassCheckout({ onRecovered: () => recheckRef.current() });
+  const { startCheckout, recover, checkout, confirming } = usePassCheckout({ onRecovered: () => recheckRef.current() });
   const { starterUsed } = usePlan();
 
   /** Where the student stands. Null until the first answer. */
@@ -127,7 +127,9 @@ export default function PlansScreen() {
     if (st.state === 'active') goHome();
   }, [done, goHome]);
 
-  recheckRef.current = () => void recheck();
+  useEffect(() => {
+    recheckRef.current = () => void recheck();
+  }, [recheck]);
 
   useFocusEffect(
     useCallback(() => {
@@ -140,9 +142,21 @@ export default function PlansScreen() {
   );
   useEffect(() => {
     if (!pending) return;
-    const id = setInterval(() => void recheck(), PENDING_RECHECK_MS);
+    const id = setInterval(() => {
+      void recheck();
+      // A Google Play purchase is finished by this app, not by the server: ask again.
+      if (!payingNow.current) void recover();
+    }, PENDING_RECHECK_MS);
     return () => clearInterval(id);
-  }, [pending, recheck]);
+  }, [pending, recheck, recover]);
+
+  // Coming back to the app is when a pending Play purchase is most likely to have cleared.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active' && !payingNow.current) void recover();
+    });
+    return () => sub.remove();
+  }, [recover]);
 
   /**
    * ANDROID'S BACK. At the gate there is nothing behind this page, so Back
@@ -223,8 +237,12 @@ export default function PlansScreen() {
               setPending(true);
               Alert.alert(
                 'Payment received',
-                `Your bank is still confirming it. Your ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'} will start on its own in a few minutes — you don't need to pay again.`
+                result.play
+                  ? `Google is still confirming it. Keep MonkLearning open for a few minutes: your ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'} will start on its own — you don't need to pay again.`
+                  : `Your bank is still confirming it. Your ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'} will start on its own in a few minutes — you don't need to pay again.`
               );
+            } else if (result.status === 'recovered') {
+              Alert.alert('Earlier purchase confirmed', result.message);
             } else if (result.status === 'failed' || result.status === 'cancelled') {
               setNotPaid(true);
             }

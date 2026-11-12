@@ -158,23 +158,34 @@ function isNotReadyError(e: unknown): boolean {
 
 /** The one Google screen that can be open at a time, so the screen can close it. */
 let cancelCurrent: (() => void) | null = null;
+/** A checkout is running (Google's screen, verifying, or the Razorpay sheet). Set by the hook. */
+let checkoutActive = false;
 
 /** The screen went away with Google's screen open: stop waiting on it. */
 export function cancelPlayChoice() {
   cancelCurrent?.();
 }
 
-/** True while Google's choice screen (or a Play payment) is being waited on. */
-export function playChoiceOpen(): boolean {
-  return cancelCurrent !== null;
+/** The checkout hook says a purchase has started or ended, so recovery keeps out of its way. */
+export function markPlayCheckout(active: boolean) {
+  checkoutActive = active;
 }
+
+/** True while Google's choice screen is up or a checkout is running. */
+export function playChoiceOpen(): boolean {
+  return cancelCurrent !== null || checkoutActive;
+}
+
+/** Google's screen is left open this long at most, then the wait ends as a cancel. */
+export const CHOICE_TIMEOUT_MS = 30 * 60 * 1000;
 
 /**
  * OPEN GOOGLE'S CHOICE SCREEN AND SAY WHAT THE STUDENT PICKED.
  *
- * The three listeners are on BEFORE the screen opens and off in every outcome.
- * Errors before Google's screen is up (not connected, product missing) THROW:
- * nothing happened, nothing was charged. After it is up, every outcome is a result.
+ * The three listeners are on BEFORE the screen opens and off in every outcome,
+ * including one of them throwing while it is being attached. Errors before Google's
+ * screen is up (not connected, product missing) THROW: nothing happened, nothing
+ * was charged. After it is up, every outcome is a result.
  *
  * `accountId` is `obfuscatedAccountIdFor(user id)`; Play keeps it on the purchase
  * and the server checks it.
@@ -193,30 +204,8 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
   const result = new Promise<ChoiceResult>((resolve) => {
     done = resolve;
   });
-  cancelCurrent = () => done({ type: 'cancelled' });
-
-  const subs = [
-    // The student paid with Google Play.
-    api.purchaseUpdatedListener((purchase) => {
-      // A replay of some other unfinished purchase is not this one; recovery owns it.
-      if (purchase.productId !== sku) return;
-      if (purchase.purchaseState === 'pending') return done({ type: 'pending' });
-      if (!purchase.purchaseToken) return done({ type: 'failed', message: 'Google Play did not return a purchase. Nothing was charged.' });
-      done({ type: 'play', purchase });
-    }),
-    // The student chose the other option on Google's screen.
-    api.userChoiceBillingListenerAndroid((details) => {
-      if (!details.externalTransactionToken) {
-        return done({ type: 'failed', message: 'Google did not return a payment token. Nothing was charged.' });
-      }
-      done({ type: 'razorpay', externalTransactionToken: details.externalTransactionToken });
-    }),
-    // Closed, declined, or Google refused.
-    api.purchaseErrorListener((err) => {
-      if (isCancelError(err)) return done({ type: 'cancelled' });
-      done({ type: 'failed', message: 'The payment did not go through. Nothing was charged.' });
-    }),
-  ];
+  const subs: { remove: () => void }[] = [];
+  let timer: ReturnType<typeof setTimeout> | null = null;
 
   const request = () =>
     api.requestPurchase({
@@ -225,6 +214,37 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
     });
 
   try {
+    cancelCurrent = () => done({ type: 'cancelled' });
+    // A screen left open for good must not hold the checkout (and recovery) forever.
+    timer = setTimeout(() => done({ type: 'cancelled' }), CHOICE_TIMEOUT_MS);
+
+    // The student paid with Google Play.
+    subs.push(
+      api.purchaseUpdatedListener((purchase) => {
+        // A replay of some other unfinished purchase is not this one; recovery owns it.
+        if (purchase.productId !== sku) return;
+        if (purchase.purchaseState === 'pending') return done({ type: 'pending' });
+        if (!purchase.purchaseToken) return done({ type: 'failed', message: 'Google Play did not return a purchase. Nothing was charged.' });
+        done({ type: 'play', purchase });
+      })
+    );
+    // The student chose the other option on Google's screen.
+    subs.push(
+      api.userChoiceBillingListenerAndroid((details) => {
+        if (!details.externalTransactionToken) {
+          return done({ type: 'failed', message: 'Google did not return a payment token. Nothing was charged.' });
+        }
+        done({ type: 'razorpay', externalTransactionToken: details.externalTransactionToken });
+      })
+    );
+    // Closed, declined, or Google refused.
+    subs.push(
+      api.purchaseErrorListener((err) => {
+        if (isCancelError(err)) return done({ type: 'cancelled' });
+        done({ type: 'failed', message: 'The payment did not go through. Nothing was charged.' });
+      })
+    );
+
     try {
       await request();
     } catch (err) {
@@ -241,8 +261,15 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
     if (isCancelError(err)) return { type: 'cancelled' };
     throw new PlayBillingUnavailableError();
   } finally {
+    if (timer) clearTimeout(timer);
     cancelCurrent = null;
-    for (const s of subs) s.remove();
+    for (const s of subs) {
+      try {
+        s.remove();
+      } catch {
+        // Already gone.
+      }
+    }
   }
 }
 
@@ -322,31 +349,70 @@ export async function finishPlayPurchase(purchase: Purchase): Promise<void> {
   }
 }
 
+/** The pass kind a Play product id stands for. */
+export function kindOfPlayProduct(productId: string): PassKind | null {
+  const hit = (Object.entries(PLAY_PRODUCT_IDS) as [PassKind, string][]).find(([, id]) => id === productId);
+  return hit ? hit[0] : null;
+}
+
+/**
+ * The API allows 60 verify calls per student per day, and recovery can run from the
+ * app root, every return to the app and every few seconds on a pending screen. So a
+ * token the server REFUSED is never sent again in this process, and one that came
+ * back pending or unknown is tried at most once a minute.
+ */
+export const RECOVER_RETRY_GAP_MS = 60 * 1000;
+const refusedTokens = new Set<string>();
+const triedAt = new Map<string, number>();
+let recovering: Promise<string[]> | null = null;
+
 /**
  * PURCHASES GOOGLE STILL HOLDS FOR US. A student who paid and then lost signal, or
  * had the app killed, before the server confirmed has a Play purchase nobody has
  * verified. Left alone Google refunds it after 3 days. This asks Google for what is
  * unfinished, verifies each one of ours, and finishes the ones the server accepts.
- * Returns how many the server accepted. Silent: it never throws.
+ *
+ * Returns the product ids the server accepted (empty = none). Silent: it never
+ * throws. ONE RUN AT A TIME: callers that arrive while one is running share its
+ * promise, so a token is never verified or finished twice at once. Keeps out of the
+ * way of a checkout in progress.
  */
-export async function recoverPlayPurchases(): Promise<number> {
-  if (Platform.OS !== 'android' || playChoiceOpen()) return 0;
-  let granted = 0;
-  try {
-    await connectPlayBilling();
-    const held = await iap().getAvailablePurchases();
-    for (const p of held ?? []) {
-      if (!p.purchaseToken || p.purchaseState !== 'purchased' || !PLAY_SKUS.includes(p.productId)) continue;
-      // One try each: pending, refused and unknown are all "leave it for the next pass".
-      if ((await confirmPlayPurchase(p, 1)).outcome === 'granted') {
-        granted += 1;
-        await finishPlayPurchase(p);
+export function recoverPlayPurchases(): Promise<string[]> {
+  if (Platform.OS !== 'android' || playChoiceOpen()) return Promise.resolve([]);
+  if (!recovering) {
+    recovering = (async () => {
+      const granted: string[] = [];
+      try {
+        await connectPlayBilling();
+        const held = await iap().getAvailablePurchases();
+        const mine = await currentPlayAccountId();
+        for (const p of held ?? []) {
+          if (!p.purchaseToken || p.purchaseState !== 'purchased' || !PLAY_SKUS.includes(p.productId)) continue;
+          // A purchase made under another account on this phone: the server would
+          // refuse it (403), so do not ask.
+          const owner = 'obfuscatedAccountIdAndroid' in p ? p.obfuscatedAccountIdAndroid : null;
+          if (owner && owner !== mine) continue;
+          if (refusedTokens.has(p.purchaseToken)) continue;
+          const last = triedAt.get(p.purchaseToken);
+          if (last !== undefined && Date.now() - last < RECOVER_RETRY_GAP_MS) continue;
+          triedAt.set(p.purchaseToken, Date.now());
+          // One try each: pending and unknown are "leave it for the next pass".
+          const res = await confirmPlayPurchase(p, 1);
+          if (res.outcome === 'refused') refusedTokens.add(p.purchaseToken);
+          if (res.outcome === 'granted') {
+            granted.push(p.productId);
+            await finishPlayPurchase(p);
+          }
+        }
+      } catch {
+        // No billing on this device right now, or nobody is signed in.
       }
-    }
-  } catch {
-    // No billing on this device right now.
+      return granted;
+    })().finally(() => {
+      recovering = null;
+    });
   }
-  return granted;
+  return recovering;
 }
 
 /** The Play price in paise, when Google reported one. */

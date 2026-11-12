@@ -71,7 +71,7 @@ describe('Razorpay opens only after the student picks it on Google\'s screen', (
   test('a cancelled, failed or pending Google screen never reaches Razorpay or the server\'s order', () => {
     expect(start).toMatch(/choice\.type === 'cancelled'\) return \{ status: 'cancelled' \}/);
     expect(start).toMatch(/choice\.type === 'failed'\) return \{ status: 'failed'/);
-    expect(start).toMatch(/choice\.type === 'pending'\) return \{ status: 'pending' \}/);
+    expect(start).toMatch(/choice\.type === 'pending'\) return \{ status: 'pending', play: true \}/);
   });
 
   test('a Play purchase is finished only after the server confirmed it', () => {
@@ -93,6 +93,49 @@ describe('Razorpay opens only after the student picks it on Google\'s screen', (
   });
 
   test('the hook hands screens startCheckout, not pay', () => {
-    expect(SRC).toContain('return { startCheckout, checkout, confirming };');
+    expect(SRC).toContain('return { startCheckout, recover, checkout, confirming };');
+  });
+});
+
+describe('Play recovery and the pending path', () => {
+  const start = SRC.slice(SRC.indexOf('const startCheckout = useCallback'), SRC.indexOf('// Verify a Play purchase that was paid for'));
+  const read = (rel: string) => readFileSync(join(__dirname, '../..', rel), 'utf8');
+
+  test('an older purchase recovered while a different pass was tapped is not shown as the new pass', () => {
+    expect(start).toContain('if (recovered.includes(playProductId(kind) ?? \'\'))');
+    expect(start).toContain("return { status: 'recovered', message:");
+    expect(start).toContain('Tap Pay again');
+    expect(start).toContain('onRecovered.current?.();');
+  });
+
+  test('an unconfirmed Play purchase is a pending result marked as Play, and the checkout flag is always cleared', () => {
+    expect(start).toContain("return { status: 'pending', play: true };");
+    expect(start).toMatch(/finally \{\s*choosing\.current = false;\s*markPlayCheckout\(false\);/);
+  });
+
+  test('plans: the pending recheck and the return to the app both run recovery', () => {
+    const plans = read('app/plans.tsx');
+    expect(plans).toMatch(/setInterval\(\(\) => \{\s*void recheck\(\);[\s\S]*?void recover\(\);/);
+    expect(plans).toMatch(/next === 'active' && !payingNow\.current\) void recover\(\)/);
+    expect(plans).toContain("result.status === 'recovered'");
+  });
+
+  test('onboarding pass: a pending Play purchase starts the late watch, whose ticks and the foreground run recovery', () => {
+    const pass = read('app/(onboarding)/pass.tsx');
+    expect(pass).toContain('if (result.play) watchLate();');
+    expect(pass).toMatch(/checkPass\.current\(\);\s*if \(!payingNow\.current\) void recover\(\);/);
+    expect(pass).toMatch(/if \(!payingNow\.current\) void recover\(\);\s*\}\s*\}\);/);
+    expect(pass).toContain("result.status === 'recovered'");
+  });
+
+  test('the app root looks for unconfirmed purchases once signed in, and on every return, only where payments are on', () => {
+    const root = read('app/_layout.tsx');
+    expect(root).toMatch(/if \(!PAYMENTS_ON_THIS_DEVICE \|\| authState !== 'signed_in'\) return;\s*void recoverPlayPurchases\(\);/);
+    expect(root).toMatch(/next === 'active'\) void recoverPlayPurchases\(\)/);
+  });
+
+  test('no ref is written during render (React Compiler)', () => {
+    expect(SRC).toMatch(/useEffect\(\(\) => \{\s*onRecovered\.current = hookOpts\.onRecovered;\s*\}\);/);
+    expect(read('app/plans.tsx')).not.toMatch(/^\s{2}recheckRef\.current = /m);
   });
 });

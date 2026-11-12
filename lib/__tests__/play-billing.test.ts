@@ -266,7 +266,7 @@ describe('recoverPlayPurchases: paid, then never confirmed', () => {
     const bad = held({ purchaseToken: 'bad', productId: 'pass_week' });
     mockIap.getAvailablePurchases.mockResolvedValue([a, bad]);
     apiFetch.mockImplementation(async (_p: string, init: { body: string }) => ({ ok: JSON.parse(init.body).purchase_token === 'a', state: 'x' }));
-    expect(await b.recoverPlayPurchases()).toBe(1);
+    expect(await b.recoverPlayPurchases()).toEqual(['pass_day']);
     expect(mockIap.finishTransaction).toHaveBeenCalledTimes(1);
     expect(mockIap.finishTransaction).toHaveBeenCalledWith({ purchase: a, isConsumable: true });
   });
@@ -274,7 +274,7 @@ describe('recoverPlayPurchases: paid, then never confirmed', () => {
   test('never finishes a purchase when the server could not be reached', async () => {
     mockIap.getAvailablePurchases.mockResolvedValue([held()]);
     apiFetch.mockRejectedValue(new Error('offline'));
-    expect(await b.recoverPlayPurchases()).toBe(0);
+    expect(await b.recoverPlayPurchases()).toEqual([]);
     expect(mockIap.finishTransaction).not.toHaveBeenCalled();
   });
 
@@ -284,19 +284,119 @@ describe('recoverPlayPurchases: paid, then never confirmed', () => {
       held({ purchaseState: 'pending' }),
       held({ purchaseToken: null }),
     ]);
-    expect(await b.recoverPlayPurchases()).toBe(0);
+    expect(await b.recoverPlayPurchases()).toEqual([]);
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
   test('never throws, even if Play is not there', async () => {
     mockIap.initConnection.mockRejectedValue(new Error('no play'));
-    await expect(b.recoverPlayPurchases()).resolves.toBe(0);
+    await expect(b.recoverPlayPurchases()).resolves.toEqual([]);
   });
 
   test('does nothing on iPhone', async () => {
     (Platform as { OS: string }).OS = 'ios';
-    expect(await b.recoverPlayPurchases()).toBe(0);
+    expect(await b.recoverPlayPurchases()).toEqual([]);
     expect(mockIap.initConnection).not.toHaveBeenCalled();
+  });
+});
+
+describe('recovery: one run at a time, spaced out, only our own account', () => {
+  const held = (over: object = {}) => ({ productId: 'pass_day', purchaseToken: 't', purchaseState: 'purchased', ...over });
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const err = (status: number, message: string) => Object.assign(new (require('@/lib/api').ApiError)(message), { status });
+
+  test('two callers at once share one run: one Google read, one verify, one finish', async () => {
+    mockIap.getAvailablePurchases.mockResolvedValue([held()]);
+    apiFetch.mockResolvedValue({ ok: true, state: 'active' });
+    const [x, y] = await Promise.all([b.recoverPlayPurchases(), b.recoverPlayPurchases()]);
+    expect(x).toEqual(['pass_day']);
+    expect(y).toEqual(['pass_day']);
+    expect(mockIap.getAvailablePurchases).toHaveBeenCalledTimes(1);
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(mockIap.finishTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  test('a later call after the run is over starts a new run', async () => {
+    await b.recoverPlayPurchases();
+    await b.recoverPlayPurchases();
+    expect(mockIap.getAvailablePurchases).toHaveBeenCalledTimes(2);
+  });
+
+  test('a purchase made under another account is not sent to the server', async () => {
+    const mine = await b.currentPlayAccountId();
+    mockIap.getAvailablePurchases.mockResolvedValue([
+      held({ purchaseToken: 'other', obfuscatedAccountIdAndroid: 'someone-elses-hash' }),
+      held({ purchaseToken: 'mine', obfuscatedAccountIdAndroid: mine }),
+    ]);
+    apiFetch.mockResolvedValue({ ok: true, state: 'active' });
+    expect(await b.recoverPlayPurchases()).toEqual(['pass_day']);
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(apiFetch.mock.calls[0][1].body).purchase_token).toBe('mine');
+  });
+
+  test('a refused token is never sent again; a pending one is retried only after the gap', async () => {
+    jest.useFakeTimers({ doNotFake: ['setImmediate', 'nextTick', 'queueMicrotask'] });
+    try {
+      mockIap.getAvailablePurchases.mockResolvedValue([
+        held({ purchaseToken: 'refused' }),
+        held({ purchaseToken: 'slow', productId: 'pass_week' }),
+      ]);
+      apiFetch.mockImplementation(async (_p: string, init: { body: string }) => {
+        throw JSON.parse(init.body).purchase_token === 'refused' ? err(409, 'You have already used your day pass.') : err(409, 'still pending');
+      });
+      await b.recoverPlayPurchases();
+      expect(apiFetch).toHaveBeenCalledTimes(2);
+      await b.recoverPlayPurchases(); // inside the gap: nothing is sent
+      expect(apiFetch).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(b.RECOVER_RETRY_GAP_MS + 1);
+      await b.recoverPlayPurchases(); // pending again, refused never
+      expect(apiFetch).toHaveBeenCalledTimes(3);
+      expect(JSON.parse(apiFetch.mock.calls[2][1].body).purchase_token).toBe('slow');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('it keeps out of the way while a checkout is running', async () => {
+    b.markPlayCheckout(true);
+    expect(await b.recoverPlayPurchases()).toEqual([]);
+    expect(mockIap.getAvailablePurchases).not.toHaveBeenCalled();
+    b.markPlayCheckout(false);
+  });
+
+  test('product ids map back to pass kinds', () => {
+    expect(b.kindOfPlayProduct('pass_pro_1m')).toBe('pro_1m');
+    expect(b.kindOfPlayProduct('nope')).toBeNull();
+  });
+});
+
+describe('a listener that throws while Google\'s screen is being set up', () => {
+  test('nothing stays "open": the flag, the other listeners and recovery are all released', async () => {
+    mockIap.userChoiceBillingListenerAndroid.mockImplementation(() => {
+      throw new Error('native module missing');
+    });
+    await expect(b.chooseHowToPay('pro_1m', 'h')).rejects.toBeInstanceOf(b.PlayBillingUnavailableError);
+    expect(b.playChoiceOpen()).toBe(false);
+    expect(removed).toHaveBeenCalledTimes(1); // the purchase listener that did attach
+    expect(mockIap.requestPurchase).not.toHaveBeenCalled();
+    mockIap.getAvailablePurchases.mockResolvedValue([]);
+    await b.recoverPlayPurchases();
+    expect(mockIap.getAvailablePurchases).toHaveBeenCalled();
+  });
+
+  test('a screen left open for good ends as a cancel after the timeout', async () => {
+    jest.useFakeTimers({ doNotFake: ['setImmediate', 'nextTick', 'queueMicrotask'] });
+    try {
+      mockIap.requestPurchase.mockResolvedValue(undefined);
+      const waiting = b.chooseHowToPay('day', 'h');
+      await jest.advanceTimersByTimeAsync(10);
+      expect(b.playChoiceOpen()).toBe(true);
+      await jest.advanceTimersByTimeAsync(b.CHOICE_TIMEOUT_MS + 1);
+      expect(await waiting).toEqual({ type: 'cancelled' });
+      expect(b.playChoiceOpen()).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

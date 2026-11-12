@@ -99,6 +99,8 @@ import { endActiveClassForGate } from '@/lib/active-class';
 import { AuthStateContext, signedOutByUpdate, useAuthState } from '@/lib/auth';
 import { cachedPassStatus, passStatus } from '@/lib/pass';
 import { onPassRequired } from '@/lib/pass-events';
+import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
+import { recoverPlayPurchases } from '@/lib/play-billing';
 import { getAnswers } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
 import { installForegroundHandler, registerForPush, routeForNotification } from '@/lib/push';
@@ -268,6 +270,22 @@ export default function RootLayout() {
    */
   useEffect(() => {
     if (authState === 'signed_in') void registerForPush({ ask: false });
+  }, [authState]);
+
+  /**
+   * GOOGLE PLAY PURCHASES NOBODY CONFIRMED. A student who paid with Google Play and
+   * lost signal, or had the app killed, before the server verified it has a purchase
+   * only THIS app can finish; Google refunds it after 3 days. So it is looked for
+   * once when a student is signed in and on every return to the app (lib/play-billing
+   * keeps it to one run at a time and spaces out retries). Only where payments are on.
+   */
+  useEffect(() => {
+    if (!PAYMENTS_ON_THIS_DEVICE || authState !== 'signed_in') return;
+    void recoverPlayPurchases();
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') void recoverPlayPurchases();
+    });
+    return () => sub.remove();
   }, [authState]);
 
   /**
