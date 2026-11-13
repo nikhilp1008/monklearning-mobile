@@ -54,6 +54,7 @@ import {
   type FollowUpTurn,
   type TextbookPageContext,
 } from '@/lib/doubt-followup';
+import { withTurn } from '@/lib/followup-history';
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { rememberFollowUp } from '@/lib/last-followup';
 import { LiveAsk, LiveUnavailable, followUpLiveEnabled, followUpLiveKnown, pcmLevel } from '@/lib/followup-live';
@@ -294,6 +295,7 @@ export function FlagIcon({ size = 18 }: { size?: number }) {
 
 export function AskFollowUpBar({
   doubtId,
+  threadKey,
   onReport,
   surface = 'doubts',
   trailing,
@@ -309,6 +311,19 @@ export function AskFollowUpBar({
   /** The thing being asked about — a doubt id, or a practice question id when
    *  `surface` says so. Named for its first caller; it is an id either way. */
   doubtId?: string | null;
+  /**
+   * What the CONVERSATION belongs to, when that is wider than `doubtId`.
+   *
+   * By default a new `doubtId` is a new conversation: the history sent with each
+   * follow-up starts over, which is right for a question under Practice. A textbook
+   * reader changes its `doubtId` with every part and topic, so "the example you
+   * just explained" was forgotten the moment the student turned the page — and
+   * whenever the id flickered to null while the page was recomputed. With a
+   * `threadKey` (the chapter), the history survives all of that and starts over
+   * only when the key itself changes. The answer being spoken still stops when the
+   * page changes: the student has moved on.
+   */
+  threadKey?: string | null;
   onReport?: () => void;
   /**
    * Which store the id belongs to. Practice asks the same question of the same
@@ -665,6 +680,9 @@ export function AskFollowUpBar({
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<FollowUpAudio | null>(null);
   const turnsRef = useRef<FollowUpTurn[]>([]);
+  /** Bumped whenever the conversation starts over, so an answer that was
+   *  interrupted and settles afterwards cannot write into the NEW one. */
+  const threadEpochRef = useRef(0);
   const lingerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Set when the sentence stream has finished, so a queue running dry between
    *  sentences is not mistaken for the end of the answer. */
@@ -754,11 +772,28 @@ export function AskFollowUpBar({
     if (lastDoubt.current === doubtId) return;
     lastDoubt.current = doubtId;
     stopEverything();
+    setPendingTurn(null);
+    setBoardOpen(false);
+    // Without a `threadKey` a different question is a different conversation.
+    if (threadKey == null) {
+      threadEpochRef.current += 1;
+      turnsRef.current = [];
+      setThread([]);
+    }
+  }, [doubtId, threadKey, stopEverything]);
+
+  const lastThread = useRef(threadKey);
+  useEffect(() => {
+    if (lastThread.current === threadKey) return;
+    lastThread.current = threadKey;
+    if (threadKey == null) return; // handled above, with the doubt
+    stopEverything();
+    threadEpochRef.current += 1;
     turnsRef.current = [];
     setThread([]);
     setPendingTurn(null);
     setBoardOpen(false);
-  }, [doubtId, stopEverything]);
+  }, [threadKey, stopEverything]);
 
   useEffect(
     () => () => {
@@ -931,6 +966,19 @@ export function AskFollowUpBar({
     let asked = typedQuestion ?? '';
     let spokenText = '';
     let spokeStarted = false;
+    // THE HISTORY THE NEXT QUESTION IS SENT WITH. Written once per answer, and
+    // written even when the answer was cut short: a student who asks again while
+    // the last answer is still playing has interrupted it, and used to find the
+    // teacher had forgotten that question existed. The epoch check keeps an
+    // interrupted answer that settles late out of a conversation that has since
+    // started over.
+    const epoch = threadEpochRef.current;
+    let turnRemembered = false;
+    const rememberTurn = () => {
+      if (turnRemembered || epoch !== threadEpochRef.current) return;
+      turnRemembered = true;
+      turnsRef.current = withTurn(turnsRef.current, asked, arrived.map((s) => s.text).join(' ') || spokenText);
+    };
     /** This hold fixed the question rather than asking about it. */
     let resolvedHere = false;
     // Nothing is cleared: the answers already on the board stay on it.
@@ -1109,7 +1157,10 @@ export function AskFollowUpBar({
           },
         };
       await send(handlers, controller.signal);
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        rememberTurn();
+        return;
+      }
       // The stream is done, so the word count is final. If no voice was ever
       // heard, this is the valve that writes the answer out.
       const done = revealRef.current;
@@ -1118,11 +1169,7 @@ export function AskFollowUpBar({
         if (done.mode === 'wait') flushWords();
         runTick();
       }
-      turnsRef.current = [
-        ...turnsRef.current,
-        { role: 'user', content: asked },
-        { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
-      ];
+      rememberTurn();
       // For a report made straight after this: whichever flag opens the sheet
       // sends what was just asked and answered (lib/last-followup.ts).
       rememberFollowUp(doubtId, asked, arrived.map((s) => s.text).join(' ') || spokenText);
@@ -1139,7 +1186,10 @@ export function AskFollowUpBar({
         }
       }
     } catch (err) {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        rememberTurn();
+        return;
+      }
       // The pass has ended: the app root is already opening Plans, and a
       // "Try again" here would only be refused again.
       const kind = followUpFailureOf(err);
