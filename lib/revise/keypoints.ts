@@ -33,6 +33,8 @@ import { KEY_POINTS as M11_11 } from '@/lib/revise/keypoints-mathematics-11-11';
 import { KEY_POINTS as M11_12 } from '@/lib/revise/keypoints-mathematics-11-12';
 import { KEY_POINTS as M11_13 } from '@/lib/revise/keypoints-mathematics-11-13';
 import { KEY_POINTS as M11_14 } from '@/lib/revise/keypoints-mathematics-11-14';
+import { KEY_POINTS as M12_01 } from '@/lib/revise/keypoints-mathematics-12-01';
+import { KEY_POINTS as M12_02 } from '@/lib/revise/keypoints-mathematics-12-02';
 import { KEY_POINTS as P11_01 } from '@/lib/revise/keypoints-physics-11-01';
 import { KEY_POINTS as P11_02 } from '@/lib/revise/keypoints-physics-11-02';
 import { KEY_POINTS as P11_03 } from '@/lib/revise/keypoints-physics-11-03';
@@ -146,4 +148,6 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'mathematics|11|12': M11_12,
   'mathematics|11|13': M11_13,
   'mathematics|11|14': M11_14,
+  'mathematics|12|1': M12_01,
+  'mathematics|12|2': M12_02,
 };

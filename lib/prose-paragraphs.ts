@@ -163,6 +163,9 @@ function sentences(html: string): string[] {
     // Take the whitespace with the sentence that ends here.
     let k = j;
     while (k < html.length && /\s/.test(html[k])) k++;
+    // A quoted question or exclamation inside a sentence goes on in lower case: "“Is this
+    // function onto?” is an incomplete question" (Android check of Mathematics 12 Ch 1).
+    if (ch !== '.' && /[a-z]/.test(html[k] ?? '')) continue;
     out.push(html.slice(start, k));
     start = k;
     i = k - 1;

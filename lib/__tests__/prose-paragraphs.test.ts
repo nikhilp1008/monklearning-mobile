@@ -121,4 +121,11 @@ describe('splitProse', () => {
     const box = `${long}${long}That completes the proof.\u00a0■ ${long}`;
     expect(splitProse(box).some((p) => p.trimStart().startsWith('■'))).toBe(false);
   });
+
+  // Android check of Mathematics 12 Ch 1: a quoted question went on in lower case in a new paragraph.
+  it('never splits after a quoted question that the sentence goes on from', () => {
+    const long = 'The type of a function depends on both its domain and its codomain, so a change of either set changes the answer. ';
+    const quote = `${long}${long}“Is this function onto?” is an incomplete question until the codomain is fixed. ${long}`;
+    expect(splitProse(quote).some((p) => p.trimStart().startsWith('is an incomplete'))).toBe(false);
+  });
 });
