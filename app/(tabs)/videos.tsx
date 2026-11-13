@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useReducedMotion,
@@ -39,12 +41,27 @@ export default function VideosScreen() {
   const artSize = Math.max(0, Math.min(gap.w - scale(96), gap.h - scale(40), scale(300)));
   const rise = scale(22);
 
+  /**
+   * Moves only while the student is on this tab. Tabs stay mounted after you
+   * leave them, so a loop started here would otherwise keep running behind
+   * Home for the whole session, using battery for a screen nobody sees.
+   */
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+
   /** The swipe-up cue drifts up and fades, again and again. */
   const t = useSharedValue(0);
   useEffect(() => {
-    if (reduce) return;
+    if (reduce || !focused) return;
+    t.value = 0;
     t.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.cubic) }), -1, false);
-  }, [reduce, t]);
+    return () => cancelAnimation(t);
+  }, [reduce, focused, t]);
   const drift = useAnimatedStyle(() => ({
     opacity: reduce ? 0.8 : 1 - t.value * 0.85,
     transform: [{ translateY: reduce ? 0 : -t.value * rise }],
@@ -84,7 +101,7 @@ export default function VideosScreen() {
           style={styles.gap}
           pointerEvents="none"
           onLayout={(e) => setGap({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-          <VideosReelArt size={artSize} captionStyle={styles.caption} />
+          <VideosReelArt size={artSize} captionStyle={styles.caption} active={focused} />
         </View>
 
         <View style={styles.copy}>
