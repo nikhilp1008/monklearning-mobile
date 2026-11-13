@@ -139,7 +139,9 @@ export function captionBreaks(html: string): string {
     // a word and its number or letter: "end 1", "height H"
     .replace(new RegExp(`${EDGE}([A-Za-z]{2,}) (?=\\d|<i>${LETTER}</i>(?:[\\s,.:;)]|$))`, 'g'), '$1$2\u00a0')
     .replace(new RegExp(`\\b(${TRIG}) `, 'g'), '$1\u00a0')
-    .replace(new RegExp(`(</i>|</sub>|</sup>|\\)) (?=${TRIG}\\b)`, 'g'), '$1\u00a0');
+    .replace(new RegExp(`(</i>|</sub>|</sup>|\\)) (?=${TRIG}\\b)`, 'g'), '$1\u00a0')
+    // Android breaks after any "|": an opening bar keeps its contents, "|x| = |z|"
+    .replace(/(^|[\s\u00a0(])\|(?=[^\s|])/g, '$1|\u2060');
 }
 
 /**

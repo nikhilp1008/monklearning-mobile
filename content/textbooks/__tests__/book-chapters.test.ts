@@ -58,6 +58,10 @@ import math11ch7 from '@/content/textbooks/math-11-07-binomial';
 import math11ch8 from '@/content/textbooks/math-11-08-sequences';
 import math11ch9 from '@/content/textbooks/math-11-09-straight-lines';
 import math11ch10 from '@/content/textbooks/math-11-10-conics';
+import math11ch11 from '@/content/textbooks/math-11-11-three-d';
+import math11ch12 from '@/content/textbooks/math-11-12-limits';
+import math11ch13 from '@/content/textbooks/math-11-13-statistics';
+import math11ch14 from '@/content/textbooks/math-11-14-probability';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import { KEY_POINTS } from '@/lib/revise/keypoints';
 import type { Chapter } from '@/lib/textbooks';
@@ -84,7 +88,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10, math11ch11, math11ch12, math11ch13, math11ch14] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.

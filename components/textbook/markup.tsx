@@ -998,9 +998,16 @@ function fracRun(num: Node[], den: Node[], size: number, key: string, look: Mark
   // A power in the denominator rises toward the rule: card "a/b^(n−1)" touched it (Mathematics 11 Ch 8).
   const hasSup = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sup' || (c.name !== 'frac' && c.name !== 'binom' && hasSup(c.children))));
   const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0) + (tallDen ? s * FRAC.bracketDrop : 0) + (hasSup(den) ? s * FRAC.supDrop : 0);
+  // A half is one line in a box one line high: Android can measure it a pixel
+  // short and wrap its last word onto a second line that the box hides, "f(x) −
+  // f(a)" over x − a drawn as f(x) over x − a (Android check of Mathematics 11
+  // Ch 12). A trailing hair space is that pixel of room, as on the formula cards
+  // (SLACK, components/revise/formula-card.tsx), and the simple line breaker
+  // measures and draws a line alike.
   const half = (nodes: Node[], k: string, extra?: TextStyle) => (
-    <Text style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
+    <Text textBreakStrategy="simple" style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
       {render(nodes, s, k, look, ink)}
+      {' '}
     </Text>
   );
   // A binomial coefficient: no rule, and a bracket either side as tall as the

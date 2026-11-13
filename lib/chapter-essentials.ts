@@ -17,7 +17,7 @@ import type { Block, Chapter } from '@/lib/textbooks';
  * Mathematics Class 11 counts from Basic Mathematics (index 0, not written), so
  * Sets is index 1: Chapters 1 to 10 (Sets to Conic Sections) open this way.
  */
-const OPENS_ON_CHOICE: Record<string, number[]> = { 'physics|11': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 'physics|12': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 'chemistry|11': [0, 1, 2, 3, 4, 5, 6, 7, 8], 'chemistry|12': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'mathematics|11': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
+const OPENS_ON_CHOICE: Record<string, number[]> = { 'physics|11': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 'physics|12': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 'chemistry|11': [0, 1, 2, 3, 4, 5, 6, 7, 8], 'chemistry|12': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'mathematics|11': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] };
 export function opensOnChoice(subject: string, classLevel: number, index: number): boolean {
   return OPENS_ON_CHOICE[`${subject.toLowerCase()}|${classLevel}`]?.includes(index) ?? false;
 }
