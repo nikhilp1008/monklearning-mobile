@@ -46,6 +46,14 @@ export const TEACHERS: {
 ];
 
 /**
+ * "CLEANER" (Nikhil, 12 Nov 2026). Every teacher colour below was nudged the
+ * same way: the same hue, 15% more saturation and 3% more light, so the orange
+ * reads brighter and less dusty without becoming a different colour. The
+ * darkest stops (the orb's edge and the bronze) kept their lightness, so the
+ * deep end stays deep. Drona's orange went #E2601C -> #F3651B. The review,
+ * with today's and the new colours side by side, is the "Drona's Orange" page.
+ */
+/**
  * WHAT EACH TEACHER IS MADE OF LIGHT.
  *
  * Six colours per teacher, dark to bright. They are the palette the Select
@@ -62,10 +70,10 @@ export const TEACHERS: {
  * one teacher orb now and it is drawn from these.
  */
 export const TEACHER_PALETTES: Record<TeacherId, readonly string[]> = {
-  drona: ['#6E2A06', '#B8481A', '#E2601C', '#F2A93B', '#8A3A0E', '#FFB85C'],
+  drona: ['#742800', '#D2480F', '#F3651B', '#FFB23D', '#933705', '#FFBF6B'],
   // V1 "richer honey" (Nikhil, 9 Nov 2026): the dark end is a warm brown
   // now, not the olive that made Vedha read as dull beside Drona.
-  vedha: ['#8F4A08', '#F5A623', '#FFD98F', '#FFB838', '#C2700E', '#FFEBC2'],
+  vedha: ['#974A00', '#FFAE28', '#FFDE9E', '#FFBD47', '#DF7A01', '#FFF0D1'],
 };
 
 /**
@@ -77,8 +85,27 @@ export const TEACHER_PALETTES: Record<TeacherId, readonly string[]> = {
  * warm teacher and a deep one at 34 points.
  */
 export const ORB_POSTERS: Record<TeacherId, { body: string[]; stops: number[] }> = {
-  drona: { body: ['#F2A93B', '#E2601C', '#6E2A06'], stops: [0, 0.45, 0.9] },
-  vedha: { body: ['#FFE2A6', '#F5A623', '#9A4E0A'], stops: [0, 0.5, 0.92] },
+  drona: { body: ['#FFB23D', '#F3651B', '#742800'], stops: [0, 0.45, 0.9] },
+  vedha: { body: ['#FFE7B5', '#FFAE28', '#A44D00'], stops: [0, 0.5, 0.92] },
+};
+
+/**
+ * The colour of the seeds of light inside the orb (components/teacher-orb-seeds.tsx,
+ * 12 Nov 2026): a pale tint of each teacher's own light.
+ */
+export const ORB_SEED: Record<TeacherId, string> = { drona: '#FFD9A8', vedha: '#FFF0D1' };
+
+/**
+ * THE ASK LIGHT'S COLOURS (components/dock-light.tsx; Nikhil, 12 Nov 2026,
+ * "2b" on the Ask Glow page). The light is solid `floor` at the bottom edge,
+ * then the four `drift` colours move across the width above it (led by the
+ * teacher's own two, with a gold and a cream drifting through, as the old
+ * light did), fading to `tail` at the top. Vedha's are her family's
+ * equivalents; her look as a whole is on hold.
+ */
+export const ASK_LIGHT: Record<TeacherId, { floor: string; tail: string; drift: [string, string, string, string] }> = {
+  drona: { floor: '#F3651B', tail: '#FFD9A8', drift: ['#F3651B', '#FFB23D', '#FBDDA0', '#FF8A3D'] },
+  vedha: { floor: '#FFAE28', tail: '#FFF0D1', drift: ['#FFAE28', '#FFBD47', '#FFDE9E', '#DF7A01'] },
 };
 
 /**
@@ -94,8 +121,8 @@ export const ORB_POSTERS: Record<TeacherId, { body: string[]; stops: number[] }>
  * Verbatim from the Profile handoff's `languageThumb`.
  */
 export const TEACHER_THUMB: Record<TeacherId, [string, string, string]> = {
-  drona: ['#FFCB8E', '#F7B060', '#EE8A45'],
-  vedha: ['#FFF1CF', '#FBDDA0', '#F4BE55'],
+  drona: ['#FFD29D', '#FFB867', '#FB9147'],
+  vedha: ['#FFF5DE', '#FFE3AB', '#FFC759'],
 };
 
 /**
@@ -119,22 +146,22 @@ export function titleCaseTrait(trait: string): string {
  */
 export const SKY_THEMES: Record<TeacherId, SkyTheme> = {
   drona: {
-    gold: '#F2A93B',
-    mari: '#E2601C',
-    pale: '#FFB85C',
-    ember: '#E2601C',
-    rust: '#B8481A',
-    bronze: '#8A3A0E',
+    gold: '#FFB23D',
+    mari: '#F3651B',
+    pale: '#FFBF6B',
+    ember: '#F3651B',
+    rust: '#D2480F',
+    bronze: '#933705',
   },
   vedha: {
-    gold: '#FFB838',
-    mari: '#F5A623',
-    pale: '#FFD98F',
-    ember: '#F7A928',
-    rust: '#C2700E',
-    bronze: '#8F4A08',
+    gold: '#FFBD47',
+    mari: '#FFAE28',
+    pale: '#FFDE9E',
+    ember: '#FFB12F',
+    rust: '#DF7A01',
+    bronze: '#974A00',
   },
 };
 
 /** The Start arrow's colour, the teacher's own marigold. */
-export const START_ARROW: Record<TeacherId, string> = { drona: '#E2601C', vedha: '#F5A623' };
+export const START_ARROW: Record<TeacherId, string> = { drona: '#F3651B', vedha: '#FFAE28' };

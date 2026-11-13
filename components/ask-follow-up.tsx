@@ -34,11 +34,10 @@ import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
 import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { useClock } from '@shopify/react-native-skia';
 
-import { DockBars, ThinkingArc } from '@/components/dock-face';
 import { DockLight, type DockLightGeometry } from '@/components/dock-light';
 import { DOCK_FLAG_SLOT, DOCK_H0, DOCK_W0, useDockMotion } from '@/components/dock-motion';
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
+import { AskOrb } from '@/components/teacher-orb-poster';
 import { useTeacherId } from '@/components/states/state-plate';
 import { teacherName, type TeacherId } from '@/lib/preferences';
 import { FollowUpBoard } from '@/components/follow-up-board';
@@ -1378,19 +1377,12 @@ export function AskFollowUpBar({
           if (speaking) stopEverything();
         }}>
         <Animated.View style={[styles.thumb, styles.thumbLit, discAnim]}>
-          {/* The teacher's orb is the face; bars and stop sit over it only
-              while they mean something. */}
-          <TeacherOrbPoster teacher={teacherFace} size={40} />
-          <ThinkingArc motion={motion} on={thinking} />
-          {listening ? (
-            <View style={styles.orbOverlay}>
-              <DockBars motion={motion} />
-            </View>
-          ) : speaking ? (
-            <View style={styles.orbOverlay}>
-              <StopIcon color={INK} />
-            </View>
-          ) : null}
+          {/* The teacher's orb is the face, and since 12 Nov 2026 it carries
+              the whole exchange itself: seeds stream in while the student
+              holds, a sweep turns while the teacher thinks, rings ripple out
+              while the answer plays (Nikhil's "F"). They replace the ink bars,
+              the marigold arc and the stop square that used to sit on it. */}
+          <AskOrb teacher={teacherFace} size={40} phase={phase} level={voiceLevel} />
         </Animated.View>
         <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.label} numberOfLines={1}>
           {label}
@@ -1464,7 +1456,7 @@ export function AskFollowUpBar({
           {/* THE TEXTBOOK'S ROW: its topics pill on the left, the bar on the
               right — Practice's arrangement mirrored. Same light, ring and
               board; the light is centred on the pill, not the row. */}
-          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} /> : null}
+          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} teacher={teacherFace} /> : null}
           <View style={[styles.row, styles.rowSpread]}>
             {leading}
             <View style={styles.barColumn}>
@@ -1485,7 +1477,7 @@ export function AskFollowUpBar({
               this row, so the bar keeps its resting width instead of growing
               into Next's space; the light, ring, disc and words are the
               doubt's own. The light is centred on the pill, not the row. */}
-          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} /> : null}
+          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} teacher={teacherFace} /> : null}
           <View style={[styles.row, styles.rowSpread]}>
             <View style={styles.barColumn}>
               <View ref={slotRef} style={styles.barSlot} onLayout={measureSlot}>
@@ -1572,7 +1564,7 @@ export function AskFollowUpBar({
             branch below is what the bar wore before; the live classroom shares
             only that ring and is not changing. See components/dock-light.tsx. */}
         {litDock && lit && dockGeo ? (
-          <DockLight width={windowWidth} motion={motion} geometry={dockGeo} />
+          <DockLight width={windowWidth} motion={motion} geometry={dockGeo} teacher={teacherFace} />
         ) : null}
         {typeable && typing ? (
           <View style={styles.typeRow}>
@@ -1806,14 +1798,6 @@ const styles = StyleSheet.create({
   /** Practice's pill at its resting size, so the squeeze shrinks it about
    *  its own centre instead of pulling its right edge toward its left. */
   barSlot: { width: DOCK_W0, height: DOCK_H0, alignItems: 'center', justifyContent: 'center' },
-  /** Bars or stop drawn over the teacher's orb, centred on it. */
-  orbOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderRadius: 99,
-  },
   flagSlot: { height: DOCK_H0 },
   flagWrap: { position: 'absolute', left: 10, top: 0 },
   /** The handoff's hint: #3D3A33 in every state. Only the words change. */

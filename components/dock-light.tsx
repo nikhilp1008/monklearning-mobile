@@ -2,7 +2,9 @@ import { Canvas, Fill, Shader, Skia, type SkRuntimeEffect } from '@shopify/react
 import { PixelRatio, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
-import { DOCK_H0, type DockMotion } from '@/components/dock-motion';
+import { type DockMotion } from '@/components/dock-motion';
+import { ASK_LIGHT } from '@/constants/teachers';
+import type { TeacherId } from '@/lib/preferences';
 
 /**
  * THE DOCK'S FOOTER LIGHT — the Ask follow-up dock on a doubt, from the "20a"
@@ -17,9 +19,26 @@ import { DOCK_H0, type DockMotion } from '@/components/dock-motion';
  * gradient. Its height follows the student's own voice while they hold the
  * bar, so speaking louder lifts it; it changes character the moment they let
  * go — slower, breathing, a held note rather than a reaction — and changes
- * again while the teacher answers, where it widens and calms. The ring around
- * the pill brightens on touch. One field, four moods, no cross-fades between
- * separate assets.
+ * again while the teacher answers, where it widens and calms. One field,
+ * four moods, no cross-fades between separate assets.
+ *
+ * 2b, THE EVOLVED LIGHT (Nikhil, 12 Nov 2026, the "Ask Glow" page). Same
+ * structure as before: it rises off the bottom edge, its top flows, and it is
+ * gone at rest. Built on the rules Google wrote down for the Gemini app:
+ *
+ *   colour   solid teacher colour at the floor (a gradient's "sharp, almost
+ *            opaque leading edge"), then the old drifting mix of four colours
+ *            led by the teacher's own, fading to a pale tail
+ *   holding  evenly spread and slow; the student's voice alone lifts all of
+ *            it smoothly, a touch more under the pill
+ *   thinking low, wide and even, with the colours moving inside it
+ *   answer   one broad swell at a time travelling out from under the pill
+ *
+ * NO RING ANY MORE (Nikhil, 12 Nov 2026). The shader also drew a glowing
+ * hairline round the pill on touch. It went: outside the live class the Ask
+ * pill's only light is this one, rising from the bottom. The live class keeps
+ * its own ring (components/dock-ring.tsx), because there colour has to stay
+ * quiet and a light across the bottom of the lesson would distract.
  *
  * DOUBTS AND PRACTICE. Practice's bar does not stretch — Next shares its row
  * — so there the light is centred on the pill rather than the row. The live
@@ -27,8 +46,6 @@ import { DOCK_H0, type DockMotion } from '@/components/dock-motion';
  * `components/ask-follow-up.tsx`.
  */
 
-/** The four colours the light cycles through. The handoff's `PAL`. */
-export const DOCK_PAL = ['#EEA31F', '#F2B23A', '#FBDDA0', '#EC7A3A'];
 
 /** How tall the lit strip is, in points. The handoff's canvas height. */
 export const DOCK_LIGHT_HEIGHT = 180;
@@ -51,29 +68,41 @@ const DPR = PixelRatio.get();
  * components/teacher-field.tsx; third time, so it is in from the start here.
  */
 const DOCK_SKSL = `
-uniform float2 uRes; uniform float uT,uRing,uFoot,uLevel,uThink,uTeach,uGrain,uPx;
-uniform float4 uBar; uniform float3 uC0,uC1,uC2,uC3;
+uniform float2 uRes; uniform float uT,uFoot,uLevel,uCalm,uListen,uThink,uTeach,uSpeak,uSpin,uCx,uGrain,uPx;
+uniform float3 uC0,uC1,uC2,uC3,uFloor,uTail;
 float hash(float2 p){return fract(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
 float noise(float2 p){float2 i=floor(p),f=fract(p);float2 u=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+float2(1.,0.)),u.x),mix(hash(i+float2(0.,1.)),hash(i+float2(1.,1.)),u.x),u.y);}
 float fbm(float2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p=p*2.03+float2(1.7,9.2);a*=.5;}return v;}
 float3 pal(float s){s=fract(s)*4.;float f=fract(s);f=f*f*(3.-2.*f);float3 a=s<1.?uC0:s<2.?uC1:s<3.?uC2:uC3;float3 b=s<1.?uC1:s<2.?uC2:s<3.?uC3:uC0;return mix(a,b,f);}
-float sdRR(float2 p,float2 b,float r){float2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
 half4 main(float2 fragCoord){
  float2 p=float2(fragCoord.x, uRes.y-fragCoord.y); float t=uT; float X=p.x/uRes.x;
  float fq=mix(2.4,1.4,uTeach), sp=mix(1.,.6,uTeach);
  float n=fbm(float2(X*fq+t*.176*sp,t*.22*sp)), n2=fbm(float2(X*fq*2.1-t*.33*sp,3.1+t*.297*sp));
+ // the press: today's rising shape
  float hp=(14.+42.*(.55+.5*n+.22*n2*(1.-uTeach))*(.45+.83*uLevel))*uFoot;
- float br=.5+.5*sin(t*2.64);
- float hT=(18.+15.5*br+6.6*n)*uFoot;
- hp=mix(hp,hT,uThink);
  float spread=exp(-pow((X-.5)/1.2,2.));
- float gF=exp(-pow(p.y/max(hp,1.),2.)*1.3)*min(uFoot*2.,1.)*(.5+.5*spread)*mix(1.,.82+.18*br,uThink);
- float2 bc=uBar.xy, bh=uBar.zw*.5; float db=sdRR(p-bc,bh,bh.y);
- float inBar=1.-smoothstep(-.6,.6,db);
- float ring=(exp(-abs(db)/1.4)*.9+exp(-max(db,0.)/9.)*.35)*(1.-inBar)*uRing;
- float A=clamp(gF+ring,0.,1.);
+ float sk=uSpeak*(1.-uThink);
+ float dx=X-uCx;
+ float drift=.22*(fbm(float2(X*2.-t*.11,t*.088))-.5);
+ // holding: even and slow, lifted by the voice alone
+ float nc=fbm(float2(X*1.5+t*.05,11.+t*.07));
+ float hc=(30.+12.*nc+24.*uCalm)*(.9+.2*exp(-pow(dx/.7,2.)))*uFoot;
+ hp=mix(hp,hc,uListen); spread=mix(spread,1.,uListen);
+ // thinking: low, wide, even; the colours move inside
+ float hD=(32.+6.*n)*uFoot;
+ hp=mix(hp,hD,uThink); spread=mix(spread,1.,uThink);
+ drift+=uThink*.3*sin(X*4.2-uSpin*2.2);
+ // the answer: one broad swell travelling out from under the pill
+ float sw=.5+.5*sin(t*3.-abs(dx)*5.);
+ hp*=mix(1.,.82+.4*sw*(.5+.5*uLevel),sk);
+ float v=p.y/max(hp,1.);
+ float body=exp(-pow(v,1.6)*1.25);
+ float floorEdge=exp(-p.y/14.)*.16;
+ float A=clamp((body+floorEdge)*min(uFoot*2.,1.)*(.55+.45*spread),0.,1.);
  float s=X*.8+.33*fbm(float2(X*2.-t*.11,p.y*.02+t*.088))+t*.044;
- float3 col=pal(s)*A*.92; float a=A*.92;
+ float3 c=mix(uFloor,pal(s+drift),smoothstep(0.,.28,v));
+ c=mix(c,uTail,.45*smoothstep(.8,1.5,v));
+ float3 col=c*A*.94; float a=A*.94;
  col=max(col+(hash(floor(fragCoord*uPx))-.5)*uGrain*2.*a,0.);
  return half4(min(col,float3(a)),a);
 }`;
@@ -93,7 +122,10 @@ function dockEffect(): SkRuntimeEffect | null {
 }
 
 const hex3 = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
-const C = DOCK_PAL.map(hex3);
+const LIGHT = {
+  drona: { floor: hex3(ASK_LIGHT.drona.floor), tail: hex3(ASK_LIGHT.drona.tail), drift: ASK_LIGHT.drona.drift.map(hex3) },
+  vedha: { floor: hex3(ASK_LIGHT.vedha.floor), tail: hex3(ASK_LIGHT.vedha.tail), drift: ASK_LIGHT.vedha.drift.map(hex3) },
+};
 
 /**
  * THE PHONE'S OWN SCREEN CORNER, so the light stops exactly where the glass does.
@@ -169,42 +201,49 @@ export function DockLight({
   width,
   motion,
   geometry,
+  teacher = 'drona',
 }: {
   width: number;
   motion: SharedValue<DockMotion>;
   geometry: DockLightGeometry;
+  /** Whose colours the light wears. */
+  teacher?: TeacherId;
 }) {
   const effect = dockEffect();
   const g = geometry;
   const screen = useWindowDimensions();
   const corner = screenCorner(screen.width, screen.height);
+  const L = LIGHT[teacher];
 
   const uniforms = useDerivedValue(() => {
     const m = motion.value;
-    // The pair centres as one, and the flag's share of the row shrinks to
-    // nothing as the bar stretches — so the pill drifts right to the centre
-    // of the screen while it grows. The handoff's
-    // `L = 195 - (W + 62*(1-ex))/2`, solved for the pill's centre.
-    const W = m.w - 6 * m.pr;
-    const H = DOCK_H0 - 2 * m.pr;
+    // The pill's centre: the pair centres as one, and the flag's share of the
+    // row shrinks to nothing as the bar stretches (the handoff's
+    // `L = 195 - (W + 62*(1-ex))/2`, solved for the pill's centre). The
+    // answer's swell travels out from here.
     const cx = g.rowCentreX - (g.flagSlot / 2) * (1 - m.ex);
     return {
       uRes: [width, DOCK_LIGHT_HEIGHT],
       uT: m.t % 1000,
-      uRing: m.ring,
       uFoot: m.foot,
       uLevel: m.lvl,
+      uCalm: m.calm,
+      uListen: m.listen,
       uThink: m.think,
       uTeach: m.teach,
-      uGrain: 0.07,
+      uSpeak: m.speak,
+      uSpin: m.spin % 1000,
+      uCx: width > 0 ? cx / width : 0.5,
+      uGrain: 0.047, // 0.07 until 12 Nov 2026; lowered with SKY_GRAIN
       uPx: DPR,
-      uBar: [cx, g.cyFromBottom, W, H],
-      uC0: C[0],
-      uC1: C[1],
-      uC2: C[2],
-      uC3: C[3],
+      uC0: L.drift[0],
+      uC1: L.drift[1],
+      uC2: L.drift[2],
+      uC3: L.drift[3],
+      uFloor: L.floor,
+      uTail: L.tail,
     };
-  }, [width, g.rowCentreX, g.cyFromBottom, g.flagSlot]);
+  }, [width, g.rowCentreX, g.flagSlot, L]);
 
   if (!effect || width <= 0) return null;
 

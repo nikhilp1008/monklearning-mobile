@@ -51,6 +51,7 @@ import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withTiming,
@@ -63,8 +64,7 @@ import { StateBanner, StateCard } from '@/components/states';
 import { useOnline } from '@/lib/connection';
 import { shadow } from '@/lib/shadow';
 import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
-import { DockEdge, ThinkingRing, type DockMood } from '@/components/classroom-dock-face';
-import { DockBars } from '@/components/dock-face';
+import { DockEdge, type DockMood } from '@/components/classroom-dock-face';
 import { useDockMotion, type DockMotion } from '@/components/dock-motion';
 import { turnWords, type VoiceTurn } from '@/components/voice-turn';
 import { allowHapticsWhileRecording } from '@/lib/audio-haptics';
@@ -114,7 +114,7 @@ import { applyContinuity, boardRowKeys } from '@/lib/widgets/board-continuity';
 import { apiFetch } from '@/lib/api';
 import { teacherName, teacherNameNow, type TeacherId } from '@/lib/preferences';
 import { useTeacherId } from '@/components/states/state-plate';
-import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
+import { AskOrb } from '@/components/teacher-orb-poster';
 import { ReportSheet } from '@/components/report-sheet';
 import { labelledFigure } from '@/lib/widgets/labelled-figure';
 import type { AssetRow } from '@/lib/widgets/labelled-figure/figure-file-cache';
@@ -2768,10 +2768,13 @@ function micNoticeFor(status: MicStatus): {
 }
 
 /**
- * The Ask control's face: the teacher's orb, with the voice bars over it while
- * the student holds, the thinking arc round it while the teacher works, and
- * the mic-off mark when there is no mic. The Ask bar's own face
- * (components/ask-follow-up), drawn here at the dock's sizes.
+ * The Ask control's face: the teacher's living orb (Nikhil, 12 Nov 2026: "F").
+ * Its seeds stream in while the student holds and a sweep turns through them
+ * while the teacher works, replacing the voice bars and the thinking arc. The
+ * Ask bar's own face (components/ask-follow-up), drawn here at the dock's
+ * sizes, with one difference: no ripple while the teacher speaks, because in
+ * class the teacher speaks all lesson and the orb would never be still. The
+ * mic-off mark still sits over it when there is no mic.
  */
 function AskOrbFace({
   teacher,
@@ -2786,15 +2789,17 @@ function AskOrbFace({
   voiceOff: boolean;
   motion: SharedValue<DockMotion>;
 }) {
+  const level = useDerivedValue(() => motion.value.lvl);
   return (
     <>
-      <TeacherOrbPoster teacher={teacher} size={ASK_ORB} />
-      <ThinkingRing on={thinking} size={ASK_ORB} />
-      {handRaised ? (
-        <View style={askFaceStyles.overlay} pointerEvents="none">
-          <DockBars motion={motion} />
-        </View>
-      ) : voiceOff ? (
+      <AskOrb
+        teacher={teacher}
+        size={ASK_ORB}
+        phase={handRaised ? 'listening' : thinking ? 'thinking' : 'idle'}
+        level={level}
+        ripple={false}
+      />
+      {!handRaised && voiceOff ? (
         <View style={askFaceStyles.overlay} pointerEvents="none">
           <MicOffIcon size={18} color={INK} />
         </View>

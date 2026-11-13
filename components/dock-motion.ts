@@ -43,6 +43,18 @@ export type DockMotion = {
   teach: number;
   /** Voice level, springs smoothed. */
   lvl: number;
+  /** 0 → 1 while the student holds and talks (the light's calm, even state). */
+  listen: number;
+  /** 0 → 1 while the answer plays. */
+  speak: number;
+  /**
+   * The student's own voice alone, smoothed slowly, without the design's
+   * wobble. The light's listening state rises on this so it moves only when
+   * the student does (Nikhil, 12 Nov 2026: "too much moving").
+   */
+  calm: number;
+  /** How far the thinking light has turned; advances only while thinking. */
+  spin: number;
   /** The disc's scale. */
   ds: number;
   /** The thinking arc's rotation, in degrees. */
@@ -97,6 +109,7 @@ export function useDockMotion({
   const wasDown = useSharedValue(false);
   const last = useSharedValue(0);
   const rot = useSharedValue(0);
+  const spin = useSharedValue(0);
   const bump = useSharedValue(0);
   const nextBump = useSharedValue(0);
 
@@ -106,6 +119,9 @@ export function useDockMotion({
     think: { x: 0, v: 0 },
     teach: { x: 0, v: 0 },
     lvl: { x: 0, v: 0 },
+    calm: { x: 0, v: 0 },
+    listen: { x: 0, v: 0 },
+    speak: { x: 0, v: 0 },
     press: { x: 0, v: 0 },
     w: { x: DOCK_W0, v: 0 },
     ds: { x: 1, v: 0 },
@@ -161,6 +177,10 @@ export function useDockMotion({
     spring(s.foot, st === 'press' ? 0.45 : st === 'listening' ? 1 : st === 'thinking' || talking ? 0.9 : 0, 70, 16, dt);
     spring(s.ring, st === 'press' ? 1 : st === 'listening' ? 0.55 : 0, 260, 30, dt);
     spring(s.think, st === 'thinking' ? 1 : 0, 40, 13, dt);
+    spring(s.listen, st === 'listening' ? 1 : 0, 70, 16, dt);
+    spring(s.speak, talking ? 1 : 0, 40, 13, dt);
+    spring(s.calm, st === 'listening' ? clamp(level.value) : 0, 60, 14, dt);
+    spin.value += dt * clamp(s.think.x);
     spring(s.teach, talking || st === 'thinking' ? 1 : 0, 40, 13, dt);
     spring(s.press, st === 'press' || st === 'listening' ? 1 : 0, 400, 30, dt);
     const w = spring(s.w, stretch && st !== 'idle' ? DOCK_W1 : DOCK_W0, 170, 24, dt);
@@ -185,6 +205,10 @@ export function useDockMotion({
       think: clamp(s.think.x),
       teach: clamp(s.teach.x),
       lvl,
+      listen: clamp(s.listen.x),
+      speak: clamp(s.speak.x),
+      calm: clamp(s.calm.x),
+      spin: spin.value,
       ds: s.ds.x,
       rot: rot.value,
       t,
