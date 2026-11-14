@@ -1,5 +1,6 @@
 import { diagramById } from '@/lib/diagrams';
 import { examSubjects } from '@/lib/drona';
+import { gridToText } from '@/lib/grid-text';
 import type { ExamKey } from '@/constants/onboarding';
 
 /**
@@ -843,6 +844,8 @@ export function readyChapterCount(subject: string): number {
 const strip = (html: string) =>
   html
     .replace(/<br\s*\/?>/gi, '\n')
+    // A matrix reads as its rows, "[1 2; 3 −1]", not "123−1" (lib/grid-text.ts).
+    .replace(/[\s\S]*/, (all) => gridToText(all))
     // 10<sup>11</sup> must not reach the teacher as "1011".
     .replace(/<sup>(.*?)<\/sup>/gi, '^($1)')
     .replace(/<sub>(.*?)<\/sub>/gi, '_($1)')

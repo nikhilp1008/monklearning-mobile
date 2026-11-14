@@ -1,3 +1,5 @@
+import { gridCells } from '@/lib/grid-text';
+
 /**
  * HOW A FORMULA LINE WITH A STACKED FRACTION IS LAID OUT (Android, 2026-10-20).
  *
@@ -206,8 +208,9 @@ export function cutAtSpaces(html: string): string[] {
   const out: string[] = [];
   const open: string[] = [];
   let cur = '';
-  // A drawn fraction (<frac>, components/textbook/markup.tsx) is never cut either.
-  const TAG = /^<(\/?)(b|i|sup|sub|frac|binom|num|den)>/i;
+  // A drawn fraction (<frac>, components/textbook/markup.tsx) is never cut either,
+  // nor a drawn matrix (<bmat>, <pmat>, <vmat>): a space in a cell is the cell's.
+  const TAG = /^<(\/?)(b|i|sup|sub|frac|binom|num|den|bmat|pmat|vmat|r|c)>/i;
   for (let k = 0; k < html.length; k++) {
     const m = html[k] === '<' ? TAG.exec(html.slice(k)) : null;
     if (m) {
@@ -219,7 +222,7 @@ export function cutAtSpaces(html: string): string[] {
       k += m[0].length - 1;
       continue;
     }
-    if (html[k] === ' ' && !open.some((t) => t === 'sub' || t === 'sup' || t === 'frac' || t === 'binom')) {
+    if (html[k] === ' ' && !open.some((t) => HELD.has(t))) {
       out.push(cur + [...open].reverse().map((t) => `</${t}>`).join(''));
       cur = open.map((t) => `<${t}>`).join('');
       continue;
@@ -228,6 +231,24 @@ export function cutAtSpaces(html: string): string[] {
   }
   out.push(cur);
   return out;
+}
+
+const HELD = new Set(['sub', 'sup', 'frac', 'binom', 'bmat', 'pmat', 'vmat']);
+
+/**
+ * A drawn matrix as wide as it reads: each column its widest cell, the columns
+ * a space apart, in its brackets ("[1 2; 3 4]" as "[1 2]"), for the card's
+ * rough counts of a line's length (pieceWidth). Innermost first.
+ */
+export function narrowGrids(html: string): string {
+  const GRID = /<(bmat|pmat|vmat)>((?:(?!<\/?(?:bmat|pmat|vmat)>)[\s\S])*)<\/\1>/i;
+  for (let m = GRID.exec(html); m; m = GRID.exec(html)) {
+    const rows = gridCells(m[2]);
+    const cols = Math.max(0, ...rows.map((r) => r.length));
+    const widest = Array.from({ length: cols }, (_, j) => rows.map((r) => r[j] ?? '').reduce((a, b) => (shown(b).length > shown(a).length ? b : a), ''));
+    html = html.slice(0, m.index) + `[${widest.join(' ')}]` + html.slice(m.index + m[0].length);
+  }
+  return html;
 }
 
 /** The line as boxes that never break inside; a line may break only between two boxes. */

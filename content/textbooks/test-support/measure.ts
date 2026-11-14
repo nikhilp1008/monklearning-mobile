@@ -1,3 +1,5 @@
+import { gridCells } from '@/lib/grid-text';
+
 import { font, type FontName } from './font-file';
 
 /**
@@ -36,8 +38,26 @@ const FRAC_SIZE = 0.8, FRAC_ROOM = 2 * (0.07 + 0.06);
 const BINOM_ROOM = 2 * (0.3 + 0.06 + 0.04);
 const INNER_FRAC = /<(frac|binom)>\s*<num>((?:(?!<\/?(?:frac|binom)>|<\/?num>)[\s\S])*)<\/num>\s*<den>((?:(?!<\/?(?:frac|binom)>|<\/?den>)[\s\S])*)<\/den>\s*<\/\1>/i;
 
+/**
+ * A drawn matrix (<bmat>, <pmat>, <vmat>, components/textbook/markup.tsx gridRun): every column
+ * as wide as its widest cell, at the line's own size, GRID_GAP apart, and each side its bracket
+ * or bar, the gap to the cells and the room outside (markup GRID). Innermost first.
+ */
+const GRID_GAP = 0.8, GRID_ROOM = 0.14 + 0.1;
+const GRID_FENCE = (kind: string, rows: number) => (kind === 'vmat' ? 0.06 : kind === 'pmat' ? 0.3 + 0.04 * (rows - 1) : 0.24);
+const INNER_GRID = /<(bmat|pmat|vmat)>((?:(?!<\/?(?:bmat|pmat|vmat)>)[\s\S])*)<\/\1>/i;
+
 /** Width of markup set at `size`, in the look's fonts. Unknown glyphs count 0.55 em (a typical fallback). */
 export function width(html: string, size: number, look: Look): number {
+  const g = INNER_GRID.exec(html);
+  if (g) {
+    const rows = gridCells(g[2]);
+    const cols = Math.max(0, ...rows.map((r) => r.length));
+    let w = 0;
+    for (let j = 0; j < cols; j++) w += Math.max(0, ...rows.map((r) => width(r[j] ?? '', size, look)));
+    w += (Math.max(0, cols - 1) * GRID_GAP + 2 * (GRID_FENCE(g[1].toLowerCase(), rows.length) + GRID_ROOM)) * size;
+    return w + width(html.slice(0, g.index) + html.slice(g.index + g[0].length), size, look);
+  }
   const f = INNER_FRAC.exec(html);
   if (f) {
     const half = Math.max(width(f[2], size * FRAC_SIZE, look), width(f[3], size * FRAC_SIZE, look));
@@ -81,7 +101,8 @@ export function pieces(html: string): string[] {
   // Never inside a drawn fraction: it is one inline box, its spaces are not break points.
   const HELD = '\u0000';
   let depth = 0;
-  const held = html.replace(/<(\/?)(?:frac|binom)>| /gi, (t, close?: string) => {
+  // Nor inside a drawn matrix, one inline box too.
+  const held = html.replace(/<(\/?)(?:frac|binom|bmat|pmat|vmat)>| /gi, (t, close?: string) => {
     if (t === ' ') return depth > 0 ? HELD : ' ';
     depth += close ? -1 : 1;
     return t;

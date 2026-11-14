@@ -13,7 +13,8 @@ import { BOOK_CHAPTERS } from '../test-support/book-list';
 import { REF, width } from '../test-support/measure';
 
 /** The text as read: only the reader's own tags are dropped (a "<" in "√(2gR) < u" is text). */
-const plain = (h: string) => h.replace(/<\/?(?:b|i|sup|sub|frac|binom|num|den)>|<br\s*\/?>/gi, (t) => (/br/i.test(t) ? '\n' : '')).replace(/&nbsp;|\u00a0/g, ' ');
+/** A matrix's cells and rows read apart: "1 2 3 −1", not "123−1". */
+const plain = (h: string) => h.replace(/<\/?(?:b|i|sup|sub|frac|binom|num|den|bmat|pmat|vmat|r|c)>|<br\s*\/?>/gi, (t) => (/br/i.test(t) ? '\n' : /^<\/[rc]>$/i.test(t) ? ' ' : '')).replace(/&nbsp;|\u00a0/g, ' ');
 
 /** Unicode letters set as raised or lowered (ᵢ ₙ ˣ): the phone's fonts lack most of them. */
 const SCRIPT_LETTERS = /[ᴬ-ᵪₐ-ₜʰ-ʸˠ-ˤⁱⁿ]/;
@@ -114,6 +115,35 @@ describe('the text of every book chapter', () => {
           if (/<\/?(?:frac|binom|num|den)>/.test(rest)) say(`malformed fraction: ${clip(h)}`);
           // Inside a raised or lowered run a stack is too small to read: x<sup>1/2</sup> keeps its slash.
           if (/<su[bp]>(?:(?!<\/su[bp]>).)*<frac>/.test(h)) say(`fraction inside a script: ${clip(plain(h))}`);
+        }
+      }),
+    ).toEqual([]);
+  });
+
+  // A MATRIX IS DRAWN AS A GRID (components/textbook/markup.tsx gridRun):
+  // <bmat><r><c>1</c><c>2</c></r><r><c>3</c><c>4</c></r></bmat>, every row its
+  // cells, nothing but rows in a matrix and cells in a row. A grid drawn with the
+  // bracket pieces ⎡ ⎢ ⎣ or written "[1 2; 3 4]" is a slip (the authoring brief).
+  it('writes a matrix or determinant as <bmat>/<pmat>/<vmat> rows of cells, whole', () => {
+    const GRID = /<(bmat|pmat|vmat)>((?:(?!<\/?(?:bmat|pmat|vmat)>)[\s\S])*)<\/\1>/;
+    expect(
+      breaches(({ block }, say) => {
+        if (!block) return;
+        for (const h of htmls(block)) {
+          if (/[⎡⎢⎣⎤⎥⎦⎛⎜⎝⎞⎟⎠]/.test(h)) say(`bracket pieces instead of a grid: ${clip(plain(h))}`);
+          if (!/<\/?(?:bmat|pmat|vmat|r|c)>/.test(h)) continue;
+          let rest = h;
+          for (let m = GRID.exec(rest); m; m = GRID.exec(rest)) {
+            const rows = m[2].replace(/\s+/g, '');
+            const cells = [...m[2].matchAll(/<r>([\s\S]*?)<\/r>/g)].map((r) => r[1]);
+            // Only rows in the grid, only cells in each row.
+            if (!/^(?:<r>(?:<c>(?:(?!<\/?[rc]>).)*<\/c>)+<\/r>)+$/s.test(rows) || cells.some((r) => r.replace(/<c>[\s\S]*?<\/c>/g, '').trim()))
+              say(`malformed matrix: ${clip(m[0])}`);
+            rest = rest.slice(0, m.index) + 'M' + rest.slice(m.index + m[0].length);
+          }
+          if (/<\/?(?:bmat|pmat|vmat|r|c)>/.test(rest)) say(`a row or cell outside a matrix, or a matrix not closed: ${clip(h)}`);
+          // Inside a raised or lowered run a grid is too small to read.
+          if (/<su[bp]>(?:(?!<\/su[bp]>).)*<(?:bmat|pmat|vmat)>/.test(h)) say(`matrix inside a script: ${clip(plain(h))}`);
         }
       }),
     ).toEqual([]);

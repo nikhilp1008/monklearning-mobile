@@ -46,9 +46,9 @@
  * Where the book over-states a rule, the point states it only with its true
  * condition: "each inverse function is increasing or decreasing on its whole
  * domain" (sec⁻¹ and cosec⁻¹ are monotonic only on each of their two
- * pieces: sec⁻¹(−1) = π > 0 = sec⁻¹ 1); and the conversion formulas, printed
- * on their card without the "x ∈ (0, 1)" that the sentence before them
- * gives (the point states them with it). The exam-frequency claims, the
+ * pieces: sec⁻¹(−1) = π > 0 = sec⁻¹ 1); and the conversion formulas, which the
+ * book prints without the "x ∈ (0, 1)" that the sentence before them gives
+ * (the card and the point both carry it). The exam-frequency claims, the
  * past-paper volume and distribution table, the NCERT exercise numbers and
  * convention remarks, the CBSE and syllabus remarks, and the closing "What
  * the chapter text under-serves" are left out; the cot⁻¹ convention point

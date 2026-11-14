@@ -635,7 +635,7 @@ const fig26: Diagram = {
       lab(s, cx, y + 25, tag, { size: 12, color: C.slate });
     });
     runs(s, cx, 206, [{ t: `for ${X} < 0: subtract π` }], { size: 12.5, anchor: 'middle', color: C.amber });
-    lab(s, cx, 224, '(see Figure 2.5)', { size: 12.5, color: C.amber });
+    lab(s, cx, 224, '(see the Sign of x drawing)', { size: 12.5, color: C.amber });
     // Negative argument
     box(s, 10, 244, 330, 352, { color: C.faint, w: 1.2, name: 'card:negative' });
     lab(s, cx, 268, 'Negative argument', { size: 15, bold: true });
@@ -663,7 +663,7 @@ const fig26: Diagram = {
     const xs = [-0.9, -0.4, 0.2, 0.7], ys = [-30, -2, 0.5, 9], ss = [-5, -1.2, 1, 3];
     out.push(['Odd: sin⁻¹, tan⁻¹, cosec⁻¹ (f⁻¹(−x) = −f⁻¹(x)); π − form: cos⁻¹, sec⁻¹, cot⁻¹ (f⁻¹(−x) = π − f⁻¹(x))', xs.every((x) => close(F.sin(-x), -F.sin(x), 1e-12) && close(F.cos(-x), PI - F.cos(x), 1e-12)) && ys.every((x) => close(F.tan(-x), -F.tan(x), 1e-12) && close(F.cot(-x), PI - F.cot(x), 1e-12)) && ss.every((x) => close(F.cosec(-x), -F.cosec(x), 1e-12) && close(F.sec(-x), PI - F.sec(x), 1e-12))]);
     out.push(['Each complementary pair sums to π/2 on its domain', COMP.every(([f, g]) => (f === 'tan' ? ys : f === 'sin' ? xs : ss).every((x) => close(F[f](x) + F[g](x), PI / 2, 1e-12)))]);
-    out.push(labelsCheck(s, ['Reciprocal', 'sin−1 1/x = cosec−1 x', 'cos−1 1/x = sec−1 x', 'tan−1 1/x = cot−1 x', '|x| ≥ 1', 'x > 0', 'for x < 0: subtract π', '(see Figure 2.5)', 'Negative argument', 'ODD:  sin, tan, cosec', 'f−1(−x) = −f−1(x)', 'π − :  cos, sec, cot', 'f−1(−x) = π − f−1(x)', 'Complementary', 'sin−1 x + cos−1 x = π/2', 'tan−1 x + cot−1 x = π/2', 'cosec−1 x + sec−1 x = π/2', 'branch shape decides everything']));
+    out.push(labelsCheck(s, ['Reciprocal', 'sin−1 1/x = cosec−1 x', 'cos−1 1/x = sec−1 x', 'tan−1 1/x = cot−1 x', '|x| ≥ 1', 'x > 0', 'for x < 0: subtract π', '(see the Sign of x drawing)', 'Negative argument', 'ODD:  sin, tan, cosec', 'f−1(−x) = −f−1(x)', 'π − :  cos, sec, cot', 'f−1(−x) = π − f−1(x)', 'Complementary', 'sin−1 x + cos−1 x = π/2', 'tan−1 x + cot−1 x = π/2', 'cosec−1 x + sec−1 x = π/2', 'branch shape decides everything']));
     out.push(stackedCheck(s, ['1/x', 'π/2']));
     out.push(noBadChars(s, fig26));
     out.push(...layout(s));

@@ -14,6 +14,7 @@ import ch13 from '@/content/textbooks/phy-11-13-oscillations';
 import ch14 from '@/content/textbooks/phy-11-14-waves';
 import p12c3 from '@/content/textbooks/phy-12-03-current-electricity';
 import p12c4 from '@/content/textbooks/phy-12-04-moving-charges-magnetism';
+import type { Chapter } from '@/lib/textbooks';
 import { buildFormulaCards, formulaName, isWordBracket, italicMaths, keepTogether, pieceWidth, softBreaks, titleBreaks } from '@/lib/revise/formula-cards';
 
 const OPS = '=+−⟹⟺⇔⇌≈→⇒∝';
@@ -366,5 +367,21 @@ describe('a non-breaking space the content set (Android check of Mathematics 11 
     const a = keepTogether('max(0, <i>a</i> + <i>b</i> − <i>N</i>) ≤ <i>n</i>(<i>A</i> ∩ <i>B</i>) ≤ min(<i>a</i>, <i>b</i>)');
     expect(a.slice(0, a.indexOf('N</i>)'))).not.toContain(' ');
     expect(keepTogether('for at least one <i>i</i> ∈ <i>I</i>}')).toMatch(/<i>i<\/i> ∈ <i>I<\/i>/);
+  });
+});
+
+describe('a legend line that opens on a symbol (Mathematics 12 Ch 5 and Ch 8 cards)', () => {
+  it('keeps the symbol as written and capitalises only a word', () => {
+    const chapter = {
+      chapter: '05',
+      title: 'Test',
+      subject: 'Mathematics',
+      klass: 'Class 12',
+      topics: [{ n: '01', title: 'T', blocks: [{ t: 'part', title: 'P' }, { t: 'formula', kicker: 'Mean value', main: '<i>f</i>′(<i>c</i>) = <i>k</i>', legend: ['f(b) = the value at the right end', '<frac><num>x<sup>2</sup></num><den>a<sup>2</sup></den></frac> = the first term'], note: null }] }],
+    } as unknown as Chapter;
+    const text = JSON.stringify(buildFormulaCards(chapter));
+    expect(text).toContain('f(b)');
+    expect(text).not.toContain('F(b)');
+    expect(text).not.toContain('X<sup>2</sup>');
   });
 });

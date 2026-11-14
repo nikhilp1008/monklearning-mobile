@@ -33,7 +33,7 @@
  * overlapping." with its opening "So" dropped, and "Nothing smaller survives;
  * nothing larger is needed."; B: "The surjectivity of the composite is
  * manufactured by g alone." and "Always filter by f(x) ∈ Dom(g); never
- * shortcut."; C: "The overlap test is the injectivity test." and "Choosing
+ * shortcut."; C: "The overlap test is the injectivity test." (with its condition: once each piece is one-one) and "Choosing
  * the correct root of a quadratic is the whole game.", each cut from its
  * sentence and capitalised; D: "Compose the recurrence with itself until the
  * value returns." and "Axes come in families spaced T/2 apart.", its "So"
@@ -789,7 +789,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'How do you invert a piecewise function?',
     a: `Invert each piece separately; the domain of ${fi} is the union of the piece-images, and the breakpoints of ${fi} are the images of those of ${f}. If two piece-images overlap, some output has two preimages and ${f} was never one-one. ${fi} is the reflection of ${f} in the line ${y} = ${x}`,
     why: `${x} for ${x} ≤ 1, ${x2} on (1,${NB}2], 2${x} for ${x} > 2: images (−∞,${NB}1], (1,${NB}4], (4,${NB}∞), disjoint, so ${fi} is ${x}, √${x} and ${fr(x, '2')} on them.`,
-    say: 'The overlap test is the injectivity test.',
+    say: 'Once each piece is one-one, the overlap test is the injectivity test.',
   },
   // p. 109
   {
