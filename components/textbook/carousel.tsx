@@ -96,7 +96,16 @@ export function Carousel({
   // it per block so it survives a topic switch; without seeding the scroller
   // the number was stored and never used, and coming back to a topic dropped
   // you on card one of a rail you were halfway through.
-  const initialOffset = useRef({ x: page * step, y: 0 }).current;
+  // Taken when the rail first mounts, not on the first render: a full rail
+  // renders once at width 0 (step = the gap alone), and seeding from that left
+  // a returning student's rail a few pixels into card one, half off the screen
+  // and stuck there (Android check of Mathematics 12 Ch 10 to 12).
+  const seeded = useRef<{ x: number; y: number } | null>(null);
+  if (!seeded.current && (!full || railWidth > 0)) {
+    seeded.current = { x: page * step, y: 0 };
+    offset.setValue(page * step);
+  }
+  const initialOffset = seeded.current ?? { x: 0, y: 0 };
 
   const onScroll = Animated.event([{ nativeEvent: { contentOffset: { x: offset } } }], {
     useNativeDriver: true,
