@@ -99,7 +99,8 @@ function endsSentence(text: string, end: number): boolean {
   // A list number at the start of a line — "<br>3. Charge-independent" — opens
   // an item; split there and the number stood alone on a line above its item
   // (Android check of Physics 12 Ch 13, the nuclear-force properties).
-  if (/(?:^|<br\s*\/?>\s*|\n\s*)\d{1,2}\.$/i.test(before)) return false;
+  // The same with the number in bold, "<br><b>2. Regions …" (Android check of Mathematics 12 Ch 8).
+  if (/(?:^|<br\s*\/?>\s*|\n\s*)(?:<b>\s*)?\d{1,2}\.$/i.test(before)) return false;
   return true;
 }
 

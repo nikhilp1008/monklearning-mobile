@@ -101,6 +101,12 @@ describe('splitProse', () => {
     for (const chunk of splitProse(html)) expect(chunk).not.toMatch(/(?:^|<br>)\d\.\s*$/);
   });
 
+  it('never splits after a bold item number either', () => {
+    // "<br><b>2." stood alone above its item (Android check of Mathematics 12 Ch 8).
+    const html = [1, 2, 3, 4, 5, 6].map((n) => `<b>${n}. Item ${n}.</b> ${S(12)}`).join('<br>');
+    for (const chunk of splitProse(html)) expect(chunk).not.toMatch(/(?:^|<br>)<b>\d\.\s*$/);
+  });
+
   it('returns the input exactly when its chunks are joined', () => {
     const samples = [
       [S(14), S(9), S(20), S(11), S(16)].join(' '),
