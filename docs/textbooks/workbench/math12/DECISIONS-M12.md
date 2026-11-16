@@ -1,0 +1,134 @@
+# Mathematics Class 12: decisions
+
+The Class 11 decisions (`../math11/DECISIONS-M11.md`, items 1–42) all carry over unless an item here says otherwise.
+Founder's standing rule for the textbook run (12 Nov, carried to Class 12 on 13 Nov, "start class 12 ch1 and 2"):
+take the recommended option, Android check without asking, commit by name and push each pair.
+
+1. (2026-11-13) **Book:** the October 2026 snapshot `math12/math12.pdf` (879 pp., `build_class12_math_book.py`; PDF page =
+   bottom folio), from Raasikh/monk-learning-api, branch books-snapshot-2026-10-15. The `Drona_Class12_Mathematics_Master_Reference.pdf`
+   in the app folder is a different (older) printing: never used. Errata pp. 876–879. Ch 00 Exponential and Logarithmic
+   Functions (pp. 9–42) has no shelf row: skipped, as Class 11's Ch 00.
+2. (2026-11-13) **Addendum P ("What JEE Actually Asks") keeps the book's letter P** (`n: 'P'`, `extra: true`), the last
+   additional topic of each chapter; book-chapters.test.ts allows a closing P in Mathematics 12. Its question tags keep the
+   exam name and drop the year ("[JEE 1982]" → "[JEE]", "JEE Main 2019" → "JEE Main"); its distribution shares are labelled
+   "(the book’s estimate from past papers, not official figures)".
+3. (2026-11-13) **Chapter 1 Relations and Functions:** Topics 01–07 = Subtopics 01–07 (pp. 45–101; pp. 43–44 title and
+   contents not copied); Additional A–F = Addenda A–F (pp. 102–118; the part's p. 102 opening = A's "Introduction");
+   Additional P = Addendum P (pp. 119–125). **Chapter 2 Inverse Trigonometric Functions:** Topics 01–04 = the book's four
+   numbered parts (pp. 127–164; p. 126 title and contents not copied; the p. 127 "How to use this guide" box = the start of
+   Topic 01's "Exam relevance" part, "four parts" → "four topics"); Additional A–E = Addenda A–E (pp. 165–177; the p. 165
+   opening = A's "Introduction"); Additional P (pp. 178–184). Section "1.4 Worked Examples" → part "Worked examples".
+   Old chapters backed up in monk-books/old/old-math-12-0{1,2}-*.ts.
+4. (2026-11-13) The book's "Cheat Sheet Box" section is the part "Cheat sheet", as in all 101 Class 11 cheat-sheet parts. Worked examples with no printed answer line keep an empty answer (ans: ''), as Class 11. Topic 01 of Ch 1 starts on p. 44 (its heading and Exam Relevance box sit under the contents).
+5. (2026-11-13) Ch 1 p. 83 "Atlas of Standard Real Functions" (six small graphs: |x|, sgn, [x], {x}, eˣ, ln x; a picture in the PDF) is an unnumbered drawing m12-01-05-d1, redrawn by the diagram helper. A fraction over a fraction is written with ÷ (as Class 11 decision 38).
+6. (2026-11-13) Addendum P distribution tables: with years dropped, a cited-papers column reading "[JEE], [JEE], …" says nothing; recommended for the fixers: replace that column with the count of cited papers (list it). Ch 2 P "Volume." sentence rewritten from counts (m12w15).
+7. (2026-11-13) **Chapter 1 review rm121a (Topics 01–07, drawings): standing rule, everything, optional included, every
+   reviewer recommendation taken.** Fig 1.4: the x ≥ 1 branch is the marigold highlight, roots plain filled dots, no hatch,
+   caption "(highlighted)". "f′ keeps one sign ⇒ one-one" gains "on an interval" (3 places); Topic 05 Procedure A puts the
+   reflection first; Topic 04 Q1 (c) hint replaced; the p. 80 cx + d denominator kept. Every NB in the chapter files is now
+   the escaped ' ' (the two extra-p files had a plain space).
+8. (2026-11-13) **Chapter 1 review rm121b (Additional A–F, P): standing rule, everything, optional included.** B.1's proof
+   restarted from g(f(x₁)) = g(f(x₂)); C.2's aside uses x² − 1 on 1 < x ≤ 2; P's distribution column "Appeared in" →
+   "Papers cited" with counts (rm121b's cells); 2011 "[JEE Adv]" tags → "[JEE]"; E1's 0⁰ kept; A5 lead-in kept.
+9. (2026-11-13) **Chapter 2 review rm122a (Topics 01–04, drawings): standing rule, everything, optional included.** Topic 03's
+   arcsine/arccosine correction rewritten as reflections (π − …, −π − …, 2π − …); sec⁻¹/cosec⁻¹ monotonic "on each of its two
+   pieces", cosec⁻¹ added to the odd ones; the "Conversion formulas" card carries 0 < x < 1 in its legend; Topic 01 Q4 (d)
+   nudge replaced. Hollow points in Figs 2.1 and 2.7 stay filled (decision 10 of Class 11; Fig 2.3 uses rings for "excluded").
+   The p. 162 MCQ 3 root sign restored.
+10. (2026-11-13) **Key points (mk12): Ch 1 95 points, Ch 2 60.** Formula-card proposals: standing rule, all taken (Ch 1 → 20
+    cards, Ch 2 → 11), including the new cards; Bell recurrence legend "B₀ = 1" (the standard convention; ours, listed);
+    Ch 2 "Result 1/2" cards renamed with legends. Ch 1's applied now (fx121c); Ch 2's with the Chapter 2 review fixes.
+11. (2026-11-13) **Chapter 2 review rm122b (Additional A–E, P, key points A–P): standing rule, everything, optional included.**
+    B.3 "all sines involved are non-negative"; B practice 1 rewritten; E step 2 monotonic "on each piece"; P column "Papers
+    cited" with rm122b's counts; pre-2013 papers tagged "JEE" (not Main/Adv). Key-point fixes in keypoints-mathematics-12-02.ts.
+12. (2026-11-13) Shelf (Android, Textbooks → Maths 12): 12 chapters, Relations first (index 0), no Exponential row, no Linear Programming row (Probability is 12). OPENS_ON_CHOICE 'mathematics|12': [0, 1].
+13. (2026-11-13) **Android check of Ch 1–2 done; pushed a388135.** Reader: "?”/!” + lowercase" no longer splits a paragraph.
+    Known Android fault (also once in Class 11 Ch 6): when Android measures a line as fitting but draws it wrapped (a line
+    near the edge with f(x)/italic runs), inline fractions in that Text are placed a line off and a block's last line can be
+    hidden. Content stop-gaps used: the expression on its own line (<br>), or a block split with an early <br>. A reader fix
+    (textBreakStrategy simple on the whole Text) was tried and did NOT help; still open.
+14. (2026-11-13) **Founder: run Class 12 to the end without stopping** ("in a efficiant way … 2 at a time … while you are
+    shooting on emulator you can start writing chpaters … no compromise in output, quality check, and fixing"). Pairs 3+4, 5+6,
+    7+8, 9+10, 11+12, then 13; ≤3 helpers; writers write in work folders whenever a shoot runs. **Chapter 3 Matrices:** Topic 00
+    = Subtopic 00 "Foundations & Representation" with the book's number (n '00', as Class 11 Ch 9's Topic 00), pp. 186–189;
+    Topics 01–04 = Subtopics 01–04 (pp. 190–221); Additional A–E (pp. 222–235); P (pp. 236–242); p. 185 title and contents
+    not copied. **Chapter 4 Determinants:** Topics 01–06 = Parts 1–6 (pp. 244–281; p. 243 title and the p. 244 contents not
+    copied); Additional A–E (pp. 282–296); P (pp. 297–305). "Part N" → "Topic 0N" in cross-references. A determinant is set as
+    the book prints it (vertical bars around a grid); the reader has no matrix tag: write each grid as the Class 11 models do
+    (lib/textbooks.ts `matrix`/`table` blocks or bracketed rows), checked against the Class 11 determinants in math-11-09.
+15. (2026-11-13) **Matrix tags added to the reader** (<bmat> [ ], <pmat> ( ), <vmat> | |, rows <r>, cells <c>; drawn grids, columns aligned, brackets as tall as the grid), for Ch 3–4 and later 10–11: the old chapters faked grids with ⎡ ⎢ ⎣ pieces, which do not align on a phone. Built by mx1; checked on Android before the Ch 3–4 shoot.
+16. (2026-11-13) Ch 1–2 follow-ups from the new-wording lists (go in with Ch 3–4): Fig 2.6 "(see the Sign of x drawing)" (the app shows no figure numbers); Ch 1 C memory line carries its condition. Lists: .claude/textbook-review/new-text-math12-ch1.md, ch2.md.
+17. (2026-11-13) Android check of the new grids (Ch 3 parts 11, 29): brackets full height, columns aligned, "=" at the middle row; grid pad 0.14 → 0.22 and side 0.1 → 0.2 (a "−1" touched its bracket, two grids of a product touched). Augmented [A | I] as one <bmat> with a "|" cell reads clearly: kept. After an emulator boot: adb reverse tcp:8081 tcp:8081 (else "problem loading the project").
+18. (2026-11-13) Ch 4: the book prints the sign checkerboard (+ − +) as a bare grid; written as <bmat> (brackets added, listed): a bracketless grid tag is not worth a reader change. Theorem B labels over "=" and underbraces → bracketed notes after the line (as Ch 3). A^⊤ → A<sup>T</sup> throughout.
+19. (2026-11-13) **Chapter 3 review rm123a (Topics 00–04): standing rule, everything, optional included.** R1 railway-board
+    cells corrected; R2 the A = IA equation restored (… ⇒ I = A⁻¹A); R3 "2 × 2 unitriangular"; R4 the CBSE "elementary row
+    operations" claim softened (rm123a's text); NB escaped; MCQ nudges replaced; Topic 00's cheat sheet its own "Cheat
+    sheet" part; Chapter 3 gets formula cards (rm123a's 8, merged with the key-points helper's proposals). The "Rows are
+    Roman, columns are Catholic" memory aid is kept as printed and LISTED for the founder (a brand call, not a maths one).
+20. (2026-11-13) **Chapter 3 review rm123b (A–E, P): standing rule, everything, optional included.** P Archetype 1 "precisely when
+    3 ∤ n; of the options offered …"; C's introduction credits Topic 02 with the symmetric/skew count; NB escaped in every Ch 3–4
+    file (done by the coordinator); B.1 and P's Board claims softened as decision 19; 4 more cards for A–C (with rm123a's 8 and
+    mk34's merge).
+21. (2026-11-13) **Chapter 4 review rm124a (Topics 01–06): standing rule, everything, optional included.** Topic 06 MCQ 2 (c) →
+    "always negative"; Pitfall 2's reason corrected; "the previous topic (Topic 04)"; Topic 02's CBSE "prove without expanding"
+    claim softened as decision 19, with the [CBSE] tags on those items → "older papers"; the Cofactor card's colon fixed; three
+    MCQ nudges replaced; "Bonus identities" a plain paragraph, both copies of |kA| and |adj A| kept as cards (different groups);
+    m12w41's Sarrus-on-2×2 warning kept.
+22. (2026-11-13) **Chapters 5–6 layout.** Ch 5: Topics 01–07 = the numbered parts 1–7 (pp. 307–353), Additional A–E (354–371), P (371–382). Ch 6: Topics 01–03 = Subtopics 01–03 (384–411); Topics 04–05 = the book's Appendix A Tangents and Normals and Appendix B Approximations and Differentials (412–418), numbered on (letters would clash with the addenda); Additional A–E (419–436), P (436–443). Writers work in work folders (Ch 3–4 shoot running).
+23. (2026-11-13) **Chapter 4 review rm124b (A–E, P): standing rule, everything, optional included.** P A1's Δᵢ rule corrected; E.3
+    "row 1"; E's "(in words: …)"; P A3 B = DAG; P practice 10 answered; P practice 8 by direct expansion (no J, no eigenvalues);
+    P9 a route without eigenvalues; the rest as rm124b gives them.
+24. (2026-11-13) **Key points (mk34): Ch 3 69, Ch 4 78.** Card proposals all taken (standing rule): Ch 3 12 new cards + the optional
+    trace card; Ch 4 duplicates resolved as mk34 gives (|kA| on Topic 02's card, |adj A| on Topic 04's), 11 card fixes, 4 new cards
+    for A–E + the optional "lines through an intersection point". Ch 4 Topic 05's cheat sheet and procedure gain the table's
+    "(usually; check rank)" caveat; Additional C's "for a Class 12 syllabus" kept as printed and listed.
+25. (2026-11-13) **Mean Value Theorem wording, Ch 5 and Ch 6 alike (rm126a R4, standing rule):** "Lagrange's Mean Value Theorem
+    (Chapter 5, Topic 07), which the rationalised NCERT book and the current CBSE syllabus no longer include; JEE Advanced still
+    uses it." Ch 5 Topic 07's Exam relevance → "appear in older CBSE papers" + the same clause; Ch 5's "CBSE Board Derivations"
+    heading → "Derivations". Ch 5 Topics 04–05 JEE Main claims about tangents/approximations kept as printed and listed (not sure).
+    Chapter 6 review rm126a: everything, optional included.
+26. (2026-11-13) **Chapter 5 reviews rm125a (Topics 01–07) and rm125b (A–E, P): standing rule, everything, optional included.**
+    csc⁻¹ kept in Ch 5 (as printed there); the inverse-trig derivatives card kept once (Topic 05's), Topic 02's block a paragraph;
+    MVT wording as item 25; rm125b's 8 cards for A–E taken; P's table keeps the counts with rm125b's labelled note. Fixes are
+    applied in the work folders (the files are not in the repo during the Ch 3–4 shoot) and installed after it.
+27. (2026-11-13) **Chapter 6 reviews rm126a (Topics 01–05) and rm126b (A–E, P): standing rule, everything, optional included.**
+    MVT wording as item 25 (A's "JEE Main still tests" → not in the current JEE Main syllabus as far as we know; JEE Advanced uses
+    it); Topics 04–05 titles keep the book's "(JEE-relevant: …)" as printed and listed; P's italic words and tags plain; R5 τ for
+    the MVT point; R11 P5's question restored; rm126b's 8 cards for A–E taken. Fixed in the work folders, installed after the shoot.
+28. (2026-11-13) **Chapters 7–8 layout.** Ch 7: the book prints Subtopics 01, 04, 05, 06, 07, 08, 02, 09, 03 in that order (techniques before definite integrals): the app keeps the printed order and numbers them Topics 01–09 by position (book→app 01→01, 04→02, 05→03, 06→04, 07→05, 08→06, 02→07, 09→08, 03→09), cross-references mapped and listed. Additional A–F, P. Ch 8: Topics 01–03, Additional A–E, P. Writers in work folders.
+29. (2026-11-13) Reader note: the formula-card builder capitalises a legend line that starts with a fraction or a symbol ("f(b)" → "F(b)", "x²/a²" → "X²/a²"; lib/revise/formula-cards.ts cap1). Writers start such lines with the symbol in <i> or a no-break space; a cap1 fix (capitalise only a leading lower-case word) to be made after the Ch 3–4 shoot, with a test.
+30. (2026-11-13) **Chapter 7 reviews rm127a (Topics 01–06) and rm127b (07–09): standing rule, everything, optional included.**
+    "Walli" → "Wallis" throughout (rm127a's "Wallis’ formula"); limit-of-a-sum CBSE claim softened as item 25; "no elementary
+    anti-derivative" → "none you could find quickly by hand"; the three standard-integral tables stay as tables AND get cards;
+    rm127b's 5 property cards (P0–P7) taken.
+31. (2026-11-13) **Chapter 8 review rm128a (Topics 01–03): standing rule, everything, optional included.** ||x| − 1| has three
+    corners; the area-between-two-curves CBSE claims softened as item 25, those [CBSE] tags → "older papers"; "0/5 on boards" →
+    "the most common way to lose the whole question"; "abscissae" replaced; the "Chapter master cheat sheet" stays Topic 03's last part.
+32. (2026-11-13) **Chapter 7 review rm127c (A–F, P): standing rule, everything, optional included.** Wallis throughout; A practice 5 chain fixed; P Archetype 2 "a lone sin x"; D.3 "improper-shaped" replaced; reduction-formula and greatest-integer Board claims softened; "CBSE Board Level" difficulty tags kept; D1/E1 answers written (new wording, listed); all 11 A–F cards kept + a log-sine card.
+33. (2026-11-13) **Chapter 8 review rm128b (A–E, P): standing rule, everything, optional included.** A.1 trap reworded; Lemma A.2 "divided by ab"; C.1 check corrected; P row 6 "the JEE asked"; + C added; all 10 A–E cards kept with three legend fixes; Archetype 8 "(old JEE)". Reader fixes after the Ch 3–4 shoot: grid side room as padding (Android drops inline margins); card capitaliser touches only a word (decision 29 done, test added).
+34. (2026-11-13) **Chapters 9–10 layout.** Ch 9: Topics 01–05 = Parts 1–5 (pp. 581–619), Additional A–D (620–629, each opening on its own Exam relevance), P (630–637). Ch 10: Topics 01–03 = Subtopics 01–03 (638–663), Additional A–D (664–677), P (678–684). Vectors: letter in <i> + escaped U+20D7, as Physics 11 Ch 6. Writers in work folders.
+35. (2026-11-13) **Chapter 9 review rm129a (Topics 01–05): standing rule, everything, optional included.** Squaring claim corrected; formation-of-DE and growth/decay/cooling CBSE claims softened (as item 25), those tags "older papers"; "iff" → "if"; four MCQ nudges rewritten; T04 part title "Derivation and key procedures"; k "a rate constant" (sign by growth/decay); Separable cards get g, h legends; new half-life/doubling card; practice intro lines kept.
+36. (2026-11-13) **Vector arrows go INSIDE the italic:** `<i>a⃗</i>` (escaped), as phy-11-06 and math-12-08/extra-p write them: the reader's arrow rules (markup.tsx PILOT_RUN, ARROW_BEFORE_OPERATOR, ARROW_AT_END) work only on that form. The brief's `<i>a</i>${ARW}` example was wrong; m12w101 and m12w94's Ch 10 P switch (one-line edit to their V helper).
+37. (2026-11-13) **Chapters 11–12 layout.** Ch 11: Topic 00 + Topics 01–05 = the book's Subtopics 00–05 (686–742; "JEE-only" kept as the first line of Exam relevance), Additional A–E (743–752), P (753–762). Ch 12: Topics 01–03 (764–796), the "Chapter 12 — Complete Master Reference" (797–798) as Topic 03's last part "Chapter master reference", Additional A–E (799–812), no P. Linear Programming built though the shelf has no row (flag for Raasikh).
+38. (2026-11-13) **Chapter 9 review rm129b (A–D, P): standing rule, everything, optional included.** Exactness test with its condition (card too); exactness CBSE claim softened; four frequency claims softened to agree with P's counts; "six quantities"; "from the list above"; D's practice-4 and "non-constant coefficients" fixed; P kept and Topic 01's "degree not defined" sentence changed to agree with it; linear-ODE row counts (lower bounds); all 10 A–D cards kept.
+39. (2026-11-13) Ch 9 P formation row: rm129b O8's "(papers up to 2020; …" would put a year in the text (house rule: no exam years): written "(the cited papers are older ones; …".
+40. (2026-11-13) **Chapter 10 review rm1210a (Topics 01–03): standing rule, everything, optional included.** T02 MCQ 1 (c) and MCQ 4 (c)/(d) nudges rewritten; Theorem 3 proof states linearity (+ the parallel case); T03 Board claim softened, tags "older papers"; shared MCQ nudges split; projection/direction-cosine cards fixed.
+41. (2026-11-13) **Chapter 10 review rm1210b (A–D, P): standing rule, everything, optional included.** P vector helper arrow inside the italic; bisector rules "not parallel"; D4 ratio |l|/|l + m + n|; D practice 5 "A, B, C non-collinear"; C.2 overclaim reworded; B answers finish at √6, √37, √13, 1; D intro Board claim softened (D.1 difficulty tag kept); P A3 "±12n̂"; all 13 A–D cards kept with the two fixes.
+42. (2026-11-13) **Chapter 11 review rm1211a (Topics 00–02): standing rule, everything, optional included.** "Shortest distance = 0" ≠ coplanar (4 places: + "unless they are parallel"); "same or exactly opposite ways"; Cartesian SD formula with its absolute value (in words around the <vmat>); lost arrows restored; zero direction cosine = parallel to a coordinate plane; "same direction"; "the angle" (90°); shared MCQ nudges split; Topic 00 CBSE section-formula claim softened (fairly sure).
+43. (2026-11-13) Ch 12: a corner-value table inside a worked example is written inside its step (a header line, one row per line with "→" between columns): a `table` block cannot sit inside an example card. Tables outside examples stay table/defgrid blocks.
+44. (2026-11-13) **Chapter 11 review rm1211b (Topics 03–05): standing rule, everything, optional included.** T04 MCQ 2 stem in the errata's wording; "step back t normals"; Pitfall 4 corrected; the reflection shortest-path rule limited to same-side points and a plane; T03 Theorem 3 proof rotates in the plane perpendicular to the line of intersection; Example 2 "the complement"; "no geometric meaning"; shared MCQ nudges split; "iff" written "if and only if"; syllabus claims (true) kept.
+45. (2026-11-13) **Chapter 11 review rm1211c (A–E, P): standing rule, everything, optional included.** C3 and C practice 3 "perpendicular" (book error; caveat replaced); mirror trick needs A, B on the same side (text + card); P Archetypes 3–4 options printed from the book's solution, Archetype 6 rewritten as "show that…" (new wording, listed); Practice 3 states its plane; P₁ = ±P₂ trap and Topic 05 pitfall corrected for equal normals; "never obtuse"; "the second line"; all 10 A–E cards kept.
+46. (2026-11-13) **Chapter 13 Probability layout.** Topics 01–04 = Subtopics 01–04 (814–848), Additional A–E (849–866), P (866–875); errata from p. 876. Writers in work folders.
+47. (2026-11-13) **Chapter 12 review rm1212a (Topics 01–03): standing rule, everything, optional included.** Convexity from the constraints; "non-empty bounded ⇒ max and min" (Theorem 2 pointed to Topic 01); interior-vertex Pro-Tip, diet-problem and CBSE 5–6 mark claims corrected/softened; shared MCQ nudges split; "at most / at least"; Fig 12.5 and 12.1 captions corrected for the diagram helper; "never in the open middle" kept.
+48. (2026-11-13) **Chapter 12 review rm1212b (A–E): standing rule, everything, optional included.** C example 3 uses x ≥ 0; B slope criterion "if … then" + its true converse (the book's "iff" false); E.2 "neither the nearest nor a same-direction rounding"; D answer 5 four terms; all 8 A–E cards kept.
+49. (2026-11-13) Chapter 12 fixed (fx1212). Caption corrections for the Ch 12 diagram helper (the fig blocks hold only ids): Fig 12.5 four-panel caption per rm1212a F1 ("(b) … along the edge AB", "(d) infeasible: x + y ≤ 2 and x + y ≥ 6 do not overlap", panel titles with colons); Fig 12.1 "at the vertex B(5, 4)"; Fig 12.4 "(Topic 01)"; em dashes in Fig 12.1/12.6 sub-captions → colons.
+50. (2026-11-13) **Chapter 13 review rm1213a (Topics 01–04): standing rule, everything, optional included.** T01 MCQ 2 (a)/(d) nudges corrected (elder-girl = 1/2); T02 MCQ 4 (d) 9% explained; T02 Example 4 answered (L₁ or L₃, 6/17 each); T04 MCQ 3 (c) "forgets P(X = 4)"; binomial and variance CBSE claims softened, tags "older papers"; "5 mark" Bayes; shared nudges split; ⊥ throughout; Total Probability card gets the partition condition; errata rows 14–18 kept; Fig 13.3 moved after T04 Example 4; Fig 13.1 branches labelled A′. JEE Main binomial claims kept (not sure).
+51. (2026-11-13) **Chapter 13 review rm1213b (A–E, P): standing rule, everything, optional included.** A independent shortcut last term p′q′r (book misprint); D.2 "for n ≥ 2"; P Key observation "multi-step questions in JEE Advanced and long-answer questions in CBSE Boards"; P intro "four decades of JEE papers" (no year); E closing note softened; Trap 9 kept (true); binomials in a fraction numerator kept (check on Android); practice tags regular weight; all 9 A–E cards kept + optional additions.
+52. (2026-11-13) **Key-points helpers mk910 and mk13: standing rule, everything taken.** Ch 9 card #21 kicker italic (f, ax, by, c); Ch 10 #29 kicker with arrows (crs(va, vx) = vb); Ch 10 #34 gets the [△PBC] area legend; Ch 13 Topic 03's "negative variance means a dropped μ² square" → "usually" / "most likely" (Pro-Tip and cheat sheet). Softened syllabus remarks kept as decision 25.
+53. (2026-11-13) **Key-points helper mk1112: standing rule, everything taken.** Ch 11 cards #14–19, #22, #24 lose their closing full stop ("Vector form:" capitalised); #28 legend subscript i italic; #29–33 kickers drop the (04a)…(05c) codes (the codes stay in the running text); Ch 12 #5 gets the u ≤ v, u′ ≤ v′ legend line. Ch 11 axis letters upright kept (chapter-wide style).
+54. (2026-11-13) Ch 11 P seventh example: answer box "The distance PQ is 10√3." so the answer is not printed twice; Ch 10 C's (Unit length alone …) parenthesis unbracketed (it spanned lines).
+55. (2026-11-13) **Android check and128 (Ch 8): everything taken.** P distribution: the paragraph splitter now also protects a bold item number ("<br><b>2.", lib/prose-paragraphs.ts + test) instead of splitting the block; D step "<b>Form A(k)</b>"; Topic 03 modulus intuition gets a <br> before "So y = |x|"; Topic 02 Example 1 step ends "= 1/6."; no-break spaces in the ellipse x²/16 + y²/9, "8 · π/2" and "−3/2 x − 3". VA⃗ arrow and Pro-Tip heading wraps left.
+56. (2026-11-14) **Re-check and1278v: everything taken** (R1–R6 bracket/bar splits, C1–C4 wraps). Lone '=' leading into an answer box left as authored.
+57. (2026-11-14) **Android checks and129 (Ch 9) and and1210 (Ch 10): everything taken.** Ch 10: every short |…| (≤ 24 visible characters) has its inner spaces glued (glueShort in abs, all three files), so |a⃗ + b⃗| never splits; ∥, ∈, 2(2)(4), "Magnitudes:", tetrahedron fixes; card034 legend "[△PBC] = the area of triangle PBC (likewise [△ABC])". Ch 9: (y · IF), tan²(x + y), flip-to answer, Q · IF ×2, "+ C", "always:", "order n", "t → ∞".
+58. (2026-11-14) **Android fix round 2 (Ch 9, Ch 10): everything taken.** Ch 9 subtangent and orthogonal trajectories rewritten without a fraction in a fraction ("y · dx/dy", "replace dy/dx by −dx/dy"), on pages, cards and cheat sheet. Ch 10 every arrow (⟺ ⇔ ⟹ ⇒) glued both sides; every short |…| = value glued; r10 p004 card 4 "1/3 (2 · (b⃗ + c⃗)/2 + a⃗)" in place of the ÷ form.
+59. (2026-11-14) **Android checks and1211 (Ch 11) and and1212 (Ch 12): everything taken.** Founder item: Ch 11's Cartesian shortest-distance formula now reads d = |Δ|/|b⃗₁ × b⃗₂| with Δ = the determinant on its own line (the book prints the determinant inside the fraction; the symbol Δ is ours). Blank line between stacked fraction lines on the p020 angle card and p030 Theorem 2 (the reader's fraction leading is too small there). Limiting-conditions bullets each their own block. Ch 11 p077 answer 8 "9√5/2 · 2/(3√6)" for the ÷ form. Left: tall leading in paragraphs holding a fraction (reader behaviour, as in every chapter); Ch 12 p022's note in the drawing and the caption under it say different things, both kept.
