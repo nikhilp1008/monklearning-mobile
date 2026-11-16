@@ -77,9 +77,13 @@ Commit the chapter's files by name only (the folder often holds other unfinished
   platform-specific code, every fix so far was tuned on Android, Android breaks lines differently, and each phone falls
   back to its own fonts for missing characters (the font test models Android's Roboto). A page right on iPhone can be
   wrong on Android, and most students are on Android.
-- So: check content on iOS if that is what you have, but **any change to a shared reader file** (`components/textbook/markup.tsx`,
-  `components/textbook/*-pilot.tsx`, `lib/revise/formula-cards.ts`, `lib/revise/formula-layout.ts`, `lib/diagrams/kit.ts`)
-  gets an Android check before it is pushed: send it to Nikhil, who runs the emulator shoot.
+- So: check content on iOS if that is what you have. A chapter that only adds content (text, figures, key points) and
+  passes the checks needs no Android pass of its own: the reader has been checked on Android across 50+ chapters.
+- But **any change to a shared reader file** (`components/textbook/markup.tsx`, `components/textbook/*-pilot.tsx`,
+  `lib/revise/formula-cards.ts`, `lib/revise/formula-layout.ts`, `lib/diagrams/kit.ts`) can break every subject's
+  pages on Android, so it gets an Android check before it is pushed. Run it on your own Mac: an Android emulator from
+  Android Studio (free, it runs beside the iOS Simulator), with the shoot scripts below. Look at a few already
+  finished chapters too (a Maths fractions page, a Chemistry equations page), not only Biology.
 - Anything that looks wrong on iPhone is worth reporting too: nobody has checked the Maths fractions on iOS yet.
 
 ## The Android shoot scripts (macOS + adb)
