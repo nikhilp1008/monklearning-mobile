@@ -21,6 +21,20 @@ import { DIAGRAMS_CHEMISTRY_12_08 } from '@/lib/diagrams/chemistry-12-08';
 import { DIAGRAMS_CHEMISTRY_12_09 } from '@/lib/diagrams/chemistry-12-09';
 import { DIAGRAMS_CHEMISTRY_12_10 } from '@/lib/diagrams/chemistry-12-10';
 import { DIAGRAMS_CHEMISTRY_12_11 } from '@/lib/diagrams/chemistry-12-11';
+import { DIAGRAMS_BIOLOGY_11_01 } from '@/lib/diagrams/biology-11-01';
+import { DIAGRAMS_BIOLOGY_11_02 } from '@/lib/diagrams/biology-11-02';
+import { DIAGRAMS_BIOLOGY_11_03 } from '@/lib/diagrams/biology-11-03';
+import { DIAGRAMS_BIOLOGY_11_04 } from '@/lib/diagrams/biology-11-04';
+import { DIAGRAMS_BIOLOGY_11_05 } from '@/lib/diagrams/biology-11-05';
+import { DIAGRAMS_BIOLOGY_11_06 } from '@/lib/diagrams/biology-11-06';
+import { DIAGRAMS_BIOLOGY_11_07 } from '@/lib/diagrams/biology-11-07';
+import { DIAGRAMS_BIOLOGY_11_08 } from '@/lib/diagrams/biology-11-08';
+import { DIAGRAMS_BIOLOGY_11_09 } from '@/lib/diagrams/biology-11-09';
+import { DIAGRAMS_BIOLOGY_11_10 } from '@/lib/diagrams/biology-11-10';
+import { DIAGRAMS_BIOLOGY_11_11 } from '@/lib/diagrams/biology-11-11';
+import { DIAGRAMS_BIOLOGY_11_12 } from '@/lib/diagrams/biology-11-12';
+import { DIAGRAMS_BIOLOGY_11_13 } from '@/lib/diagrams/biology-11-13';
+import { DIAGRAMS_BIOLOGY_11_14 } from '@/lib/diagrams/biology-11-14';
 import { DIAGRAMS_MATHEMATICS_11_01 } from '@/lib/diagrams/mathematics-11-01';
 import { DIAGRAMS_MATHEMATICS_11_02 } from '@/lib/diagrams/mathematics-11-02';
 import { DIAGRAMS_MATHEMATICS_11_03 } from '@/lib/diagrams/mathematics-11-03';
@@ -154,6 +168,20 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'mathematics|12|6': DIAGRAMS_MATHEMATICS_12_06,
   'mathematics|12|7': DIAGRAMS_MATHEMATICS_12_07,
   'mathematics|12|8': DIAGRAMS_MATHEMATICS_12_08,
+  'biology|11|1': DIAGRAMS_BIOLOGY_11_01,
+  'biology|11|5': DIAGRAMS_BIOLOGY_11_05,
+  'biology|11|6': DIAGRAMS_BIOLOGY_11_06,
+  'biology|11|7': DIAGRAMS_BIOLOGY_11_07,
+  'biology|11|8': DIAGRAMS_BIOLOGY_11_08,
+  'biology|11|9': DIAGRAMS_BIOLOGY_11_09,
+  'biology|11|10': DIAGRAMS_BIOLOGY_11_10,
+  'biology|11|11': DIAGRAMS_BIOLOGY_11_11,
+  'biology|11|12': DIAGRAMS_BIOLOGY_11_12,
+  'biology|11|13': DIAGRAMS_BIOLOGY_11_13,
+  'biology|11|14': DIAGRAMS_BIOLOGY_11_14,
+  'biology|11|4': DIAGRAMS_BIOLOGY_11_04,
+  'biology|11|3': DIAGRAMS_BIOLOGY_11_03,
+  'biology|11|2': DIAGRAMS_BIOLOGY_11_02,
 };
 
 const BY_ID = new Map(Object.values(DIAGRAMS).flat().map((d) => [d.id, d]));

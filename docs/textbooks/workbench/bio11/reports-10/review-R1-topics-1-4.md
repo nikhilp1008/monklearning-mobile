@@ -1,0 +1,20 @@
+# Biology 11 Ch10 Topics 01-04 expert review (condensed). Transcription faithful; figures fine; no MCQ key changes.
+1. Anaphase chromosome number "only appears to change" (Topic01 pitfall1; MCQ1 nudge d): [NEW] "the chromosome number of the cell doubles in anaphase (46 to 92, counting each separated chromatid as a chromosome, with no new DNA made) and each daughter cell returns to 46 at telophase and cytokinesis." Nudge d: "...chromosome number of the cell doubles, but no new DNA is made...". KP already right.
+2. Telophase II defgrid: [NEW] "A nucleus re-forms at each pole of each of the two cells, so four haploid nuclei form; with cytokinesis the tally is four haploid cells."
+3. Topic03 Ex2 "15 meiotic divisions": [NEW] "How many meiocytes, each undergoing one complete meiosis, are required to produce 60 pollen grains?" answer "15 meiocytes (15 complete meioses)."
+4. "only in diploid cells" (Topic01 p.592, Topic02 limiting bullet1, MCQ4 A/R, Topic04 table row + section1): [NEW] "in diploid meiocytes (a haploid cell has no homologous pairs to synapse)"; MCQ4 A "Meiosis occurs in diploid meiocytes", R "Meiosis requires the pairing of homologous chromosomes, which a haploid cell does not have". Answer (a) stays.
+5. Topic04 Ex1(b) "exact stage": [NEW] "(b) Meiosis I, prophase I (or metaphase I). Chiasmata first become clearly visible in diplotene and stay, terminalising, through diakinesis to metaphase I... The expected answer is diplotene (first visible)." Question "the stage (the expected answer is the stage at which chiasmata first become visible)". KP topic3 mixup why: "prophase I (from diplotene, where chiasmata first show)".
+6. Topic01 Practice3 6C baseline: [NEW] "A diploid cell has a DNA content of 4C at the end of G2. What is its DNA content (i) in each daughter cell at the end of mitosis and (ii) in G1 before the next S phase? Answer: (i) 2C; (ii) 2C." (Extras F Q4 and D "8C" have same baseline issue: check.)
+7. Beyond-syllabus box: [NEW] "...go beyond the NCERT text (a little beyond what CBSE and NEET usually ask), but are worth knowing."
+8. "Meiosis happens only once in the life cycle": [NEW] "Meiosis happens at one specific point in the life cycle of a sexually reproducing organism (gamete or spore formation), in many meiocytes."
+9. Topic03 Practice5 options numerals -> letters (a)-(d); answer "(c) A is true, R is false: ...".
+10. Remove <i>and</i> in Topic04 Bookkeeping read-out.
+11. AR option (d) "both false" -> "(d) A is false, R is true" in Topic01 MCQ4; Topic02 Ex4 + MCQ4; Topic03 Ex4 + MCQ4; update nudges. Marked answers unchanged (c,a,c,a,a).
+12. Synaptonemal complex: [NEW] "(a protein structure that holds the homologues in register) begins to form"; Step2 "A protein scaffold called the synaptonemal complex zips the pair together".
+13. Mitosis "somatic cells" -> [NEW] "occurs in somatic cells, in dividing germ-line cells (before meiosis) and in the zygote, in both haploid and diploid cells" (cheat sheet, Topic04 table/section).
+14. Topic04 life cycle: add "(in a diplontic organism such as a human)"; table "In meiocytes (germ-line cells in animals; spore mother cells in plants)".
+15. "Two questions decide everything" -> "One question decides everything".
+16. Topic04 Ex2 pollen grain 1C: "each of the four haploid products (microspores that become pollen grains) has 1C".
+17. Superlatives to "a classic...": Topic01 "single most common exam trap", "busiest the cell ever gets"; Topic02 "single most examined misconception", "single most important source of recombination"; Topic03 pitfall2 "most examined distinction", "NEET exploits relentlessly", "(the most-tested counting)"; Topic04 "most-tested numerical skill".
+18. Topic02 Practice3 answer: [NEW] "(the DNA per cell is already halved, 4C to 2C; each chromosome still has two chromatids, which separate in Meiosis II)"; Topic03 "DNA halved" add "relative to the diploid parent cell in G1 (2C to 1C)".
+KP: topic3 mixup why (flag 5); topic0 mistake contradicts chapter until flag 1 fixed.
