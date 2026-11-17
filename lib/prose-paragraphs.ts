@@ -99,7 +99,8 @@ function endsSentence(text: string, end: number): boolean {
   // A list number at the start of a line — "<br>3. Charge-independent" — opens
   // an item; split there and the number stood alone on a line above its item
   // (Android check of Physics 12 Ch 13, the nuclear-force properties).
-  if (/(?:^|<br\s*\/?>\s*|\n\s*)\d{1,2}\.$/i.test(before)) return false;
+  // The same with the number in bold, "<br><b>2. Regions …" (Android check of Mathematics 12 Ch 8).
+  if (/(?:^|<br\s*\/?>\s*|\n\s*)(?:<b>\s*)?\d{1,2}\.$/i.test(before)) return false;
   return true;
 }
 
@@ -143,6 +144,9 @@ function sentences(html: string): string[] {
     }
     if (ch !== '.' && ch !== '?' && ch !== '!') continue;
     if (inBulletItem(html, i)) continue;
+    // A factorial is not an exclamation: "= n! Σ", "1/2! · C" were cut into two
+    // paragraphs at the "!" (Android check of Mathematics 11 Ch 6).
+    if (ch === '!' && /(?:[0-9)\]]|<\/i>)$/.test(html.slice(Math.max(0, i - 4), i))) continue;
 
     // Run past a closing tag or quote that belongs to this sentence.
     let j = i + 1;
@@ -152,13 +156,17 @@ function sentences(html: string): string[] {
       if (close === -1) break;
       j = close + 1;
     }
-    // A sentence break needs whitespace after it.
-    if (j >= html.length || !/\s/.test(html[j])) continue;
+    // A sentence break needs whitespace after it, and not a no-break space: that one glues
+    // what follows to the sentence (". ■", Android check of Mathematics 11 Ch 6).
+    if (j >= html.length || !/[^\S\u00a0\u202f]/.test(html[j])) continue;
     if (ch === '.' && !endsSentence(html, i + 1)) continue;
 
     // Take the whitespace with the sentence that ends here.
     let k = j;
     while (k < html.length && /\s/.test(html[k])) k++;
+    // A quoted question or exclamation inside a sentence goes on in lower case: "“Is this
+    // function onto?” is an incomplete question" (Android check of Mathematics 12 Ch 1).
+    if (ch !== '.' && /[a-z]/.test(html[k] ?? '')) continue;
     out.push(html.slice(start, k));
     start = k;
     i = k - 1;

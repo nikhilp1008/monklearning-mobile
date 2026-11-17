@@ -1,6 +1,8 @@
 import { Fragment, ReactNode, useMemo } from 'react';
 import { Platform, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
+import { gridToText } from '@/lib/grid-text';
 import { barFoot, barsOf, hasOverline, inkTop, isOverGlue, OVER, SCRIPT_TOP, spreadOverGlue } from '@/lib/overline';
 
 /**
@@ -37,11 +39,21 @@ type Node =
 /**
  * <frac><num>…</num><den>…</den></frac> is a fraction drawn stacked, the
  * numerator over the denominator with a rule between (see fracRun).
+ * <binom><num>n</num><den>r</den></binom> is a binomial coefficient, drawn
+ * the same way without the rule, in tall round brackets.
  */
-type TagName = 'b' | 'i' | 'sup' | 'sub' | 'frac' | 'num' | 'den';
+/**
+ * <bmat>, <pmat> and <vmat> are a matrix in square brackets, a matrix in round
+ * brackets and a determinant between two bars: one <r> per row, one <c> per
+ * cell, drawn as a grid (see gridRun).
+ */
+type TagName = 'b' | 'i' | 'sup' | 'sub' | 'frac' | 'binom' | 'num' | 'den' | GridName | 'r' | 'c';
+type GridName = 'bmat' | 'pmat' | 'vmat';
+const isGrid = (n: Node | undefined): n is { kind: 'tag'; name: GridName; children: Node[] } =>
+  !!n && n.kind === 'tag' && (n.name === 'bmat' || n.name === 'pmat' || n.name === 'vmat');
 type Over = { kind: 'over'; feet: number[]; onest: boolean; lean: [boolean, boolean]; children: Node[] };
 
-const TAG = /<(\/?)(b|i|sup|sub|br|frac|num|den)\s*\/?>/gi;
+const TAG = /<(\/?)(b|i|sup|sub|br|frac|binom|num|den|bmat|pmat|vmat|r|c)\s*\/?>/gi;
 
 function parse(html: string): Node[] {
   const root: Node[] = [];
@@ -161,7 +173,8 @@ function toUnicode(text: string, table: Record<string, string>): string | null {
 const EMOJI_DEFAULTING = /([\u2194-\u2199\u21A9\u21AA\u2600-\u26FF\u2B05-\u2B07\u2190-\u2193])(?!\uFE0E)/g;
 
 function asText(value: string): string {
-  return value.replace(EMOJI_DEFAULTING, '$1\uFE0E');
+  // "&nbsp;" is a no-break space, never the five letters (Android check of Mathematics 11 Ch 8).
+  return value.replace(/&nbsp;/g, '\u00a0').replace(EMOJI_DEFAULTING, '$1\uFE0E');
 }
 
 function plainText(nodes: Node[]): string {
@@ -220,10 +233,11 @@ const isItalicFamily = (f?: string) => f === STIX.italic || f === STIX.semiboldI
  * what Onest draws itself (→ − ≈ ≤ ≥) and what Roboto draws well (√ ∫ ∂ ∞ ⟨ ⟩
  * stay as they were, checked in content/textbooks/__tests__/display-fonts).
  * And △, the symmetric difference (Mathematics 11 Ch 1), and the floor and
- * ceiling brackets ⌊ ⌋ ⌈ ⌉ (Ch 2), which Onest lacks.
+ * ceiling brackets ⌊ ⌋ ⌈ ⌉ (Ch 2), which Onest lacks. And the primes ′ ″ ‴, which
+ * Onest draws as straight ticks: S″ read as S" (Ch 10).
  */
-const PILOT_MATH = /[\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3\u2308-\u230B]+/g;
-const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF]+/g;
+const PILOT_MATH = /[\u2032-\u2034\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3\u2308-\u230B\u25A1\u2640\u2642\u26A5]+/g;
+const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF\u2640\u2642\u26A5]+/g;
 /**
  * The reader's text with its maths symbols in STIX Two Math (see PILOT_MATH),
  * and an upright letter or digit carrying a vector arrow (the zero vector 0⃗)
@@ -604,6 +618,11 @@ export function readerBreaks(html: string): string {
   const toks = html
     .replace(/(<\/sub>)(?=[()[\]/])/g, `$1${HAIR}${WJ}`)
     .replace(/([([{|])(?=<i>f)/g, `$1${HAIR}${WJ}`)
+    // An opening modulus bar stays with what it encloses: Android may break after "|", leaving
+    // a lone bar at a line's end and "x − 2|" on the next (Android check of Mathematics 11 Ch 5).
+    .replace(/(^|[\s([{=−+])\|(?=[^\s|\u2060])/g, `$1|${WJ}`)
+    // A closing bar keeps its power: "|A|" then "², not |A|³" on the next line (Android check of Mathematics 12 Ch 4).
+    .replace(/\|(?=<sup>)/g, `|${WJ}`)
     .replace(/(<i>[^<]*[A-Z]<\/i>)(?=′)/g, `$1${HAIR}${WJ}`)
     // Only a maths slash: "1/N_A", "10⁻¹⁰/0.1", "[salt]/[base]"; a list of words ("linear/trigonal-planar/…") may still break.
     .replace(/([^<\s])\/(?=[\d([√]|<[isb]|[A-Za-zα-ωΑ-Ω](?![a-z]))/g, `$1/${WJ}`)
@@ -614,6 +633,12 @@ export function readerBreaks(html: string): string {
     .replace(/°(?=\()/g, `°${WJ}`)
     // A prime with its bracket: "k′" | "[A]" (Android check of Chemistry 12 Ch 3).
     .replace(/′(?=[[(])/g, `′${WJ}`)
+    // A closing bar before a glued space: Android breaks after "|" even before a no-break
+    // space, and "|r| < 1" split at the bar (Android check of Mathematics 11 Ch 8).
+    .replace(/\|(?=\u00a0)/g, `|${WJ}`)
+    // A sum or product stays with what it sums: "∑ʳ₌₁ⁿ" | "r²" left the Σ alone at a line's
+    // end (Android check of Mathematics 11 Ch 7).
+    .replace(/([∑∏](?:<su[bp]>(?:(?!<\/su[bp]>).)*<\/su[bp]>){0,2}) (?=\S)/g, '$1\u00a0')
     // A minus sign stays with the bracket it negates: "= −" | "(−30)/(−15)" (Physics 12 Ch 9).
     .replace(/−(?=[([])/g, `−${WJ}`)
     .split(' ');
@@ -735,8 +760,16 @@ function atomsOf(nodes: Node[], path: Frame[], out: Atom[], ids: { n: number }, 
     // A fraction is kept whole, its halves barred on their own: cut into runs at a
     // bar inside it, it lost its shape and z̄₁/z̄₂ read as z̄₁z̄₂ (Android check of
     // Mathematics 11 Ch 4). It stands in the line as one character, never barred.
-    else if (n.kind === 'tag' && n.name === 'frac')
+    else if (n.kind === 'tag' && (n.name === 'frac' || n.name === 'binom'))
       out.push({ ch: '\ufffc', path, bars: 0, node: { ...n, children: n.children.map((h) => (h.kind === 'tag' ? { ...h, children: overlines(h.children, look) } : h)) } });
+    // A matrix the same way: one character in the line, each cell barred on its own (Ā in a cell).
+    else if (isGrid(n))
+      out.push({
+        ch: '\ufffc',
+        path,
+        bars: 0,
+        node: { ...n, children: n.children.map((r) => (r.kind === 'tag' ? { ...r, children: r.children.map((c) => (c.kind === 'tag' ? { ...c, children: overlines(c.children, look) } : c)) } : r)) },
+      });
     else if (n.kind === 'text')
       for (const ch of n.value) {
         const bars = barsOf(ch);
@@ -939,17 +972,29 @@ const FRAC = {
   box: 0.7,
   /** How much further off the rule a half holding a fraction sits, in its own size. */
   nest: 0.45,
-  /** A block holding a fraction: its line height times this (see Markup). */
-  lead: 1.18,
+  /** How much lower a denominator holding a bracket sits in Onest, in its own size. */
+  bracketDrop: 0.12,
+  /** How much higher a numerator holding a subscript sits, in its own size. */
+  subLift: 0.22,
+  /** How much lower a denominator holding a power sits, in its own size. */
+  supDrop: 0.12,
+  /** The smallest a fraction's half is drawn, in px, however deeply it is nested. */
+  minPx: 10.5,
+  /** A block holding a fraction: its line height times this (see Markup). At 1.18 two
+   *  fractions on neighbouring lines touched once a subscripted numerator sat higher
+   *  (subLift; Android check of Mathematics 11 Ch 7–8). */
+  lead: 1.25,
   /** A block holding a fraction inside a fraction, whose halves sit further off the rule (nest). */
   leadNested: 1.5,
 } as const;
 
 /** A fraction inside a fraction's half: the block needs FRAC.leadNested. */
-const NESTED_FRAC = /<(num|den)>(?:(?!<\/\1>)[\s\S])*<frac>/i;
+const NESTED_FRAC = /<(num|den)>(?:(?!<\/\1>)[\s\S])*<(?:frac|binom)>/i;
 
-function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink) {
-  const s = size * FRAC.size;
+function fracRun(num: Node[], den: Node[], size: number, key: string, look: MarkupLook, ink: Ink, binom = false) {
+  // Each level of a fraction inside a fraction is smaller again; a continued fraction's
+  // innermost level was too small to read (Android check of Mathematics 11 Ch 8).
+  const s = Math.max(size * FRAC.size, FRAC.minPx);
   const onest = !!ink.family?.startsWith('Onest');
   const line = s * OVER_LINE;
   const base = s * overBaseline(onest);
@@ -960,21 +1005,256 @@ function fracRun(num: Node[], den: Node[], size: number, key: string, look: Mark
   // further towards the rule, so it is moved that much further off it: drawn
   // where a plain half goes, 1 over (1 − ⅓) ran its ⅓ into the rule (Android
   // sample, 2026-11-10).
-  const nested = (nodes: Node[]): boolean => nodes.some((c) => c.kind !== 'text' && c.kind !== 'br' && ((c.kind === 'tag' && c.name === 'frac') || nested(c.children)));
-  const numTop = box - size * FRAC.num - base - (nested(num) ? s * FRAC.nest : 0);
+  const nested = (nodes: Node[]): boolean => nodes.some((c) => c.kind !== 'text' && c.kind !== 'br' && ((c.kind === 'tag' && (c.name === 'frac' || c.name === 'binom')) || nested(c.children)));
+  // A drawn subscript hangs well below its half's baseline: in T_(r+1)/T_r the "r+1"
+  // sat on the rule (Android check of Mathematics 11 Ch 7), so that numerator is lifted.
+  const hasSub = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sub' || (c.name !== 'frac' && c.name !== 'binom' && hasSub(c.children))));
+  const numTop = box - size * FRAC.num - base - (nested(num) ? s * FRAC.nest : 0) - (hasSub(num) ? s * FRAC.subLift : 0);
   const ruleTop = box - size * FRAC.axis - thick / 2;
-  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0);
+  // Onest's brackets rise well above its letters: a bracket in the denominator
+  // touched the rule, r!(n − r)! (Android sample for Mathematics 11 Ch 6).
+  const tallDen = onest && /[()[\]{}|]/.test(plainText(den));
+  // A power in the denominator rises toward the rule: card "a/b^(n−1)" touched it (Mathematics 11 Ch 8).
+  const hasSup = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sup' || (c.name !== 'frac' && c.name !== 'binom' && hasSup(c.children))));
+  const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0) + (tallDen ? s * FRAC.bracketDrop : 0) + (hasSup(den) ? s * FRAC.supDrop : 0);
+  // A half is one line in a box one line high: Android can measure it a pixel
+  // short and wrap its last word onto a second line that the box hides, "f(x) −
+  // f(a)" over x − a drawn as f(x) over x − a (Android check of Mathematics 11
+  // Ch 12). A trailing hair space is that pixel of room, as on the formula cards
+  // (SLACK, components/revise/formula-card.tsx), and the simple line breaker
+  // measures and draws a line alike.
   const half = (nodes: Node[], k: string, extra?: TextStyle) => (
-    <Text style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
+    <Text textBreakStrategy="simple" style={[{ fontFamily: ink.family ?? STIX.regular, fontSize: s, lineHeight: line, color: ink.color, includeFontPadding: false, textAlign: 'center', paddingHorizontal: size * FRAC.over }, extra]}>
       {render(nodes, s, k, look, ink)}
+      {' '}
     </Text>
   );
+  // A binomial coefficient: no rule, and a bracket either side as tall as the
+  // two halves' ink, from the top of the numerator to the foot of the denominator.
+  const bracket = binom ? { w: size * BINOM.width, top: numTop + base - s * BINOM.over, bottom: denTop + base + s * BINOM.under } : null;
   return (
-    <View key={key} style={{ height: box, marginHorizontal: size * FRAC.side }}>
-      <View style={{ marginTop: numTop, alignItems: 'stretch' }}>
+    <View key={key} style={{ height: box, marginHorizontal: size * (FRAC.side + (binom ? BINOM.side : 0)) }}>
+      <View style={{ marginTop: numTop, alignItems: 'stretch', marginHorizontal: bracket ? bracket.w + size * BINOM.gap : 0 }}>
         {half(num, `${key}.n`)}
-        <View style={{ height: thick, marginTop: ruleTop - (numTop + line), backgroundColor: ink.color ?? '#000' }} />
+        <View style={{ height: thick, marginTop: ruleTop - (numTop + line), backgroundColor: binom ? 'transparent' : (ink.color ?? '#000') }} />
         {half(den, `${key}.d`, { marginTop: denTop - (ruleTop + thick) })}
+      </View>
+      {bracket && ([0, 1] as const).map((side) => brackets(side, bracket, size, box, ink))}
+    </View>
+  );
+}
+
+/**
+ * A binomial coefficient's brackets (<binom>), drawn: no font has a round
+ * bracket that grows to the height of a stack. Each is a crescent, thickest
+ * at its middle, BINOM.width wide. Its View ends on the baseline and is moved
+ * down by a transform, which Android draws in full; laid out below the
+ * baseline it would be cut there, as a barred run was (see overRun).
+ */
+const BINOM = {
+  /** Each bracket's width, in the line's size. */
+  width: 0.3,
+  /** The gap between a bracket and the stack. */
+  gap: 0.06,
+  /** Room outside the brackets, on top of a fraction's (FRAC.side): (5 2)(4 2) touched. */
+  side: 0.04,
+  /** How far each reaches past the halves' ink: above the numerator's baseline, below the denominator's (in their size). */
+  over: 0.8,
+  under: 0.28,
+  /** The stroke at its thickest: at 0.06 it read as a hairline beside the digits. */
+  thick: 0.085,
+} as const;
+
+/** A round bracket's crescent, w wide and h high, t thick at its middle; side 0 opens, 1 closes. */
+function crescent(side: 0 | 1, w: number, h: number, t: number): string {
+  // The outer curve's middle 0.12 of the width in from the outside, the inner one t further in.
+  const outer = -0.76 * w;
+  const inner = 2 * (0.12 * w + t) - w;
+  const x = (v: number) => (side === 0 ? v : w - v);
+  return `M${x(w)} 0 Q${x(outer)} ${h / 2} ${x(w)} ${h} Q${x(inner)} ${h / 2} ${x(w)} 0 Z`;
+}
+
+function brackets(side: 0 | 1, b: { w: number; top: number; bottom: number }, size: number, box: number, ink: Ink) {
+  const h = b.bottom - b.top;
+  const w = b.w;
+  const d = crescent(side, w, h, size * BINOM.thick);
+  return (
+    <View
+      key={side}
+      style={{ position: 'absolute', [side === 0 ? 'left' : 'right']: 0, top: box - h, width: w, height: h, transform: [{ translateY: b.bottom - box }] }}
+    >
+      <Svg width={w} height={h}>
+        <Path d={d} fill={(ink.color as string) ?? '#000'} />
+      </Svg>
+    </View>
+  );
+}
+
+/**
+ * A MATRIX OR A DETERMINANT, DRAWN AS A GRID: <bmat> in square brackets,
+ * <pmat> in round ones, <vmat> between two bars, one <r> per row and one <c>
+ * per cell, as the book prints them (Mathematics 12 Ch 3–4, then Ch 10–11).
+ * Never [1 2; 3 4] on one line, and never the bracket pieces ⎡ ⎢ ⎣ stacked
+ * with <br>: no font draws a bracket that grows to the height of a grid.
+ *
+ * The cells are set at the line's own size, as printed maths sets a matrix
+ * even inside a line of text (a fraction's halves are smaller, a matrix's
+ * entries are not). Every column is as wide as its widest cell, each cell
+ * centred in it; every row is GRID.row of the size high, or GRID.fracRow when
+ * any cell holds a fraction, the same for every row so the rows are evenly
+ * spaced; and the brackets or bars are as tall as the grid.
+ *
+ * Placed the way overRun and fracRun are (see there): on Android an inline
+ * View is a placeholder rising from the baseline, one taller than the line's
+ * ascent pushes the line's baseline down, and what is laid out below the
+ * baseline is cut there. So the View in the line is FRAC.box high, its bottom
+ * on the baseline, which no font's ascent is short of, and the baseline never
+ * moves. The grid inside it is laid out ending on that bottom (a negative
+ * margin, drawn above the box as a numerator is) and then moved down by a
+ * transform, which Android draws in full, until its middle is gridCentre()
+ * above the baseline: the height of the middle of a line of text in the same
+ * face. So a one-row matrix's entries sit on the line's own baseline, a
+ * three-row grid's middle row does too, and a two-row grid stands evenly about
+ * the middle of the text beside it, as printed.
+ *
+ * The line it sits on has to be as tall as the grid (see gridLine and Markup):
+ * a line's height is its lineHeight on both platforms, whatever is in it.
+ */
+const GRID = {
+  /** A row's height, in the cells' size, when no cell holds a fraction. */
+  row: 1.35,
+  /** A row's height when a cell holds a fraction: a fraction's ink runs about
+   *  1.06 em above its baseline and 0.6 em below (FRAC), 1.66 em, plus the room
+   *  a plain row keeps between its ink and the next. */
+  fracRow: 2.1,
+  /** A row's height when a cell holds a fraction inside a fraction (FRAC.nest). */
+  nestedRow: 2.7,
+  /** The space between two columns: printed matrices keep about an em. */
+  colGap: 0.8,
+  /** The space between a bracket or bar and the cells: at 0.14 a "−1" touched its bracket (Android check of Mathematics 12 Ch 3). */
+  pad: 0.22,
+  /** Room outside the brackets, either side of the whole grid: at 0.1 the two grids of a product touched (same check). */
+  side: 0.2,
+  /** How much shorter than the grid a bracket is, each end: the rows' own room above and below their ink. */
+  inset: 0.1,
+  /** A square bracket's width, its arms included, and its stroke. STIX's "[" is 0.333 em with a 0.06 stem. */
+  square: 0.24,
+  thick: 0.065,
+  /** A determinant's bar: one thin rule. */
+  bar: 0.06,
+  /** A round bracket's width for one row, and how much wider it is for each row more (a tall crescent the width of a short one reads as a line). */
+  round: 0.3,
+  roundPerRow: 0.04,
+  /** The room kept in the line above and below a grid of two rows or more, in the line's size (see gridLine). */
+  room: 0.12,
+} as const;
+
+/** The grid's rows, each its cells' contents. Anything between the tags (the spaces a writer leaves) is dropped. */
+function gridRows(node: Node): Node[][][] {
+  if (node.kind !== 'tag') return [];
+  return node.children.filter((r) => r.kind === 'tag' && r.name === 'r').map((r) => (r.kind === 'tag' ? r.children.filter((c) => c.kind === 'tag' && c.name === 'c').map((c) => (c.kind === 'tag' ? c.children : [])) : []));
+}
+
+/** The tags inside some nodes, at any depth, that pass `is`. */
+function deep(nodes: Node[], is: (n: Node) => boolean): boolean {
+  return nodes.some((n) => is(n) || ((n.kind === 'tag' || n.kind === 'over') && deep(n.children, is)));
+}
+const isStack = (n: Node) => n.kind === 'tag' && (n.name === 'frac' || n.name === 'binom');
+
+/** How far the middle of a line of text stands above its baseline: (ascent − descent) / 2 of its face (OVER_FACE; iOS counts STIX's line gap, see overBaseline). */
+function gridCentre(size: number, onest: boolean): number {
+  const f = onest ? OVER_FACE.onest : OVER_FACE.stix;
+  return (size * (f.ascent - f.descent + (Platform.OS === 'ios' ? f.gap : 0))) / 2;
+}
+
+/** A grid's row height and whole height, at the line's `size`. */
+function gridBox(rows: Node[][][], size: number): { pitch: number; height: number } {
+  let pitch = size * GRID.row;
+  for (const cell of rows.flat()) {
+    // A grid inside a cell (a block matrix) makes its row as tall as itself and its room.
+    for (const n of cell) if (isGrid(n)) pitch = Math.max(pitch, gridBox(gridRows(n), size).height + 2 * size * GRID.room);
+    if (deep(cell, (n) => isStack(n) && n.kind === 'tag' && n.children.some((h) => h.kind === 'tag' && deep(h.children, isStack)))) pitch = Math.max(pitch, size * GRID.nestedRow);
+    else if (deep(cell, isStack)) pitch = Math.max(pitch, size * GRID.fracRow);
+  }
+  return { pitch, height: pitch * Math.max(1, rows.length) };
+}
+
+/**
+ * The line height a paragraph holding a grid needs: the grid's height and
+ * GRID.room above and below it, or 0 when it holds none. A line sets its text
+ * in the middle of its height (Android's CustomLineHeightSpan, iOS's baseline
+ * offset), and the grid's middle is that same middle (gridCentre), so a line
+ * this tall holds the grid with the same room either side.
+ */
+function gridLine(nodes: Node[], size: number): number {
+  let need = 0;
+  for (const n of nodes) {
+    // A one-row grid's ink is a line's ink, and its brackets reach only a little past it: it
+    // keeps no room of its own, so a row vector in prose leaves its line as it was.
+    if (isGrid(n)) need = Math.max(need, gridBox(gridRows(n), size).height + (gridRows(n).length > 1 ? 2 * size * GRID.room : 0));
+    else if (n.kind === 'tag' || n.kind === 'over') need = Math.max(need, gridLine(n.children, size));
+  }
+  return need;
+}
+
+/** A bracket or bar, w wide and h high, drawn: square from three strokes, round as a binomial's crescent, a bar as one rule. */
+function fence(kind: GridName, side: 0 | 1, w: number, h: number, size: number, ink: Ink, key: string) {
+  const color = (ink.color as string) ?? '#000';
+  if (kind === 'vmat') return <View key={key} style={{ width: w, height: h, backgroundColor: color }} />;
+  if (kind === 'pmat')
+    return (
+      <View key={key} style={{ width: w, height: h }}>
+        <Svg width={w} height={h}>
+          <Path d={crescent(side, w, h, size * BINOM.thick)} fill={color} />
+        </Svg>
+      </View>
+    );
+  const t = Math.max(1, size * GRID.thick);
+  return (
+    <View
+      key={key}
+      style={{ width: w, height: h, borderColor: color, borderTopWidth: t, borderBottomWidth: t, [side === 0 ? 'borderLeftWidth' : 'borderRightWidth']: t }}
+    />
+  );
+}
+
+function gridRun(node: { kind: 'tag'; name: GridName; children: Node[] }, size: number, key: string, look: MarkupLook, ink: Ink) {
+  const rows = gridRows(node);
+  const cols = Math.max(0, ...rows.map((r) => r.length));
+  const { pitch, height } = gridBox(rows, size);
+  const onest = !!ink.family?.startsWith('Onest');
+  const box = size * FRAC.box;
+  const tall = height - 2 * size * GRID.inset;
+  const w = node.name === 'vmat' ? Math.max(1, size * GRID.bar) : node.name === 'pmat' ? size * (GRID.round + GRID.roundPerRow * (rows.length - 1)) : size * GRID.square;
+  // A cell is one line in a box one row high: Android can measure it a pixel
+  // short and wrap its last word out of sight, as it did a fraction's half
+  // (fracRun), so it ends on the same hair space and uses the simple line breaker.
+  const cell = (nodes: Node[], k: string) => (
+    <View key={k} style={{ height: pitch, justifyContent: 'center' }}>
+      {/* One line, never wrapped: measured a pixel short, a cell wrapped its last glyph onto a hidden
+          second line ("x₂ y 1" for "x₂ y₂ 1"; Android check of Mathematics 12 Ch 4). The thin space
+          at its end is the slack, and the one clipped if anything is. */}
+      <Text textBreakStrategy="simple" numberOfLines={1} ellipsizeMode="clip" style={{ fontFamily: ink.family ?? STIX.regular, fontSize: size, lineHeight: pitch, color: ink.color, includeFontPadding: false, textAlign: 'center' }}>
+        {render(nodes, size, k, look, ink)}
+        {THIN}
+      </Text>
+    </View>
+  );
+  return (
+    // The room either side is padding, inside the View: Android drops an inline View's margins,
+    // so two grids of a product touched at 0.1 and at 0.2 alike (Android check of Mathematics 12 Ch 3).
+    <View key={key} style={{ height: box, paddingHorizontal: size * GRID.side }}>
+      {/* Laid out ending on the baseline, then moved down by a transform (see above). */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', height, marginTop: box - height, transform: [{ translateY: height / 2 - gridCentre(size, onest) }] }}>
+        {fence(node.name, 0, w, tall, size, ink, 'l')}
+        <View style={{ flexDirection: 'row', marginHorizontal: size * GRID.pad }}>
+          {Array.from({ length: cols }, (_, j) => (
+            <View key={j} style={{ alignItems: 'center', marginLeft: j > 0 ? size * GRID.colGap : 0 }}>
+              {rows.map((r, i) => cell(r[j] ?? [], `${key}.${i}.${j}`))}
+            </View>
+          ))}
+        </View>
+        {fence(node.name, 1, w, tall, size, ink, 'r')}
       </View>
     </View>
   );
@@ -990,10 +1270,12 @@ function fracToText(html: string): string {
     const plain = t.replace(/<\/?[a-zA-Z][^>]*>/g, '').trim();
     return /[\s+−\-×·/=]/.test(plain) ? `(${plain})` : plain;
   };
-  let out = html;
+  // A binomial coefficient as text reads as its count: "C(n, r)".
+  let out = html.replace(/<binom>\s*<num>((?:(?!<\/?num>).)*)<\/num>\s*<den>((?:(?!<\/?den>).)*)<\/den>\s*<\/binom>/gs, (_, n: string, r: string) => `C(${n}, ${r})`);
   // Innermost first, so a fraction inside a half is text by the time its parent is read.
   for (let m = FRAC_TAG.exec(out); m; m = FRAC_TAG.exec(out)) out = out.slice(0, m.index) + `${wrap(m[1])}/${wrap(m[2])}` + out.slice(m.index + m[0].length);
-  return out;
+  // A matrix after its cells' fractions: "[1/2 0; 0 1]".
+  return gridToText(out);
 }
 
 function render(nodes: Node[], size: number, keyPrefix: string, look: MarkupLook, ink: Ink = {}): ReactNode[] {
@@ -1032,7 +1314,7 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
   }
   if (node.kind === 'br') return <Fragment key={key}>{'\n'}</Fragment>;
   if (node.kind === 'over') return overRun(node, size, key, look, ink);
-  if (node.name === 'frac') {
+  if (node.name === 'frac' || node.name === 'binom') {
     const num = node.children.find((c) => c.kind === 'tag' && c.name === 'num');
     const den = node.children.find((c) => c.kind === 'tag' && c.name === 'den');
     // Malformed: its text as it stands, never a lost numerator.
@@ -1041,11 +1323,25 @@ function renderNode(node: Node, i: number, size: number, keyPrefix: string, look
     return (
       <Fragment key={key}>
         {WJ}
-        {fracRun(num.children, den.children, size, `${key}.f`, look, ink)}
+        {fracRun(num.children, den.children, size, `${key}.f`, look, ink, node.name === 'binom')}
         {WJ}
       </Fragment>
     );
   }
+  if (node.name === 'bmat' || node.name === 'pmat' || node.name === 'vmat') {
+    // Malformed (no <r>): its text as it stands, never a lost row.
+    if (!gridRows(node).length) return <Fragment key={key}>{render(node.children, size, key, look, ink)}</Fragment>;
+    // Joined on both sides like a fraction (see WJ): "A =" may break before it, "," and "ᵀ" stay with it.
+    return (
+      <Fragment key={key}>
+        {WJ}
+        {gridRun({ ...node, name: node.name }, size, `${key}.g`, look, ink)}
+        {WJ}
+      </Fragment>
+    );
+  }
+  // A row or cell outside a matrix: its text, a space after it.
+  if (node.name === 'r' || node.name === 'c') return <Fragment key={key}>{render(node.children, size, key, look, ink)} </Fragment>;
   // A half outside a fraction: its text, with "/" between the two (see fracRun).
   if (node.name === 'num' || node.name === 'den') return <Fragment key={key}>{render(node.children, size, key, look, ink)}</Fragment>;
 
@@ -1135,11 +1431,46 @@ export function Markup({ html, size, style, numberOfLines, look = 'current' }: M
   // block that holds a fraction is spaced FRAC.lead times wider, all of it.
   // A fraction inside a fraction is taller still and ran into the lines above
   // and below ("tan 2x = (2/3)/(8/9)"; Android check of Mathematics 11 Ch 3).
-  const leadBy = /<frac>/i.test(html) ? (NESTED_FRAC.test(html) ? FRAC.leadNested : FRAC.lead) : 1;
-  const lead = flat.lineHeight && leadBy !== 1 ? { lineHeight: flat.lineHeight * leadBy } : null;
+  const leadBy = /<(?:frac|binom)>/i.test(html) ? (NESTED_FRAC.test(html) ? FRAC.leadNested : FRAC.lead) : 1;
+  const ink = { family: flat.fontFamily, color: flat.color };
+  const line = flat.lineHeight ? flat.lineHeight * leadBy : 0;
+  // A paragraph (the text between two <br>) holding a matrix is as tall as
+  // the matrix needs (gridLine). A paragraph, not a line: on Android every
+  // line of a paragraph takes the lineHeight of every run in it (StaticLayout
+  // applies each LineHeightSpan touching the paragraph to all of its lines, the
+  // last applied winning), so the whole paragraph, its closing "\n" included,
+  // is wrapped in one Text of that lineHeight and the paragraphs around it
+  // keep theirs. Hence a long line holding a 3 × 3 grid gets <br> either side
+  // (the authoring brief). Not on iOS: there one baseline offset, worked out
+  // from the tallest lineHeight anywhere in the text, is applied to every line
+  // (RCTApplyBaselineOffset), so lines of two heights would set their text at
+  // two wrong heights; the whole block takes the tallest instead.
+  const paras = useMemo(() => {
+    const out: { nodes: Node[]; need: number }[] = [{ nodes: [], need: 0 }];
+    for (const n of nodes) {
+      out[out.length - 1].nodes.push(n);
+      if (n.kind === 'br') out.push({ nodes: [], need: 0 });
+    }
+    out.forEach((p) => (p.need = gridLine(p.nodes, size)));
+    return out;
+  }, [nodes, size]);
+  const tallest = Math.max(0, ...paras.map((p) => p.need));
+  const grown = tallest > line;
+  const height = grown && Platform.OS === 'ios' ? tallest : line;
+  const lead = height && height !== flat.lineHeight ? { lineHeight: height } : null;
   return (
     <Text style={lead ? [style, lead] : style} numberOfLines={numberOfLines}>
-      {render(nodes, size, 'm', look, { family: flat.fontFamily, color: flat.color })}
+      {grown && Platform.OS !== 'ios'
+        ? paras.map((p, k) =>
+            p.need > line ? (
+              <Text key={k} style={{ lineHeight: p.need }}>
+                {render(p.nodes, size, `m${k}`, look, ink)}
+              </Text>
+            ) : (
+              <Fragment key={k}>{render(p.nodes, size, `m${k}`, look, ink)}</Fragment>
+            )
+          )
+        : render(nodes, size, 'm', look, ink)}
     </Text>
   );
 }

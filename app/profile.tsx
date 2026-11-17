@@ -335,8 +335,8 @@ function SkyBand({
  * Drona's deep ember, ink on Vedha's bright marigold.
  */
 const THUMB_FILL: Record<TeacherId, [string, string]> = {
-  drona: ['#EE8A45', START_ARROW.drona],
-  vedha: ['#F4BE55', START_ARROW.vedha],
+  drona: ['#FB9147', START_ARROW.drona],
+  vedha: ['#FFC759', START_ARROW.vedha],
 };
 const THUMB_INK: Record<TeacherId, string> = { drona: colors.paper, vedha: colors.ink };
 

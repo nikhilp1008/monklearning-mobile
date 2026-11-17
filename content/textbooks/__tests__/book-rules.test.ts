@@ -13,7 +13,8 @@ import { BOOK_CHAPTERS } from '../test-support/book-list';
 import { REF, width } from '../test-support/measure';
 
 /** The text as read: only the reader's own tags are dropped (a "<" in "√(2gR) < u" is text). */
-const plain = (h: string) => h.replace(/<\/?(?:b|i|sup|sub|frac|num|den)>|<br\s*\/?>/gi, (t) => (/br/i.test(t) ? '\n' : '')).replace(/&nbsp;|\u00a0/g, ' ');
+/** A matrix's cells and rows read apart: "1 2 3 −1", not "123−1". */
+const plain = (h: string) => h.replace(/<\/?(?:b|i|sup|sub|frac|binom|num|den|bmat|pmat|vmat|r|c)>|<br\s*\/?>/gi, (t) => (/br/i.test(t) ? '\n' : /^<\/[rc]>$/i.test(t) ? ' ' : '')).replace(/&nbsp;|\u00a0/g, ' ');
 
 /** Unicode letters set as raised or lowered (ᵢ ₙ ˣ): the phone's fonts lack most of them. */
 const SCRIPT_LETTERS = /[ᴬ-ᵪₐ-ₜʰ-ʸˠ-ˤⁱⁿ]/;
@@ -101,16 +102,17 @@ describe('the text of every book chapter', () => {
   // founder's rule, 2026-11-10): <frac><num>a</num><den>b</den></frac>,
   // drawn by components/textbook/markup.tsx. One on a line, "1/2" or ½, is a slip.
   it('writes a fraction as <frac><num>…</num><den>…</den></frac>, whole', () => {
-    const SHAPE = /<frac><num>(?:(?!<\/?frac>|<\/?num>|<\/?den>)[\s\S])*<\/num><den>(?:(?!<\/?frac>|<\/?num>|<\/?den>)[\s\S])*<\/den><\/frac>/;
+    // A binomial coefficient (<binom>, the same halves without the rule) is checked the same way.
+    const SHAPE = /<(frac|binom)><num>(?:(?!<\/?(?:frac|binom)>|<\/?num>|<\/?den>)[\s\S])*<\/num><den>(?:(?!<\/?(?:frac|binom)>|<\/?num>|<\/?den>)[\s\S])*<\/den><\/\1>/;
     expect(
       breaches(({ block }, say) => {
         if (!block) return;
         for (const h of htmls(block)) {
-          if (!/<\/?(?:frac|num|den)>/.test(h)) continue;
+          if (!/<\/?(?:frac|binom|num|den)>/.test(h)) continue;
           // Innermost first: what is left once every well-formed fraction is gone holds no fraction tag.
           let rest = h;
           for (let m = SHAPE.exec(rest); m; m = SHAPE.exec(rest)) rest = rest.slice(0, m.index) + 'F' + rest.slice(m.index + m[0].length);
-          if (/<\/?(?:frac|num|den)>/.test(rest)) say(`malformed fraction: ${clip(h)}`);
+          if (/<\/?(?:frac|binom|num|den)>/.test(rest)) say(`malformed fraction: ${clip(h)}`);
           // Inside a raised or lowered run a stack is too small to read: x<sup>1/2</sup> keeps its slash.
           if (/<su[bp]>(?:(?!<\/su[bp]>).)*<frac>/.test(h)) say(`fraction inside a script: ${clip(plain(h))}`);
         }
@@ -118,21 +120,59 @@ describe('the text of every book chapter', () => {
     ).toEqual([]);
   });
 
-  it('in Mathematics, sets no fraction on one line (1/2, π/4, (a + b)/2, ½)', () => {
+  // A MATRIX IS DRAWN AS A GRID (components/textbook/markup.tsx gridRun):
+  // <bmat><r><c>1</c><c>2</c></r><r><c>3</c><c>4</c></r></bmat>, every row its
+  // cells, nothing but rows in a matrix and cells in a row. A grid drawn with the
+  // bracket pieces ⎡ ⎢ ⎣ or written "[1 2; 3 4]" is a slip (the authoring brief).
+  it('writes a matrix or determinant as <bmat>/<pmat>/<vmat> rows of cells, whole', () => {
+    const GRID = /<(bmat|pmat|vmat)>((?:(?!<\/?(?:bmat|pmat|vmat)>)[\s\S])*)<\/\1>/;
+    expect(
+      breaches(({ block }, say) => {
+        if (!block) return;
+        for (const h of htmls(block)) {
+          if (/[⎡⎢⎣⎤⎥⎦⎛⎜⎝⎞⎟⎠]/.test(h)) say(`bracket pieces instead of a grid: ${clip(plain(h))}`);
+          if (!/<\/?(?:bmat|pmat|vmat|r|c)>/.test(h)) continue;
+          let rest = h;
+          for (let m = GRID.exec(rest); m; m = GRID.exec(rest)) {
+            const rows = m[2].replace(/\s+/g, '');
+            const cells = [...m[2].matchAll(/<r>([\s\S]*?)<\/r>/g)].map((r) => r[1]);
+            // Only rows in the grid, only cells in each row.
+            if (!/^(?:<r>(?:<c>(?:(?!<\/?[rc]>).)*<\/c>)+<\/r>)+$/s.test(rows) || cells.some((r) => r.replace(/<c>[\s\S]*?<\/c>/g, '').trim()))
+              say(`malformed matrix: ${clip(m[0])}`);
+            rest = rest.slice(0, m.index) + 'M' + rest.slice(m.index + m[0].length);
+          }
+          if (/<\/?(?:bmat|pmat|vmat|r|c)>/.test(rest)) say(`a row or cell outside a matrix, or a matrix not closed: ${clip(h)}`);
+          // Inside a raised or lowered run a grid is too small to read.
+          if (/<su[bp]>(?:(?!<\/su[bp]>).)*<(?:bmat|pmat|vmat)>/.test(h)) say(`matrix inside a script: ${clip(plain(h))}`);
+        }
+      }),
+    ).toEqual([]);
+  });
+
+  // The subjects that follow the founder's later house rules: every fraction stacked, no em dashes.
+  // Biology joins Mathematics from its first chapter (Biology 11 Ch 1).
+  const HOUSE_STYLE = new Set(['Mathematics', 'Biology']);
+  const HOUSE_KEYS = ['mathematics|', 'biology|'];
+
+  it('in Mathematics and Biology, sets no fraction on one line (1/2, π/4, (a + b)/2, ½)', () => {
     // A slash with a number, a letter in italics, a bracket, π or a root on both sides,
     // outside a raised run. "and/or", "km/h" and "A/B testing" are words, not fractions.
     const SIDE = String.raw`(?:\d|<\/i>|\)|π|√\d)`;
     const AFTER = String.raw`(?:\d|<i>|\(|π|√)`;
     const SLASH = new RegExp(`${SIDE}\\s?\\/\\s?${AFTER}`);
+    // Biology slashes words, not only numbers: a pair of genus names (<i>Amoeba</i>/<i>Entamoeba</i>), option letters
+    // ("(c)/(d)") and "and/or" are not fractions. For Biology only a number over a number or over a bracket or root
+    // is a one-line fraction.
+    const BIO_SLASH = /\d\s?\/\s?(?:\d|\(|π|√)|(?:\d|π|√\d)\s?\/\s?<i>/;
     // Not fractions, written as the book writes them: a cricket score, runs for wickets
     // (Mathematics 11 Ch 2 Topic 01, "180/4").
     const NOT_FRACTIONS = /“180\/4”/g;
     expect(
       breaches(({ chapter, block }, say) => {
-        if (!block || chapter.subject !== 'Mathematics') return;
+        if (!block || !HOUSE_STYLE.has(chapter.subject)) return;
         for (const h of htmls(block)) {
           const outside = h.replace(/<su([bp])>(?:(?!<\/su\1>).)*<\/su\1>/g, '').replace(NOT_FRACTIONS, '');
-          if (SLASH.test(outside) || /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/.test(outside)) say(clip(plain(h)));
+          if ((chapter.subject === 'Biology' ? BIO_SLASH : SLASH).test(outside) || /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/.test(outside)) say(clip(plain(h)));
         }
       }),
     ).toEqual([]);
@@ -141,23 +181,23 @@ describe('the text of every book chapter', () => {
   // NO EM DASHES IN MATHEMATICS (the founder, 2026-11-10: they read as
   // machine-written). Each is rewritten as a colon, commas, brackets or a full
   // stop; ranges keep their en dash (–). Physics and Chemistry later.
-  it('in Mathematics, writes no em dash (—)', () => {
+  it('in Mathematics and Biology, writes no em dash (—)', () => {
     expect(
       breaches(({ chapter, topic, block }, say) => {
-        if (chapter.subject !== 'Mathematics') return;
+        if (!HOUSE_STYLE.has(chapter.subject)) return;
         const all = block ? htmls(block) : [topic.title, topic.kalam ?? ''];
         for (const h of all) if (h.includes('—')) say(clip(plain(h)));
       }),
     ).toEqual([]);
   });
 
-  it('in Mathematics, writes no em dash in key points or figure captions and labels either', () => {
+  it('in Mathematics and Biology, writes no em dash in key points or figure captions and labels either', () => {
     const bad: string[] = [];
     for (const [key, points] of Object.entries(KEY_POINTS))
-      if (key.startsWith('mathematics|'))
+      if (HOUSE_KEYS.some((k) => key.startsWith(k)))
         for (const p of points) for (const v of [p.q, p.a, p.why, p.say]) if (v?.includes('—')) bad.push(`${key} key point: ${clip(plain(v))}`);
     for (const [key, figs] of Object.entries(DIAGRAMS))
-      if (key.startsWith('mathematics|'))
+      if (HOUSE_KEYS.some((k) => key.startsWith(k)))
         for (const f of figs) {
           const texts = [f.name, ...f.cases.flatMap((c) => [c.chip, c.cap])];
           for (const c of f.cases) for (const t of f.draw(c).texts) texts.push(t.html);

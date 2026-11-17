@@ -68,8 +68,11 @@ import Animated, { useAnimatedStyle, useDerivedValue, type SharedValue } from 'r
  * nothing on iOS might not do nothing on Android, and a header that is grainier
  * on one platform than the other is a worse outcome than no layer at all.
  *
- * 0.9 is ten per cent off the design's amount — the sky read a touch heavy
- * against the rest of the page at full strength.
+ * 0.9 was ten per cent off the design's amount — the sky read a touch heavy
+ * against the rest of the page at full strength. 0.6 since 12 Nov 2026
+ * (Nikhil picked it from 0.9 / 0.6 / 0.4 / 0.2): smoother, with enough grain
+ * left to hide banding in the dark top on cheap screens. The class ticket,
+ * the Select Teacher field and the dock light were lowered by the same third.
  *
  * IT IS THE DEFAULT RATHER THAN A PROP THE HEADER PASSES, because this sky is
  * drawn three times on Home: the header itself, the strip pinned behind the
@@ -77,7 +80,7 @@ import Animated, { useAnimatedStyle, useDerivedValue, type SharedValue } from 'r
  * have to be the same picture — a seam appears the moment one is grainier
  * than another — so the amount belongs to the sky, not to any one caller.
  */
-export const SKY_GRAIN = 0.9;
+export const SKY_GRAIN = 0.6;
 
 /** What shows if the shader will not compile. Named in the handoff's spec. */
 export const SKY_FALLBACK = '#2E2A24';
@@ -186,7 +189,10 @@ const SKY_UNIFORMS = {
   uWarp: 0,
   // 0 everywhere but the class ticket; see NightSky's `lift`.
   uLift: 0,
-  uB: 0.3,
+  // Where the light meets the dark, from the bottom. 0.4 since 12 Nov 2026
+  // (Nikhil; was 0.3): at 0.3 the cream Start key on Home sat right on top of
+  // the glow and hid about three quarters of it.
+  uB: 0.4,
   uSoft: 0.2,
   uDark: 0.9,
   uHotA: 0.25,

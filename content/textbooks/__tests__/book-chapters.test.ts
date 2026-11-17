@@ -46,12 +46,46 @@ import chem12ch6 from '@/content/textbooks/chem-12-06-haloalkanes-haloarenes';
 import chem12ch7 from '@/content/textbooks/chem-12-07-alcohols-phenols-ethers';
 import chem12ch8 from '@/content/textbooks/chem-12-08-aldehydes-ketones-carboxylic-acids';
 import chem12ch9 from '@/content/textbooks/chem-12-09-amines';
+import bio11ch1 from '@/content/textbooks/bio-11-01-living-world';
+import bio11ch14 from '@/content/textbooks/bio-11-14-breathing-gas-exchange';
+import bio11ch13 from '@/content/textbooks/bio-11-13-plant-growth';
+import bio11ch12 from '@/content/textbooks/bio-11-12-respiration-plants';
+import bio11ch11 from '@/content/textbooks/bio-11-11-photosynthesis';
+import bio11ch10 from '@/content/textbooks/bio-11-10-cell-cycle-division';
+import bio11ch9 from '@/content/textbooks/bio-11-09-biomolecules';
+import bio11ch8 from '@/content/textbooks/bio-11-08-cell-unit-of-life';
+import bio11ch7 from '@/content/textbooks/bio-11-07-structural-organisation-animals';
+import bio11ch6 from '@/content/textbooks/bio-11-06-anatomy-flowering-plants';
+import bio11ch5 from '@/content/textbooks/bio-11-05-morphology-flowering-plants';
+import bio11ch4 from '@/content/textbooks/bio-11-04-animal-kingdom';
+import bio11ch3 from '@/content/textbooks/bio-11-03-plant-kingdom';
+import bio11ch2 from '@/content/textbooks/bio-11-02-biological-classification';
 import chem12ch10 from '@/content/textbooks/chem-12-10-biomolecules';
 import chem12ch11 from '@/content/textbooks/chem-12-11-p-block';
 import math11ch1 from '@/content/textbooks/math-11-01-sets';
 import math11ch2 from '@/content/textbooks/math-11-02-relations';
 import math11ch3 from '@/content/textbooks/math-11-03-trigonometry';
 import math11ch4 from '@/content/textbooks/math-11-04-complex';
+import math11ch5 from '@/content/textbooks/math-11-05-inequalities';
+import math11ch6 from '@/content/textbooks/math-11-06-permutations';
+import math11ch7 from '@/content/textbooks/math-11-07-binomial';
+import math11ch8 from '@/content/textbooks/math-11-08-sequences';
+import math11ch9 from '@/content/textbooks/math-11-09-straight-lines';
+import math11ch10 from '@/content/textbooks/math-11-10-conics';
+import math11ch11 from '@/content/textbooks/math-11-11-three-d';
+import math11ch12 from '@/content/textbooks/math-11-12-limits';
+import math11ch13 from '@/content/textbooks/math-11-13-statistics';
+import math11ch14 from '@/content/textbooks/math-11-14-probability';
+import math12ch1 from '@/content/textbooks/math-12-01-relations';
+import math12ch2 from '@/content/textbooks/math-12-02-inverse-trig';
+import math12ch3 from '@/content/textbooks/math-12-03-matrices';
+import math12ch4 from '@/content/textbooks/math-12-04-determinants';
+import math12ch5 from '@/content/textbooks/math-12-05-continuity';
+import math12ch6 from '@/content/textbooks/math-12-06-derivatives-applications';
+import math12ch7 from '@/content/textbooks/math-12-07-integrals';
+import math12ch8 from '@/content/textbooks/math-12-08-integrals-applications';
+import math12ch9 from '@/content/textbooks/math-12-09-differential-equations';
+import math12ch10 from '@/content/textbooks/math-12-10-vector-algebra';
 import { DIAGRAMS, diagramById } from '@/lib/diagrams';
 import { KEY_POINTS } from '@/lib/revise/keypoints';
 import type { Chapter } from '@/lib/textbooks';
@@ -64,7 +98,8 @@ import type { Chapter } from '@/lib/textbooks';
  * the PDF's maths letters (𝑥, 𝜃), which the app's fonts do not carry and
  * which would also hide a letter from the Markup italics.
  */
-const ALLOWED_TAGS = /<\/?(b|i|sup|sub|frac|num|den)>|<br\s*\/?>/gi;
+// A matrix or determinant: <bmat>, <pmat>, <vmat>, its rows <r> and cells <c> (components/textbook/markup.tsx gridRun).
+const ALLOWED_TAGS = /<\/?(b|i|sup|sub|frac|binom|num|den|bmat|pmat|vmat|r|c)>|<br\s*\/?>/gi;
 /**
  * Mathematical Alphanumeric Symbols, U+1D400 to U+1D7FF: the PDF's italic letters.
  * Not the double-struck capitals (𝕎, 𝕋: U+1D538–U+1D56B), which are symbols of their own and drawn in STIX Two Math.
@@ -78,7 +113,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10, math11ch11, math11ch12, math11ch13, math11ch14, math12ch1, math12ch2, math12ch3, math12ch4, math12ch5, math12ch6, math12ch7, math12ch8, math12ch9, math12ch10, bio11ch1, bio11ch2, bio11ch3, bio11ch4, bio11ch5, bio11ch6, bio11ch7, bio11ch8, bio11ch9, bio11ch10, bio11ch11, bio11ch12, bio11ch13, bio11ch14] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
@@ -101,7 +136,9 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
     it('numbers topics 01, 02, … and letters the additional ones A, B, …', () => {
       expect(regular.map((t) => t.n)).toEqual(regular.map((_, i) => String(i + 1).padStart(2, '0')));
       const first = (FIRST_EXTRA[`${chapter.subject} ${klass} ${chapter.chapter}`] ?? 'A').charCodeAt(0);
-      expect(extras.map((t) => t.n)).toEqual(extras.map((_, i) => String.fromCharCode(first + i)));
+      // Mathematics 12 closes each chapter with the book's Addendum P, What JEE Actually Asks, kept as P.
+      const lettered = extras.at(-1)?.n === 'P' && chapter.subject === 'Mathematics' && klass === '12' ? extras.slice(0, -1) : extras;
+      expect(lettered.map((t) => t.n)).toEqual(lettered.map((_, i) => String.fromCharCode(first + i)));
     });
 
     it('splits every topic at the book\'s own sections, starting with one', () => {
@@ -113,7 +150,8 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
         // So is a chapter's opening that is only one box of the book's (Physics 12 Ch 14's syllabus scope).
         const oneBoxGuide = t.n === '00' && t.blocks.length === 2;
         // And the book's "Summary Checklist" printed with no lead-in of its own (Chemistry 12 Ch 9 E).
-        const checklistOnly = !!t.extra && t.title === 'Summary Checklist' && t.blocks.length === 2;
+        // The same for Biology 11 Ch 11 G, "Summary Cheat Sheet: Addendum": one heading and one cheat sheet.
+        const checklistOnly = !!t.extra && /^Summary /.test(t.title) && t.blocks.length === 2;
         expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly || oneBoxGuide || checklistOnly ? 1 : 2);
       }
     });
@@ -144,7 +182,7 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
 
     it('closes every tag it opens', () => {
       for (const s of strings(chapter.topics))
-        for (const tag of ['b', 'i', 'sup', 'sub', 'frac', 'num', 'den']) {
+        for (const tag of ['b', 'i', 'sup', 'sub', 'frac', 'binom', 'num', 'den', 'bmat', 'pmat', 'vmat', 'r', 'c']) {
           const open = (s.match(new RegExp(`<${tag}>`, 'g')) ?? []).length;
           const close = (s.match(new RegExp(`</${tag}>`, 'g')) ?? []).length;
           expect(`${tag}:${open}`).toBe(`${tag}:${close}`);

@@ -79,7 +79,7 @@ const ON_SKY_SOFT = 'rgba(255,253,248,0.65)';
 const AMBER_NUM = '#B08420';
 /** How far the ticket's sky is pulled toward bronze, and its grain. */
 const TICKET_LIFT = 0.5;
-const TICKET_GRAIN = 0.35;
+const TICKET_GRAIN = 0.23; // 0.35 until 12 Nov 2026; lowered by the same third as SKY_GRAIN
 /** Secondary ink, for the subline and the quiet link. */
 const INK_MUTED = '#57534B';
 /** Labels and the tally's denominator: present, clearly subordinate. */

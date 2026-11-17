@@ -19,10 +19,44 @@ import { KEY_POINTS as C12_08 } from '@/lib/revise/keypoints-chemistry-12-08';
 import { KEY_POINTS as C12_09 } from '@/lib/revise/keypoints-chemistry-12-09';
 import { KEY_POINTS as C12_10 } from '@/lib/revise/keypoints-chemistry-12-10';
 import { KEY_POINTS as C12_11 } from '@/lib/revise/keypoints-chemistry-12-11';
+import { KEY_POINTS as B11_01 } from '@/lib/revise/keypoints-biology-11-01';
+import { KEY_POINTS as B11_02 } from '@/lib/revise/keypoints-biology-11-02';
+import { KEY_POINTS as B11_03 } from '@/lib/revise/keypoints-biology-11-03';
+import { KEY_POINTS as B11_04 } from '@/lib/revise/keypoints-biology-11-04';
+import { KEY_POINTS as B11_05 } from '@/lib/revise/keypoints-biology-11-05';
+import { KEY_POINTS as B11_06 } from '@/lib/revise/keypoints-biology-11-06';
+import { KEY_POINTS as B11_07 } from '@/lib/revise/keypoints-biology-11-07';
+import { KEY_POINTS as B11_08 } from '@/lib/revise/keypoints-biology-11-08';
+import { KEY_POINTS as B11_09 } from '@/lib/revise/keypoints-biology-11-09';
+import { KEY_POINTS as B11_10 } from '@/lib/revise/keypoints-biology-11-10';
+import { KEY_POINTS as B11_11 } from '@/lib/revise/keypoints-biology-11-11';
+import { KEY_POINTS as B11_12 } from '@/lib/revise/keypoints-biology-11-12';
+import { KEY_POINTS as B11_13 } from '@/lib/revise/keypoints-biology-11-13';
+import { KEY_POINTS as B11_14 } from '@/lib/revise/keypoints-biology-11-14';
 import { KEY_POINTS as M11_01 } from '@/lib/revise/keypoints-mathematics-11-01';
 import { KEY_POINTS as M11_02 } from '@/lib/revise/keypoints-mathematics-11-02';
 import { KEY_POINTS as M11_03 } from '@/lib/revise/keypoints-mathematics-11-03';
 import { KEY_POINTS as M11_04 } from '@/lib/revise/keypoints-mathematics-11-04';
+import { KEY_POINTS as M11_05 } from '@/lib/revise/keypoints-mathematics-11-05';
+import { KEY_POINTS as M11_06 } from '@/lib/revise/keypoints-mathematics-11-06';
+import { KEY_POINTS as M11_07 } from '@/lib/revise/keypoints-mathematics-11-07';
+import { KEY_POINTS as M11_08 } from '@/lib/revise/keypoints-mathematics-11-08';
+import { KEY_POINTS as M11_09 } from '@/lib/revise/keypoints-mathematics-11-09';
+import { KEY_POINTS as M11_10 } from '@/lib/revise/keypoints-mathematics-11-10';
+import { KEY_POINTS as M11_11 } from '@/lib/revise/keypoints-mathematics-11-11';
+import { KEY_POINTS as M11_12 } from '@/lib/revise/keypoints-mathematics-11-12';
+import { KEY_POINTS as M11_13 } from '@/lib/revise/keypoints-mathematics-11-13';
+import { KEY_POINTS as M11_14 } from '@/lib/revise/keypoints-mathematics-11-14';
+import { KEY_POINTS as M12_01 } from '@/lib/revise/keypoints-mathematics-12-01';
+import { KEY_POINTS as M12_02 } from '@/lib/revise/keypoints-mathematics-12-02';
+import { KEY_POINTS as M12_03 } from '@/lib/revise/keypoints-mathematics-12-03';
+import { KEY_POINTS as M12_04 } from '@/lib/revise/keypoints-mathematics-12-04';
+import { KEY_POINTS as M12_05 } from '@/lib/revise/keypoints-mathematics-12-05';
+import { KEY_POINTS as M12_06 } from '@/lib/revise/keypoints-mathematics-12-06';
+import { KEY_POINTS as M12_07 } from '@/lib/revise/keypoints-mathematics-12-07';
+import { KEY_POINTS as M12_08 } from '@/lib/revise/keypoints-mathematics-12-08';
+import { KEY_POINTS as M12_09 } from '@/lib/revise/keypoints-mathematics-12-09';
+import { KEY_POINTS as M12_10 } from '@/lib/revise/keypoints-mathematics-12-10';
 import { KEY_POINTS as P11_01 } from '@/lib/revise/keypoints-physics-11-01';
 import { KEY_POINTS as P11_02 } from '@/lib/revise/keypoints-physics-11-02';
 import { KEY_POINTS as P11_03 } from '@/lib/revise/keypoints-physics-11-03';
@@ -126,4 +160,38 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'mathematics|11|2': M11_02,
   'mathematics|11|3': M11_03,
   'mathematics|11|4': M11_04,
+  'mathematics|11|5': M11_05,
+  'mathematics|11|6': M11_06,
+  'mathematics|11|7': M11_07,
+  'mathematics|11|8': M11_08,
+  'mathematics|11|9': M11_09,
+  'mathematics|11|10': M11_10,
+  'mathematics|11|11': M11_11,
+  'mathematics|11|12': M11_12,
+  'mathematics|11|13': M11_13,
+  'mathematics|11|14': M11_14,
+  'mathematics|12|1': M12_01,
+  'mathematics|12|2': M12_02,
+  'mathematics|12|3': M12_03,
+  'mathematics|12|4': M12_04,
+  'mathematics|12|5': M12_05,
+  'mathematics|12|6': M12_06,
+  'mathematics|12|7': M12_07,
+  'mathematics|12|8': M12_08,
+  'mathematics|12|9': M12_09,
+  'mathematics|12|10': M12_10,
+  'biology|11|1': B11_01,
+  'biology|11|5': B11_05,
+  'biology|11|6': B11_06,
+  'biology|11|7': B11_07,
+  'biology|11|8': B11_08,
+  'biology|11|9': B11_09,
+  'biology|11|10': B11_10,
+  'biology|11|11': B11_11,
+  'biology|11|12': B11_12,
+  'biology|11|13': B11_13,
+  'biology|11|14': B11_14,
+  'biology|11|4': B11_04,
+  'biology|11|3': B11_03,
+  'biology|11|2': B11_02,
 };

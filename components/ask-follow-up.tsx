@@ -34,11 +34,10 @@ import { TEACHER_INTERRUPTION } from '@/lib/audio-interruption';
 import { DEEP_AMBER, INK, INK_FAINT, INK_MUTED, GREEN_INK, LevelBars, PAPER } from '@/components/classroom-chrome';
 import { useClock } from '@shopify/react-native-skia';
 
-import { DockBars, ThinkingArc } from '@/components/dock-face';
 import { DockLight, type DockLightGeometry } from '@/components/dock-light';
 import { DOCK_FLAG_SLOT, DOCK_H0, DOCK_W0, useDockMotion } from '@/components/dock-motion';
 import { DockRing, type RingMood } from '@/components/dock-ring';
-import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
+import { AskOrb } from '@/components/teacher-orb-poster';
 import { useTeacherId } from '@/components/states/state-plate';
 import { teacherName, type TeacherId } from '@/lib/preferences';
 import { FollowUpBoard } from '@/components/follow-up-board';
@@ -55,6 +54,7 @@ import {
   type FollowUpTurn,
   type TextbookPageContext,
 } from '@/lib/doubt-followup';
+import { withTurn } from '@/lib/followup-history';
 import { FollowUpAudio } from '@/lib/followup-audio';
 import { rememberFollowUp } from '@/lib/last-followup';
 import { LiveAsk, LiveUnavailable, followUpLiveEnabled, followUpLiveKnown, pcmLevel } from '@/lib/followup-live';
@@ -295,6 +295,7 @@ export function FlagIcon({ size = 18 }: { size?: number }) {
 
 export function AskFollowUpBar({
   doubtId,
+  threadKey,
   onReport,
   surface = 'doubts',
   trailing,
@@ -310,6 +311,19 @@ export function AskFollowUpBar({
   /** The thing being asked about — a doubt id, or a practice question id when
    *  `surface` says so. Named for its first caller; it is an id either way. */
   doubtId?: string | null;
+  /**
+   * What the CONVERSATION belongs to, when that is wider than `doubtId`.
+   *
+   * By default a new `doubtId` is a new conversation: the history sent with each
+   * follow-up starts over, which is right for a question under Practice. A textbook
+   * reader changes its `doubtId` with every part and topic, so "the example you
+   * just explained" was forgotten the moment the student turned the page — and
+   * whenever the id flickered to null while the page was recomputed. With a
+   * `threadKey` (the chapter), the history survives all of that and starts over
+   * only when the key itself changes. The answer being spoken still stops when the
+   * page changes: the student has moved on.
+   */
+  threadKey?: string | null;
   onReport?: () => void;
   /**
    * Which store the id belongs to. Practice asks the same question of the same
@@ -666,6 +680,9 @@ export function AskFollowUpBar({
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<FollowUpAudio | null>(null);
   const turnsRef = useRef<FollowUpTurn[]>([]);
+  /** Bumped whenever the conversation starts over, so an answer that was
+   *  interrupted and settles afterwards cannot write into the NEW one. */
+  const threadEpochRef = useRef(0);
   const lingerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Set when the sentence stream has finished, so a queue running dry between
    *  sentences is not mistaken for the end of the answer. */
@@ -755,11 +772,28 @@ export function AskFollowUpBar({
     if (lastDoubt.current === doubtId) return;
     lastDoubt.current = doubtId;
     stopEverything();
+    setPendingTurn(null);
+    setBoardOpen(false);
+    // Without a `threadKey` a different question is a different conversation.
+    if (threadKey == null) {
+      threadEpochRef.current += 1;
+      turnsRef.current = [];
+      setThread([]);
+    }
+  }, [doubtId, threadKey, stopEverything]);
+
+  const lastThread = useRef(threadKey);
+  useEffect(() => {
+    if (lastThread.current === threadKey) return;
+    lastThread.current = threadKey;
+    if (threadKey == null) return; // handled above, with the doubt
+    stopEverything();
+    threadEpochRef.current += 1;
     turnsRef.current = [];
     setThread([]);
     setPendingTurn(null);
     setBoardOpen(false);
-  }, [doubtId, stopEverything]);
+  }, [threadKey, stopEverything]);
 
   useEffect(
     () => () => {
@@ -932,6 +966,19 @@ export function AskFollowUpBar({
     let asked = typedQuestion ?? '';
     let spokenText = '';
     let spokeStarted = false;
+    // THE HISTORY THE NEXT QUESTION IS SENT WITH. Written once per answer, and
+    // written even when the answer was cut short: a student who asks again while
+    // the last answer is still playing has interrupted it, and used to find the
+    // teacher had forgotten that question existed. The epoch check keeps an
+    // interrupted answer that settles late out of a conversation that has since
+    // started over.
+    const epoch = threadEpochRef.current;
+    let turnRemembered = false;
+    const rememberTurn = () => {
+      if (turnRemembered || epoch !== threadEpochRef.current) return;
+      turnRemembered = true;
+      turnsRef.current = withTurn(turnsRef.current, asked, arrived.map((s) => s.text).join(' ') || spokenText);
+    };
     /** This hold fixed the question rather than asking about it. */
     let resolvedHere = false;
     // Nothing is cleared: the answers already on the board stay on it.
@@ -1110,7 +1157,10 @@ export function AskFollowUpBar({
           },
         };
       await send(handlers, controller.signal);
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        rememberTurn();
+        return;
+      }
       // The stream is done, so the word count is final. If no voice was ever
       // heard, this is the valve that writes the answer out.
       const done = revealRef.current;
@@ -1119,11 +1169,7 @@ export function AskFollowUpBar({
         if (done.mode === 'wait') flushWords();
         runTick();
       }
-      turnsRef.current = [
-        ...turnsRef.current,
-        { role: 'user', content: asked },
-        { role: 'assistant', content: arrived.map((s) => s.text).join(' ') },
-      ];
+      rememberTurn();
       // For a report made straight after this: whichever flag opens the sheet
       // sends what was just asked and answered (lib/last-followup.ts).
       rememberFollowUp(doubtId, asked, arrived.map((s) => s.text).join(' ') || spokenText);
@@ -1140,7 +1186,10 @@ export function AskFollowUpBar({
         }
       }
     } catch (err) {
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        rememberTurn();
+        return;
+      }
       // The pass has ended: the app root is already opening Plans, and a
       // "Try again" here would only be refused again.
       const kind = followUpFailureOf(err);
@@ -1378,19 +1427,12 @@ export function AskFollowUpBar({
           if (speaking) stopEverything();
         }}>
         <Animated.View style={[styles.thumb, styles.thumbLit, discAnim]}>
-          {/* The teacher's orb is the face; bars and stop sit over it only
-              while they mean something. */}
-          <TeacherOrbPoster teacher={teacherFace} size={40} />
-          <ThinkingArc motion={motion} on={thinking} />
-          {listening ? (
-            <View style={styles.orbOverlay}>
-              <DockBars motion={motion} />
-            </View>
-          ) : speaking ? (
-            <View style={styles.orbOverlay}>
-              <StopIcon color={INK} />
-            </View>
-          ) : null}
+          {/* The teacher's orb is the face, and since 12 Nov 2026 it carries
+              the whole exchange itself: seeds stream in while the student
+              holds, a sweep turns while the teacher thinks, rings ripple out
+              while the answer plays (Nikhil's "F"). They replace the ink bars,
+              the marigold arc and the stop square that used to sit on it. */}
+          <AskOrb teacher={teacherFace} size={40} phase={phase} level={voiceLevel} />
         </Animated.View>
         <Text maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE} style={styles.label} numberOfLines={1}>
           {label}
@@ -1464,7 +1506,7 @@ export function AskFollowUpBar({
           {/* THE TEXTBOOK'S ROW: its topics pill on the left, the bar on the
               right — Practice's arrangement mirrored. Same light, ring and
               board; the light is centred on the pill, not the row. */}
-          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} /> : null}
+          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} teacher={teacherFace} /> : null}
           <View style={[styles.row, styles.rowSpread]}>
             {leading}
             <View style={styles.barColumn}>
@@ -1485,7 +1527,7 @@ export function AskFollowUpBar({
               this row, so the bar keeps its resting width instead of growing
               into Next's space; the light, ring, disc and words are the
               doubt's own. The light is centred on the pill, not the row. */}
-          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} /> : null}
+          {lit && dockGeo ? <DockLight width={windowWidth} motion={motion} geometry={dockGeo} teacher={teacherFace} /> : null}
           <View style={[styles.row, styles.rowSpread]}>
             <View style={styles.barColumn}>
               <View ref={slotRef} style={styles.barSlot} onLayout={measureSlot}>
@@ -1572,7 +1614,7 @@ export function AskFollowUpBar({
             branch below is what the bar wore before; the live classroom shares
             only that ring and is not changing. See components/dock-light.tsx. */}
         {litDock && lit && dockGeo ? (
-          <DockLight width={windowWidth} motion={motion} geometry={dockGeo} />
+          <DockLight width={windowWidth} motion={motion} geometry={dockGeo} teacher={teacherFace} />
         ) : null}
         {typeable && typing ? (
           <View style={styles.typeRow}>
@@ -1806,14 +1848,6 @@ const styles = StyleSheet.create({
   /** Practice's pill at its resting size, so the squeeze shrinks it about
    *  its own centre instead of pulling its right edge toward its left. */
   barSlot: { width: DOCK_W0, height: DOCK_H0, alignItems: 'center', justifyContent: 'center' },
-  /** Bars or stop drawn over the teacher's orb, centred on it. */
-  orbOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderRadius: 99,
-  },
   flagSlot: { height: DOCK_H0 },
   flagWrap: { position: 'absolute', left: 10, top: 0 },
   /** The handoff's hint: #3D3A33 in every state. Only the words change. */

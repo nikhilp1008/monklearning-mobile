@@ -1,0 +1,16 @@
+import ch11 from '@/content/textbooks/math-12-11-three-d-geometry';
+import ch12 from '@/content/textbooks/math-12-12-linear-programming';
+import ch13 from '@/content/textbooks/math-12-13-probability';
+import { buildParts } from '@/lib/chapter-essentials';
+
+it('lists card sets', () => {
+  for (const [n, ch] of [[11, ch11], [12, ch12], [13, ch13]] as const) {
+    const out: string[] = [];
+    for (const p of buildParts(ch)) {
+      const ex = p.blocks.filter((b) => b.t === 'ex').length;
+      const mcq = p.blocks.filter((b) => b.t === 'mcq').length;
+      if (ex > 1 || mcq > 1) out.push(`${p.index}:${ex}/${mcq}`);
+    }
+    console.log(n, out.join(' '));
+  }
+});

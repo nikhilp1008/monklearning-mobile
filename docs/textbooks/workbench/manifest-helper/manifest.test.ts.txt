@@ -1,0 +1,27 @@
+import fs from 'fs';
+
+import ch5 from '@/content/textbooks/math-12-11-three-d-geometry';
+import ch7 from '@/content/textbooks/math-12-13-probability';
+import ch6 from '@/content/textbooks/math-12-12-linear-programming';
+import { buildParts } from '@/lib/chapter-essentials';
+import { DIAGRAMS } from '@/lib/diagrams';
+import { buildFormulaCards } from '@/lib/revise/formula-cards';
+
+it('writes the shoot manifests', () => {
+  for (const [n, ch] of [[11, ch5], [12, ch6], [13, ch7]] as const) {
+    const parts = buildParts(ch).map((p) => {
+      const html = JSON.stringify(p.blocks);
+      return {
+        index: p.index,
+        part: p.title,
+        topic: ch.topics[p.topic].n,
+        size: html.length,
+        fracs: (html.match(/<frac>/g) ?? []).length + (html.match(/<binom>/g) ?? []).length,
+        bars: (html.match(/̅/g) ?? []).length,
+        kinds: [...new Set(p.blocks.map((b) => b.t))],
+      };
+    });
+    const diagrams = (DIAGRAMS[`mathematics|12|${n}`] ?? []).map((d) => ({ id: d.id, name: d.name, chips: d.cases.length > 1 ? d.cases.map((c) => c.chip) : [] }));
+    fs.writeFileSync(`/Users/nikhi/Developer/monk-books/math12/manifest-m12-${String(n).padStart(2, '0')}.json`, JSON.stringify([{ n, cards: buildFormulaCards(ch).length, diagrams, parts }], null, 1));
+  }
+});

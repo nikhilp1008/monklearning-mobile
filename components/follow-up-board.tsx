@@ -70,7 +70,7 @@ const QUIET = 'rgba(251,249,242,.6)';
 const HAIR = 'rgba(251,249,242,.16)';
 
 const TONES: Record<TeacherId, { formula: string; accent: string; base: string; fade: string }> = {
-  drona: { formula: '#FFC88A', accent: '#FFB85C', base: '#2C2317', fade: '44,36,26' },
+  drona: { formula: '#FFC88A', accent: '#FFBF6B', base: '#2C2317', fade: '44,36,26' },
   vedha: { formula: '#FBDDA0', accent: '#FBDDA0', base: '#2C2417', fade: '44,38,24' },
 };
 

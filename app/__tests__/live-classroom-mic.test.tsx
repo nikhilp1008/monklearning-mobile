@@ -138,7 +138,7 @@ jest.mock('@/components/classroom-dock-face', () => ({
 }));
 jest.mock('@/components/dock-face', () => ({ DockBars: () => null, MarigoldDisc: () => null }));
 // The Ask control wears the teacher's orb, a Skia drawing; Skia is mocked above.
-jest.mock('@/components/teacher-orb-poster', () => ({ TeacherOrbPoster: () => null }));
+jest.mock('@/components/teacher-orb-poster', () => ({ TeacherOrbPoster: () => null, AskOrb: () => null }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),

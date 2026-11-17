@@ -152,7 +152,7 @@ half4 main(float2 fragCoord){
   col+=c5*exp(-out1/((48.+40.*uLvl)*S))*(1.-inside)*(.14+.1*br+.6*uLvl);
   col=mix(col,oc,inside);
  }
- col+=(hash(floor(fragCoord*uPx))-.5)*.07;
+ col+=(hash(floor(fragCoord*uPx))-.5)*.047;
  return half4(clamp(col,0.,1.),1.);
 }`;
 

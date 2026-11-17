@@ -2,7 +2,7 @@
   "expo": {
     "name": "monklearning",
     "slug": "monk-learning-app",
-    "version": "1.4.5",
+    "version": "1.4.6",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "monklearningapp",
@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.monklearning.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

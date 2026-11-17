@@ -101,6 +101,12 @@ describe('splitProse', () => {
     for (const chunk of splitProse(html)) expect(chunk).not.toMatch(/(?:^|<br>)\d\.\s*$/);
   });
 
+  it('never splits after a bold item number either', () => {
+    // "<br><b>2." stood alone above its item (Android check of Mathematics 12 Ch 8).
+    const html = [1, 2, 3, 4, 5, 6].map((n) => `<b>${n}. Item ${n}.</b> ${S(12)}`).join('<br>');
+    for (const chunk of splitProse(html)) expect(chunk).not.toMatch(/(?:^|<br>)<b>\d\.\s*$/);
+  });
+
   it('returns the input exactly when its chunks are joined', () => {
     const samples = [
       [S(14), S(9), S(20), S(11), S(16)].join(' '),
@@ -111,5 +117,21 @@ describe('splitProse', () => {
     for (const html of samples) {
       expect(splitProse(html).join('')).toBe(html);
     }
+  });
+
+  // Android check of Mathematics 11 Ch 6: a factorial and a glued ■ each opened a new paragraph.
+  it('never splits at a factorial or before a no-break space', () => {
+    const long = 'The number of ways to place them is counted by inclusion–exclusion over every subset of the boxes, term by term, with alternating signs throughout. ';
+    const fact = `${long}${long}So D<sub><i>n</i></sub> = <i>n</i>! Σ (−1)<sup><i>r</i></sup>/<i>r</i>! for every <i>n</i>, and 5! = 120 here. ${long}`;
+    expect(splitProse(fact).some((p) => /^\s*Σ|^\s*for every|^\s*= 120/.test(p))).toBe(false);
+    const box = `${long}${long}That completes the proof.\u00a0■ ${long}`;
+    expect(splitProse(box).some((p) => p.trimStart().startsWith('■'))).toBe(false);
+  });
+
+  // Android check of Mathematics 12 Ch 1: a quoted question went on in lower case in a new paragraph.
+  it('never splits after a quoted question that the sentence goes on from', () => {
+    const long = 'The type of a function depends on both its domain and its codomain, so a change of either set changes the answer. ';
+    const quote = `${long}${long}“Is this function onto?” is an incomplete question until the codomain is fixed. ${long}`;
+    expect(splitProse(quote).some((p) => p.trimStart().startsWith('is an incomplete'))).toBe(false);
   });
 });

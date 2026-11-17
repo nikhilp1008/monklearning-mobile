@@ -180,6 +180,16 @@ export default function TextbookPartScreen() {
       ),
     [subject, classLevel, title, topic, page],
   );
+  // The CONVERSATION is the chapter, not the topic or the part the student happens to
+  // be on: "the example you just explained" must survive a turn of the page. The
+  // key above still names the page for the server and for the log.
+  const threadKey = useMemo(
+    () =>
+      encodeURIComponent(
+        `${subject}-${classLevel}-${title}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 80),
+      ),
+    [subject, classLevel, title],
+  );
 
   // Reopen exactly here next time.
   useEffect(() => {
@@ -522,6 +532,7 @@ export default function TextbookPartScreen() {
             <AskFollowUpBar
               surface="textbooks"
               doubtId={askPage ? askKey : null}
+              threadKey={threadKey}
               page={askPage}
               getPage={getAskPage}
               teacherFace={teacher}

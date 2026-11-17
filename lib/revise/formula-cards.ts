@@ -1,4 +1,4 @@
-import { parts } from './formula-layout';
+import { narrowGrids, parts } from './formula-layout';
 import type { Block, Chapter } from '@/lib/textbooks';
 
 /**
@@ -42,9 +42,11 @@ export const marks = (h: string) =>
     .replace(new RegExp(`[${Object.keys(SUB_LETTERS).join('')}]+`, 'g'), (r) => `<sub>${[...r].map((c) => SUB_LETTERS[c]).join('')}</sub>`);
 
 /** Capitalise the first letter, unless the line opens on a symbol (<i>t</i> in the first line…). */
+// Only a word is capitalised: a line that opens on a symbol or a fraction keeps it as written
+// ("f(b)" became "F(b)" and "x²/a²" "X²/a²"; Mathematics 12 Ch 5 and Ch 8 cards).
 const cap1 = (h: string) => {
   const t = h.trim();
-  return t.startsWith('<i>') ? t : t.replace(/^((?:<[^>]+>)*)([a-z])/, (_, a: string, b: string) => a + b.toUpperCase());
+  return t.startsWith('<i>') ? t : t.replace(/^((?:<(?!\/?(?:frac|binom|num|den|sub|sup|bmat|pmat|vmat|r|c)>)[^>]+>)*)([a-z])(?=[a-z])/, (_, a: string, b: string) => a + b.toUpperCase());
 };
 
 /** Every tag but the maths ones: a name keeps its italic letters and its scripts (C<sub>V</sub>). */
@@ -486,8 +488,9 @@ const LOOSER: ((depth: number, prev: string, next: string, c: string) => boolean
   (_, __, ___, c) => c === NB,
 ];
 /** How long a piece is on the card: a stacked fraction is as wide as its wider side, not both. */
+// A matrix counts as its widest cell per column (narrowGrids), not every cell in a row.
 export const pieceWidth = (piece: string) =>
-  parts(piece).reduce((n, p) => n + (p.kind === 'text' ? shown(p.html).length : Math.max(shown(p.top).length, shown(p.bottom).length)), 0);
+  parts(narrowGrids(piece)).reduce((n, p) => n + (p.kind === 'text' ? shown(p.html).length : Math.max(shown(p.top).length, shown(p.bottom).length)), 0);
 
 function loosen(piece: string, level = 0): string {
   if (pieceWidth(piece) <= LONG || level >= LOOSER.length) return piece;

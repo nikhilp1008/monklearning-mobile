@@ -130,7 +130,7 @@ export function AskTeacher({
 
   return (
     <View ref={blockRef} style={styles.column} onLayout={measure}>
-      {lit && geometry ? <DockLight width={windowWidth} motion={motion} geometry={geometry} /> : null}
+      {lit && geometry ? <DockLight width={windowWidth} motion={motion} geometry={geometry} teacher={teacher} /> : null}
       <View ref={slotRef} style={styles.slot} onLayout={measure}>
         <Animated.View style={anchorAnim}>
           <Pressable

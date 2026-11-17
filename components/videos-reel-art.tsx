@@ -2,6 +2,7 @@ import { Canvas, Circle, DashPathEffect, Group, Line, Path, Skia, vec, type SkPa
 import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useDerivedValue,
@@ -322,7 +323,16 @@ function Caption({ clock, index, style }: { clock: SharedValue<number>; index: n
 /**
  * The moving diagram, `size` points square, with the subject and topic under it.
  */
-export function VideosReelArt({ size, captionStyle }: { size: number; captionStyle: object }) {
+export function VideosReelArt({
+  size,
+  captionStyle,
+  active = true,
+}: {
+  size: number;
+  captionStyle: object;
+  /** False while the tab is out of sight: the loop stops instead of running unseen. */
+  active?: boolean;
+}) {
   const reduce = useReducedMotion();
   const clock = useSharedValue(reduce ? 0.6 / N : 0);
   useEffect(() => {
@@ -330,9 +340,11 @@ export function VideosReelArt({ size, captionStyle }: { size: number; captionSty
       clock.value = 0.6 / N;
       return;
     }
+    if (!active) return;
     clock.value = 0;
     clock.value = withRepeat(withTiming(1, { duration: SCENE_MS * N, easing: Easing.linear }), -1, false);
-  }, [reduce, clock]);
+    return () => cancelAnimation(clock);
+  }, [reduce, active, clock]);
 
   if (size <= 0) return null;
   const k = size / BOX;

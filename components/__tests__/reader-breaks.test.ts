@@ -93,4 +93,19 @@ describe('intervals (Android check of Mathematics 11 Ch 1)', () => {
     expect(out).toMatch(/\[1 6\]|\[1, 6\]/);
     expect(out).toMatch(/\(0, 1\)/);
   });
+
+  // Android check of Mathematics 11 Ch 5: a lone "|" ended a line and "x − 2|" began the next.
+  it('keeps an opening modulus bar with what it encloses, and leaves a closing one alone', () => {
+    const WJ = '\u2060';
+    const out = readerBreaks('so |<i>x</i> − 2| ≥ 5 and (|<i>x</i>| + 1)');
+    expect(out).toContain(`so |${WJ}<i>x</i>`);
+    expect(out).toContain(`(|${WJ}<i>x</i>|`);
+    expect(out).not.toContain(`2|${WJ}`);
+  });
+
+  // Android check of Mathematics 11 Ch 7: a Σ ended a line with its summand on the next.
+  it('keeps a sum with what it sums', () => {
+    expect(readerBreaks('so ∑<sub><i>r</i>=1</sub><sup><i>n</i></sup> <i>r</i><sup>2</sup> = 5')).toContain('</sup>\u00a0<i>r</i>');
+    expect(readerBreaks('and ∑ <i>a</i> + 1')).toContain('∑\u00a0<i>a</i>');
+  });
 });
