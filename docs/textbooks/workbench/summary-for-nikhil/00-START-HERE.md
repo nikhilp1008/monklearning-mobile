@@ -14,7 +14,7 @@ Nothing here is pushed beyond what is already on main (e9f191b). The reviewed, f
 - Biology 11 Ch 15 practice card: "L/min" and "/min" no longer split across lines (written as "litres per minute", "beats per minute").
 - Biology 11 Ch 16 cheat sheet: the stray bold line now has the label "Excretion type".
 - Biology 11 Ch 19 gland tables: the long repeated column label is now "Disorder"; the "excess, then deficiency" note moved into the table title.
-- Formula cards (Biology 11 Ch 12, Biology 12 Ch 8): enzyme and organism names no longer sit as tiny raised text over the arrow; they are in the card's note line. Arrows and the minus in the BOD formula are kept on the same line as their neighbours. Not re-shot on Android, so look at these cards on the next build.
+- Formula cards (Biology 11 Ch 12, Biology 12 Ch 8): enzyme and organism names no longer sit as tiny raised text over the arrow; they are in the card's note line. Arrows and the minus in the BOD formula are kept on the same line as their neighbours. Enzyme and organism names now sit in each card's legend, and the BOD card is `BOD = (DOi − DOf) × D` with a legend. Re-shot on Android: all six cards pass.
 - Student-visible authoring notes ("[New wording]" etc.) removed from Ch 17 and Ch 18. These are still visible on main until this branch is pushed.
 
 ## Left for your decision (all minor, none blocks release)
