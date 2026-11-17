@@ -5,7 +5,7 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'Information we collect',
-    body: 'Account basics like your name, email and phone; your exam track, class and language preference; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up what you say to Drona or Vedha (used live to answer you; we keep a recording of a class only if you have been asked and agreed, and delete it after 30 days), which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data comes along for the ride too: your phone’s make and model, OS and app version, which screens you open, reports when something fails to show, and the state you’re studying from. If you allow notifications, we also keep a token that lets us send them to your phone.',
+    body: 'Account basics like your name, email and phone; your exam track, class and language preference; and any messages or attachments you send our support team. When you buy a pass we record what you bought, the amount, the time, which route you paid through and a payment reference. We don’t receive or store your card, UPI or bank details: you enter those with Razorpay or Google Play, who handle them under their own policies. If you pay with Google Play, Google also keeps its own record of the purchase. While you study, we also pick up what you say to Drona or Vedha (used live to answer you; we keep a recording of a class only if you have been asked and agreed, and delete it after 30 days), which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data comes along for the ride too: your phone’s make and model, OS and app version, which screens you open, reports when something fails to show, and the state you’re studying from. If you allow notifications, we also keep a token that lets us send them to your phone.',
   },
   {
     title: 'Your device and location',
@@ -17,11 +17,11 @@ const SECTIONS = [
   },
   {
     title: 'Who we share it with',
-    body: 'Only the service providers that keep monklearning running (cloud hosting, payment processing, speech-to-text, reading the maths in your photos, the AI that teaches you, email and notifications) and only under contracts that restrict what they can do with it. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
+    body: 'Only the service providers that keep monklearning running (cloud hosting, payment processing, speech-to-text, reading the maths in your photos, the AI that teaches you, email and notifications) and only under contracts that restrict what they can do with it. On Android, Google Play requires us to report a sale made through Razorpay to Google. The report has the amount, the tax on it, the time, and the state you’re in. It doesn’t have your name, email, phone or anything you study. We’ll disclose data if Indian law or a valid legal process requires it. We never share your study data with other students, coaching institutes, or advertisers.',
   },
   {
     title: 'How long we keep it',
-    body: 'Your learning data sticks around for as long as your account is active. We keep a recording of a class only if you have been asked and agreed, and delete it after 30 days. Delete your account and we purge your personal data within 48 hours of your request, except photos of questions you snapped in Snap and Solve, which are kept for up to 180 days and then erased. Payment and tax records are kept a little longer, as Indian law requires.',
+    body: 'Your learning data sticks around for as long as your account is active. We keep a recording of a class only if you have been asked and agreed, and delete it after 30 days. Delete your account and we purge your personal data within 48 hours of your request, except photos of questions you snapped in Snap and Solve, which are kept for up to 180 days and then erased. Payment and tax records are kept a little longer, as Indian law requires. These records are kept even if you delete your account.',
   },
   {
     title: 'Your rights',
