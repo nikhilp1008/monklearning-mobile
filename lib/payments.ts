@@ -332,6 +332,10 @@ export function webViewMayLoad(url: string): boolean {
  */
 export function payErrorMessage(err: unknown): string {
   if (err instanceof PriceMismatchError) return err.message;
+  // Google Play could not start (no Google account on the phone, Play missing or not ready, product not
+  // set up). lib/play-billing.ts already wrote a sentence for the student, and it is not about the
+  // connection. Matched by name: that module imports this one.
+  if (err instanceof Error && err.name === 'PlayBillingUnavailableError' && err.message) return err.message;
   if (err instanceof ApiError) {
     if (err.status === 429) return 'Too many tries. Please wait a little and try again.';
     if ([400, 404, 409, 410, 502, 503].includes(err.status) && err.message && !err.message.startsWith('API request failed')) {

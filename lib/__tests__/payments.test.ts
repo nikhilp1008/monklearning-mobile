@@ -168,6 +168,13 @@ describe('what a student is told when buying could not start', () => {
     );
   });
 
+  test("Google Play not starting is not called a connection problem", () => {
+    const err = new Error('Google Play could not start the payment. Check that you are signed in to Google Play on this phone, then try again. Nothing was charged.');
+    err.name = 'PlayBillingUnavailableError';
+    expect(payErrorMessage(err)).toBe(err.message);
+    expect(payErrorMessage(err)).not.toMatch(/connection/i);
+  });
+
   test('everything else says nothing was charged', () => {
     const generic = 'Check your connection and try again. Nothing was charged.';
     expect(payErrorMessage(new ApiError('API request failed with status 500', 500))).toBe(generic);

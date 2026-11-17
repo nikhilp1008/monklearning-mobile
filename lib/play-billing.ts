@@ -79,7 +79,7 @@ export const playProductId = (kind: PassKind): string | null => PLAY_PRODUCT_IDS
 
 /** Google's own sentence is not shown to students; this one is. */
 export class PlayBillingUnavailableError extends Error {
-  constructor(message = 'Google Play purchases are not available right now. Please try again in a little while. Nothing was charged.') {
+  constructor(message = 'Google Play could not start the payment. Check that you are signed in to Google Play on this phone, then try again. Nothing was charged.') {
     super(message);
     this.name = 'PlayBillingUnavailableError';
   }
