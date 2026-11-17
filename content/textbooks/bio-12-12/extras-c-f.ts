@@ -145,7 +145,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Ecological efficiency =</b> <frac><num>Energy intake [or production] at level <i>n</i> + 1</num><den>Energy intake [or production] at level <i>n</i></den></frac> × 100, using the same measure at both levels. It depends on assimilation efficiency, production efficiency, and consumption efficiency. Lindeman’s law is the simplified case where the overall ecological efficiency is about 10%.',
+        html: '<b>Ecological efficiency =</b> <frac><num>Intake [or production] at level <i>n</i> + 1</num><den>Intake [or production] at level <i>n</i></den></frac> × 100, using the same measure at both levels. It depends on assimilation efficiency, production efficiency, and consumption efficiency. Lindeman’s law is the simplified case where the overall ecological efficiency is about 10%.',
       },
       {
         t: 'p',
@@ -200,7 +200,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Distinguish between assimilation efficiency and ecological efficiency.',
-            a: 'Assimilation efficiency = <frac><num>Energy assimilated</num><den>Energy ingested</den></frac> × 100. Ecological efficiency = <frac><num>Energy intake [or production] at level <i>n</i> + 1</num><den>Energy intake [or production] at level <i>n</i></den></frac> × 100. Ecological efficiency reflects both assimilation and production losses.',
+            a: 'Assimilation efficiency = <frac><num>Energy assimilated</num><den>Energy ingested</den></frac> × 100. Ecological efficiency = <frac><num>Intake at level <i>n</i> + 1</num><den>Intake at level <i>n</i></den></frac> × 100 (or production at both levels). Ecological efficiency reflects both assimilation and production losses.',
           },
           {
             q: '[CUET] In a terrestrial ecosystem, which food chain (grazing or detritus) carries the larger fraction of energy flow? Why?',

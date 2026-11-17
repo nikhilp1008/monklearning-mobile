@@ -671,7 +671,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Given:</b> heterozygote frequency = <frac><num>720</num><den>2000</den></frac> = 0.36 = 2<i>pq</i>.',
           '2(1 − <i>q</i>)(<i>q</i>) = 0.36 ⇒ 2<i>q</i> − 2<i>q</i><sup>2</sup> = 0.36<br>2<i>q</i><sup>2</sup> − 2<i>q</i> + 0.36 = 0 ⇒ <i>q</i><sup>2</sup> − <i>q</i> + 0.18 = 0',
-          'Using the quadratic formula:<br><i>q</i> = <frac><num>1 ± √(1 − 4(0.18))</num><den>2</den></frac> = <frac><num>1 ± √(1 − 0.72)</num><den>2</den></frac> = <frac><num>1 ± √0.28</num><den>2</den></frac> = <frac><num>1 ± 0.529</num><den>2</den></frac>',
+          'Using the quadratic formula:<br><i>q</i> = <frac><num>1 ± √(1 − 4(0.18))</num><den>2</den></frac> = <frac><num>1 ± √(1 − 0.72)</num><den>2</den></frac><br>= <frac><num>1 ± √0.28</num><den>2</den></frac> = <frac><num>1 ± 0.529</num><den>2</den></frac>',
           '<i>q</i><sub>1</sub> = <frac><num>1 + 0.529</num><den>2</den></frac> = 0.7645; <i>q</i><sub>2</sub> = <frac><num>1 − 0.529</num><den>2</den></frac> = 0.2355',
           'Both roots are valid, because the heterozygote frequency alone cannot show which allele is recessive. We assume the recessive allele is the rarer one:<br><i>q</i> = 0.2355; <i>p</i> = 1 − 0.2355 = 0.7645',
         ],
