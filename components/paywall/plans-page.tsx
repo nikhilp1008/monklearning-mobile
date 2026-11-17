@@ -7,6 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { ObButton } from '@/components/onboarding-kit';
 import { PressableScale } from '@/components/pressable-scale';
 import { PromoPlayNote } from '@/components/paywall/promo-play-note';
+import { RefundNote } from '@/components/paywall/refund-note';
 import { colors } from '@/constants/brand';
 import { PASSES, rupees } from '@/constants/onboarding';
 import { useScale } from '@/constants/scale';
@@ -222,6 +223,7 @@ export function PlansPage(props: PlansPageProps) {
           {pick && PAYMENTS_ON_THIS_DEVICE && quote && !quote.free && quote.discountPaise > 0 ? (
             <PromoPlayNote code={quote.code} savedRupees={rupeesOf(quote.discountPaise)} listRupees={price} />
           ) : null}
+          {pick && PAYMENTS_ON_THIS_DEVICE && !free ? <RefundNote /> : null}
         </View>
       </SafeAreaView>
     </SafeAreaView>

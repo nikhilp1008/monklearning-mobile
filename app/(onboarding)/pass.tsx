@@ -15,6 +15,7 @@ import { ObButton } from '@/components/onboarding-kit';
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { PaymentNotice } from '@/components/paywall/payment-notice';
 import { PromoPlayNote } from '@/components/paywall/promo-play-note';
+import { RefundNote } from '@/components/paywall/refund-note';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PlanChooser, type PlansPick } from '@/components/paywall/plan-chooser';
 import { PLANS } from '@/components/paywall/plans';
@@ -250,6 +251,7 @@ export default function PassScreen() {
           {active && !paid && PAYMENTS_ON_THIS_DEVICE && quote && !quote.free && discount > 0 ? (
             <PromoPlayNote code={quote.code} savedRupees={discount} listRupees={active.price} />
           ) : null}
+          {active && !paid && PAYMENTS_ON_THIS_DEVICE ? <RefundNote /> : null}
           {freeTier.free && (
             // The free tier: a way past the price list. Not hidden and not
             // shouted: a plan is what this screen is for, and this is what the
