@@ -372,16 +372,16 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Alcoholic',
-        main: 'Pyruvate →<sup>pyruvate decarboxylase</sup> Acetaldehyde + CO<sub>2</sub> →<sup>alcohol dehydrogenase</sup> Ethanol',
+        main: 'Pyruvate → Acetaldehyde + CO<sub>2</sub> → Ethanol',
         legend: [],
-        note: 'Acetaldehyde + NADH + H<sup>+</sup> → Ethanol + NAD<sup>+</sup>',
+        note: 'Step 1 uses pyruvate decarboxylase; step 2 uses alcohol dehydrogenase. Acetaldehyde + NADH + H<sup>+</sup> → Ethanol + NAD<sup>+</sup>',
       },
       {
         t: 'formula',
         kicker: 'Lactic acid',
-        main: 'Pyruvate + NADH + H<sup>+</sup> →<sup>lactate dehydrogenase</sup> Lactic acid + NAD<sup>+</sup>',
+        main: 'Pyruvate + NADH + H<sup>+</sup> → Lactic acid + NAD<sup>+</sup>',
         legend: [],
-        note: null,
+        note: 'The enzyme is lactate dehydrogenase.',
       },
       {
         t: 'p',

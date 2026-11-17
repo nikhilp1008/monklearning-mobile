@@ -14,11 +14,11 @@ Nothing here is pushed beyond what is already on main (e9f191b). The reviewed, f
 - Biology 11 Ch 15 practice card: "L/min" and "/min" no longer split across lines (written as "litres per minute", "beats per minute").
 - Biology 11 Ch 16 cheat sheet: the stray bold line now has the label "Excretion type".
 - Biology 11 Ch 19 gland tables: the long repeated column label is now "Disorder"; the "excess, then deficiency" note moved into the table title.
+- Formula cards (Biology 11 Ch 12, Biology 12 Ch 8): enzyme and organism names no longer sit as tiny raised text over the arrow; they are in the card's note line. Arrows and the minus in the BOD formula are kept on the same line as their neighbours. Not re-shot on Android, so look at these cards on the next build.
 - Student-visible authoring notes ("[New wording]" etc.) removed from Ch 17 and Ch 18. These are still visible on main until this branch is pushed.
 
 ## Left for your decision (all minor, none blocks release)
 - Biology 12 Ch 4 ABO table shows as stacked pairs on the phone, without column headings (shared table layout). Same cause: Hardy-Weinberg Punnett grid becomes a list.
-- Formula cards: enzyme or organism names over arrows draw as small raised text (Biology 11 Ch 12, Biology 12 Ch 8); one line starts with an arrow, one ends on a minus.
 - Biology 12 Ch 5 Hershey-Chase chips show 32P and 35S without superscripts (chips cannot carry markup).
 - Biology 11 Ch 14 O2-Hb curve: dotted line runs through the "Lungs" label.
 - Several figures have very small labels (listed in item 10 of the Android report). Legible, nothing overlaps.

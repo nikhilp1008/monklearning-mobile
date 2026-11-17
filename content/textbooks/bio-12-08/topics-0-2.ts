@@ -99,7 +99,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Start with warm milk.</b> Milk is warmed (not scalded) to a temperature comfortable for bacterial growth. <b>Why:</b> most curd bacteria multiply fastest in gentle warmth, so warmth speeds setting.',
           '<b>Add a starter (inoculum).</b> A small amount of previously made curd is stirred in. <b>Why:</b> that spoonful carries live <i>Lactobacillus</i>; we are seeding the milk with the exact organism we want to dominate, before any random spoilage microbe gets a foothold.',
-          '<b>The bacteria multiply and ferment lactose.</b> <i>Lactobacillus</i> consumes the milk sugar (lactose) and excretes lactic acid.<br>Lactose →<sup><i>Lactobacillus</i></sup> Lactic acid',
+          '<b>The bacteria multiply and ferment lactose.</b> <i>Lactobacillus</i> consumes the milk sugar (lactose) and excretes lactic acid.<br>Lactose → Lactic acid (by <i>Lactobacillus</i>)',
           '<b>Acid coagulates the milk protein.</b> As lactic acid accumulates, the pH falls. The milk protein casein loses its solubility at this lower pH and coagulates (clots), turning fluid milk into a soft semi-solid: curd. <b>Why:</b> protein structure depends on its chemical environment; acidify it and it aggregates.',
           '<b>Bonus effects.</b> The acidic environment checks the growth of disease-causing microbes (a natural preservation effect), and the LAB raise the vitamin B<sub>12</sub> content, making curd more nutritious than the milk it came from.',
         ],
@@ -267,7 +267,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'snapshot',
         rows: [
-          { f: 'Curd', note: '<i>Lactobacillus</i> (LAB) → lactose to lactic acid → coagulates casein → sets curd. Bonus: ↑ vitamin B<sub>12</sub>, checks harmful microbes.<br>Lactose →<sup><i>Lactobacillus</i></sup> Lactic acid ⇒ casein coagulates' },
+          { f: 'Curd', note: '<i>Lactobacillus</i> (LAB) → lactose to lactic acid → coagulates casein → sets curd. Bonus: ↑ vitamin B<sub>12</sub>, checks harmful microbes.<br>Lactose → Lactic acid (by <i>Lactobacillus</i>) ⇒ casein coagulates' },
           { f: 'Bread dough', note: '<i>Saccharomyces cerevisiae</i> (baker’s yeast) → CO<sub>2</sub> → dough rises (leavening). Idli/dosa batter is fermented by bacteria (CO<sub>2</sub>).' },
           { f: 'Toddy', note: 'fermented sap of palms (traditional southern Indian drink).' },
           { f: 'Swiss cheese', note: 'big holes = large CO<sub>2</sub> from <i>Propionibacterium sharmanii</i> (bacterium).' },

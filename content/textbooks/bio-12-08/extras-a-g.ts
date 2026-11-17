@@ -51,9 +51,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Lactic acid fermentation',
-        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> →<sup><i>Lactobacillus</i></sup> 2 C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>',
+        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>  → 2 C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>',
         legend: [],
-        note: null,
+        note: 'Carried out by <i>Lactobacillus</i>.',
       },
       {
         t: 'p',
@@ -62,9 +62,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Alcoholic fermentation',
-        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> →<sup><i>Saccharomyces</i></sup> 2 C<sub>2</sub>H<sub>5</sub>OH + 2 CO<sub>2</sub>',
+        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>  → 2 C<sub>2</sub>H<sub>5</sub>OH + 2 CO<sub>2</sub>',
         legend: [],
-        note: null,
+        note: 'Carried out by <i>Saccharomyces</i> (yeast).',
       },
       {
         t: 'p',
@@ -77,9 +77,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Acetic acid fermentation',
-        main: 'C<sub>2</sub>H<sub>5</sub>OH + O<sub>2</sub> →<sup><i>Acetobacter aceti</i></sup> CH<sub>3</sub>COOH + H<sub>2</sub>O',
+        main: 'C<sub>2</sub>H<sub>5</sub>OH + O<sub>2</sub> → CH<sub>3</sub>COOH + H<sub>2</sub>O',
         legend: [],
-        note: null,
+        note: 'Carried out by <i>Acetobacter aceti</i>.',
       },
       {
         t: 'p',
@@ -279,7 +279,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'BOD calculation formula',
-        main: 'BOD = (DO<sub>initial</sub> − DO<sub>final</sub>) × dilution factor',
+        main: 'BOD = (DO<sub>initial</sub> − DO<sub>final</sub>) × dilution factor',
         legend: [],
         note: null,
       },
