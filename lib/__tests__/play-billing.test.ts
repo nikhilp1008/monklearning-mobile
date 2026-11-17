@@ -51,6 +51,8 @@ beforeEach(() => {
   removed.mockReset();
   for (const k of Object.keys(handlers)) delete handlers[k as keyof typeof handlers];
   (Platform as { OS: string }).OS = 'android';
+  // These tests are about Razorpay beside Google Play; "Google Play only" has its own block below.
+  process.env.EXPO_PUBLIC_RAZORPAY_CHOICE = '1';
   mockIap.initConnection.mockResolvedValue(true);
   mockIap.fetchProducts.mockResolvedValue(ALL_FOUR);
   mockIap.finishTransaction.mockResolvedValue(undefined);
@@ -397,6 +399,52 @@ describe('a listener that throws while Google\'s screen is being set up', () => 
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('Google Play only (Razorpay choice off, the default until Google approves the enrolment)', () => {
+  beforeEach(() => {
+    delete process.env.EXPO_PUBLIC_RAZORPAY_CHOICE;
+  });
+  afterAll(() => {
+    delete process.env.EXPO_PUBLIC_RAZORPAY_CHOICE;
+  });
+
+  test('the switch is off unless EXPO_PUBLIC_RAZORPAY_CHOICE is exactly 1', () => {
+    expect(b.razorpayChoiceOn()).toBe(false);
+    process.env.EXPO_PUBLIC_RAZORPAY_CHOICE = 'true';
+    expect(b.razorpayChoiceOn()).toBe(false);
+    process.env.EXPO_PUBLIC_RAZORPAY_CHOICE = '1';
+    expect(b.razorpayChoiceOn()).toBe(true);
+  });
+
+  test('connects with a plain Play Billing connection: no user choice billing program', async () => {
+    await b.loadPlayProducts();
+    expect(mockIap.initConnection).toHaveBeenCalledTimes(1);
+    expect(mockIap.initConnection).toHaveBeenCalledWith();
+  });
+
+  test('never listens for the Razorpay choice, and a Google Play purchase still completes', async () => {
+    answerWith(() => handlers.purchase?.(PURCHASE));
+    const r = await b.chooseHowToPay('pro_1m', 'h');
+    expect(r).toEqual({ type: 'play', purchase: PURCHASE });
+    expect(mockIap.userChoiceBillingListenerAndroid).not.toHaveBeenCalled();
+    expect(mockIap.purchaseUpdatedListener).toHaveBeenCalledTimes(1);
+    expect(mockIap.purchaseErrorListener).toHaveBeenCalledTimes(1);
+  });
+
+  test('a missing product is refused before Google opens, with nothing charged', async () => {
+    mockIap.fetchProducts.mockResolvedValue([]);
+    await expect(b.chooseHowToPay('pro_1m', 'h')).rejects.toThrow(/not available on Google Play yet.*Nothing was charged/);
+    expect(mockIap.requestPurchase).not.toHaveBeenCalled();
+  });
+
+  test('the promo line says a partial code cannot be used with Google Play', () => {
+    const line = b.promoPlayNote('WELCOME', 100, 499);
+    expect(line).toContain('WELCOME');
+    expect(line).toContain('cannot be used when paying with Google Play');
+    expect(line).toContain('full ₹499');
+    expect(line).not.toContain('Razorpay');
   });
 });
 

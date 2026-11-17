@@ -37,6 +37,18 @@ type Iap = typeof import('expo-iap');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const iap = (): Iap => require('expo-iap') as Iap;
 
+/**
+ * RAZORPAY BESIDE GOOGLE PLAY IS A SEPARATE SWITCH, OFF BY DEFAULT.
+ *
+ * `EXPO_PUBLIC_RAZORPAY_CHOICE=1` (set when the build is made) turns on India user
+ * choice billing: Google's screen offers Google Play AND Razorpay. It is only allowed
+ * once Google has approved the Alternative billing enrolment for this account. Until
+ * then a payments build (`EXPO_PUBLIC_ANDROID_PAYMENTS=1`) is GOOGLE PLAY ONLY: a normal
+ * Play Billing connection, Google's ordinary purchase sheet, no Razorpay on Android.
+ * Read at the moment of use (not frozen at import) so tests can flip it.
+ */
+export const razorpayChoiceOn = (): boolean => process.env.EXPO_PUBLIC_RAZORPAY_CHOICE === '1';
+
 /** Play Console product ids, one per pass on sale. Legacy kinds are not sold. */
 export const PLAY_PRODUCT_IDS: Partial<Record<PassKind, string>> = {
   day: 'pass_day',
@@ -90,7 +102,9 @@ export function connectPlayBilling(): Promise<void> {
   if (Platform.OS !== 'android') return Promise.reject(new PlayBillingUnavailableError());
   if (!connecting) {
     connecting = (async () => {
-      const ok = await iap().initConnection({ enableBillingProgramAndroid: 'user-choice-billing' });
+      // User choice billing only when Razorpay-beside-Google is switched on; otherwise a
+      // plain Play Billing connection (Google Play is the only way to pay).
+      const ok = await (razorpayChoiceOn() ? iap().initConnection({ enableBillingProgramAndroid: 'user-choice-billing' }) : iap().initConnection());
       if (!ok) throw new PlayBillingUnavailableError();
     })().catch((err) => {
       connecting = null;
@@ -228,15 +242,18 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
         done({ type: 'play', purchase });
       })
     );
-    // The student chose the other option on Google's screen.
-    subs.push(
-      api.userChoiceBillingListenerAndroid((details) => {
-        if (!details.externalTransactionToken) {
-          return done({ type: 'failed', message: 'Google did not return a payment token. Nothing was charged.' });
-        }
-        done({ type: 'razorpay', externalTransactionToken: details.externalTransactionToken });
-      })
-    );
+    // The student chose the other option on Google's screen. Only exists when user
+    // choice billing is on; in Google-Play-only mode Google never shows that option.
+    if (razorpayChoiceOn()) {
+      subs.push(
+        api.userChoiceBillingListenerAndroid((details) => {
+          if (!details.externalTransactionToken) {
+            return done({ type: 'failed', message: 'Google did not return a payment token. Nothing was charged.' });
+          }
+          done({ type: 'razorpay', externalTransactionToken: details.externalTransactionToken });
+        })
+      );
+    }
     // Closed, declined, or Google refused.
     subs.push(
       api.purchaseErrorListener((err) => {
@@ -434,5 +451,8 @@ export async function playPricePaise(kind: PassKind): Promise<number | null> {
  * Google Play expecting the discounted amount.
  */
 export function promoPlayNote(code: string, savedRupees: number, listRupees: number): string {
+  if (!razorpayChoiceOn()) {
+    return `${code} cannot be used when paying with Google Play, which charges the full ₹${listRupees}.`;
+  }
   return `${code} takes ₹${savedRupees} off only when you choose Razorpay on the next screen. Google Play charges the full ₹${listRupees}.`;
 }
