@@ -126,7 +126,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: `<b>Definition (convex combination).</b> A point ${P} is a convex combination of points ${sb(P, '1')}, …, ${sb(P, n)} if<br>${P} = ${sb(lam, '1')}${sb(P, '1')} + ${sb(lam, '2')}${sb(P, '2')} + ⋯ + ${sb(lam, n)}${sb(P, n)},<br>where every ${sb(lam, i)}${NB}≥${NB}0 and ${sb(lam, '1')} + ⋯ + ${sb(lam, n)} = 1. Geometrically: ${P} lies somewhere in the polygon spanned by the ${sb(P, i)}.`,
+        html: `<b>Definition (convex combination).</b> A point ${P} is a convex combination of points ${sb(P, '1')},${NB}…,${NB}${sb(P, n)} if<br>${P} = ${sb(lam, '1')}${sb(P, '1')} + ${sb(lam, '2')}${sb(P, '2')} + ⋯ + ${sb(lam, n)}${sb(P, n)},<br>where every ${sb(lam, i)}${NB}≥${NB}0 and ${sb(lam, '1')} + ⋯ + ${sb(lam, n)} = 1. Geometrically: ${P} lies somewhere in the polygon spanned by the ${sb(P, i)}.`,
       },
       {
         t: 'p',
@@ -145,11 +145,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Proof.</b> Coordinates: ${P} = (${lam}${sb(q, x)}${NB}+${NB}${om(lam)}${sb(r, x)}, ${lam}${sb(q, y)}${NB}+${NB}${om(lam)}${sb(r, y)}), so<br>${Zof(P)} = ${a}[${lam}${sb(q, x)} + ${om(lam)}${sb(r, x)}] + ${b}[${lam}${sb(q, y)} + ${om(lam)}${sb(r, y)}],<br>and rearranging gives ${lam}(${a}${sb(q, x)} + ${b}${sb(q, y)}) + ${om(lam)}${WJ}(${a}${sb(r, x)} + ${b}${sb(r, y)}).${NB}■`,
+        html: `<b>Proof.</b> Coordinates:<br>${P}${NB}=${NB}(${lam}${sb(q, x)}${NB}+${NB}${om(lam)}${sb(r, x)},${NB}${lam}${sb(q, y)}${NB}+${NB}${om(lam)}${sb(r, y)}), so<br>${Zof(P)} = ${a}[${lam}${sb(q, x)} + ${om(lam)}${sb(r, x)}] + ${b}[${lam}${sb(q, y)} + ${om(lam)}${sb(r, y)}],<br>and rearranging gives ${lam}(${a}${sb(q, x)} + ${b}${sb(q, y)}) + ${om(lam)}${WJ}(${a}${sb(r, x)} + ${b}${sb(r, y)}).${NB}■`,
       },
       {
         t: 'p',
-        html: `<b>Lemma 2 (vertices generate the region).</b> Every point of a convex polygon ${R} with vertices ${sb(V, '1')}, …, ${sb(V, n)} is a convex combination of the vertices.`,
+        html: `<b>Lemma 2 (vertices generate the region).</b> Every point of a convex polygon ${R} with vertices ${sb(V, '1')},${NB}…,${NB}${sb(V, n)} is a convex combination of the vertices.`,
       },
       {
         t: 'p',
@@ -213,14 +213,14 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: `Given a feasible region with corners ${sb(V, '1')}, …, ${sb(V, n)} and objective ${Z} = ${PX} + ${QY} with ${PQPOS}:`,
+        html: `Given a feasible region with corners ${sb(V, '1')},${NB}…,${NB}${sb(V, n)} and objective ${Z} = ${PX} + ${QY} with ${PQPOS}:`,
       },
       {
         t: 'proc',
         title: 'Method',
         steps: [
           `<b>Evaluate ${Z} symbolically at every corner</b>, obtaining linear expressions in ${p} and ${q}.`,
-          `<b>Write the domination conditions.</b> The maximum occurs at ${sb(V, k)} if${NB}and${NB}only${NB}if<br>${Zof(sb(V, k))} ≥ ${Zof(sb(V, j))} for every ${j}.<br>Each condition is a linear inequality in ${p},${NB}${q}. “Maximum at ${sb(V, k)} and nowhere else” upgrades some of these to strict; “also at ${sb(V, j)}” replaces one inequality by equality.`,
+          `<b>Write the domination conditions.</b> The maximum occurs at ${sb(V, k)}<br>if${NB}and${NB}only${NB}if ${Zof(sb(V, k))} ≥ ${Zof(sb(V, j))} for every ${j}.<br>Each condition is a linear inequality in ${p},${NB}${q}. “Maximum at ${sb(V, k)} and nowhere else” upgrades some of these to strict; “also at ${sb(V, j)}” replaces one inequality by equality.`,
           `<b>Solve the little system</b> in the ${I('pq')}-plane, keeping the sign restrictions ${PQPOS}.`,
           `<b>Cross-check with slopes.</b> The objective line ${PX} + ${QY} = ${c} has slope −${PQ}. An edge joining two corners ${A}, ${B} with slope ${m}, on the side of the region where the optimum is sought, becomes a tie-edge${NB}exactly${NB}when<br>−${PQ} = ${m},${NB}${NB}i.e.${NB}${NB}${PQ} = −${m}.`,
         ],
@@ -231,7 +231,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Why the slope criterion is exact:</b> if two distinct points ${A}, ${B} both maximise ${Z} over the region, they lie on the same level line ${PX} + ${QY} = ${c}, i.e. ${p}${sb(A, x)} + ${q}${sb(A, y)} = ${p}${sb(B, x)} + ${q}${sb(B, y)}, which rearranges to<br>−${PQ} = ${fr(`${sb(B, y)} − ${sb(A, y)}`, `${sb(B, x)} − ${sb(A, x)}`)}.<br>Level lines are parallel, so the shared level line is parallel to the edge ${I('AB')}. Conversely, if ${A} is optimal and the level line through ${A} is parallel to the edge ${I('AB')}, that line contains ${B}, so ${B} is optimal too.`,
+        html: `<b>Why the slope criterion is exact:</b> if two distinct points ${A}, ${B} both maximise ${Z} over the region, they lie on the same level line ${PX} + ${QY} = ${c}, i.e. ${p}${sb(A, x)} + ${q}${sb(A, y)} = ${p}${sb(B, x)} + ${q}${sb(B, y)}, which rearranges to${NB}−${PQ}${NB}=${NB}${fr(`${sb(B, y)} − ${sb(A, y)}`, `${sb(B, x)} − ${sb(A, x)}`)}.<br>Level lines are parallel, so the shared level line is parallel to the edge ${I('AB')}. Conversely, if ${A} is optimal and the level line through ${A} is parallel to the edge ${I('AB')}, that line contains ${B}, so ${B} is optimal too.`,
       },
       {
         t: 'formula',
@@ -453,7 +453,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Step 3: area.</b> For a triangle with one vertex at the origin ${O} and the others at ${U} = ${pt(sb(u, '1'), sb(u, '2'))}, ${W} = ${pt(sb(I('w'), '1'), sb(I('w'), '2'))},<br>Area = ${HALF}${abs(`${sb(u, '1')}${sb(I('w'), '2')} − ${sb(u, '2')}${sb(I('w'), '1')}`)},<br>the determinant expansion of ${HALF}‖${VEC('OU')}${NB}×${NB}${VEC('OW')}‖ from the Class 12 vector/determinant toolkit: you can verify it on the right triangle with legs along the axes, where it collapses to ${HALF}(base)(height). A convex polygon with vertices ${sb(V, '1')}, …, ${sb(V, n)} in order fans into ${n} − 2 triangles from ${sb(V, '1')} (use the formula above with ${sb(V, '1')} moved to the origin); equivalently, the shoelace sum<br>Area = ${HALF}${abs(`${SUM}${NB}(${sb(x, i)}${sb(y, `${i}+1`)} − ${sb(x, `${i}+1`)}${sb(y, i)})`)}<br>(with indices cyclic) computes the whole thing in one pass. Always sanity-check with a second decomposition.`,
+        html: `<b>Step 3: area.</b> For a triangle with one vertex at the origin ${O} and the others at ${U} = ${pt(sb(u, '1'), sb(u, '2'))}, ${W} = ${pt(sb(I('w'), '1'), sb(I('w'), '2'))},<br>Area = ${HALF}${abs(`${sb(u, '1')}${sb(I('w'), '2')} − ${sb(u, '2')}${sb(I('w'), '1')}`)},<br>the determinant expansion of ${HALF}‖${VEC('OU')}${NB}×${NB}${VEC('OW')}‖ from the Class 12 vector/determinant toolkit: you can verify it on the right triangle with legs along the axes, where it collapses to ${HALF}(base)(height). A convex polygon with vertices ${sb(V, '1')},${NB}…,${NB}${sb(V, n)} in order fans into ${n} − 2 triangles from ${sb(V, '1')} (use the formula above with ${sb(V, '1')} moved to the origin); equivalently, the shoelace sum<br>Area = ${HALF}${abs(`${SUM}${NB}(${sb(x, i)}${sb(y, `${i}+1`)} − ${sb(x, `${i}+1`)}${sb(y, i)})`)}<br>(with indices cyclic) computes the whole thing in one pass. Always sanity-check with a second decomposition.`,
       },
       {
         t: 'formula',

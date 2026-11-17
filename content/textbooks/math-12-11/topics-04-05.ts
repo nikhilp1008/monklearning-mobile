@@ -240,7 +240,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Point to a line',
-        main: `Foot: ${L0} = ${LAM0}, ${F} = ${FOOT_L}<br><br>Distance: ${PF} = ${DLINE}<br>Image: ${IMG}`,
+        main: `Foot: ${L0} = ${LAM0}, ${F} = ${FOOT_L}<br>Distance: ${PF} = ${DLINE}<br>Image: ${IMG}`,
         legend: [
           `${va} = a known point on the line`,
           `${vb} = the line direction`,
@@ -258,7 +258,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Point to a plane',
-        main: `${t} = ${TT}<br><br>Distance: ${DPLANE}<br>Foot: ${FOOT_P}<br>Image: ${IMG_P}`,
+        main: `${t} = ${TT}<br>Distance: ${DPLANE}<br>Foot: ${FOOT_P}<br>Image: ${IMG_P}`,
         legend: [
           `${vn} = the plane normal ${pt(a, b, c)}`,
           `${PX} = the given point`,
@@ -270,7 +270,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `In symmetric notation the foot and image lie along the normal through ${P}:<br>${fr(`${x} − ${x1}`, a)} = ${fr(`${y} − ${y1}`, b)} = ${fr(`${z} − ${z1}`, c)} = −${t}${NB}(foot),<br>= −2${t}${NB}(image).`,
+        html: `In symmetric notation the foot and image lie along the normal through ${P}:<br>${fr(`${x} − ${x1}`, a)} = ${fr(`${y} − ${y1}`, b)} = ${fr(`${z} − ${z1}`, c)} = −${t}${NB}(foot),${NB}=<br>−2${t}${NB}(image).`,
       },
       {
         t: 'p',
@@ -583,7 +583,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Line meeting a plane',
-        main: `Intersects: ${bn} = ${A}${a} + ${B}${b} + ${C}${c}${NB}≠${NB}0<br>${bn} = 0 ⇒ lies in plane (point satisfies plane)<br>${bn} = 0 ⇒ parallel (point does not)`,
+        main: `Intersects:<br>${bn}${NB}=${NB}${A}${a}${NB}+${NB}${B}${b}${NB}+${NB}${C}${c}${NB}≠${NB}0<br>${bn} = 0 ⇒ lies in plane (point satisfies${NB}plane)<br>${bn} = 0 ⇒ parallel (point does not)`,
         legend: [
           `${vb} = the line direction ${pt(a, b, c)}`,
           `${vn} = the plane normal ${pt(A, B, C)}`,
@@ -676,11 +676,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Theorem 3 (angle-bisector planes).</b> A point is equidistant from ${rel(P1, '=', '0')} and ${rel(P2, '=', '0')} if and only if<br>${BIS},<br>which are the two bisector planes.`,
+        html: `<b>Theorem 3 (angle-bisector planes).</b> A point is equidistant from ${rel(P1, '=', '0')} and ${rel(P2, '=', '0')}<br>if and only if${NB}${BIS},<br>which are the two bisector planes.`,
       },
       {
         t: 'p',
-        html: `<b>Proof.</b> The signed distance of a point from ${rel(Pi, '=', '0')}${NB}is<br>${fr(`${sb(a, I('i'))}${x} + ${sb(b, I('i'))}${y} + ${sb(c, I('i'))}${z} + ${sb(d, I('i'))}`, md(vni))} = ${fr(Pi, md(vni))}.<br>Equidistance means the magnitudes are equal:<br>${md(fr(P1, md(vn1)))} = ${md(fr(P2, md(vn2)))}, i.e.<br><br>${BIS}.<br>Each sign gives one of the two mutually perpendicular bisector planes. ■`,
+        html: `<b>Proof.</b> The signed distance of a point from ${rel(Pi, '=', '0')}${NB}is${NB}${fr(`${sb(a, I('i'))}${x} + ${sb(b, I('i'))}${y} + ${sb(c, I('i'))}${z} + ${sb(d, I('i'))}`, md(vni))} = ${fr(Pi, md(vni))}.<br>Equidistance means the magnitudes are equal:${NB}${md(fr(P1, md(vn1)))} = ${md(fr(P2, md(vn2)))}, i.e.<br><br>${BIS}.<br>Each sign gives one of the two mutually perpendicular bisector planes. ■`,
       },
       {
         t: 'proc',

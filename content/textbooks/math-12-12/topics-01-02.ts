@@ -562,7 +562,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '<b>[CBSE]</b> A bakery makes cakes and pastries. Each cake needs 200 g flour and 25 g butter; each pastry needs 100 g flour and 50 g butter. There are 5 kg flour and 1 kg butter. Profit is ₹40 per cake and ₹25 per pastry. Formulate the LPP for maximum profit (do not solve).',
+            q: '<b>[CBSE]</b> A bakery makes cakes and pastries. Each cake needs 200 g flour and 25 g butter; each pastry needs 100 g flour and 50 g butter. There are 5 kg flour and 1 kg butter. Profit is ₹40 per cake and ₹25\u00a0per\u00a0pastry. Formulate the LPP for maximum profit (do not solve).',
             a: `With ${x} = cakes, ${y} = pastries:<br>Max${NB}${Z}${NB}=${NB}40${x}${NB}+${NB}25${y} s.t.<br>200${x}${NB}+${NB}100${y}${NB}≤${NB}5000${NB}⇒ 2${x}${NB}+${NB}${y}${NB}≤${NB}50;<br>25${x} + 50${y}${NB}≤${NB}1000${NB}⇒${NB}${x}${NB}+${NB}2${y}${NB}≤${NB}40;<br>${XYNONNEG}.`,
           },
           {
@@ -578,7 +578,7 @@ export const TOPICS: Topic[] = [
             a: `${x} + ${y} ≤ 60; ${rel(y, '≥', '10')}; ${rel(x, '≥', '0')} (and ${rel(y, '≥', '0')}, implied).`,
           },
           {
-            q: '<b>[CBSE HOTS]</b> A transporter uses mini-trucks and large trucks. A mini-truck carries 2 tonnes and costs ₹1000/trip; a large truck carries 5 tonnes and costs ₹2000/trip. At least 30 tonnes must be moved, and the number of large trucks cannot exceed the number of mini-trucks. Formulate the cost-minimisation LPP.',
+            q: '<b>[CBSE HOTS]</b> A transporter uses mini-trucks and large trucks. A mini-truck carries 2 tonnes and costs ₹1000/\u2060trip; a large truck carries 5 tonnes and costs ₹2000/\u2060trip. At least 30 tonnes must be moved, and the number of large trucks cannot exceed the number of mini-trucks. Formulate the cost-minimisation LPP.',
             a: `Min${NB}${Z}${NB}=${NB}1000${x}${NB}+${NB}2000${y} s.t.<br>2${x} + 5${y} ≥ 30; ${rel(y, '≤', x)}${NB}⇒${NB}−${x}${NB}+${NB}${y}${NB}≤${NB}0;<br>${XYNONNEG}, where ${x}${NB}=${NB}mini-truck trips, ${y}${NB}=${NB}large-truck trips.`,
           },
         ],

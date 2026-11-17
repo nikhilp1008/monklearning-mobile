@@ -714,7 +714,7 @@ export function readerBreaks(html: string): string {
   }
   // A bar before a glued space: Android breaks after "|" even then, so "|D|" | "= √3" (Android check of
   // Mathematics 12 Ch 11). The glue above is added after the bar rule at the top ran, so join it here.
-  return out.replace(/\|((?:<\/[a-z]+>)*)\u00a0/g, `|$1${WJ}\u00a0`);
+  return fracGlue(out.replace(/\|((?:<\/[a-z]+>)*)\u00a0/g, `|$1${WJ}\u00a0`));
 }
 
 /**
@@ -729,8 +729,16 @@ export function readerBreaks(html: string): string {
  * before it and the line breaks after it. Not "× 10ⁿ", which keeps its power.
  */
 const OP_GLUED_RIGHT = /[ ]([=+−×⇒→≤≥<>≈≠⟺∝±])\u00a0(?!10<sup>)/g;
+/**
+ * A stacked fraction is drawn as a box inside the line, and Android may break beside that box even
+ * across a no-break space: "13/12 − 3/4" | "+ 1/8 = …" (Android check of Mathematics 12 Ch 13). A word
+ * joiner between the box and the glued space closes that gap.
+ */
+export function fracGlue(html: string): string {
+  return html.replace(/(<\/(?:frac|binom)>)\u00a0/g, `$1${WJ}\u00a0`).replace(/\u00a0(<(?:frac|binom)>)/g, `\u00a0${WJ}$1`);
+}
 export function stixBreaks(html: string): string {
-  return html.replace(OP_GLUED_RIGHT, '\u00a0$1 ').replace(/ (?=[=+−×⇒→≤≥<>≈≠⟺∝±] )/g, '\u00a0').replace(/\|((?:<\/[a-z]+>)*)\u00a0(?=[=+−×⇒→≤≥<>≈≠⟺∝±])/g, `|$1${WJ}\u00a0`);
+  return fracGlue(html.replace(OP_GLUED_RIGHT, '\u00a0$1 ').replace(/ (?=[=+−×⇒→≤≥<>≈≠⟺∝±] )/g, '\u00a0').replace(/\|((?:<\/[a-z]+>)*)\u00a0(?=[=+−×⇒→≤≥<>≈≠⟺∝±])/g, `|$1${WJ}\u00a0`));
 }
 
 function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLook): TextStyle {

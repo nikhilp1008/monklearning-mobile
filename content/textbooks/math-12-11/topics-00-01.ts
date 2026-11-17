@@ -292,7 +292,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Collinearity of three points:</b> either the direction ratios of ${vAB} and ${vAC} are proportional, or (with correct ordering) ${ABBCAC}.`,
+        html: `<b>Collinearity of three points:</b> either${NB}the direction ratios of ${vAB} and ${vAC} are proportional, or (with correct ordering) ${ABBCAC}.`,
       },
       {
         t: 'p',
@@ -364,7 +364,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Where the axis and plane distances come from.</b> These are not new results but immediate consequences of Theorem 1. The nearest point on the x-axis to ${P}${pt(x, y, z)} is its projection ${pt(x, '0', '0')}; the distance to${NB}it${NB}is<br>${rt(`(${x} − ${x})<sup>2</sup> + (${y} − 0)<sup>2</sup> + (${z} − 0)<sup>2</sup>`)} = ${AXIS_X}:<br>the ${x}-term vanishes because the axis already matches ${P} in ${x}. The nearest point on the yz-plane is the projection ${pt('0', y, z)}, at distance ${rt(`(${x}${NB}−${NB}0)<sup>2</sup>${NB}+${NB}0${NB}+${NB}0`)}${NB}=${NB}${abs(x)}. So “distance from an axis” loses the one coordinate the axis shares, and “distance from a plane” keeps only the one coordinate the plane sets to zero. Re-deriving them this way, rather than memorising, means you never confuse the two.`,
+        html: `<b>Where the axis and plane distances come from.</b> These are not new results but immediate consequences of Theorem 1. The nearest point on the x-axis to ${P}${pt(x, y, z)} is its projection ${pt(x, '0', '0')}; the distance to${NB}it${NB}is<br>${rt(`(${x} − ${x})<sup>2</sup> + (${y} − 0)<sup>2</sup> + (${z} − 0)<sup>2</sup>`)} = ${AXIS_X}:<br>the ${x}-term vanishes because the axis already matches ${P} in ${x}. The nearest point on the yz-plane${NB}is the projection ${pt('0', y, z)}, at distance ${rt(`(${x}${NB}−${NB}0)<sup>2</sup>${NB}+${NB}0${NB}+${NB}0`)}${NB}=${NB}${abs(x)}. So “distance from an axis” loses the one coordinate the axis shares, and “distance from a plane” keeps only the one coordinate the plane sets to zero. Re-deriving them this way, rather than memorising, means you never confuse the two.`,
       },
       {
         t: 'p',
@@ -376,7 +376,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Proof.</b> Let ${D} be the midpoint of ${BC}, so ${D} = ${HALF}(${B} + ${C}). The point dividing median ${AD} in the ratio ${ratio('2', '1')} from ${A} is, by the section formula,<br>${fr(`2${D} + 1${NB}·${NB}${A}`, '2 + 1')} = ${fr('1', '3')}(2${NB}·${NB}${fr(`${B} + ${C}`, '2')} + ${A}) =${fr(`${A} + ${B} + ${C}`, '3')},<br>which is exactly the centroid ${G}. By the symmetry of this expression in ${A}, ${B}, ${C}, the identical argument applies to the other two medians, so all three medians pass through ${G} and are cut by it in the ratio ${ratio('2', '1')}. ■`,
+        html: `<b>Proof.</b> Let ${D} be the midpoint of ${BC}, so ${D} = ${HALF}(${B} + ${C}). The point dividing median ${AD} in the ratio ${ratio('2', '1')} from ${A} is, by the section formula,<br>${fr(`2${D} + 1${NB}·${NB}${A}`, '2 + 1')} = ${fr('1', '3')}(2${NB}·${NB}${fr(`${B} + ${C}`, '2')} + ${A}) =${NB}${fr(`${A} + ${B} + ${C}`, '3')},<br>which is exactly the centroid ${G}. By the symmetry of this expression in ${A}, ${B}, ${C}, the identical argument applies to the other two medians, so all three medians pass through ${G} and are cut by it in the ratio ${ratio('2', '1')}. ■`,
       },
       {
         t: 'p',
@@ -595,7 +595,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Once you know a single point on a line <b>and</b> its direction, the line is completely determined, like knowing a train’s starting station and the exact bearing\u00a0of\u00a0the\u00a0track. That single idea gives us the <b>equation of a line</b>: start at a known point, then walk any distance in the fixed direction.',
+        html: 'Once you know a single point on a line <b>and</b> its direction, the line is completely determined, like knowing a train’s\u00a0starting\u00a0station and the exact bearing of the track. That single idea gives us the <b>equation of a line</b>: start at a known point, then walk any distance in the fixed direction.',
       },
       {
         t: 'p',

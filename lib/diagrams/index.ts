@@ -59,6 +59,7 @@ import { DIAGRAMS_MATHEMATICS_12_07 } from '@/lib/diagrams/mathematics-12-07';
 import { DIAGRAMS_MATHEMATICS_12_08 } from '@/lib/diagrams/mathematics-12-08';
 import { DIAGRAMS_MATHEMATICS_12_11 } from '@/lib/diagrams/mathematics-12-11';
 import { DIAGRAMS_MATHEMATICS_12_12 } from '@/lib/diagrams/mathematics-12-12';
+import { DIAGRAMS_MATHEMATICS_12_13 } from '@/lib/diagrams/mathematics-12-13';
 import { DIAGRAMS_PHYSICS_11_01 } from '@/lib/diagrams/physics-11-01';
 import { DIAGRAMS_PHYSICS_11_02 } from '@/lib/diagrams/physics-11-02';
 import { DIAGRAMS_PHYSICS_11_03 } from '@/lib/diagrams/physics-11-03';
@@ -172,6 +173,7 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'mathematics|12|8': DIAGRAMS_MATHEMATICS_12_08,
   'mathematics|12|11': DIAGRAMS_MATHEMATICS_12_11,
   'mathematics|12|12': DIAGRAMS_MATHEMATICS_12_12,
+  'mathematics|12|13': DIAGRAMS_MATHEMATICS_12_13,
   'biology|11|1': DIAGRAMS_BIOLOGY_11_01,
   'biology|11|5': DIAGRAMS_BIOLOGY_11_05,
   'biology|11|6': DIAGRAMS_BIOLOGY_11_06,
