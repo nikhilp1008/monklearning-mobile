@@ -5,7 +5,7 @@ import { SettingsPage, useSettingsStyles } from '@/components/settings-page';
 const SECTIONS = [
   {
     title: 'Information we collect',
-    body: 'Account basics like your name, email and phone; your exam track, class and language preference; a parent or guardian’s details if you’re under 18; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up what you say to Drona or Vedha (used live to answer you; we don’t keep the recording or a transcript), which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data comes along for the ride too: your phone’s make and model, OS and app version, which screens you open, reports when something fails to show, and the state you’re studying from. If you allow notifications, we also keep a token that lets us send them to your phone.',
+    body: 'Account basics like your name, email and phone; your exam track, class and language preference; and any messages or attachments you send our support team. We never store your card details, only payment confirmations. While you study, we also pick up what you say to Drona or Vedha (used live to answer you; we keep a recording of a class only if you have been asked and agreed, and delete it after 30 days), which chapters and topics you touch, your practice answers and response times, doubt photos and handwritten work, and your progress metrics like Monk Score and mastery. Standard technical data comes along for the ride too: your phone’s make and model, OS and app version, which screens you open, reports when something fails to show, and the state you’re studying from. If you allow notifications, we also keep a token that lets us send them to your phone.',
   },
   {
     title: 'Your device and location',
@@ -21,7 +21,7 @@ const SECTIONS = [
   },
   {
     title: 'How long we keep it',
-    body: 'Your learning data sticks around for as long as your account is active. We don’t keep recordings of your voice. Delete your account and we purge your personal data within 30 days, except photos of questions you snapped in Snap and Solve, which are kept for up to 180 days and then erased. Payment and tax records are kept a little longer, as Indian law requires.',
+    body: 'Your learning data sticks around for as long as your account is active. We keep a recording of a class only if you have been asked and agreed, and delete it after 30 days. Delete your account and we purge your personal data within 48 hours of your request, except photos of questions you snapped in Snap and Solve, which are kept for up to 180 days and then erased. Payment and tax records are kept a little longer, as Indian law requires.',
   },
   {
     title: 'Your rights',
@@ -29,7 +29,7 @@ const SECTIONS = [
   },
   {
     title: 'If you’re under 18',
-    body: 'A parent or guardian gives consent when your account is created, and can view your progress or request a copy or deletion of your data on your behalf. We don’t run third-party ads or build marketing profiles on students.',
+    body: 'Most monklearning students are under 18. We don’t run third-party ads or build marketing profiles on students.',
   },
   {
     title: 'Contact us',
@@ -42,7 +42,7 @@ export default function PrivacyPolicyScreen() {
 
   return (
     <SettingsPage title="Privacy policy">
-      <Text style={styles.eyebrow}>Last updated · October 2026</Text>
+      <Text style={styles.eyebrow}>Last updated · November 2026</Text>
 
       {SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
