@@ -141,7 +141,9 @@ export function captionBreaks(html: string): string {
     .replace(new RegExp(`\\b(${TRIG}) `, 'g'), '$1\u00a0')
     .replace(new RegExp(`(</i>|</sub>|</sup>|\\)) (?=${TRIG}\\b)`, 'g'), '$1\u00a0')
     // Android breaks after any "|": an opening bar keeps its contents, "|x| = |z|"
-    .replace(/(^|[\s\u00a0(])\|(?=[^\s|])/g, '$1|\u2060');
+    .replace(/(^|[\s\u00a0(])\|(?=[^\s|])/g, '$1|\u2060')
+    // a conditional bar glued both sides still broke before it, "P(A" | "| Eᵢ)" (Android check of Mathematics 12 Ch 13)
+    .replace(/\u00a0\|/g, '\u00a0\u2060|');
 }
 
 /**

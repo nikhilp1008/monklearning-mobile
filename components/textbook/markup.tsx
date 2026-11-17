@@ -613,9 +613,24 @@ const READER_UNITS = 'D|pm|nm|μm|Å|kJ|J|mol|g|kg|mg|mL|L|K|atm|bar|Pa|kPa|cm|m
 // A unit or a compound of units (eV·nm, J·s, kg·m/s), with its power and punctuation.
 const READER_UNIT = new RegExp(`^(?:${READER_UNITS})(?:[·/](?:${READER_UNITS}))*[−0-9]*(?:[.,;:)]|$)`);
 const READER_GLUE_MAX = 26;
+/** A term and the operator after it, held together past the cap: about three quarters of a line. */
+const READER_PAIR_MAX = 26;
+/** A bracket this short (its text) is held on one line. */
+const READER_BRACKET_MAX = 18;
 export function readerBreaks(html: string): string {
   const plain = (t: string) => t.replace(/<[^>]*>/g, '');
   const toks = html
+    .replace(OP_GLUED_RIGHT, '\u00a0$1 ')
+    // A short bracket or set stays whole: "(2 + λ, −1 − λ, 3" | "+ 2λ)", "{HT," | "TH}", "P(at" | "least two)"
+    // (Android check of Mathematics 12 Ch 11 to 13). Not one holding a stacked fraction.
+    // Nor one in a chain of brackets, "(6.67 × 10⁻¹¹)(6.0 × 10²⁴)/[…]", which would then never break.
+    .replace(/([(\[{])([^()[\]{}]*)(?=[)\]}])/g, (m: string, open: string, inner: string, at: number, all: string) =>
+      inner.includes(' ') && !inner.includes('<frac') && !inner.includes('<binom') && inner.replace(/<[^>]*>/g, '').length <= READER_BRACKET_MAX &&
+      !/[)\]}/\u2060]$/.test(all.slice(0, at)) && !/^[)\]}][(\[{/\u2060]/.test(all.slice(at + m.length))
+        ? open + inner.replace(/ /g, '\u00a0')
+        : m)
+    // A tick stays with what it checks: "= 15" | "✓".
+    .replace(/ (?=✓)/g, '\u00a0')
     .replace(/(<\/sub>)(?=[()[\]/])/g, `$1${HAIR}${WJ}`)
     .replace(/([([{|])(?=<i>f)/g, `$1${HAIR}${WJ}`)
     // An opening modulus bar stays with what it encloses: Android may break after "|", leaving
@@ -636,6 +651,8 @@ export function readerBreaks(html: string): string {
     // A closing bar before a glued space: Android breaks after "|" even before a no-break
     // space, and "|r| < 1" split at the bar (Android check of Mathematics 11 Ch 8).
     .replace(/\|(?=\u00a0)/g, `|${WJ}`)
+    // A conditional bar, "P(A | B)", keeps both sides: "P(·" | "| F)" (Android check of Mathematics 12 Ch 13).
+    .replace(/[ \u00a0]\|[ \u00a0]/g, `\u00a0${WJ}|${WJ}\u00a0`)
     // A sum or product stays with what it sums: "∑ʳ₌₁ⁿ" | "r²" left the Σ alone at a line's
     // end (Android check of Mathematics 11 Ch 7).
     .replace(/([∑∏](?:<su[bp]>(?:(?!<\/su[bp]>).)*<\/su[bp]>){0,2}) (?=\S)/g, '$1\u00a0')
@@ -647,6 +664,10 @@ export function readerBreaks(html: string): string {
   for (let k = 1; k < toks.length; k++) {
     const a = plain(toks[k - 1]), b = plain(toks[k]);
     const glue =
+      // An operator never opens a line, however long the term before it: "|AP × b|" | "= √29",
+      // "P(E)P(F | E)" | "= …" (Android check of Mathematics 12 Ch 11 to 13). The line breaks after it.
+      // "× 10⁻ⁿ" is the exception: it stays with its power and may open a line (below).
+      (READER_OPS.has(b) && !(b === '×' && toks[k + 1]?.startsWith('10<sup>'))) ||
       (READER_OPS.has(b) && (a.length <= 3 || (b === '×' && /[0-9]$/.test(a)))) ||
       // A short bracket stays whole: "(0.50" | "− x)", "log(pᵢ/(2pᵢ" | "− pₜ))" (Chemistry 12 Ch 3).
       (READER_OPS.has(b) && /\([^()]{1,6}$/.test(a)) ||
@@ -657,7 +678,7 @@ export function readerBreaks(html: string): string {
       // A short interval or pair stays whole: "A₁ = [1," | "6]" (Android check of Mathematics 11 Ch 1).
       (/(?:^|[^A-Za-z])[[(][^\])[(]{1,8},$/.test(a) && /^[^\s[(]{1,8}[\])]/.test(b)) ||
       // An option's letter with its value: "(d)" | "240 min".
-      /^\([a-e]\)$/.test(a) ||
+      /^\((?:[a-e]|i{1,3}|iv|v)\)$/.test(a) ||
       // A unit stays whole: "0.133 mol" | "L⁻¹", "2: L" | "mol⁻¹", "−196.6 kJ" | "mol⁻¹" (Chemistry 12 Ch 11).
       (/(?:^|[^A-Za-z])(?:mol|L|kJ|J|g|kg)$/.test(a) && /^(?:L|mol|s|min|K|h)(?:[−0-9]|$)/.test(b)) ||
       (READER_OPS.has(a) && b.length > 0 && b.length <= 7) ||
@@ -671,21 +692,44 @@ export function readerBreaks(html: string): string {
       // A function with its argument, and with a short term it multiplies:
       // "√3 × sin | 30°", "sin² | r", "AC = 2t | tan r".
       (/(?:^|[^A-Za-z])(?:sin|cos|tan|cot|sec|cosec|log|ln)\d?$/.test(a) && b.length > 0 && b.length <= 7) ||
-      (/^(?:sin|cos|tan|cot|sec|cosec|log|ln)\d?$/.test(b) && a.length <= 4 && !READER_OPS.has(a));
+      // Not across a clause: "= 2. tan", "√34, cos" may break (Android check of Mathematics 12 Ch 13).
+      (/^(?:sin|cos|tan|cot|sec|cosec|log|ln)\d?$/.test(b) && a.length <= 4 && !READER_OPS.has(a) && !/[.,;:]$/.test(a));
     if (glue && run + 1 + b.length <= READER_GLUE_MAX) {
       out += ' ' + toks[k];
       run += 1 + b.length;
-    } else if (glue && out.endsWith(' ' + toks[k - 1]) && a.length + 1 + b.length <= READER_GLUE_MAX) {
+    } else if (glue && (!READER_OPS.has(a) || (a === '×' && toks[k].startsWith('10<sup>'))) && out.endsWith(' ' + toks[k - 1]) && a.length + 1 + b.length <= READER_GLUE_MAX) {
       // A run too long to hold whole breaks one word earlier, never inside a pair
       // that belongs together: "(1.60" | "× 10⁻¹⁶)", "= −13.6" | "Z²/n² eV".
       out = out.slice(0, -(toks[k - 1].length + 1)) + ' ' + toks[k - 1] + ' ' + toks[k];
+      run = a.length + 1 + b.length;
+    } else if (READER_OPS.has(b) && !(b === '×' && toks[k + 1]?.startsWith('10<sup>')) && a.length + 1 + b.length <= READER_PAIR_MAX) {
+      // A run already at its cap still keeps the operator with the term before it.
+      out += ' ' + toks[k];
       run = a.length + 1 + b.length;
     } else {
       out += ' ' + toks[k];
       run = b.length;
     }
   }
-  return out;
+  // A bar before a glued space: Android breaks after "|" even then, so "|D|" | "= √3" (Android check of
+  // Mathematics 12 Ch 11). The glue above is added after the bar rule at the top ran, so join it here.
+  return out.replace(/\|((?:<\/[a-z]+>)*)\u00a0/g, `|$1${WJ}\u00a0`);
+}
+
+/**
+ * The formula look's one break rule: an operator never opens a line. The space before it is glued, the
+ * one after it left, so "√((x₂ − x₁)² + (y₂ − y₁)²" | "+ (z₂ − z₁)²)" now breaks after the "+" (Android
+ * check of Mathematics 12 Ch 11, the formula boxes and cards). A space already glued after an operator is
+ * left alone, so no run grows longer than a term and its sign.
+ */
+/**
+ * An operator authored glued to the term AFTER it, " +\u00a0(z₂ − z₁)²": the line could still break before
+ * it (Android check of Mathematics 12 Ch 11, the distance formula). Turned round, it stays with the term
+ * before it and the line breaks after it. Not "× 10ⁿ", which keeps its power.
+ */
+const OP_GLUED_RIGHT = /[ ]([=+−×⇒→≤≥<>≈≠⟺∝±])\u00a0(?!10<sup>)/g;
+export function stixBreaks(html: string): string {
+  return html.replace(OP_GLUED_RIGHT, '\u00a0$1 ').replace(/ (?=[=+−×⇒→≤≥<>≈≠⟺∝±] )/g, '\u00a0').replace(/\|((?:<\/[a-z]+>)*)\u00a0(?=[=+−×⇒→≤≥<>≈≠⟺∝±])/g, `|$1${WJ}\u00a0`);
 }
 
 function styleFor(name: 'b' | 'i' | 'sup' | 'sub', size: number, look: MarkupLook): TextStyle {
@@ -1017,6 +1061,12 @@ function fracRun(num: Node[], den: Node[], size: number, key: string, look: Mark
   // A power in the denominator rises toward the rule: card "a/b^(n−1)" touched it (Mathematics 11 Ch 8).
   const hasSup = (nodes: Node[]): boolean => nodes.some((c) => c.kind === 'tag' && (c.name === 'sup' || (c.name !== 'frac' && c.name !== 'binom' && hasSup(c.children))));
   const denTop = box + size * FRAC.den - base + (nested(den) ? s * FRAC.nest : 0) + (tallDen ? s * FRAC.bracketDrop : 0) + (hasSup(den) ? s * FRAC.supDrop : 0);
+  // A vector arrow over a denominator letter rises above its half's line box, and Android cut its
+  // head off: |b⃗₁ × b⃗₂| (Android check of Mathematics 12 Ch 11, the formula cards). That half gets room
+  // above it for the arrow, the same baseline, and sits a little lower so the arrow clears the rule.
+  const arrowDen = plainText(den).includes('\u20d7');
+  const arrowRoom = arrowDen ? s * 0.4 : 0;
+  const denTopA = denTop + (arrowDen ? s * 0.12 : 0);
   // A half is one line in a box one line high: Android can measure it a pixel
   // short and wrap its last word onto a second line that the box hides, "f(x) −
   // f(a)" over x − a drawn as f(x) over x − a (Android check of Mathematics 11
@@ -1037,7 +1087,7 @@ function fracRun(num: Node[], den: Node[], size: number, key: string, look: Mark
       <View style={{ marginTop: numTop, alignItems: 'stretch', marginHorizontal: bracket ? bracket.w + size * BINOM.gap : 0 }}>
         {half(num, `${key}.n`)}
         <View style={{ height: thick, marginTop: ruleTop - (numTop + line), backgroundColor: binom ? 'transparent' : (ink.color ?? '#000') }} />
-        {half(den, `${key}.d`, { marginTop: denTop - (ruleTop + thick) })}
+        {half(den, `${key}.d`, { marginTop: denTopA - (ruleTop + thick) - arrowRoom, paddingTop: arrowRoom })}
       </View>
       {bracket && ([0, 1] as const).map((side) => brackets(side, bracket, size, box, ink))}
     </View>
@@ -1419,7 +1469,7 @@ export interface MarkupProps {
 
 export function Markup({ html, size, style, numberOfLines, look = 'current' }: MarkupProps) {
   const nodes = useMemo(() => {
-    const tree = parse(look === 'stix' ? hairSpaces(untypeLetters(html)) : look === 'pilot' ? hairSpaces(readerBreaks(html)) : html);
+    const tree = parse(look === 'stix' ? hairSpaces(stixBreaks(untypeLetters(html))) : look === 'pilot' ? hairSpaces(readerBreaks(html)) : html);
     // NOT bars are drawn whole in the maths looks; the old reader keeps the marks as text.
     return look !== 'current' && hasOverline(html) ? overlines(tree, look) : tree;
   }, [html, look]);
