@@ -187,3 +187,13 @@
     where they illustrate the text; the sub-inside-a-sub under ∑ kept; Class 12, NCERT and "CBSE Boards" claims kept as printed and
     listed; Example 3's unused B kept; mk14's cards ("For equally likely outcomes:", legends, #7 renamed, #14 reworded, C's new card
     "Selection then arrangement" if rm14b agrees). Fractions with a long half start their own line (lesson of Ch 12's Android check).
+
+41. (2026-11-17, Raasikh asked for it) **Chapter 00 "Basic Mathematics: Indices, Surds and Logarithms" (book pp. 10 to 24) is now built**,
+    reversing the 2026-11-10 "skip it for now" in item 3. Layout: the chapter has no subtopics, so it is ONE Topic 01 (the
+    opening paragraph as the Introduction part, Sections 1 to 11 as parts; Section 11 runs on to the foot of p. 22) and
+    the book's "Addendum P: Where Logarithms Actually Show Up in JEE and NEET" (pp. 23 to 24) is Additional topic A. Shelf key
+    'mathematics|11|basic mathematics' (the catalogue's order-0 row), `OPENS_ON_CHOICE` index 0. Reports and new wording:
+    reports-00/ (writer-1/2, review-R1/R2, new-text-F1.md). No Chapter 0 entry exists in the errata (pp. 1238 to 1260). The
+    chapter draws no figures and has no formula boxes, so the Formula sheet has no cards for it. Open for the founder: the
+    "integer" (greatest integer not exceeding log N) wording for the characteristic, the NCERT class claim ("Classes 8 and 9"),
+    and two optional additions (the variable-base paragraph in Section 8 and the x^x two-term route in Additional A).

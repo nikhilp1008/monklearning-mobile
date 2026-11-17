@@ -35,6 +35,25 @@ import { DIAGRAMS_BIOLOGY_11_11 } from '@/lib/diagrams/biology-11-11';
 import { DIAGRAMS_BIOLOGY_11_12 } from '@/lib/diagrams/biology-11-12';
 import { DIAGRAMS_BIOLOGY_11_13 } from '@/lib/diagrams/biology-11-13';
 import { DIAGRAMS_BIOLOGY_11_14 } from '@/lib/diagrams/biology-11-14';
+import { DIAGRAMS_BIOLOGY_11_15 } from '@/lib/diagrams/biology-11-15';
+import { DIAGRAMS_BIOLOGY_11_16 } from '@/lib/diagrams/biology-11-16';
+import { DIAGRAMS_BIOLOGY_11_17 } from '@/lib/diagrams/biology-11-17';
+import { DIAGRAMS_BIOLOGY_11_18 } from '@/lib/diagrams/biology-11-18';
+import { DIAGRAMS_BIOLOGY_11_19 } from '@/lib/diagrams/biology-11-19';
+import { DIAGRAMS_BIOLOGY_12_01 } from '@/lib/diagrams/biology-12-01';
+import { DIAGRAMS_BIOLOGY_12_02 } from '@/lib/diagrams/biology-12-02';
+import { DIAGRAMS_BIOLOGY_12_03 } from '@/lib/diagrams/biology-12-03';
+import { DIAGRAMS_BIOLOGY_12_04 } from '@/lib/diagrams/biology-12-04';
+import { DIAGRAMS_BIOLOGY_12_05 } from '@/lib/diagrams/biology-12-05';
+import { DIAGRAMS_BIOLOGY_12_06 } from '@/lib/diagrams/biology-12-06';
+import { DIAGRAMS_BIOLOGY_12_07 } from '@/lib/diagrams/biology-12-07';
+import { DIAGRAMS_BIOLOGY_12_08 } from '@/lib/diagrams/biology-12-08';
+import { DIAGRAMS_BIOLOGY_12_09 } from '@/lib/diagrams/biology-12-09';
+import { DIAGRAMS_BIOLOGY_12_10 } from '@/lib/diagrams/biology-12-10';
+import { DIAGRAMS_BIOLOGY_12_11 } from '@/lib/diagrams/biology-12-11';
+import { DIAGRAMS_BIOLOGY_12_12 } from '@/lib/diagrams/biology-12-12';
+import { DIAGRAMS_BIOLOGY_12_13 } from '@/lib/diagrams/biology-12-13';
+import { DIAGRAMS_MATHEMATICS_11_00 } from '@/lib/diagrams/mathematics-11-00';
 import { DIAGRAMS_MATHEMATICS_11_01 } from '@/lib/diagrams/mathematics-11-01';
 import { DIAGRAMS_MATHEMATICS_11_02 } from '@/lib/diagrams/mathematics-11-02';
 import { DIAGRAMS_MATHEMATICS_11_03 } from '@/lib/diagrams/mathematics-11-03';
@@ -57,6 +76,9 @@ import { DIAGRAMS_MATHEMATICS_12_05 } from '@/lib/diagrams/mathematics-12-05';
 import { DIAGRAMS_MATHEMATICS_12_06 } from '@/lib/diagrams/mathematics-12-06';
 import { DIAGRAMS_MATHEMATICS_12_07 } from '@/lib/diagrams/mathematics-12-07';
 import { DIAGRAMS_MATHEMATICS_12_08 } from '@/lib/diagrams/mathematics-12-08';
+import { DIAGRAMS_MATHEMATICS_12_11 } from '@/lib/diagrams/mathematics-12-11';
+import { DIAGRAMS_MATHEMATICS_12_12 } from '@/lib/diagrams/mathematics-12-12';
+import { DIAGRAMS_MATHEMATICS_12_13 } from '@/lib/diagrams/mathematics-12-13';
 import { DIAGRAMS_PHYSICS_11_01 } from '@/lib/diagrams/physics-11-01';
 import { DIAGRAMS_PHYSICS_11_02 } from '@/lib/diagrams/physics-11-02';
 import { DIAGRAMS_PHYSICS_11_03 } from '@/lib/diagrams/physics-11-03';
@@ -160,6 +182,7 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'mathematics|11|12': DIAGRAMS_MATHEMATICS_11_12,
   'mathematics|11|13': DIAGRAMS_MATHEMATICS_11_13,
   'mathematics|11|14': DIAGRAMS_MATHEMATICS_11_14,
+  'mathematics|11|0': DIAGRAMS_MATHEMATICS_11_00,
   'mathematics|12|1': DIAGRAMS_MATHEMATICS_12_01,
   'mathematics|12|2': DIAGRAMS_MATHEMATICS_12_02,
   'mathematics|12|3': DIAGRAMS_MATHEMATICS_12_03,
@@ -168,6 +191,9 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'mathematics|12|6': DIAGRAMS_MATHEMATICS_12_06,
   'mathematics|12|7': DIAGRAMS_MATHEMATICS_12_07,
   'mathematics|12|8': DIAGRAMS_MATHEMATICS_12_08,
+  'mathematics|12|11': DIAGRAMS_MATHEMATICS_12_11,
+  'mathematics|12|12': DIAGRAMS_MATHEMATICS_12_12,
+  'mathematics|12|13': DIAGRAMS_MATHEMATICS_12_13,
   'biology|11|1': DIAGRAMS_BIOLOGY_11_01,
   'biology|11|5': DIAGRAMS_BIOLOGY_11_05,
   'biology|11|6': DIAGRAMS_BIOLOGY_11_06,
@@ -179,6 +205,24 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'biology|11|12': DIAGRAMS_BIOLOGY_11_12,
   'biology|11|13': DIAGRAMS_BIOLOGY_11_13,
   'biology|11|14': DIAGRAMS_BIOLOGY_11_14,
+  'biology|11|15': DIAGRAMS_BIOLOGY_11_15,
+  'biology|11|16': DIAGRAMS_BIOLOGY_11_16,
+  'biology|11|17': DIAGRAMS_BIOLOGY_11_17,
+  'biology|11|18': DIAGRAMS_BIOLOGY_11_18,
+  'biology|11|19': DIAGRAMS_BIOLOGY_11_19,
+  'biology|12|1': DIAGRAMS_BIOLOGY_12_01,
+  'biology|12|2': DIAGRAMS_BIOLOGY_12_02,
+  'biology|12|3': DIAGRAMS_BIOLOGY_12_03,
+  'biology|12|4': DIAGRAMS_BIOLOGY_12_04,
+  'biology|12|5': DIAGRAMS_BIOLOGY_12_05,
+  'biology|12|6': DIAGRAMS_BIOLOGY_12_06,
+  'biology|12|7': DIAGRAMS_BIOLOGY_12_07,
+  'biology|12|8': DIAGRAMS_BIOLOGY_12_08,
+  'biology|12|9': DIAGRAMS_BIOLOGY_12_09,
+  'biology|12|10': DIAGRAMS_BIOLOGY_12_10,
+  'biology|12|11': DIAGRAMS_BIOLOGY_12_11,
+  'biology|12|12': DIAGRAMS_BIOLOGY_12_12,
+  'biology|12|13': DIAGRAMS_BIOLOGY_12_13,
   'biology|11|4': DIAGRAMS_BIOLOGY_11_04,
   'biology|11|3': DIAGRAMS_BIOLOGY_11_03,
   'biology|11|2': DIAGRAMS_BIOLOGY_11_02,

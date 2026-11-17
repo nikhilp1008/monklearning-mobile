@@ -100,7 +100,8 @@ describe('intervals (Android check of Mathematics 11 Ch 1)', () => {
     const out = readerBreaks('so |<i>x</i> − 2| ≥ 5 and (|<i>x</i>| + 1)');
     expect(out).toContain(`so |${WJ}<i>x</i>`);
     expect(out).toContain(`(|${WJ}<i>x</i>|`);
-    expect(out).not.toContain(`2|${WJ}`);
+    // A closing bar is not glued to what follows it, only to an operator already glued to it ("|D| = √3", Maths 12 Ch 11).
+    expect(out).not.toMatch(/2\|\u2060[^\u00a0]/);
   });
 
   // Android check of Mathematics 11 Ch 7: a Σ ended a line with its summand on the next.
