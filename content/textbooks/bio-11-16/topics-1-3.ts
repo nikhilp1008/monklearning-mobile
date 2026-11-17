@@ -543,8 +543,8 @@ export const TOPICS: Topic[] = [
           { f: 'Source of N-waste', note: 'mainly deamination of <b>amino acids</b> (protein metabolism); uric acid also from purines.' },
           { f: 'Master arrow', note: 'NH<sub>3</sub> → urea → uric acid: toxicity ↓, water-economy ↑.' },
           {
-            f: '– Ammonotelic → aquatic (fish, tadpole, aquatic insects); Ureotelic → mammals, adult land amphibians; Uricotelic → most birds, reptiles and insects.',
-            note: '',
+            f: 'Excretion type',
+            note: 'Ammonotelic → aquatic (fish, tadpole, aquatic insects); Ureotelic → mammals, adult land amphibians; Uricotelic → most birds, reptiles and insects.',
           },
           { f: 'Conversion site', note: 'ammonia → urea in the <b>liver</b> (the kidney excretes the urea).' },
           { f: 'System', note: 'kidneys → ureters → urinary bladder → urethra. Right kidney slightly lower than left.' },

@@ -816,7 +816,7 @@ export const TOPICS: Topic[] = [
           { f: 'Chromosomal (non-disjunction)', note: 'Down = <b>trisomy 21</b> (47) • Klinefelter = <b>47, XXY</b> (male) • Turner = <b>45, XO</b> (female).' },
           { f: 'Autosomal recessive carrier × carrier', note: `→ ${qtr} affected, ${half} carrier, ${qtr} normal.` },
           { f: 'X-linked recessive', note: 'affected sons need only a carrier mother; affected daughters need an <b>affected father</b> (and a carrier or affected mother).' },
-          { f: 'Pedigree symbols', note: '□ male, ○ female, filled = affected, single line = mating, double line = consanguineous.' },
+          { f: 'Pedigree symbols', note: 'square = male, circle = female, filled = affected, single line = mating, double line = consanguineous.' },
         ],
         aids: ['“Extra X, Klinefelter male; missing X, Turner female.”', '“Sickle swaps Glu for Val at six.”', '“X-linked daughters stay safe unless dad’s affected.”'],
       },

@@ -258,8 +258,8 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Gland, hormone, action, disorder' },
       {
         t: 'table',
-        title: 'Gland → Hormone → Action → Disorder',
-        head: ['Gland', 'Hormone(s)', 'Key action', 'Disorder (excess / deficiency, in this order where both are given)'],
+        title: 'Gland → Hormone → Action → Disorder (excess, then deficiency, where both are given)',
+        head: ['Gland', 'Hormone(s)', 'Key action', 'Disorder'],
         rows: [
           [
             'Hypothalamus',

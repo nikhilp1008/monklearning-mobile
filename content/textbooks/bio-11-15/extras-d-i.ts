@@ -78,8 +78,8 @@ export const TOPICS: Topic[] = [
             a: '(a) Frank-Starling mechanism: increased venous return stretches ventricular wall, increasing fibre length and force of contraction; (b) Sympathetic stimulation: increases myocardial contractility (positive inotropy), ejecting more blood per beat.',
           },
           {
-            q: '[NEET] A person has a cardiac output of 20 L/min at a heart rate of 200/min. Calculate the stroke volume.',
-            a: 'SV = <frac><num>CO</num><den>HR</den></frac> = 20,000 mL/min ÷ 200/min = 100 mL per beat.',
+            q: '[NEET] A person has a cardiac output of 20 litres per minute at a heart rate of 200 beats per minute. Calculate the stroke volume.',
+            a: 'SV = <frac><num>CO</num><den>HR</den></frac> = 20,000 mL per minute ÷ 200 beats per minute = 100 mL per beat.',
           },
           {
             q: '[CUET] Name the mechanism by which increased venous return stretches the ventricle and increases the force of contraction.',
