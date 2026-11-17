@@ -55,7 +55,7 @@ export const TOPICS: Topic[] = [
         steps: [
           'Drought stress → roots send ABA signal to leaves.',
           'ABA accumulates in guard cells.',
-          'ABA binds to ABA receptors in guard cell membranes.',
+          'ABA binds to ABA receptors in the guard cells.',
           'This triggers: (a) opening of anion channels → Cl<sup>−</sup> and malate<sup>2−</sup> efflux; (b) inhibition of H<sup>+</sup>-ATPase → membrane depolarisation.',
           'K<sup>+</sup> channels open → K<sup>+</sup> efflux.',
           'Loss of ions → the water potential inside the guard cells rises (becomes less negative) and is now higher than outside.',
@@ -99,7 +99,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: '<b>ABA Mechanism in Stomatal Closure.</b> During a drought, a leaf’s ABA level rises sharply. Explain, in stepwise sequence, how ABA causes the stomata to close, naming the cells involved and the ion movements.',
         steps: [
-          '1. ABA accumulates in and around guard cells.<br>2. ABA binds to ABA receptors in the guard-cell membrane.<br>3. Anion channels (Cl<sup>−</sup> channels) open → Cl<sup>−</sup> efflux from guard cells.<br>4. Simultaneously, H<sup>+</sup>-ATPase activity is inhibited → membrane depolarises.<br>5. K<sup>+</sup> channels open → K<sup>+</sup> efflux from guard cells.<br>6. Loss of ions (K<sup>+</sup>, Cl<sup>−</sup>, malate<sup>2−</sup>) makes the water potential inside the guard cells higher (less negative) than outside.<br>7. Water leaves guard cells by osmosis.<br>8. Guard cells lose turgor and become flaccid.<br>9. The flaccid guard cells contract, closing the stomatal pore.',
+          '1. ABA accumulates in and around guard cells.<br>2. ABA binds to ABA receptors in the guard cells.<br>3. Anion channels (Cl<sup>−</sup> channels) open → Cl<sup>−</sup> efflux from guard cells.<br>4. Simultaneously, H<sup>+</sup>-ATPase activity is inhibited → membrane depolarises.<br>5. K<sup>+</sup> channels open → K<sup>+</sup> efflux from guard cells.<br>6. Loss of ions (K<sup>+</sup>, Cl<sup>−</sup>, malate<sup>2−</sup>) makes the water potential inside the guard cells higher (less negative) than outside.<br>7. Water leaves guard cells by osmosis.<br>8. Guard cells lose turgor and become flaccid.<br>9. The flaccid guard cells contract, closing the stomatal pore.',
           'The cells involved are guard cells. The ion movements are: Cl<sup>−</sup> efflux, K<sup>+</sup> efflux, and H<sup>+</sup> pump inhibition. Water follows by osmosis.',
         ],
         ans: 'Steps 1–9 as above.',
@@ -119,7 +119,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[CBSE] Name the tissue on which gibberellin acts to break seed dormancy in germinating cereals, and name the enzyme it induces.',
+            q: '[CBSE] Name the tissue on which gibberellin acts to mobilise food reserves in germinating cereals, and name the enzyme it induces.',
             a: 'Aleurone layer; alpha-amylase.',
           },
           {
@@ -198,7 +198,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Phytochrome and circadian rhythms.</b><br>Plants possess an internal ~24-hour biological clock (circadian clock). Phytochrome acts as the set signal that entrains (synchronises) this clock to the external day/night cycle. Each dawn, red light converts Pr to Pfr and resets the clock. Each dusk, the decline of Pfr (partly by dark reversion) signals night. This allows the plant to anticipate dawn and dusk and gate its responses. For example, long-day plants (LDP) and short-day plants (SDP) judge day length by the length of the uninterrupted dark period, which they measure mainly with this clock (the classical hourglass explanation made the decline of Pfr in the dark the timer; the circadian clock is now thought to do most of the timing).',
+        html: '<b>Phytochrome and circadian rhythms.</b><br>Plants possess an internal ~24-hour biological clock (circadian clock). Phytochrome is one of the light signals that entrain (synchronises) this clock to the external day/night cycle. Each dawn, red light converts Pr to Pfr and resets the clock. Each dusk, the decline of Pfr (partly by dark reversion) signals night. This allows the plant to anticipate dawn and dusk and gate its responses. For example, long-day plants (LDP) and short-day plants (SDP) judge day length by the length of the uninterrupted dark period, which they measure mainly with this clock (the classical hourglass explanation made the decline of Pfr in the dark the timer; the circadian clock is now thought to do most of the timing).',
       },
       {
         t: 'p',
@@ -302,11 +302,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Nyctinasty: circadian leaf movements.</b><br>Many legumes (for example mimosa and beans) and other plants such as <i>Oxalis</i> move their leaves up at dawn and down at dusk in a rhythm that persists even in constant darkness. These are called nyctinastic movements (sleep movements).<br>• <b>Mechanism:</b> Turgor changes in the pulvinus (a joint-like swelling at the base of the leaf or leaflet). At dusk, water moves out of flexor cells and into extensor cells of the pulvinus, causing the leaf to close downward. At dawn, the reverse occurs: water moves into flexor cells, pushing the leaf upward.<br>• <b>Driver:</b> The circadian clock (internal ~24-hour rhythm). The movement continues even in complete darkness because it is clock-driven, not light-driven per se. However, light does entrain the clock.<br>• <b>Biological significance:</b> May reduce water loss by transpiration at night; may protect leaf surfaces from cold; may reduce herbivory by making the plant appear less leafy to nocturnal herbivores.',
+        html: '<b>Nyctinasty: circadian leaf movements.</b><br>Many legumes (for example mimosa and beans) and other plants such as <i>Oxalis</i> move their leaves up at dawn and down at dusk in a rhythm that persists even in constant darkness. These are called nyctinastic movements (sleep movements).<br>• <b>Mechanism:</b> Turgor changes in the pulvinus (a joint-like swelling at the base of the leaf or leaflet). At dusk, water moves out of the extensor cells and into the flexor cells of the pulvinus, and the leaf closes. At dawn, the reverse occurs: water moves back into the extensor cells and the leaf opens.<br>• <b>Driver:</b> The circadian clock (internal ~24-hour rhythm). The movement continues even in complete darkness because it is clock-driven, not light-driven per se. However, light does entrain the clock.<br>• <b>Biological significance:</b> May reduce water loss by transpiration at night; may protect leaf surfaces from cold; may reduce herbivory by making the plant appear less leafy to nocturnal herbivores.',
       },
       {
         t: 'p',
-        html: '<b>Seismonasty: rapid touch response.</b><br><i>Mimosa pudica</i> (touch-me-not, sleeping grass) closes its leaflets and droops its entire leaf within seconds of being touched, shaken, or heated.<br>• <b>Mechanism:</b> At the base of each leaflet and leaf is a pulvinus. Touch generates an electrical signal (action potential) that travels through the plant. At the pulvinus, this signal triggers rapid efflux of K<sup>+</sup> and Cl<sup>−</sup> from the motor (flexor) cells on the lower side of the pulvinus, followed by water efflux by osmosis. These cells lose turgor, so the leaf droops and the leaflets fold; the closure takes 1–2 seconds.<br>• <b>Speed:</b> Far faster than any growth-based movement: this is turgor-mediated, not growth-mediated.<br>• <b>Signal transmission:</b> The electrical signal propagates from the stimulated point to other leaves, which also close in a wave. This is a primitive “nervous system”: plants do not have nerves but do have electrical signaling.<br>• <b>Classification:</b> Seismonasty is the classic example of a rapid, non-directional response, qualifying it as nastic, not tropic.',
+        html: '<b>Seismonasty: rapid touch response.</b><br><i>Mimosa pudica</i> (touch-me-not, sleeping grass) closes its leaflets and droops its entire leaf within seconds of being touched, shaken, or heated.<br>• <b>Mechanism:</b> At the base of each leaflet and leaf is a pulvinus. Touch generates an electrical signal (action potential) that travels through the plant. At the pulvinus, this signal triggers rapid efflux of K<sup>+</sup> and Cl<sup>−</sup> from the motor cells in the lower half of the pulvinus, followed by water efflux by osmosis. These cells lose turgor, so the leaf droops and the leaflets fold; the closure takes 1–2 seconds.<br>• <b>Speed:</b> Far faster than any growth-based movement: this is turgor-mediated, not growth-mediated.<br>• <b>Signal transmission:</b> The electrical signal propagates from the stimulated point to other leaves, which also close in a wave. This is a primitive “nervous system”: plants do not have nerves but do have electrical signaling.<br>• <b>Classification:</b> Seismonasty is the classic example of a rapid, non-directional response, qualifying it as nastic, not tropic.',
       },
       {
         t: 'p',
@@ -328,7 +328,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET',
         q: '<b>Rapid Leaf Closure in Mimosa.</b> A touch to the left leaflet of a <i>Mimosa pudica</i> compound leaf causes all leaflets on that leaf to close rapidly. (a) Is this a tropic or nastic movement? (b) Name the movement. (c) State the mechanism of the rapid response.',
         steps: [
-          '(a) Nastic movement: the response occurs regardless of the direction from which the touch stimulus arrives.<br>(b) Seismonasty (touch-induced nastic movement).<br>(c) The touch generates an electrical signal (action potential) that travels through the pulvinus. This triggers rapid efflux of K<sup>+</sup> and Cl<sup>−</sup> from cells on the flexor side of the pulvinus, followed by water efflux by osmosis. Loss of turgor causes the cells to collapse and the leaf to close rapidly (1–2 seconds). The movement is turgor-based, not growth-based.',
+          '(a) Nastic movement: the response occurs regardless of the direction from which the touch stimulus arrives.<br>(b) Seismonasty (touch-induced nastic movement).<br>(c) The touch generates an electrical signal (action potential) that travels through the pulvinus. This triggers rapid efflux of K<sup>+</sup> and Cl<sup>−</sup> from the motor cells in the lower half of the pulvinus, followed by water efflux by osmosis. Loss of turgor causes the cells to collapse and the leaf to close rapidly (1–2 seconds). The movement is turgor-based, not growth-based.',
         ],
         ans: '(a) Nastic; (b) Seismonasty; (c) Turgor change in pulvinus driven by ion efflux following an electrical signal.',
       },
@@ -377,7 +377,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] In <i>Mimosa pudica</i>, name the cells in the pulvinus responsible for the rapid leaf closure, and state the ion whose efflux is the primary trigger for water loss.',
-            a: 'Flexor cells in the pulvinus are responsible for closure. The primary ion efflux is K<sup>+</sup> (potassium), accompanied by Cl<sup>−</sup> (chloride). Loss of these ions makes the water potential inside the flexor cells higher (less negative) than outside, so water leaves by osmosis and the cells lose turgor, producing rapid leaf closure.',
+            a: 'The motor cells in the lower half of the pulvinus are responsible for closure. The primary ion efflux is K<sup>+</sup> (potassium), accompanied by Cl<sup>−</sup> (chloride). Loss of these ions makes the water potential inside these motor cells higher (less negative) than outside, so water leaves by osmosis and the cells lose turgor, producing rapid leaf closure.',
           },
         ],
       },
@@ -408,7 +408,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>PGR dominance is real and consistent.</b> Plant growth regulators are a heavily tested part of the chapter. Within PGR, ethylene and the auxin:cytokinin ratio are favourite topics. Topic 01 is tested lightly, but the questions that do appear are often high-difficulty assertion–reason items.',
+        html: '<b>PGR questions dominate.</b> Plant growth regulators are a heavily tested part of the chapter. Within PGR, ethylene and the auxin:cytokinin ratio are favourite topics. Topic 01 is tested lightly, but the questions that do appear are often high-difficulty assertion–reason items.',
       },
       {
         t: 'p',
@@ -488,7 +488,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 5: Assertion–Reason</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Assertion (A) and Reason (R) statements; four answer patterns (both true + explains; both true + does not explain; A true R false; A false R true).<br><b>Approach:</b> Judge A and R independently first, before selecting the option. The most common trap is a true A paired with a partially true but logically disconnected R. A second trap: a factually true R that names the wrong site, hormone, or direction.',
+        html: '<b>What it looks like:</b> Assertion (A) and Reason (R) statements; four answer patterns (both true + explains; both true + does not explain; A true R false; A false R true).<br><b>Approach:</b> Judge A and R independently first, before selecting the option. One trap is a true A paired with a partially true but logically disconnected R. A second trap: an R that sounds right but names the wrong site, hormone or direction, which makes R false.',
       },
       {
         t: 'ex',
@@ -571,14 +571,14 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'A Graded Practice Set' },
       {
         t: 'p',
-        html: 'Questions are arranged easy → hard. Answers are checked against the chapter content and NCERT.',
+        html: 'Questions are arranged easy → hard. Answers are checked against the chapter content.',
       },
       {
         t: 'practice',
         items: [
           {
             q: '<b>Q1 (Easy).</b> Which of the following is the only gaseous plant growth regulator?<br>(a) Abscisic acid (b) Ethylene (c) Gibberellin (d) Auxin',
-            a: 'Ethylene (C<sub>2</sub>H<sub>4</sub>) is the only PGR that is a gas at room temperature. ABA is a carotenoid derivative; GA is a terpenoid acid; auxins are indole or phenoxy compounds.<br><b>Answer: (b)</b>',
+            a: 'Ethylene (C<sub>2</sub>H<sub>4</sub>) is the only PGR that is a gas at room temperature. ABA is a carotenoid derivative; GA is a terpenoid acid; auxins are indole compounds (natural) or synthetic compounds such as NAA and 2,4-D.<br><b>Answer: (b)</b>',
           },
           {
             q: '<b>Q2 (Easy).</b> Identify the growth regulator used as a selective herbicide against broad-leaved dicot weeds in a wheat field.<br>(a) IAA (b) Kinetin (c) 2,4-D (d) GA<sub>3</sub>',
@@ -630,7 +630,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Two Ideas Worth Drilling' },
       {
         t: 'p',
-        html: 'Two ideas are worth rehearsing until they are automatic (the book’s estimate from past papers, not official figures). <b>The auxin:cytokinin ratio</b> is the master-switch logic behind tissue-culture questions: high auxin to cytokinin gives roots, high cytokinin to auxin gives shoots, and a balanced ratio keeps the callus dividing. <b>The decisiveness of the dark period</b> in photoperiodism (the “long-night plant” framing) is best reinforced with the night-break logic: a flash of light in the middle of the night destroys the continuous dark period, which stops flowering in a short-day plant and can induce it in a long-day plant. Knowing the facts is not enough; practise applying the ratio rule and the night-break consequence to unfamiliar situations.',
+        html: 'Two ideas are worth rehearsing until they are automatic. <b>The auxin:cytokinin ratio</b> is the master-switch logic behind tissue-culture questions: high auxin to cytokinin gives roots, high cytokinin to auxin gives shoots, and a balanced ratio keeps the callus dividing. <b>The decisiveness of the dark period</b> in photoperiodism (the “long-night plant” framing) is best reinforced with the night-break logic: a flash of light in the middle of the night destroys the continuous dark period, which stops flowering in a short-day plant and can induce it in a long-day plant. Knowing the facts is not enough; practise applying the ratio rule and the night-break consequence to unfamiliar situations.',
       },
     ],
   },

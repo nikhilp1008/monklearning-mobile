@@ -81,7 +81,7 @@ const has = (s: Sketch, t: string) => s.labels.some((l) => l.text === t);
 const clean = (s: Sketch): Check => { const a = audit(s); return [`Layout audit is clear${a.length ? `: ${a.join('; ')}` : ''}`, a.length === 0 && s.unplaced.length === 0]; };
 
 /* ================= Figure 1.1 ================= */
-const CAP11 = 'Which characteristics can define life? Growth and reproduction fail the test; metabolism, cellular organisation and consciousness (response to stimuli) pass. An isolated metabolic reaction in a test tube is neither living nor non-living.';
+const CAP11 = 'Which characteristics can define life? Growth and reproduction fail the test; metabolism, cellular organisation and consciousness (response to stimuli) pass. An isolated metabolic reaction in a test tube is a living reaction, but not a living thing.';
 const FAILS = [
   { name: 'Growth', lines: ['non-living things also grow', '(sand dune, crystal)', 'by external accumulation'] },
   { name: 'Reproduction', lines: ['many living things', 'do not reproduce', '(mule, worker bee,', 'infertile couple)'] },

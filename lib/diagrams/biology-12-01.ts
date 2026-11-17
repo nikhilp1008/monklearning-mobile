@@ -210,9 +210,9 @@ const fig12: Diagram = { id: 'b12-01-fig-1.2', topic: 0, name: 'L.S. of an anatr
 const CAP13 = 'Side-by-side comparison of three flowers: a wind-pollinated grass floret (exposed anthers, feathery stigma, no petals), an insect-pollinated flower (bright petals, nectar guides), and the <i>Yucca</i>–moth pair (moth at the ovary), each labelled with its agent and key adaptations.';
 type Flower = { k: 'a' | 'b' | 'c'; chip: string; title: string; notes: [string, string, string] };
 const FLOWERS: Flower[] = [
-  { k: 'a', chip: 'Grass floret', title: '<i>(a) Wind-pollinated grass floret</i>', notes: ['Anemophily', 'Light, non-sticky pollen', 'Feathery stigma'] },
-  { k: 'b', chip: 'Insect-pollinated', title: '<i>(b) Insect-pollinated flower</i>', notes: ['Entomophily', 'Bright petals, nectar guides', 'Sticky stigma'] },
-  { k: 'c', chip: 'Yucca and moth', title: '<i>(c) <i>Yucca</i> and its moth (<i>Pronuba</i>)</i>', notes: ['Obligate mutualism', 'Moth pollinates and lays eggs', 'Larvae eat some seeds'] },
+  { k: 'a', chip: 'Grass floret', title: '(a) Wind-pollinated grass floret', notes: ['Anemophily', 'Light, non-sticky pollen', 'Feathery stigma'] },
+  { k: 'b', chip: 'Insect-pollinated', title: '(b) Insect-pollinated flower', notes: ['Entomophily', 'Bright petals, nectar guides', 'Sticky stigma'] },
+  { k: 'c', chip: 'Yucca and moth', title: '(c) <i>Yucca</i> and its moth (<i>Pronuba</i>)', notes: ['Obligate mutualism', 'Moth pollinates and lays eggs', 'Larvae eat some seeds'] },
 ];
 const ANTHERS: P[] = [[130, 106], [180, 92], [230, 106]];
 const PETALS = [-90, -18, 54, 126, 198];

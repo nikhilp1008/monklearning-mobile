@@ -38,7 +38,7 @@
  *   C-peptide in the middle; the 1983 Eli Lilly route NCERT describes made chains A and B in
  *   separate E. coli plasmids and joined them, with no proinsulin step (later
  *   industrial processes make proinsulin and cut out the C-peptide);
- * - gene therapy: the 1990 case is a first human gene therapy, ADA deficiency
+ * - gene therapy: the 1990 case is the first clinical gene therapy, ADA deficiency
  *   is given as the chapter gives it (deletion of the ADA gene), the cure is
  *   not permanent because the corrected lymphocytes die, and a lasting cure is
  *   said to need the gene put into early embryonic cells (the book's
@@ -179,8 +179,8 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 2,
     kind: 'remember',
-    q: 'What was done in the first human gene therapy, and why was ADA the target?',
-    a: 'Gene therapy corrects a gene defect by giving the patient a normal functional gene. In 1990 the first human gene therapy treated a girl with ADA deficiency, caused (as NCERT gives it) by deletion of the gene for adenosine deaminase (patients can also carry other mutations of the gene), an enzyme the lymphocytes need; its absence leaves no working immune defence (SCID, severe combined immunodeficiency). Steps (ex vivo): lymphocytes from the blood are grown in culture → a functional ADA cDNA, carried in a disarmed retrovirus, enters them → the corrected cells are infused back, where they make the enzyme',
+    q: 'What was done in the first clinical gene therapy, and why was ADA the target?',
+    a: 'Gene therapy corrects a gene defect by giving the patient a normal functional gene. In 1990 the first clinical gene therapy treated a girl with ADA deficiency, caused (as NCERT gives it) by deletion of the gene for adenosine deaminase (patients can also carry other mutations of the gene), an enzyme the lymphocytes need; its absence leaves no working immune defence (SCID, severe combined immunodeficiency). Steps (ex vivo): lymphocytes from the blood are grown in culture → a functional ADA cDNA, carried in a disarmed retrovirus, enters them → the corrected cells are infused back, where they make the enzyme',
     why: 'The whole story is one sentence: 1990, ADA gene deleted, SCID, lymphocytes cultured, cDNA via retrovirus, re-infused.',
     say: '1990, ADA, SCID.',
   },
@@ -255,7 +255,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'Which statements about these three techniques are wrong?',
     a: 'That a probe is double-stranded: it is single-stranded DNA or RNA with a tag. That the mutated gene lights up: the mutated clone gives no spot. That ELISA amplifies DNA: it does not, PCR does. That ELISA detects antigens alone: it detects antigens or the antibodies made against the pathogen',
-    why: 'Probe single, mutant dark, ELISA both antigen and antibody.',
+    why: 'Probe single, mutant gives no spot, ELISA both antigen and antibody.',
     say: null,
   },
   // p. 561

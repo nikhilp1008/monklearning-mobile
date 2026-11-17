@@ -77,7 +77,7 @@
  * - two-hit hypothesis: stated for a classic tumour suppressor such as RB1
  *   (both alleles lost), with hereditary and sporadic cases, and not the book's
  *   "adult who acquires two independent mutations" case; the four routes to
- *   cancer are "the four routes the book lists", not "the hallmarks"; Taxol is
+ *   cancer are "four of the ways the cycle control breaks down", not "the hallmarks"; Taxol is
  *   given as the book words it in two places (stabilises microtubules, so the
  *   chromosomes align at metaphase and cannot be pulled apart: anaphase is
  *   blocked); HER2/neu is now HER2 (ERBB2); Taxol is paclitaxel;
@@ -108,7 +108,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'remember',
     q: 'What are the phases of the cell cycle, which is longest, and is interphase really a resting phase?',
-    a: 'The cell cycle is interphase plus M phase. Interphase is more than 95% of the cycle: in a typical human cell the cycle takes about 24 hours, about 23 of them interphase and less than an hour M phase (yeast completes it in about 90 minutes). Interphase runs G<sub>1</sub> (growth, no DNA replication; each chromosome one chromatid), S (DNA replicated; histones made; the centriole duplicates in animal cells) and G<sub>2</sub> (growth and proteins for mitosis). Cells that stop dividing leave from G<sub>1</sub> into G<sub>0</sub>, quiescent but metabolically active, and may re-enter. “Resting” means only that no division is visible: the cell is far from inactive, growing, making proteins and replicating its DNA. Check points, mainly G<sub>1</sub> to S and G<sub>2</sub> to M, gate the cycle, driven by cyclins acting with cyclin-dependent kinases',
+    a: 'The cell cycle is interphase plus M phase. Interphase is more than 95% of the cycle: in a typical human cell the cycle takes about 24 hours, about 23 of them interphase and only about an hour M phase (yeast completes it in about 90 minutes). Interphase runs G<sub>1</sub> (growth, no DNA replication; each chromosome one chromatid), S (DNA replicated; histones made; the centriole duplicates in animal cells) and G<sub>2</sub> (growth and proteins for mitosis). Cells that stop dividing leave from G<sub>1</sub> into G<sub>0</sub>, quiescent but metabolically active, and may re-enter. “Resting” means only that no division is visible: the cell is far from inactive, growing, making proteins and replicating its DNA. Check points, mainly G<sub>1</sub> to S and G<sub>2</sub> to M, gate the cycle, driven by cyclins acting with cyclin-dependent kinases',
     why: 'Order: G<sub>1</sub> → S → G<sub>2</sub> → Prophase → Metaphase → Anaphase → Telophase → Cytokinesis.',
     say: null,
   },
@@ -126,7 +126,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'mixup',
     q: 'How does cytokinesis differ in animal and plant cells, and what is a syncytium?',
-    a: 'Animal cell: a cleavage furrow forms by constriction of the plasma membrane and deepens from the periphery inward (wall to centre) until the cell pinches in two. Plant cell: the rigid wall forbids pinching, so a cell plate is laid down from the centre outward (centre to wall), growing to fuse with the existing wall; the middle lamella develops along it. If karyokinesis is not followed by cytokinesis, the result is a multinucleate syncytium, the liquid endosperm of a young coconut being the classic example',
+    a: 'Animal cell: a cleavage furrow forms by constriction of the plasma membrane and deepens from the periphery inward, towards the centre, until the cell pinches in two. Plant cell: the rigid wall forbids pinching, so a cell plate is laid down from the centre outward (centre to wall), growing to fuse with the existing wall; the middle lamella develops along it. If karyokinesis is not followed by cytokinesis, the result is a multinucleate syncytium, the liquid endosperm of a young coconut being the classic example',
     why: 'A plant cell does divide its cytoplasm, only by a different mechanism: “no cytoplasmic division in plants” is a distractor.',
     say: null,
   },
@@ -211,7 +211,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 2,
     kind: 'remember',
     q: 'What is the significance of meiosis, and which events create the variation?',
-    a: 'Three points: it halves the chromosome number in gamete or spore formation (2n to <i>n</i>); it keeps the chromosome number constant across generations of sexually reproducing organisms (the halving balances the doubling at fertilisation); and it generates genetic variation through crossing over (pachytene of Meiosis I) and independent assortment, the random orientation of each bivalent at metaphase I. Meiosis II adds no new variation. So “halving the number, constancy across generations, producing variation: all of the above” is correct together, because the three are complementary',
+    a: 'Three points: it halves the chromosome number in gamete or spore formation (2n to <i>n</i>); it keeps the chromosome number constant across generations of sexually reproducing organisms (the halving balances the doubling at fertilisation); and it generates genetic variation through crossing over (pachytene of Meiosis I) and independent assortment, the random orientation of each bivalent at metaphase I. Meiosis II makes no new combinations; it only shares out the chromatids already recombined in Meiosis I among the four cells. So “halving the number, constancy across generations, producing variation: all of the above” is correct together, because the three are complementary',
     why: 'This variation is the raw material on which natural selection acts, which is why meiosis matters for evolution.',
     say: 'variation sources: cross & assort.',
   },
@@ -239,7 +239,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'shortcut',
     q: 'How many meiocytes are needed to make 60 pollen grains?',
     a: 'One complete meiosis of a meiocyte (a pollen mother cell) gives 4 haploid cells, so the number of meiocytes is <frac><num>cells wanted</num><den>4</den></frac> = <frac><num>60</num><den>4</den></frac> = 15, each undergoing one complete meiosis; and 100 pollen grains need 25. Remember the rhythm “reduce, then split”: Meiosis I reduces the number, Meiosis II splits the chromatids',
-    why: 'The 1-to-4 ratio is for spore and pollen formation; egg formation in animals yields differently, which belongs to the Reproduction chapter.',
+    why: 'The 1-to-4 ratio is for pollen (microspore) formation and sperm formation; megaspore formation in most flowering plants gives one functional megaspore, and egg formation in animals yields differently, which belongs to the Reproduction chapter.',
     say: null,
   },
 
@@ -296,7 +296,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 4,
     kind: 'remember',
     q: 'Which checkpoints guard the cycle, and what does each verify and use?',
-    a: 'A checkpoint is a molecular surveillance point that blocks the next phase until the current one is verified complete. G1 to S (restriction point R): after G1, checks cell size, nutrients and absence of DNA damage; cyclin D with CDK4 and CDK6, and cyclin E with CDK2, phosphorylate the Rb protein; inhibitors p21 and p16. G2 to M: after G2, checks that DNA replication is complete and error-free; cyclin B with CDK1, called MPF (Maturation-Promoting Factor); inhibitor p21. The spindle checkpoint, at metaphase of mitosis and of Meiosis I and II, checks that all chromosomes are attached to the spindle: APC/C, not a cyclin-CDK complex, is held inactive by the spindle checkpoint proteins (Mad2, BubR1) until every chromosome is attached; it then triggers anaphase by degrading cyclin B',
+    a: 'A checkpoint is a molecular surveillance point that blocks the next phase until the current one is verified complete. G1 to S (restriction point R): after G1, checks cell size, nutrients and absence of DNA damage; cyclin D with CDK4 and CDK6, and cyclin E with CDK2, phosphorylate the Rb protein; inhibitors p21 and p16. G2 to M: after G2, checks that DNA replication is complete and error-free; cyclin B with CDK1, called MPF (Maturation-Promoting Factor); inhibitor p21. The spindle checkpoint, at metaphase of mitosis and of Meiosis I and II, checks that all chromosomes are attached to the spindle: APC/C, not a cyclin-CDK complex, is held inactive by the spindle checkpoint proteins (Mad2, BubR1) until every chromosome is attached; it then triggers anaphase (by destroying securin, so the sister chromatids are released) and, by degrading cyclin B, lets the cell leave mitosis',
     why: 'Order of the cyclins: D in G1, E in late G1, A in S and G2, B at G2 to M.',
     say: null,
   },
@@ -325,7 +325,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 5,
     kind: 'remember',
     q: 'How do you count divisions, cells and gametes from meiocytes?',
-    a: 'Mitotic divisions: <i>n</i> divisions give 2<sup><i>n</i></sup> cells. One complete meiosis gives 4 haploid cells (pollen grains or spores), so meiocytes needed are the cells wanted divided by 4. Example: 200 pollen mother cells give 200 meioses and 800 pollen grains; each pollen grain divides once to a generative and a vegetative cell, and each generative cell divides again to give 2 male gametes (sperm nuclei), so 1600 male gametes. Likewise 500 pollen mother cells give 2000 pollen grains and 4000 male gametes',
+    a: 'Mitotic divisions: <i>n</i> divisions give 2<sup><i>n</i></sup> cells. One complete meiosis gives 4 haploid cells (4 microspores, that is 4 pollen grains), so meiocytes needed are the pollen grains (or sperm) wanted divided by 4, and the male gametes of a flowering plant divided by 8. Example: 200 pollen mother cells give 200 meioses and 800 pollen grains; each pollen grain divides once to a generative and a vegetative cell, and each generative cell divides again to give 2 male gametes (sperm nuclei), so 1600 male gametes. Likewise 500 pollen mother cells give 2000 pollen grains and 4000 male gametes',
     why: 'Each pollen mother cell undergoes one complete meiosis, and that meiosis counts as one, not two, in these items.',
     say: null,
   },
@@ -376,7 +376,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 8,
     kind: 'remember',
     q: 'What are proto-oncogenes, oncogenes and tumour suppressor genes, and what is the two-hit hypothesis?',
-    a: 'A proto-oncogene is a normal gene that promotes cell division (growth factor receptors, cyclin D, CDK4, Ras); mutated or amplified it becomes an oncogene, driving uncontrolled proliferation: HER2 (breast cancer), BCR-ABL (chronic myeloid leukaemia, the Philadelphia chromosome). An activated copy is enough to transform a cell. A tumour suppressor gene inhibits division or promotes apoptosis, and for a classic one both alleles must be lost: p53, RB1 (Rb guards the G1 to S checkpoint). Two-hit hypothesis (Knudson): in hereditary retinoblastoma one mutant RB1 allele is inherited, so any retinal cell needs only one further hit, giving tumours in both eyes; in a sporadic case both hits must occur in one cell lineage, so usually one tumour. Cancer results from oncogene activation overriding checkpoints, tumour suppressor loss, escape from apoptosis (p53 loss) and reactivated telomerase: the four routes the book lists',
+    a: 'A proto-oncogene is a normal gene that promotes cell division (growth factor receptors, cyclin D, CDK4, Ras); mutated or amplified it becomes an oncogene, driving uncontrolled proliferation: HER2 (breast cancer), BCR-ABL (chronic myeloid leukaemia, the Philadelphia chromosome). One activated copy is enough for its effect (it acts dominantly). A tumour suppressor gene inhibits division or promotes apoptosis, and for a classic one both alleles must be lost: p53, RB1 (Rb guards the G1 to S checkpoint). Two-hit hypothesis (Knudson): in hereditary retinoblastoma one mutant RB1 allele is inherited, so any retinal cell needs only one further hit, giving tumours in both eyes; in a sporadic case both hits must occur in one cell lineage, so usually one tumour. Cancer results from oncogene activation overriding checkpoints, tumour suppressor loss, escape from apoptosis (p53 loss) and reactivated telomerase: four of the ways the cycle control breaks down',
     why: 'Ras locked in its active GTP-bound state signals growth continuously: a proto-oncogene turned oncogene, not a suppressor.',
     say: null,
   },
@@ -414,7 +414,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 9,
     kind: 'mistake',
     q: 'Which confusions are the book’s listed traps?',
-    a: 'DNA is not chromosome number: after S phase DNA doubles and the chromosome count stays 2n, only the chromatid number changes. Anaphase I separates homologues, anaphase II sister chromatids. Prophase I runs Leptotene (threads), Zygotene (synapsis), Pachytene (crossing over), Diplotene (chiasmata visible), Diakinesis (terminalization). “Resting” interphase means only that no division is visible: the cell synthesises proteins, replicates DNA and grows. Kinetochores are protein structures at the centromere anchoring spindle microtubules, not on the chromosome arms. The plant cell plate grows from the centre to the walls, the animal furrow from the wall to the centre. Interkinesis lies only between the two meiotic divisions, is short and has no S phase. Meiosis II resembles mitosis (both equational) but has no S phase before it, and anaphase II separates sister chromatids, not homologues',
+    a: 'DNA is not chromosome number: after S phase DNA doubles and the chromosome count stays 2n, only the chromatid number changes. Anaphase I separates homologues, anaphase II sister chromatids. Prophase I runs Leptotene (threads), Zygotene (synapsis), Pachytene (crossing over), Diplotene (chiasmata visible), Diakinesis (terminalization). “Resting” interphase means only that no division is visible: the cell synthesises proteins, replicates DNA and grows. Kinetochores are protein structures at the centromere anchoring spindle microtubules, not on the chromosome arms. The plant cell plate grows from the centre to the walls, the animal furrow from the periphery to the centre. Interkinesis lies only between the two meiotic divisions, is short and has no S phase. Meiosis II resembles mitosis (both equational) but has no S phase before it, and anaphase II separates sister chromatids, not homologues',
     why: 'Each trap turns on one word: homologues or chromatids, centre or wall, DNA or chromosomes.',
     say: null,
   },

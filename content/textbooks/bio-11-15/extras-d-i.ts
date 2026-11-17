@@ -64,7 +64,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Speed Trap',
         q: '<b>Why Does Stroke Volume Not Continue Rising Indefinitely?</b> A student states: “Stroke volume keeps increasing as heart rate increases, because the heart beats more frequently.” Is this correct?',
         steps: [
-          'No. Stroke volume increases only up to a point (~120–130 mL at maximal exercise). Beyond a very high heart rate (the point varies with fitness and is higher in trained people), the diastolic filling time becomes so short that the ventricle cannot fill adequately before the next beat. SV actually falls slightly at very high rates. The limiting factor is diastolic filling time: at very high rates the ventricle cannot fill adequately, so end-diastolic volume (preload) and stroke volume fall. This is why cardiac output plateaus at very high heart rates even though the heart is beating much faster.',
+          'No. Stroke volume increases only up to a point (~120–130 mL at maximal exercise). Beyond a very high heart rate (the point varies with fitness and is higher in trained people), the diastolic filling time becomes so short that the ventricle cannot fill adequately before the next beat. SV actually falls slightly at very high rates, because end-diastolic volume (preload) falls. This is why cardiac output plateaus at very high heart rates even though the heart is beating much faster.',
         ],
         ans: '',
       },
@@ -166,7 +166,7 @@ export const TOPICS: Topic[] = [
         steps: [
           'Father: Dd; Mother: dd.',
           'Punnett square (mother’s gametes across the top, father’s down the side):<br>Mother’s gametes: d, d<br>Father’s gamete D: Dd, Dd<br>Father’s gamete d: dd, dd',
-          'Offspring genotypes: 50% Dd (Rh<sup>+</sup>), 50% dd (Rh<sup>−</sup>). So 50% of children would be Rh-negative. So <frac><num>1</num><den>2</den></frac> (50%) of the children would be Rh-negative.',
+          'Offspring genotypes: 50% Dd (Rh<sup>+</sup>), 50% dd (Rh<sup>−</sup>). So <frac><num>1</num><den>2</den></frac> (50%) of the children would be Rh-negative.',
         ],
         ans: '',
       },
@@ -175,7 +175,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: '<b>Why Anti-D Must Be Given After the First Delivery.</b> Explain, in immunological terms, why administering anti-Rh immunoglobulin immediately after the first delivery prevents erythroblastosis foetalis in a subsequent pregnancy, rather than treating the already-born child.',
         steps: [
-          'The key is that anti-D immunoglobulin (for example Rhogam) acts before the mother’s own immune system is primed. At delivery of the first Rh<sup>+</sup> baby, foetal Rh<sup>+</sup> RBCs enter the maternal bloodstream. The maternal immune system has not yet been exposed to the D antigen in sufficient quantity to mount a primary immune response: it takes 1–2 weeks for the first anti-D antibodies to appear. Anti-D immunoglobulin, given within 72 hours of delivery, destroys these foetal RBCs before they can be processed by the mother’s antigen-presenting cells. This prevents B-cell activation and the establishment of immunological memory. When the second Rh<sup>+</sup> foetus arrives, there are no pre-formed anti-D antibodies to cross the placenta. The immunoglobulin is passive immunity (preformed antibodies), not active immunity: it does not stimulate the mother’s own immune system, it provides temporary protection until the injected antibodies are degraded.',
+          'The key is that anti-D immunoglobulin (for example Rhogam) acts before the mother’s own immune system is primed. At delivery of the first Rh<sup>+</sup> baby, foetal Rh<sup>+</sup> RBCs enter the maternal bloodstream. The maternal immune system has not yet been exposed to the D antigen in sufficient quantity to mount a primary immune response: it takes weeks, often months, for the first anti-D antibodies to appear. Anti-D immunoglobulin, given within 72 hours of delivery, destroys these foetal RBCs before they can be processed by the mother’s antigen-presenting cells. This prevents B-cell activation and the establishment of immunological memory. When the second Rh<sup>+</sup> foetus arrives, there are no pre-formed anti-D antibodies to cross the placenta. The immunoglobulin is passive immunity (preformed antibodies), not active immunity: it does not stimulate the mother’s own immune system, it provides temporary protection until the injected antibodies are degraded.',
         ],
         ans: '',
       },
@@ -219,7 +219,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter describes lymph as interstitial fluid returning to the blood through lymph vessels and lymph nodes, and mentions it empties into the subclavian veins. The chapter names the thoracic duct (into the left subclavian vein) and the right lymphatic duct (into the right subclavian vein) but gives no territory for each, nor the cisterna chyli. This is a direct recall question (the book’s estimate from past papers).',
+        html: 'The chapter describes lymph as interstitial fluid returning to the blood through lymph vessels and lymph nodes, and mentions it empties into the subclavian veins. The chapter names the thoracic duct, which carries the bulk of the lymph into the left subclavian vein, and the right lymphatic duct, which drains the upper-right quadrant into the right subclavian vein, but it does not list the regions each duct drains or name the cisterna chyli. This can come up as a direct recall question (the book’s estimate from past papers, not official figures).',
       },
 
       { t: 'part', title: 'Method' },
@@ -246,7 +246,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Clinical note.</b> Obstruction of the thoracic duct (e.g., by tumour or trauma) leads to chylothorax (lymph accumulating in the pleural cavity, appearing milky due to absorbed dietary fats from the lacteals) and severe lymphoedema of the lower body.',
+        html: '<b>Clinical note.</b> Injury to or obstruction of the thoracic duct (e.g., by tumour or trauma) can cause chylothorax (lymph collecting in the pleural cavity, milky with absorbed dietary fats from the lacteals).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -530,7 +530,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Read these as relative weights of the zones, not as counts: added together they come to far more than the 3 to 5 questions a year this chapter usually supplies, and the book gives no official figures.',
+        html: 'Read these as relative weights of the zones, not as counts per paper: added together they come to more questions than one chapter usually supplies, and the book gives no official figures.',
       },
       {
         t: 'p',
@@ -575,12 +575,12 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3. Assertion–Reason (A–R)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Assertion (A) and Reason (R) are printed separately. Options: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) both false.<br><b>Approach:</b> Always evaluate A first. If A is false, read the options: papers print the fourth as either “A false, R true” or “both false”, so check R too before you pick. If A is true, then evaluate R. The reason must be a mechanistic link, not merely another true statement.',
+        html: '<b>What it looks like:</b> Assertion (A) and Reason (R) are printed separately. Options: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) A false, R true.<br><b>Approach:</b> Always evaluate A first. If A is false, the answer is (d), A false, R true (a few papers print “both false” instead, so check R too). If A is true, then evaluate R. The reason must be a mechanistic link, not merely another true statement.',
       },
       {
         t: 'ex',
         tag: 'Worked representative',
-        q: '<b>Assertion (A):</b> WBCs accumulate at the site of wounds by diapedesis.<br><b>Reason (R):</b> Diapedesis is the squeezing of leucocytes through the intact capillary wall to reach the site of injury.<br>Options: <b>(a)</b> Both true and R explains A <b>(b)</b> Both true but R does not explain A <b>(c)</b> A true, R false <b>(d)</b> Both false',
+        q: '<b>Assertion (A):</b> WBCs accumulate at the site of wounds by diapedesis.<br><b>Reason (R):</b> Diapedesis is the squeezing of leucocytes through the intact capillary wall to reach the site of injury.<br>Options: <b>(a)</b> Both true and R explains A <b>(b)</b> Both true but R does not explain A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
         steps: [
           '• A is <b>true.</b> Neutrophils and other leucocytes reach wounded tissue by squeezing through capillary walls: diapedesis.',
           '• R is <b>true</b> and gives the correct definition of diapedesis.',
@@ -742,19 +742,19 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 3: Multi-Statement / Combination] Which of the following statements are correct? (i) In a resting adult the SA node sets the heart rate at about 70–75 impulses per minute and is the natural pacemaker. (ii) The AV node introduces a brief delay in impulse conduction. (iii) The bundle of His transmits the impulse from the SA node directly to the Purkinje fibres. (iv) The heart is myogenic because the impulse originates in the nervous system.<br><b>(a)</b> (i) and (ii) only <b>(b)</b> (i), (ii) and (iii) <b>(c)</b> (ii), (iii) and (iv) <b>(d)</b> (i) and (iv) only',
-            a: '(a).<br>• (i) <b>True.</b> The SA node is the pacemaker and sets the resting rate at about 70–75/min.<br>• (ii) <b>True.</b> AV node delays the impulse to allow atrial contraction to complete before ventricular systole.<br>• (iii) <b>False.</b> The impulse travels SA → AV → bundle of His → Purkinje fibres. The bundle of His does not receive directly from the SA node; the AV node is the intermediary.<br>• (iv) <b>False.</b> The heart is myogenic precisely because the impulse arises within the cardiac muscle (SA node), not from the nervous system. Nerves only modulate the rate.',
+            a: '(a).<br>• (i) <b>True.</b> The SA node is the pacemaker and sets the resting rate at about 70–75/min.<br>• (ii) <b>True.</b> AV node delays the impulse to allow atrial contraction to complete before ventricular systole.<br>• (iii) <b>False.</b> The impulse travels SA → AV → bundle of His → Purkinje fibres. The bundle of His does not receive directly from the SA node; the AV node is the intermediary.<br>• (iv) <b>False.</b> The heart is myogenic precisely because the impulse arises within the cardiac muscle (SA node), not from the nervous system. Nerves only modulate the rate and force.',
           },
           {
-            q: '[Level 3: Multi-Statement / Combination] Which of the following statements are correct about blood groups? (i) Blood group O is the universal donor. (ii) Blood group AB is the universal recipient. (iii) Blood group A contains antigen A and anti-B antibody. (iv) Rh incompatibility between a Rh<sup>−</sup> mother and Rh<sup>+</sup> foetus can cause erythroblastosis foetalis in the first pregnancy.<br><b>(a)</b> (i), (ii) and (iii) <b>(b)</b> (i) and (ii) only <b>(c)</b> (ii), (iii) and (iv) <b>(d)</b> (i), (iii) and (iv)',
+            q: '[Level 3: Multi-Statement / Combination] Which of the following statements are correct about blood groups? (i) Blood group O is the universal donor. (ii) Blood group AB is the universal recipient. (iii) Blood group A contains antigen A and anti-B antibody. (iv) Rh incompatibility between an Rh<sup>−</sup> mother and an Rh<sup>+</sup> foetus usually causes erythroblastosis foetalis in the first pregnancy.<br><b>(a)</b> (i), (ii) and (iii) <b>(b)</b> (i) and (ii) only <b>(c)</b> (ii), (iii) and (iv) <b>(d)</b> (i), (iii) and (iv)',
             a: '(a).<br>• (i) <b>True.</b><br>• (ii) <b>True.</b><br>• (iii) <b>True.</b> Antigen A on RBCs; anti-B in plasma.<br>• (iv) <b>False.</b> The first pregnancy usually only sensitises the mother (mostly at delivery), so the first baby is generally unaffected. Danger rises in subsequent Rh<sup>+</sup> pregnancies when pre-formed IgG crosses the placenta.',
           },
           {
-            q: '[Level 4: Assertion–Reason and Clinical] <b>Assertion (A):</b> A transplanted heart, severed from all its nerves, continues to beat rhythmically. <b>Reason (R):</b> The human heart is myogenic, meaning the rhythmic contraction is initiated by the cardiac muscle itself.<br><b>(a)</b> Both A and R are true and R is the correct explanation of A.<br><b>(b)</b> Both A and R are true but R is not the correct explanation of A.<br><b>(c)</b> A is true but R is false.<br><b>(d)</b> Both A and R are false.',
+            q: '[Level 4: Assertion–Reason and Clinical] <b>Assertion (A):</b> A transplanted heart, severed from all its nerves, continues to beat rhythmically. <b>Reason (R):</b> The human heart is myogenic, meaning the rhythmic contraction is initiated by the cardiac muscle itself.<br><b>(a)</b> Both A and R are true and R is the correct explanation of A.<br><b>(b)</b> Both A and R are true but R is not the correct explanation of A.<br><b>(c)</b> A is true but R is false.<br><b>(d)</b> A is false but R is true.',
             a: '(a). A transplanted heart beats because the impulse originates in the SA node embedded in the cardiac muscle, the defining feature of a myogenic heart. This is why a denervated transplant functions. R correctly explains A.',
           },
           {
-            q: '[Level 4: Assertion–Reason and Clinical] <b>Assertion (A):</b> Blood does not normally clot inside intact blood vessels. <b>Reason (R):</b> The inner surface of blood vessels releases heparin, an anticoagulant that prevents clotting.<br><b>(a)</b> Both A and R are true and R is the correct explanation of A.<br><b>(b)</b> Both A and R are true but R is not the correct explanation of A.<br><b>(c)</b> A is true but R is false.<br><b>(d)</b> Both A and R are false.',
-            a: '(c).<br>• A is <b>true.</b> Normal intravascular blood is fluid.<br>• R is <b>false.</b> Heparin is produced by basophils and mast cells, not released by the inner surface of blood vessels. Blood stays fluid because the smooth, intact endothelium does not expose tissue factor and because natural anticoagulants, mainly antithrombin III (helped by heparan sulphate on the vessel lining), keep thrombin in check. Heparin made by basophils and mast cells is not what keeps vessels clear.',
+            q: '[Level 4: Assertion–Reason and Clinical] <b>Assertion (A):</b> Blood does not normally clot inside intact blood vessels. <b>Reason (R):</b> The inner surface of blood vessels releases heparin, an anticoagulant that prevents clotting.<br><b>(a)</b> Both A and R are true and R is the correct explanation of A.<br><b>(b)</b> Both A and R are true but R is not the correct explanation of A.<br><b>(c)</b> A is true but R is false.<br><b>(d)</b> A is false but R is true.',
+            a: '(c).<br>• A is <b>true.</b> Normal intravascular blood is fluid.<br>• R is <b>false.</b> Heparin is produced by basophils and mast cells, not released by the inner surface of blood vessels. Blood stays fluid because the smooth, intact endothelium does not expose tissue factor and because natural anticoagulants keep thrombin in check: antithrombin III in the plasma, helped by heparan sulphate on the vessel lining and by the small amount of heparin released by basophils and mast cells.',
           },
           {
             q: '[Level 4: Assertion–Reason and Clinical] A patient is diagnosed with hypertension. Which of the following is the defining criterion for this condition? <b>(a)</b> Systolic BP ≥ 120 mmHg sustained <b>(b)</b> Diastolic BP ≥ 80 mmHg sustained <b>(c)</b> Systolic BP ≥ 140 mmHg sustained or diastolic BP ≥ 90 mmHg sustained <b>(d)</b> Systolic BP ≥ 100 mmHg on a single reading',

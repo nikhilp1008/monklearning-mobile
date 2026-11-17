@@ -29,7 +29,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance (split):</b> Ecological Succession appears in CBSE Boards as a 3-mark sequence/definition question (hydrarch vs xerarch, primary vs secondary) and in CUET as MCQs, but check the current NTA syllabus for its status. Nutrient Cycling is full-scope: CBSE asks a 2–3 mark carbon/phosphorus cycle or gaseous-vs-sedimentary question, and NEET often draws 1–2 questions a year, most often the “phosphorus is sedimentary, not gaseous” trap or reservoir matching (the book’s estimate from past papers, not official figures).',
+        html: '<b>Exam Relevance (split):</b> Ecological Succession appears in CBSE Boards as a 3-mark sequence/definition question (hydrarch vs xerarch, primary vs secondary) and in CUET as MCQs, but check the current NTA syllabus for its status. Nutrient Cycling appears in CBSE Boards as a 2–3 mark carbon/phosphorus cycle or gaseous-vs-sedimentary question, and has carried NEET questions in past papers, most often the “phosphorus is sedimentary, not gaseous” trap or reservoir matching (the book’s estimate from past papers, not official figures); check the current NTA syllabus for its status.',
       },
       {
         t: 'p',
@@ -129,7 +129,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Framework A: running a primary succession.</b> <b>Xerarch (on bare rock):</b> bare rock → <b>crustose lichens</b> (pioneers, e.g. <i>Rhizocarpon</i>, <i>Rinodina</i>; they secrete acids that weather the rock and begin soil formation) → <b>foliose lichens</b> (e.g. <i>Parmelia</i>, <i>Dermatocarpon</i>) → <b>mosses</b> (e.g. <i>Polytrichum</i>, <i>Grimmia</i>) → <b>herbs</b> → <b>shrubs</b> (e.g. <i>Rhus</i>) → <b>forest (climax; a forest where the climate allows)</b>. <b>Hydrarch (in open water):</b> phytoplankton (diatoms, green algae) → submerged rooted plants (e.g. <i>Hydrilla</i>, <i>Vallisneria</i>, <i>Potamogeton</i>) → free-floating and rooted plants (e.g. <i>Wolffia</i>, <i>Azolla</i>) → reeds and sedges (e.g. <i>Sagittaria</i>, <i>Juncus</i>, <i>Carex</i>) → mesic herb/shrub communities → <b>terrestrial forest (climax; a forest where the climate allows)</b>. <b>Why the order?</b> Each seral stage <b>modifies its own habitat</b> (adding soil, organic matter, moisture or shade), making conditions better for the next community and often worse for itself. That is the engine that drives the sequence forward, and it is why both hydrarch and xerarch routes head toward the same balanced <b>mesic</b> endpoint.',
+        html: '<b>Framework A: running a primary succession.</b> <b>Xerarch (on bare rock):</b> bare rock → <b>crustose lichens</b> (pioneers, e.g. <i>Rhizocarpon</i>, <i>Rinodina</i>; they secrete acids that weather the rock and begin soil formation) → <b>foliose lichens</b> (e.g. <i>Parmelia</i>, <i>Dermatocarpon</i>) → <b>mosses</b> (e.g. <i>Polytrichum</i>, <i>Grimmia</i>) → <b>herbs</b> → <b>shrubs</b> (e.g. <i>Rhus</i>) → <b>climax community</b> (a forest, where the climate allows). <b>Hydrarch (in open water):</b> phytoplankton (diatoms, green algae) → submerged rooted plants (e.g. <i>Hydrilla</i>, <i>Vallisneria</i>, <i>Potamogeton</i>) → free-floating and rooted floating plants (e.g. <i>Wolffia</i>, <i>Azolla</i>; <i>Nymphaea</i>, <i>Trapa</i>) → reeds and sedges (e.g. <i>Sagittaria</i>, <i>Juncus</i>, <i>Carex</i>) → mesic herb/shrub communities → <b>climax community</b> (a terrestrial forest, where the climate allows). (NCERT’s text gives the shorter order phytoplankton → free-floating plants → rooted hydrophytes → sedges and grasses → trees; its figure gives the stages above.) <b>Why the order?</b> Each seral stage <b>modifies its own habitat</b> (adding soil, organic matter, moisture or shade), making conditions better for the next community and often worse for itself. That is the engine that drives the sequence forward, and it is why both hydrarch and xerarch routes head toward the same balanced <b>mesic</b> endpoint.',
       },
       {
         t: 'p',
@@ -229,7 +229,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'mcq',
-        q: '(NEET-scope: nutrient) Which of the following is a sedimentary cycle?',
+        q: '(nutrient cycling) Which of the following is a sedimentary cycle?',
         opts: [
           { label: 'carbon', nudge: '<b>(a)</b> carbon and <b>(b)</b> nitrogen are gaseous (atmospheric reservoir).' },
           { label: 'nitrogen', nudge: '<b>(a)</b> carbon and <b>(b)</b> nitrogen are gaseous (atmospheric reservoir).' },
@@ -253,7 +253,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'mcq',
-        q: '(NEET-scope: nutrient) The oceans are considered important in the carbon cycle because they:',
+        q: '(nutrient cycling) The oceans are considered important in the carbon cycle because they:',
         opts: [
           { label: 'release phosphorus', nudge: '<b>(a)</b> and <b>(c)</b> confuse the carbon cycle with phosphorus.' },
           { label: 'act as a sink for CO<sub>2</sub>', nudge: null },
@@ -326,7 +326,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A short, high-recall topic. CBSE Boards ask a 1–2 mark “define ecosystem services / give examples” or a question on Robert Costanza’s valuation. CUET keeps it as direct MCQs. NEET asks it only occasionally, usually the US $33 trillion figure or identifying what counts as an ecosystem service (the book’s estimate from past papers, not official figures). Little reasoning, high marks-per-word: learn the list and the number.',
+        html: '<b>Exam Relevance:</b> A short, high-recall topic. CBSE Boards ask a 1–2 mark “define ecosystem services / give examples” or a question on Robert Costanza’s valuation. CUET keeps it as direct MCQs. NEET asks it only occasionally, usually the US $33 trillion figure or identifying what counts as an ecosystem service (the book’s estimate from past papers, not official figures). Check the current NTA syllabus for its status. Little reasoning, high marks-per-word: learn the list and the number.',
       },
       {
         t: 'p',
@@ -390,7 +390,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Framework B: organising the long list (enrichment lens).</b> A convenient way to remember the NCERT examples is to sort them into four families: <b>provisioning</b> (tangible goods: food, water, timber), <b>regulating</b> (control services: flood and drought mitigation, climate regulation, air/water purification), <b>supporting</b> (the background processes everything else rests on: soil formation, nutrient cycling, habitat), and <b>cultural</b> (non-material benefits: aesthetic, recreational, spiritual value). Every item in the NCERT list slots into one of these four (none falls under provisioning, which has no item in the NCERT list), which makes the list far easier to recall under exam pressure. (Treat the four-category names as a study aid; the NCERT examples themselves are what an exam will ask for.)',
+        html: '<b>Framework B: organising the long list (enrichment lens).</b> A convenient way to remember the NCERT examples is to sort them into four families: <b>provisioning</b> (tangible goods: food, water, timber), <b>regulating</b> (control services: flood and drought mitigation, climate regulation, air/water purification), <b>supporting</b> (the background processes everything else rests on: soil formation, nutrient cycling, habitat), and <b>cultural</b> (non-material benefits: aesthetic, recreational, spiritual value). Every item in the NCERT list slots into regulating, supporting or cultural (the list has no provisioning item), which makes the list far easier to recall under exam pressure. (Treat the four-category names as a study aid; the NCERT examples themselves are what an exam will ask for.)',
       },
       {
         t: 'p',
@@ -558,16 +558,16 @@ export const TOPICS: Topic[] = [
     n: 'A',
     title: 'Decomposition: Mechanisms, Detritivores, and Controlling Factors',
     extra: true,
-    kalam: 'The C:N ratio of detritus determines decomposition speed.',
+    kalam: 'The C:N ratio of detritus is one of the main controls on decomposition speed.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'These additional topics extend Chapter 12 (Ecosystem) with five topics the chapter touches on but does not develop to examination depth: the organisms, enzymes and C:N ratio behind decomposition, the seral stages of succession in finer detail with more organisms, the steps and microbes of the nitrogen and sulfur cycles, quantitative energy-flow calculations involving ecological efficiencies, and ecosystem-service valuation with the keystone-species concept. Questions in NEET, CUET and CBSE Board papers draw on these layers.',
+        html: 'These additional topics extend Chapter 12 (Ecosystem) with five topics the chapter touches on but does not develop to examination depth: the organisms, enzymes and C:N ratio behind decomposition, the seral stages of succession in finer detail with more organisms, the steps and microbes of the nitrogen and sulfur cycles, quantitative energy-flow calculations involving ecological efficiencies, and ecosystem-service valuation, with the keystone-species concept that the chapter does not cover. High-difficulty questions can draw on these layers.',
       },
       {
         t: 'p',
-        html: 'The chapter names the five steps of decomposition and states that detritivores fragment while decomposers mineralise. It names earthworms and termites as examples of detritivores and says that decomposers mineralise. It does not name the other organisms involved (by genus), which enzymes drive catabolism, or how the carbon-to-nitrogen (C:N) ratio of detritus governs the rate. These are distinct, testable details that NEET and CUET often examine (the book’s estimate from past papers, not official figures).',
+        html: 'The chapter names the five steps of decomposition, gives earthworms and termites as detritivores that fragment detritus, and says that decomposers (fungi and bacteria) mineralise it. It does not name the other organisms involved (by genus), which enzymes drive catabolism, or how the carbon-to-nitrogen (C:N) ratio of detritus governs the rate. These are distinct, testable details that NEET and CUET often examine (the book’s estimate from past papers, not official figures).',
       },
 
       { t: 'part', title: 'Method' },
@@ -581,7 +581,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>C:N ratio as rate controller.</b> The C:N ratio of detritus determines decomposition speed. Detritus with a C:N ratio of 25–30 ∶ 1 decomposes optimally; ratios above 80 ∶ 1 (e.g., woody stems, straw) decompose slowly because decomposers must scavenge nitrogen from the soil. Below 25 ∶ 1 (e.g., animal tissue, legume residues), decomposition is rapid.',
+        html: '<b>C:N ratio as rate controller.</b> The C:N ratio of detritus is one of the main controls on decomposition speed. Detritus with a C:N ratio of 25–30 ∶ 1 decomposes optimally; ratios above 80 ∶ 1 (e.g., woody stems, straw) decompose slowly because decomposers must scavenge nitrogen from the soil. Below 25 ∶ 1 (e.g., animal tissue, legume residues), decomposition is rapid.',
       },
       {
         t: 'table',
@@ -589,7 +589,7 @@ export const TOPICS: Topic[] = [
         head: ['C:N ratio', 'Decomposition rate', 'Example'],
         rows: [
           ['<25 ∶ 1', 'Fast', 'Animal remains, legume litter'],
-          ['25–30 ∶ 1', 'Optimal (fastest, balanced)', 'Balanced mix of green and brown waste'],
+          ['25–30 ∶ 1', 'Optimal (fast and balanced: no nitrogen drawn from the soil)', 'Balanced mix of green and brown waste'],
           ['30–80 ∶ 1', 'Moderate', 'Most leaf litter'],
           ['>80 ∶ 1', 'Slow', 'Straw, woody twigs, sawdust'],
         ],
@@ -619,9 +619,9 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: '<b>Effect of Temperature and Moisture.</b> Decomposition in a tropical rainforest is faster than in a temperate deciduous forest in winter. Explain this in terms of temperature and moisture, and state which step of decomposition is most affected.',
         steps: [
-          'Higher temperature (25–35°C range in the tropics versus near-freezing in temperate winter) increases enzymatic reaction rates according to the <i>Q</i><sub>10</sub> principle. Higher moisture in the rainforest maintains aerobic conditions and supports greater microbial biomass. The catabolism step (enzymatic degradation by fungi and bacteria) is most affected because enzyme activity and microbial growth both depend on temperature and moisture.',
+          'Higher temperature (25–35°C range in the tropics versus near-freezing in temperate winter) increases enzymatic reaction rates according to the <i>Q</i><sub>10</sub> principle. Higher soil moisture in the rainforest (moist but well-aerated soil) supports a larger and more active microbial biomass. The catabolism step (enzymatic degradation by fungi and bacteria) is most affected because enzyme activity and microbial growth both depend on temperature and moisture.',
         ],
-        ans: 'Tropical conditions (warmth + moisture) accelerate enzymatic catabolism; the temperate winter’s cold and often waterlogged conditions slow microbial enzyme activity, decelerating catabolism most severely.',
+        ans: 'Tropical conditions (warmth + moisture) accelerate enzymatic catabolism; the temperate winter’s near-freezing temperatures slow microbial enzyme activity, decelerating catabolism most severely.',
       },
 
       { t: 'part', title: 'Practice' },
@@ -662,7 +662,7 @@ export const TOPICS: Topic[] = [
     n: 'B',
     title: 'Succession: Complete Seral Stages and Specific Pioneer Organisms',
     extra: true,
-    kalam: 'NEET and CUET questions regularly ask for these precise sequences.',
+    kalam: 'Each seral stage modifies the habitat in a way that makes room for the next.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -690,7 +690,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Phytoplankton</b> (pioneer community): diatoms (<i>Navicula</i>), green algae (<i>Chlorella</i>), cyanobacteria (<i>Anabaena</i>).',
           '<b>Submerged rooted plants</b>: e.g., <i>Hydrilla</i>, <i>Vallisneria</i>, <i>Potamogeton</i>.',
-          '<b>Free-floating plants</b>: e.g., <i>Wolffia</i>, <i>Lemna</i>, <i>Azolla</i>.',
+          '<b>Free-floating and rooted floating plants</b>: e.g., <i>Wolffia</i>, <i>Lemna</i>, <i>Azolla</i>; <i>Nymphaea</i>, <i>Trapa</i>.',
           '<b>Reed-swamp plants</b>: e.g., <i>Typha</i>, <i>Phragmites</i>, <i>Sagittaria</i>; begin filling the basin with organic matter.',
           '<b>Marsh-meadow and mesic herb/shrub communities</b>: sedges and rushes (e.g., <i>Carex</i>, <i>Juncus</i>) and then shrubs that can tolerate fluctuating moisture.',
           '<b>Climax forest</b>: terrestrial forest reaching the climatic climax.',

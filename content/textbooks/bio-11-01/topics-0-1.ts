@@ -39,7 +39,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '• <b>Growth</b> applies first. Living things grow: a kitten becomes a cat, a seedling a tree. But growth is caught faking: a mountain, a sand dune, a boulder, even a crystal all “grow” too. The catch is how. Non-living things grow by <b>accumulation on the outside</b> (more material piling on the surface: extrinsic), while living things grow <b>from within</b>, by cell division throughout the body (intrinsic). Because non-living things also grow, <b>growth alone cannot be a defining property of life.</b><br>• <b>Reproduction</b> applies next: surely only living things make copies of themselves? But reproduction is also caught: a sterile worker bee, an infertile human couple, a mule (all unquestionably alive, none reproducing). So <b>reproduction cannot be an all-inclusive defining property either.</b> (Note: in single-celled organisms, reproduction and growth become the same event: the cell divides, so growing in number is reproducing.)<br>• <b>Metabolism</b> applies, and passes cleanly. Every living organism, from a single bacterium to a blue whale, runs a non-stop web of chemical reactions (building up and breaking down molecules). There is <b>no exception</b>: no non-living object does this on its own. Metabolism is a genuine defining feature.<br>• <b>Cellular organisation</b> is the structural ID: all life is built of cells, and it is this organisation of the body that ultimately defines a living thing.<br>• <b>Consciousness</b>, the ability to sense the environment and respond to it, is held up as <b>the defining property of living organisms.</b> Plants turn to light, seasonal breeders time reproduction to day-length, the simplest microbe reacts to a chemical gradient. Humans go one step further: we are the only organisms aware of ourselves.',
+        html: '• <b>Growth</b> applies first. Living things grow: a kitten becomes a cat, a seedling a tree. But growth is caught faking: a mountain, a sand dune, a boulder, even a crystal all “grow” too. The catch is how. Non-living things grow by <b>accumulation on the outside</b> (more material piling on the surface: extrinsic), while living things grow <b>from within</b>, by cell division (in plants, at the growing regions) (intrinsic). Because non-living things also grow, <b>growth alone cannot be a defining property of life.</b><br>• <b>Reproduction</b> applies next: surely only living things make copies of themselves? But reproduction is also caught: a sterile worker bee, an infertile human couple, a mule (all unquestionably alive, none reproducing). So <b>reproduction cannot be an all-inclusive defining property either.</b> (Note: in single-celled organisms, reproduction and growth become the same event: the cell divides, so growing in number is reproducing.)<br>• <b>Metabolism</b> applies, and passes cleanly. Every living organism, from a single bacterium to a blue whale, runs a non-stop web of chemical reactions (building up and breaking down molecules). There is <b>no exception</b>: no non-living object does this on its own. Metabolism is a genuine defining feature.<br>• <b>Cellular organisation</b> is the structural ID: all life is built of cells, and it is this organisation of the body that ultimately defines a living thing.<br>• <b>Consciousness</b>, the ability to sense the environment and respond to it, is held up as <b>the defining property of living organisms.</b> Plants turn to light, seasonal breeders time reproduction to day-length, the simplest microbe reacts to a chemical gradient. Humans go one step further: NCERT states that we are the only organisms aware of ourselves.',
       },
       { t: 'p', html: '<b>Limiting conditions & the subtle cases:</b>' },
       {
@@ -127,7 +127,7 @@ export const TOPICS: Topic[] = [
         title: 'Framework A',
         steps: [
           '<b>A non-living thing also shows it</b> ⇒ disqualified. (Growth: dunes/crystals grow.)',
-          '<b>A living thing lacks it</b> ⇒ disqualified. (Reproduction: mules, sterile bees, infertile couples don’t reproduce.) Run any candidate through these two gates. Metabolism and consciousness survive both; growth and reproduction do not.',
+          '<b>A living thing lacks it</b> ⇒ disqualified. (Reproduction: mules, sterile bees, infertile couples don’t reproduce.) Run any candidate through these two gates. Metabolism, cellular organisation and consciousness survive both; growth and reproduction do not.',
         ],
       },
       {
@@ -137,7 +137,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: 'Ask: where is new material added?' },
       {
         t: 'p',
-        html: '• <b>From inside, throughout the body, by cell division</b> → intrinsic → characteristic of living things. A tree adds cells at its growing regions (meristems), including in its girth; a child’s bones lengthen from within.<br>• <b>On the outer surface, by accumulation/deposition</b> → extrinsic (accretion) → non-living. A mountain rises by sediment piling on top; a crystal enlarges as ions deposit on its faces. Same outward result (“it got bigger”), opposite mechanism, and only the intrinsic kind is part of life.',
+        html: '• <b>From inside, by cell division</b> → intrinsic → characteristic of living things. A tree adds cells at its growing regions (meristems), including in its girth; a child’s bones lengthen from within.<br>• <b>On the outer surface, by accumulation/deposition</b> → extrinsic (accretion) → non-living. A mountain rises by sediment piling on top; a crystal enlarges as ions deposit on its faces. Same outward result (“it got bigger”), opposite mechanism, and only the intrinsic kind is part of life.',
       },
       {
         t: 'proc',
@@ -447,7 +447,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'Binomial nomenclature',
-        html: 'the naming system in which each species’ scientific name has <b>two components</b>: the <b>generic name (genus)</b> followed by the <b>specific epithet (species)</b>. Proposed by <b>Carolus Linnaeus</b>.',
+        html: 'the naming system in which each species’ scientific name has <b>two components</b>: the <b>generic name (genus)</b> followed by the <b>specific epithet</b>. Proposed by <b>Carolus Linnaeus</b>.',
       },
       {
         t: 'def',
@@ -476,7 +476,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'ICBN',
-        html: 'International Code of Botanical Nomenclature; governs naming of plants (and historically algae and fungi). Independent of the zoological and bacteriological codes; its foundations trace to Linnaeus’s Philosophia Botanica. (Now formally updated to the ICN, International Code of Nomenclature for algae, fungi and plants, but NEET/NCERT still examines it as ICBN.)',
+        html: 'International Code of Botanical Nomenclature; governs naming of plants (and also algae and fungi). Independent of the zoological and bacteriological codes; its foundations trace to Linnaeus’s Philosophia Botanica. (Now formally updated to the ICN, International Code of Nomenclature for algae, fungi and plants, but NEET/NCERT still examines it as ICBN.)',
       },
       {
         t: 'def',
@@ -760,12 +760,12 @@ export const TOPICS: Topic[] = [
             note: '',
           },
           {
-            f: '<b>Binomial nomenclature</b> (Linnaeus) = <b>Generic name (capital) + specific epithet (lowercase)</b>, both italic / separately underlined; author in Roman, optional, last. → <b><i>Panthera leo</i> / Panthera leo</b>.',
+            f: '<b>Binomial nomenclature</b> (Linnaeus) = <b>Generic name (capital) + specific epithet (lowercase)</b>, both italic / separately underlined; author in Roman, optional, last. → <b><i>Panthera leo</i></b> in print; Panthera leo with each word underlined separately when handwritten.',
             note: '',
           },
           {
             f: 'Codes',
-            note: '<b>ICBN</b> → <b>plants</b> (botanical), <b>ICZN</b> → <b>animals</b> (zoological), ICNB → bacteria. Latin, because it is stable.',
+            note: '<b>ICBN</b> → <b>plants</b> (botanical), <b>ICZN</b> → <b>animals</b> (zoological), ICNB (now ICNP) → bacteria. Latin, because it is stable.',
           },
           {
             f: 'Term nesting',

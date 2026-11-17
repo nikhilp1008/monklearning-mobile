@@ -41,7 +41,7 @@
  *   closed: annelids and cephalopods; the book’s Hemichordata “open” and Chordata
  *   “closed” rows are not used;
  * - coelom origin follows the corrected wording: schizocoelom in annelids,
- *   arthropods and, by body plan, molluscs; enterocoelom in echinoderms and
+ *   arthropods and molluscs; enterocoelom in echinoderms and
  *   hemichordates and, in the usual textbook scheme, chordates (a
  *   simplification: the lancelet’s coelom forms by gut pouches, the vertebrate
  *   coelom by splitting of the lateral plate mesoderm); the book’s pair Homo and
@@ -57,7 +57,7 @@
  *   Nematoda) and Coelenterata is given with Cnidaria;
  * - mammals: hair, mammary glands and the diaphragm are the class-defining
  *   features, not viviparity; “external ear pinna” is “in most mammals” (absent
- *   in the platypus, whales and seals); the book’s “7 cervical vertebrae” and
+ *   in the platypus, whales and true seals); the book’s “7 cervical vertebrae” and
  *   “mostly viviparous” for Chondrichthyes (NCERT: many) are not used; birds:
  *   feathers are the exception-free feature, and “pneumatic bones” is not said
  *   of every bird (penguins);
@@ -71,7 +71,7 @@
  *   freshwater sponge”, never “the only” one; the Hemichordata gill
  *   slits are given as a feature that does not make it a chordate;
  * - Wuchereria: Culex is given as the vector in the book’s worked example (the
- *   Indian rural vector), with Anopheles and Aedes also named by the book; the
+ *   main Indian vector, breeding in dirty standing water), with Anopheles and Aedes also named by the book; the
  *   book’s “both viruses” lumping is not used; Taenia’s two intermediate hosts
  *   are given without the book’s cysticercosis detail; Laccifer is the book’s
  *   genus (now Kerria); the ammocoete is not called “ciliated” (beyond NCERT);
@@ -161,7 +161,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'shortcut',
     q: 'In a match-the-column or odd-one-out item on body plans, which filter do you read first?',
     a: 'Learn the criteria as one fixed ladder (organisation, symmetry, germ layers, coelom, segmentation, notochord) and read the animal top-down, but lock the coelom status first: it is a high-yield, discriminating filter, and pinning it usually removes two options at once. A worked case: a true coelom needs mesoderm, diploblastic animals lack it, so “a true coelom can never be found in a diploblastic animal” is true and its reason explains it',
-    why: 'The speed test for symmetry: sponge is asymmetrical, Hydra radial, adult starfish radial, earthworm bilateral.',
+    why: 'The speed test for symmetry: sponge is asymmetrical, <i>Hydra</i> radial, adult starfish radial, earthworm bilateral.',
     say: null,
   },
 
@@ -245,7 +245,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'mistake',
     q: 'Are all chordates vertebrates, and do chordate features have to be present in the adult?',
-    a: 'No to both. All vertebrates are chordates, but not all chordates are vertebrates: the protochordates are chordates that never become vertebrates. The four features need appear only at some stage, usually the embryo, so adult humans are textbook chordates. A jawless, finless lamprey is still a vertebrate, because of its cranium',
+    a: 'No to both. All vertebrates are chordates, but not all chordates are vertebrates: the protochordates are chordates that never become vertebrates. The four features need appear only at some stage, usually the embryo, so adult humans are textbook chordates. A jawless lamprey, with no paired fins, is still a vertebrate, because of its cranium',
     why: 'State the relation in the correct direction: vertebrate inside chordate, not the reverse.',
     say: null,
   },
@@ -254,7 +254,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'shortcut',
     q: 'A “without exception” item names a vertebrate class: what is the fastest route?',
-    a: 'Recall the exception first: it is faster to disprove three options than to verify one. Reptilia: crocodiles have a 4-chambered heart. Mammalia: the monotremes (<i>Ornithorhynchus</i>, <i>Echidna</i>) lay eggs yet are mammals, since hair and mammary glands, not viviparity, define the class. Chondrichthyes: a cartilaginous skeleton with no exception. Aves: feathers with no exception. In the worked item only Chondrichthyes is matched without exception',
+    a: 'Recall the exception first: it is faster to disprove three options than to verify one. Reptilia: crocodiles have a 4-chambered heart. Mammalia: the monotremes (<i>Ornithorhynchus</i>, the platypus, and <i>Tachyglossus</i>, the echidna) lay eggs yet are mammals, since hair and mammary glands, not viviparity, define the class. Chondrichthyes: a cartilaginous skeleton with no exception. Aves: feathers with no exception. In the worked item only Chondrichthyes is matched without exception',
     why: 'Crocodiles and birds share a 4-chambered heart, but the whole suite of class features, not one shared trait, decides the class.',
     say: null,
   },
@@ -265,7 +265,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 4,
     kind: 'remember',
     q: 'Which exceptions and superlatives does the book stress in this chapter?',
-    a: 'Largest phylum Arthropoda, second largest Mollusca; the largest animal ever is the blue whale (<i>Balaenoptera</i>), a mammal. Echinoderms: adults radial, larvae bilateral (secondarily radial), exclusively marine, excretory system absent, coelom an enterocoelom. Mollusca: circulation open in most, closed in cephalopods. Reptile heart 3-chambered, 4-chambered in crocodiles. Mammals viviparous except the monotremes (<i>Ornithorhynchus</i>, <i>Echidna</i>). Hemichordata was once a subphylum of Chordata and is now a separate non-chordate phylum with no true notochord',
+    a: 'Largest phylum Arthropoda, second largest Mollusca; the largest animal ever is the blue whale (<i>Balaenoptera</i>), a mammal. Echinoderms: adults radial, larvae bilateral (secondarily radial), exclusively marine, excretory system absent, coelom an enterocoelom. Mollusca: circulation open in most, closed in cephalopods. Reptile heart 3-chambered, 4-chambered in crocodiles. Mammals viviparous except the monotremes (<i>Ornithorhynchus</i>, the platypus, and <i>Tachyglossus</i>, the echidna). Hemichordata was once a subphylum of Chordata and is now a separate non-chordate phylum with no true notochord',
     why: 'The four chordate features need appear only once in the life cycle, usually the embryo.',
     say: null,
   },
@@ -323,7 +323,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 6,
     kind: 'remember',
     q: 'Which parasites and vectors cause which diseases, and what are their hosts?',
-    a: '<i>Taenia</i> (Platyhelminthes): humans are the definitive host, the pig (<i>Taenia solium</i>) or cattle (<i>Taenia saginata</i>) the intermediate host, and humans are infected by the cysticercus larva in undercooked meat. <i>Fasciola hepatica</i> (liver fluke): sheep and goat are the definitive hosts and the freshwater snail <i>Lymnaea</i> the intermediate host. <i>Ascaris lumbricoides</i>: ascariasis. <i>Wuchereria bancrofti</i> (Aschelminthes): filariasis and elephantiasis from blocked lymph vessels, with the mosquito as vector and intermediate host (<i>Culex</i> in the book’s worked case). Malaria: female <i>Anopheles</i>; dengue: <i>Aedes</i>. <i>Limulus</i> is no parasite: its blue blood (haemocyanin) is used to detect bacterial endotoxins',
+    a: '<i>Taenia</i> (Platyhelminthes): humans are the definitive host, the pig (<i>Taenia solium</i>) or cattle (<i>Taenia saginata</i>) the intermediate host, and humans are infected by the cysticercus larva in undercooked meat. <i>Fasciola hepatica</i> (liver fluke): sheep and goat are the definitive hosts and the freshwater snail <i>Lymnaea</i> the intermediate host. <i>Ascaris lumbricoides</i>: ascariasis. <i>Wuchereria bancrofti</i> (Aschelminthes): filariasis and elephantiasis from blocked lymph vessels, with the mosquito as vector and intermediate host (<i>Culex</i> in the book’s worked case). Malaria: female <i>Anopheles</i>; dengue: <i>Aedes</i>. <i>Limulus</i> is no parasite: an extract of its blood cells (LAL, limulus amoebocyte lysate) is used to detect bacterial endotoxins; its blood is blue from haemocyanin',
     why: 'In the book’s worked case, sheathed microfilariae in a night blood smear mark <i>Wuchereria bancrofti</i>.',
     say: null,
   },
@@ -354,7 +354,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 8,
     kind: 'remember',
     q: 'What are schizocoelom and enterocoelom, and which animals are protostomes and deuterostomes?',
-    a: 'Beyond the NCERT text, but occasionally asked. A schizocoelom forms by splitting of the mesoderm into two layers, the cavity between them being the coelom (annelids, arthropods and, by body plan, molluscs). An enterocoelom forms as pouches pinched off the gut wall (echinoderms, hemichordates and, in the usual textbook scheme, chordates; that last label is a simplification, since the lancelet’s coelom forms by gut pouches but the vertebrate coelom by splitting of the lateral plate mesoderm). In the schizocoelom groups the blastopore becomes the mouth (protostomes); in the enterocoelom groups it becomes the anus (deuterostomes). So the echinoderm is a deuterostome, and annelids, arthropods and molluscs are protostomes',
+    a: 'Beyond the NCERT text, but occasionally asked. A schizocoelom forms by splitting of the mesoderm into two layers, the cavity between them being the coelom (annelids, arthropods and molluscs; in molluscs the coelom is small, mainly the cavity round the heart). An enterocoelom forms as pouches pinched off the gut wall (echinoderms, hemichordates and, in the usual textbook scheme, chordates; that last label is a simplification, since the lancelet’s coelom forms by gut pouches but the vertebrate coelom by splitting of the lateral plate mesoderm). In the schizocoelom groups the blastopore becomes the mouth (protostomes); in the enterocoelom groups it becomes the anus (deuterostomes). So the echinoderm is a deuterostome, and annelids, arthropods and molluscs are protostomes',
     why: 'Echinoderms and hemichordates share how the coelom forms, a deeper similarity than merely both being coelomates.',
     say: null,
   },

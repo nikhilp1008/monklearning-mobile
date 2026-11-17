@@ -34,7 +34,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Think about it this way…</b> A heartbeat is not a single squeeze but a precisely timed sequence, like the staged signals at a busy Indian railway junction. First the side platforms fill (atria), then the main line clears (ventricles eject), then everything resets for the next train. This repeating sequence is the <b>cardiac cycle</b>, and at 72 beats a minute, the whole cycle takes about <b>0.8 seconds</b>. Because blood passes through the heart twice in every complete circuit, the human heart completes <b>72 double circulations per minute</b>.',
+        html: '<b>Think about it this way…</b> A heartbeat is not a single squeeze but a precisely timed sequence, like the staged signals at a busy Indian railway junction. First the side platforms fill (atria), then the main line clears (ventricles eject), then everything resets for the next train. This repeating sequence is the <b>cardiac cycle</b>, and at 72 beats a minute, the whole cycle takes about <b>0.8 seconds</b>. Because blood passes through the heart twice in every complete circuit, we call it <b>double circulation</b>. Each beat pumps blood into both loops at once, the right ventricle into the pulmonary loop and the left ventricle into the systemic loop, so 72 beats a minute are <b>72 cardiac cycles</b> (some question banks call them 72 double circulations); any one drop of blood takes about a minute to go round both loops.',
       },
       {
         t: 'p',
@@ -42,7 +42,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting Conditions & Assumptions.</b><br>• All the timings here (0.8 s cycle, 72/min, ~5 L/min output) are resting averages for a healthy adult. They climb steeply during exercise, fever, or stress.<br>• The heart is <b>myogenic</b>: a transplanted heart, cut off from all its nerves, still beats. Nerves only modulate the rate; they never originate the beat.<br>• The disorder names are precise and easily confused: <b>cardiac arrest</b> (heart stops completely), <b>heart failure</b> (heart still beats but pumps too weakly), and <b>heart attack / myocardial infarction</b> (heart muscle suddenly damaged by loss of blood supply) are three different things.',
+        html: '<b>Limiting Conditions & Assumptions.</b><br>• All the timings here (0.8 s cycle, 72/min, ~5 L/min output) are resting averages for a healthy adult. They climb steeply during exercise, fever, or stress.<br>• The heart is <b>myogenic</b>: a transplanted heart, cut off from all its nerves, still beats. Nerves only modulate the rate and force; they never originate the beat.<br>• The disorder names are precise and easily confused: <b>cardiac arrest</b> (heart stops completely), <b>heart failure</b> (heart still beats but pumps too weakly), and <b>heart attack / myocardial infarction</b> (heart muscle suddenly damaged by loss of blood supply) are three different things.',
       },
 
       { t: 'part', title: 'Key components and normal values' },
@@ -83,7 +83,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Cardiac output (see Key processes and mechanisms) averages ~5 L/min, and the SA node’s own intrinsic rate (~90–100/min) is normally reined in by the vagus nerve at rest. Blood pressure is measured with a <b>sphygmomanometer</b>, while the heart sounds themselves are heard through a <b>stethoscope</b>. A useful flow fact: the velocity of blood is <b>lowest in the capillaries</b>, precisely because their combined cross-sectional surface area is the largest of any vessel type; slow flow there gives time for exchange.',
+        html: 'Cardiac output (see Key processes and mechanisms) averages ~5 L/min, and the SA node’s own intrinsic rate (~90–100/min) is normally reined in by the vagus nerve at rest. Blood pressure is measured with a <b>sphygmomanometer</b>, while the heart sounds themselves are heard through a <b>stethoscope</b>. A useful flow fact: the velocity of blood is <b>lowest in the capillaries</b>, precisely because their combined cross-sectional area is the largest of any vessel type; slow flow there gives time for exchange.',
       },
       { t: 'fig', id: 'b11-15-fig-15.6' },
 
@@ -121,7 +121,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>(c) Double Circulation: the dynamic view</b>' },
       {
         t: 'p',
-        html: 'Each heartbeat drives blood through the heart twice: once through the <b>pulmonary</b> loop (right ventricle → lungs → left atrium) and once through the <b>systemic</b> loop (left ventricle → body → right atrium), so a 72-beat minute completes <b>72 double circulations</b>.',
+        html: 'Each heartbeat pumps blood into both loops at once: the right ventricle into the <b>pulmonary</b> loop (right ventricle → lungs → left atrium) and the left ventricle into the <b>systemic</b> loop (left ventricle → body → right atrium). A 72-beat minute is <b>72 cardiac cycles</b>; a single drop of blood needs about a minute to complete both loops.',
       },
       {
         t: 'p',
@@ -261,7 +261,7 @@ export const TOPICS: Topic[] = [
         items: [
           '<b>Arrest vs failure vs attack.</b> A commonly tested confusion (the book’s estimate from past papers, not official figures): arrest = no beat, failure = weak beat, attack (MI) = damaged muscle. Lock all three.',
           '<b>Lubb/Dub reversal.</b> S1 “Lubb” = AV valves close (systole begins); S2 “Dub” = semilunar valves close (diastole begins).',
-          '<b>“Nerves start the heartbeat.”</b> Wrong: the heart is <b>myogenic</b>; the SA node starts it. Nerves only adjust the rate.',
+          '<b>“Nerves start the heartbeat.”</b> Wrong: the heart is <b>myogenic</b>; the SA node starts it. Nerves only adjust the rate and force.',
           '<b>ECG waves.</b> P = atria depolarise, QRS = ventricles depolarise, T = ventricles repolarise. There is no wave for atrial repolarisation (it’s hidden in the QRS).',
         ],
       },
@@ -279,7 +279,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>ECG:</b> P = atrial depolarisation, QRS = ventricular depolarisation, T = ventricular repolarisation.', note: '' },
           { f: '<b>Cardiac output</b> = SV × HR ≈ 70 mL × 72 ≈ 5 L/min.', note: '' },
           { f: '<b>Regulation:</b> cardiac centre in <b>medulla</b> → ANS. Sympathetic ↑ (adrenaline reinforces); parasympathetic/vagus ↓ (dominant at rest). Heart is <b>myogenic</b>.', note: '' },
-          { f: '<b>Double circulation:</b> 72 double-circuits/min; complete partition (crocodiles/birds/mammals) prevents oxy–deoxy mixing → efficient O<sub>2</sub> supply. (Pathway: see Topic 02.)', note: '' },
+          { f: '<b>Double circulation:</b> 72 beats (cardiac cycles)/min; complete partition (crocodiles/birds/mammals) prevents oxy–deoxy mixing → efficient O<sub>2</sub> supply. (Pathway: see Topic 02.)', note: '' },
           { f: '<b>Portal/coronary:</b> hepatic portal = gut → liver (all vertebrates); coronary = supply to heart muscle.', note: '' },
           { f: '<b>Disorders:</b> Hypertension ≥140 over 90; CAD = atherosclerosis (Ca/fat/cholesterol narrowing); Angina = O<sub>2</sub>-starved chest pain; Heart failure = weak pump; MI = muscle damage; Cardiac arrest = full stop; Murmur = leaky valves.', note: '' },
         ],
@@ -344,7 +344,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'F. Circulation pathways' },
       {
         t: 'p',
-        html: '• <b>Open</b> (arthropods, molluscs) vs <b>closed</b> (annelids, chordates; usually more efficient).<br>• <b>Single</b> (fish, 2-ch) vs <b>double</b> (amphibian/most reptiles 3-ch incomplete; crocodile/bird/mammal 4-ch complete).<br>• <b>Double circulation:</b> Pulmonary (RV→lungs→LA) + Systemic (LV→body→RA) + coronary loop; 72 double-circuits/min.<br>• <b>Hepatic portal system:</b> gut → liver (processes nutrients first). <b>Coronary circulation:</b> supplies the heart muscle.',
+        html: '• <b>Open</b> (arthropods, molluscs) vs <b>closed</b> (annelids, chordates; usually more efficient).<br>• <b>Single</b> (fish, 2-ch) vs <b>double</b> (amphibian/most reptiles 3-ch incomplete; crocodile/bird/mammal 4-ch complete).<br>• <b>Double circulation:</b> Pulmonary (RV→lungs→LA) + Systemic (LV→body→RA) + coronary loop; 72 beats (cardiac cycles)/min.<br>• <b>Hepatic portal system:</b> gut → liver (processes nutrients first). <b>Coronary circulation:</b> supplies the heart muscle.',
       },
 
       { t: 'part', title: 'G. Regulation and disorders' },
@@ -468,18 +468,18 @@ export const TOPICS: Topic[] = [
     n: 'B',
     title: 'Haemopoiesis: The Full Cell Lineages',
     extra: true,
-    kalam: 'All blood cells arise from a common pluripotent haematopoietic stem cell (HSC) in the red bone marrow.',
+    kalam: 'All blood cells arise from a common haematopoietic stem cell (HSC) in the red bone marrow.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter tells you that blood cells are made in the red bone marrow, that RBCs live 120 days and are destroyed in the spleen, and that WBCs fight infection. What it does not give you is the maturation chain of the main cell lines: the intermediate stages between the stem cell and the functional mature cell. NEET can ask these by name in stage-identification questions. What it gives is the red cell, platelet, granulocyte and monocyte lines; the lymphocyte line is given only as B cells from the marrow and T cells via the thymus.',
+        html: 'The chapter tells you that blood cells are made in the red bone marrow, that RBCs live 120 days and are destroyed in the spleen, and that WBCs fight infection. What it does not give you is the maturation chain of the main cell lines: the intermediate stages between the stem cell and the functional mature cell. NEET can ask these by name in stage-identification questions. This Additional topic gives the red cell, platelet, granulocyte and monocyte chains; the lymphocyte line appears only as B cells maturing in the marrow and T cells in the thymus.',
       },
 
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Haemopoiesis overview.</b> All blood cells arise from a common haematopoietic stem cell (HSC; the book calls it pluripotent, usually called multipotent) in the red bone marrow. The stem cell gives rise to two main lineages:<br>• <b>Myeloid lineage</b> → erythrocytes, granulocytes (neutrophils, eosinophils, basophils), monocytes, platelets<br>• <b>Lymphoid lineage</b> → B-lymphocytes and T-lymphocytes (thymus involvement for T-cells)',
+        html: '<b>Haemopoiesis overview.</b> All blood cells arise from a common haematopoietic stem cell (HSC; usually called multipotent; some books say pluripotent) in the red bone marrow. The stem cell gives rise to two main lineages:<br>• <b>Myeloid lineage</b> → erythrocytes, granulocytes (neutrophils, eosinophils, basophils), monocytes, platelets<br>• <b>Lymphoid lineage</b> → B-lymphocytes and T-lymphocytes (thymus involvement for T-cells)',
       },
       {
         t: 'p',
@@ -616,7 +616,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           { q: '[CBSE] Name the sensory receptors in the carotid sinus and aortic arch that detect blood pressure changes.', a: 'Baroreceptors: stretch-sensitive nerve endings in the wall of the carotid sinus (a widening at the carotid bifurcation, at the start of the internal carotid artery) and the aortic arch.' },
-          { q: '[NEET] Arrange in correct order: angiotensin I, ACE, angiotensin II, renin, angiotensinogen.', a: 'Angiotensinogen → angiotensin I → angiotensin II → aldosterone (with renin and ACE as the enzymes of the first two steps; angiotensin II also stimulates ADH).' },
+          { q: '[NEET] Arrange in correct order: angiotensin I, ACE, angiotensin II, renin, angiotensinogen.', a: 'Angiotensinogen → (renin) → angiotensin I → (ACE) → angiotensin II. Renin and ACE are the enzymes of the two steps; angiotensin II then triggers the release of aldosterone and ADH.' },
           {
             q: '[NEET] A person is dehydrated. State the two hormones released in response and name the organ that secretes each.',
             a: '(1) Antidiuretic hormone (ADH / vasopressin): released from the posterior pituitary (made by hypothalamic neurons); (2) Aldosterone: secreted by the adrenal cortex (its release is triggered via the renin–angiotensin system). Both respond to low blood volume/pressure.',

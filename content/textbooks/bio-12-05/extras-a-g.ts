@@ -83,14 +83,14 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: `[CBSE] State why the lagging strand cannot be synthesised continuously at a replication fork, naming the structural feature of DNA polymerase responsible.`,
-            a: `Because DNA polymerase extends only 5′→3′, and on the lagging-strand template the polymerase would have to extend 3′→5′ toward the fork, which is chemically impossible. The enzyme’s unidirectional nature is the constraint.`,
+            a: `Because DNA polymerase extends only 5′→3′, and on the lagging-strand template the polymerase would have to extend 3′→5′ toward the fork, which no DNA polymerase can do (it adds nucleotides only to a free 3′-OH). The enzyme’s unidirectional nature is the constraint.`,
           },
           {
             q: `[NEET] During Okazaki fragment processing in <i>E. coli</i>, which enzyme (a) removes the RNA primer, (b) replaces it with DNA, and (c) seals the resulting nick?`,
             a: `(a) DNA polymerase I (5′→3′ exonuclease); (b) DNA polymerase I (polymerisation); (c) DNA ligase. (This is the <i>E. coli</i> picture; eukaryotes use other enzymes.)`,
           },
           {
-            q: `[CUET] Why do eukaryotic chromosomes require many thousands of replication origins while <i>E. coli</i> requires only one?`,
+            q: `[CUET] Why does a eukaryotic chromosome need many replication origins (a human cell has tens of thousands in all) while <i>E. coli</i> requires only one?`,
             a: `Eukaryotic chromosomes are vastly larger (millions to hundreds of millions of bp) and S-phase is limited to a few hours. Multiple origins allow many forks to work in parallel, completing replication in time; a single origin would take days.`,
           },
           {
@@ -126,7 +126,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>The cap structure.</b> The 5′ cap is a 7-methylguanosine (m<sup>7</sup>G) linked 5′–5′ to the first nucleotide of the transcript (not the usual 3′–5′ phosphodiester bond). The second nucleotide often has a 2′-O-methyl group. This inverted linkage is the diagnostic feature.`,
+        html: `<b>The cap structure.</b> The 5′ cap is a 7-methylguanosine (m<sup>7</sup>G) linked 5′–5′ to the first nucleotide of the transcript (not the usual 3′–5′ phosphodiester bond). The first one or two transcribed nucleotides next to the cap often carry a 2′-O-methyl group. This inverted linkage is the diagnostic feature.`,
       },
       {
         t: 'p',
@@ -199,7 +199,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: `[NEET High-Difficulty] Explain, with a diagram description, how the lariat structure forms during splicing and why it is important for accurate intron removal.`,
-            a: `The 2′-OH of the branch-point A attacks the phosphodiester bond at the 5′ splice site (GU). This cleaves the exon–intron junction and forms a 2′–5′ bond, creating a loop (lariat) in which the intron is circular. This brings the two exon ends into proximity for the second transesterification, ensuring precise exon joining. The lariat is later debranched. Diagram to draw: linear hnRNA → lariat intron + linear exons → ligated mRNA.`,
+            a: `The 2′-OH of the branch-point A attacks the phosphodiester bond at the 5′ splice site (GU). This cleaves the exon–intron junction and forms a 2′–5′ bond, creating a lasso-shaped loop (lariat) in the intron. This brings the two exon ends into proximity for the second transesterification, ensuring precise exon joining. The lariat is later debranched. Diagram to draw: linear hnRNA → lariat intron + linear exons → ligated mRNA.`,
           },
         ],
       },
@@ -216,7 +216,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `Topic 05 explains the <i>lac</i> operon mechanism clearly. Topic 04 counts codons and amino acids, but no topic works out <i>lac</i> protein sizes or mRNA lengths, treats repressor-operator kinetics, or compares the <i>lac</i> operon (inducible) with the <i>trp</i> operon (repressible), which Topic 05 only names in a list of examples. These are standard NEET extensions ${EST}.`,
+        html: `Topic 05 explains the <i>lac</i> operon mechanism clearly. Topic 04 counts codons and amino acids, but no topic works out <i>lac</i> protein sizes or mRNA lengths, treats repressor-operator kinetics, or compares the <i>lac</i> operon (inducible) with the <i>trp</i> operon (repressible), which Topic 05 only names in a list of examples. These go beyond NCERT; they are practice in the reasoning that NEET questions on this topic test, not syllabus items.`,
       },
 
       { t: 'part', title: 'Method' },
@@ -226,7 +226,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Protein sizes from operon data.</b> If the <i>z</i> gene of the <i>lac</i> operon codes for β-galactosidase (~1024 amino acids in <i>E. coli</i>, the book’s figure), the mRNA coding region is 1024 × 3 = 3072 nucleotides of sense codons (3075 with the stop codon). Adding leader and trailer UTRs (~100 nucleotides total) gives ~3172 nucleotides for the full mRNA of a message carrying only <i>lacZ</i>.`,
+        html: `<b>Protein sizes from operon data.</b> If the <i>z</i> gene of the <i>lac</i> operon codes for β-galactosidase (~1024 amino acids in <i>E. coli</i>, the book’s figure), the mRNA coding region is 1024 × 3 = 3072 nucleotides of sense codons (3075 with the stop codon). Adding leader and trailer UTRs (~100 nucleotides total) gives ~3175 nucleotides for the full mRNA of a message carrying only <i>lacZ</i> (the book adds the UTRs to 3072 and prints ~3172).`,
       },
       {
         t: 'table',
@@ -245,7 +245,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET',
-        q: `<b>Inducible vs Repressible Operon.</b> The <i>trp</i> operon of <i>E. coli</i> codes for the five enzymes of tryptophan biosynthesis. The repressor protein encoded by the regulatory gene (<i>trpR</i>) of the <i>trp</i> operon system is active only when bound to tryptophan. Explain why this makes the <i>trp</i> operon repressible and not inducible.`,
+        q: `<b>Inducible vs Repressible Operon.</b> The <i>trp</i> operon of <i>E. coli</i> has five structural genes for the enzymes of tryptophan biosynthesis. The repressor protein encoded by the regulatory gene (<i>trpR</i>) of the <i>trp</i> operon system is active only when bound to tryptophan. Explain why this makes the <i>trp</i> operon repressible and not inducible.`,
         steps: [
           `In the <i>trp</i> operon, the repressor protein alone cannot bind the operator (it requires tryptophan as a corepressor to activate it). Only when tryptophan is present (and therefore the cell has enough of the end product) does the active repressor-operator complex form and switch transcription off. When tryptophan is absent, no repression occurs and the operon is transcribed. This is the opposite logic of the <i>lac</i> operon, where the repressor is active by default and the inducer (lactose) removes it. The <i>trp</i> operon is therefore repressible (it is switched off by the presence of the end product), while the <i>lac</i> operon is inducible (it is switched on by the presence of the substrate).`,
         ],
@@ -259,7 +259,7 @@ export const TOPICS: Topic[] = [
           `(i) Coding region: 1024 amino acids × 3 nucleotides per codon = 3072 nucleotides of sense codons (the stop codon adds 3 more).`,
           `(ii) Total mRNA minus coding region: 3210 − 3072 = 138 nucleotides outside the 1024 sense codons. These are the UTRs (5′ leader + 3′ trailer); the book counts all 138 as UTRs, but strictly 3 of them are the stop codon, so the UTRs are 135 nucleotides.`,
         ],
-        ans: `(i) 3072 nucleotides; (ii) 138 nucleotides.`,
+        ans: `(i) 3072 nucleotides of sense codons (3075 with the stop codon); (ii) 138 nucleotides (the book’s UTR figure; strictly 135 plus the 3 of the stop codon).`,
       },
       {
         t: 'ex',
@@ -395,13 +395,13 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `Topic 06 describes the DNA fingerprinting procedure and has one worked question that matches swapped children to their parents, but it does not ask students to work through paternity band matching band by band, to distinguish autosomal from Y-STR analysis, or to calculate the probability of a random match. These are standard NEET extensions ${EST}.`,
+        html: `Topic 06 describes the DNA fingerprinting procedure and has one worked question that matches swapped children to their parents, but it does not ask students to work through paternity band matching band by band, to distinguish autosomal from Y-STR analysis, or to calculate the probability of a random match. These go beyond NCERT; they are practice in the reasoning that NEET questions on this topic test, not syllabus items.`,
       },
 
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: `<b>VNTR inheritance: the band algebra.</b> Each individual has two alleles at each VNTR locus (one from each parent). A child’s band pattern must contain one band from each parent at each locus. This is testable as a “match the child to its parents” problem: if a band of the child is not in the mother’s profile and also not in the alleged father’s profile (apart from a rare mutation), the alleged father is excluded.`,
+        html: `<b>VNTR inheritance: the band algebra.</b> Each individual has two alleles at each VNTR locus (one from each parent). A child’s band pattern must contain one band from each parent at each locus. This is testable as a “match the child to its parents” problem: at each locus, set aside the band the child could have received from the mother; the child’s other band must be in the alleged father’s profile. If it is not (apart from a rare mutation), the alleged father is excluded.`,
       },
       {
         t: 'p',
@@ -436,10 +436,10 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: `<b>Y-STR Inheritance Pattern.</b> A male homicide suspect has the Y-STR profile: DYS19 (12 repeats), DYS389I (11 repeats), DYS389II (28 repeats). Semen from the crime scene yields the same three Y-STR values. (i) What does this evidence tell you about the suspect’s relation to the perpetrator? (ii) Could this evidence distinguish between the suspect and his paternal uncle?`,
         steps: [
-          `(i) Y-STRs are inherited unchanged (apart from rare mutations) from father to son along the male lineage. The matching profile confirms the perpetrator shares the same patrilineal ancestry as the suspect: either the suspect himself or a male relative on his direct paternal line.`,
-          `(ii) A paternal uncle shares the same father (the suspect’s grandfather), so he carries the same Y chromosome and would also show the same Y-STR values. Y-STR analysis cannot distinguish between the suspect and his paternal uncle, paternal grandfather, or any male descendant of the same grandfather. Distinguishing between them would require autosomal STRs or SNP analysis.`,
+          `(i) Y-STRs are inherited unchanged (apart from rare mutations) from father to son along the male lineage. The matching profile is consistent with the perpetrator being on the suspect’s paternal line: the suspect himself or a male relative on his direct paternal line. With only three loci it does not prove this, since unrelated men can share common Y-STR values.`,
+          `(ii) A paternal uncle shares the same father (the suspect’s grandfather), so he carries the same Y chromosome and would also show the same Y-STR values. Y-STR analysis cannot distinguish between the suspect and his paternal uncle, paternal grandfather, or any male-line descendant of the same paternal grandfather. Distinguishing between them would require autosomal STRs or SNP analysis.`,
         ],
-        ans: `(i) Confirms patrilineal relationship; (ii) Cannot distinguish from paternal uncle: Y-STRs are identical within a patrilineage (apart from rare mutations).`,
+        ans: `(i) Consistent with a shared paternal line (not proof); (ii) Cannot distinguish from paternal uncle: Y-STRs are identical within a patrilineage (apart from rare mutations).`,
       },
 
       { t: 'part', title: 'Practice' },
@@ -481,7 +481,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Additional topic A' },
       {
         t: 'p',
-        html: `1. Because polymerase extends 5′→3′ only; on the lagging-strand template the polymerase would need to extend 3′→5′, which is chemically impossible. The enzyme’s unidirectional nature is the constraint.<br>2. In <i>E. coli</i>: (a) DNA polymerase I (5′→3′ exonuclease); (b) DNA polymerase I (polymerisation); (c) DNA ligase.<br>3. Eukaryotic chromosomes are enormous (a human cell has many thousands of origins); multiple origins allow parallel replication forks to finish in S-phase; <i>E. coli</i> has one origin and a small chromosome, so one origin suffices.<br>4. Leading-strand template (3′→5′ toward the fork): polymerase extends 5′→3′ continuously, moving with the fork. On the lagging-strand template, polymerase extends 5′→3′ away from the fork.<br>5. 1 phosphodiester bond; ~11 high-energy bonds (on the question’s assumption: 10 ATP for gap-filling, 1 for ligation).`,
+        html: `1. Because polymerase extends 5′→3′ only; on the lagging-strand template the polymerase would need to extend 3′→5′, which no DNA polymerase can do (it adds nucleotides only to a free 3′-OH). The enzyme’s unidirectional nature is the constraint.<br>2. In <i>E. coli</i>: (a) DNA polymerase I (5′→3′ exonuclease); (b) DNA polymerase I (polymerisation); (c) DNA ligase.<br>3. Eukaryotic chromosomes are enormous (a human cell has many thousands of origins); multiple origins allow parallel replication forks to finish in S-phase; <i>E. coli</i> has one origin and a small chromosome, so one origin suffices.<br>4. Leading-strand template (3′→5′ toward the fork): polymerase extends 5′→3′ continuously, moving with the fork. On the lagging-strand template, polymerase extends 5′→3′ away from the fork.<br>5. 1 phosphodiester bond; ~11 high-energy bonds (on the question’s assumption: 10 ATP for gap-filling, 1 for ligation).`,
       },
       { t: 'part', title: 'Additional topic B' },
       {
@@ -657,7 +657,7 @@ export const TOPICS: Topic[] = [
           [
             '<b>Lalji Singh invented DNA fingerprinting</b>',
             'Pairs his name with the discovery',
-            'Alec Jeffreys (UK, 1985) discovered it; Lalji Singh pioneered it in India.',
+            'Alec Jeffreys (UK, 1984) discovered it; Lalji Singh pioneered it in India.',
           ],
           [
             '<b>3 billion = 30,000</b>',
@@ -699,7 +699,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: `[Analysis (Moderate–Hard)] In an <i>E. coli</i> culture, the <i>lac</i> operon is placed in a medium containing lactose but no glucose. Which of the following statements correctly describes the state of the operon?<br><b>(a)</b> The repressor is bound to the operator; transcription is off.<br><b>(b)</b> Lactose binds the repressor, causing it to fall off the operator; transcription occurs.<br><b>(c)</b> The operon is transcribed constitutively because glucose is absent.<br><b>(d)</b> RNA polymerase cannot bind the promoter because lactose is present.`,
-            a: `(b). Lactose (as allolactose) is the inducer; it binds the repressor, inactivates it, and removes it from the operator. RNA polymerase is then free to transcribe the <i>z</i>, <i>y</i> and <i>a</i> genes. Absence of glucose is a separate, positive-regulation signal (catabolite repression) that modulates but does not block induction.`,
+            a: `(b). Lactose (as allolactose) is the inducer; it binds the repressor, inactivates it, and removes it from the operator. RNA polymerase is then free to transcribe the <i>z</i>, <i>y</i> and <i>a</i> genes. Glucose acts through a separate, positive-regulation signal (cAMP–CAP): with no glucose, CAP activation is high and transcription is strong; glucose lowers it (catabolite repression) without blocking induction.`,
           },
           {
             q: `[Analysis (Moderate–Hard)] A segment of mRNA reads 5′–AUG CCU UAA–3′. How many amino acids will the resulting polypeptide contain?<br><b>(a)</b> 1<br><b>(b)</b> 2<br><b>(c)</b> 3<br><b>(d)</b> 4`,
@@ -723,7 +723,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: `[Evaluation (Hard)] <b>Assertion (A):</b> In the Hershey–Chase experiment, the radioactivity from <sup>35</sup>S-labelled phage remained in the supernatant after blending.<br><b>Reason (R):</b> <sup>35</sup>S labels the protein coat, which does not enter the bacterial cell during infection.<br>Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.`,
-            a: `(a). Both A and R are true, and R correctly explains A. The experiment’s design exploits the fact that protein contains sulfur (S) but not phosphorus (P), while DNA contains phosphorus but not sulfur. The <sup>35</sup>S label therefore tracks the protein coat; its presence in the supernatant confirms that the protein stays outside the cell. (In the real experiment most of the 35S, about 80 per cent, came off in the supernatant and a little stayed with the cells; the book’s schematic shows none inside.)`,
+            a: `(a). Both A and R are true, and R correctly explains A. The experiment’s design exploits the fact that protein contains sulfur (S) but not phosphorus (P), while DNA contains phosphorus but not sulfur. The <sup>35</sup>S label therefore tracks the protein coat; its presence in the supernatant confirms that the protein stays outside the cell. (In the real experiment most of the <sup>35</sup>S, about 80 per cent, came off in the supernatant and a little stayed with the cells; the book’s schematic shows none inside.)`,
           },
         ],
       },

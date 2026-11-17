@@ -314,7 +314,7 @@ const fig63: Diagram = {
 };
 
 /* ================= Figure 6.4 ================= */
-const CAP64 = 'Geological timeline of life (mya). The dashed line marks the dinosaur mass extinction (~65 mya), followed by the adaptive radiation of mammals. Lower track: plant evolution, algae → bryophytes → pteridophytes → gymnosperms → angiosperms. Values are the book’s (the earliest cells are now dated to about 3.5 bya).';
+const CAP64 = 'Geological timeline of life (mya). The dashed line marks the dinosaur mass extinction (~65 mya), followed by the adaptive radiation of mammals. Lower track: plant evolution, algae → bryophytes → pteridophytes → gymnosperms → angiosperms. Values are the book’s (the earliest cells are now dated to about 3.5 bya, the oldest jawless fishes to about 500 mya, well before the first amphibians, and the first land plants to about 470 mya).';
 /** x for a time in mya: linear (0.418 px per mya) to 600 mya, then compressed to 2000 mya at the left, as the book's axis is. */
 const XM = (m: number) => (m <= 600 ? 336 - 0.418 * m : 85 - (m - 600) * (71 / 1400));
 type Grp = { name: string; from: number; row: number; thin?: boolean; dark?: [number, number]; inside?: boolean };

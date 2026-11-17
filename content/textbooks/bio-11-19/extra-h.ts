@@ -101,7 +101,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Common trap in this chapter:</b> Statements that swap diabetes insipidus and diabetes mellitus, or that confuse the effect of vasopressin (it decreases urine volume, not increases). When R says the opposite of what is physiologically correct, the answer is <b>(c) A true, R false</b> or <b>(d) A false, R true</b>.',
+        html: '<b>Common trap in this chapter:</b> Statements that swap diabetes insipidus and diabetes mellitus, or that confuse the effect of vasopressin (it decreases urine volume, not increases). When R says the opposite of what is physiologically correct, R is false, so the answer is <b>(c) A true, R false</b>. When it is A that is wrong and R is a true statement, the answer is <b>(d) A false, R true</b>.',
       },
 
       { t: 'p', html: '<b>4. Match-the-Column: “Gland–Hormone–Function–Disorder”</b>' },
@@ -198,7 +198,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 2: Concept application] A patient is diagnosed with a disorder characterized by high blood glucose, glycosuria, and ketone body formation. The doctor prescribes insulin injections. Which of the following correctly describes the mechanism of insulin action?<br>(a) Binds intracellular receptors and regulates gene expression<br>(b) Binds cell-surface receptors and generates cAMP as second messenger<br>(c) Binds cell-surface receptors and activates tyrosine kinase signaling<br>(d) Diffuses through the plasma membrane and binds nuclear receptors',
-            a: '(c): Insulin is a peptide hormone; it cannot cross the membrane. It binds receptor tyrosine kinase (RTK) on the cell surface, autophosphorylates, and triggers the IRS–PI3K–Akt pathway leading to GLUT4 translocation and glucose uptake. cAMP is the second messenger for glucagon and adrenaline, not insulin.',
+            a: '(c): Insulin is a peptide hormone; it cannot cross the membrane. It binds a receptor tyrosine kinase (RTK) on the cell surface; the receptor autophosphorylates and triggers the IRS–PI3K–Akt pathway leading to GLUT4 translocation and glucose uptake. cAMP is the second messenger for glucagon and adrenaline, not insulin.',
           },
           {
             q: '[Level 2: Concept application] Which of the following correctly represents the antagonistic pair controlling blood calcium?<br>(a) PTH and calcitonin<br>(b) Insulin and glucagon<br>(c) Aldosterone and ANF<br>(d) TSH and TRH',
@@ -210,7 +210,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 3: Statement evaluation] Assertion (A): Steroid hormones produce slower but longer-lasting effects than peptide hormones.<br>Reason (R): Steroid hormones act on intracellular receptors and regulate gene expression, while peptide hormones act on surface receptors via second messengers.<br>Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
-            a: '(a): Both A and R are true, and R is the correct biochemical explanation for A. Steroids must enter the nucleus, bind DNA, and synthesize new proteins → slow onset, durable effect. Peptides generally act on existing enzymes, often via second messengers → fast, brief effect.',
+            a: '(a): Both A and R are true, and R is the correct biochemical explanation for A. Steroids must enter the cell and the nucleus, where the hormone–receptor complex binds DNA and the cell synthesizes new proteins → slow onset, durable effect. Peptides generally act on existing enzymes, often via second messengers → fast, brief effect.',
           },
           {
             q: '[Level 4: Diagram / matching] In the hypophyseal portal system, releasing and inhibiting hormones from the hypothalamus are transported directly to the:<br>(a) Posterior pituitary<br>(b) Anterior pituitary<br>(c) Pineal gland<br>(d) Thyroid gland',
@@ -242,7 +242,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Two Topics Worth Contrasting' },
       {
         t: 'p',
-        html: '<b>Diabetes insipidus versus diabetes mellitus.</b> These two conditions are easily confused, and assertion–reason questions often test the difference (the book’s estimate from past papers, not official figures). They share the word “diabetes” and the symptom of thirst, but arise from entirely different hormone systems.',
+        html: '<b>Diabetes insipidus versus diabetes mellitus.</b> These two conditions are easily confused, and the book says assertion–reason questions often test the difference. They share the word “diabetes” and the symptoms of thirst and passing large volumes of urine, but arise from entirely different hormone systems.',
       },
       {
         t: 'table',

@@ -171,7 +171,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'What are the four ways of meeting a stressful abiotic environment?',
     a: 'Regulate: hold the internal environment constant (thermoregulation, osmoregulation); birds and mammals are the usual examples. Conform: let the internal state vary with the outside; the chapter gives about 99 per cent of animals and nearly all plants. Migrate: leave and return, as the birds that winter at Keoladeo National Park, Bharatpur. Suspend: lower activity or go dormant, as thick-walled spores, seed dormancy, hibernation, aestivation and diapause. Regulation costs energy continuously, most of all for small animals, whose large surface area against volume loses heat fast, so very small animals are scarce in polar regions',
-    why: 'Most organisms are partial regulators at best, so read regulate and conform as the two ends of a range.',
+    why: 'Some species regulate only over a limited range and conform beyond it (partial regulators), so read regulate and conform as the two ends of a range.',
     say: 'responses → Hold, Flow, Go, or Slow (Regulate, Conform, Migrate, Suspend).',
   },
   // pp. 610–611
@@ -225,9 +225,9 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 2,
     kind: 'remember',
-    q: 'What does the logistic curve do, where is growth fastest, and what is K?',
+    q: 'What does the logistic curve do, where is growth fastest, and what is <i>K</i>?',
     a: 'Logistic (Verhulst–Pearl) growth is d<i>N</i>/d<i>t</i> = <i>rN</i> <frac><num><i>K</i> − <i>N</i></num><den><i>K</i></den></frac>, the S curve, in four stretches: a slow lag phase, a steep acceleration (log) phase, a slowing deceleration phase and an asymptote at <i>K</i>. <i>K</i> is the carrying capacity, the number the habitat can support. Growth rate is zero at <i>N</i> = 0 and at <i>N</i> = <i>K</i> and greatest at <i>N</i> = <frac><num><i>K</i></num><den>2</den></frac>. With <i>r</i> = 0.1 yr<sup>−1</sup> and <i>K</i> = 2000: at <i>N</i> = 500 the rate is 0.1 × 500 × 0.75 = 37.5 individuals per year, and at 1000 it is 0.1 × 1000 × 0.5 = 50 individuals per year',
-    why: 'The factor (K − N) over K is the share of capacity still unused: near 1 when N is small, 0 at K.',
+    why: 'The factor (<i>K</i> − <i>N</i>) over <i>K</i> is the share of capacity still unused: near 1 when <i>N</i> is small, 0 at <i>K</i>.',
     say: null,
   },
   // pp. 616–617, 619–620, 623
@@ -252,7 +252,7 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 2,
     kind: 'shortcut',
-    q: 'A mite population of 60 grows exponentially at r = 0.2 per day: how do you find the size after 10 days quickly?',
+    q: 'A mite population of 60 grows exponentially at <i>r</i> = 0.2 per day: how do you find the size after 10 days quickly?',
     a: 'Compute <i>rt</i> first: 0.2 × 10 = 2, so <i>N</i> = 60 × <i>e</i><sup>2</sup> ≈ 60 × 7.39 = 443 mites. Questions often choose <i>r</i> and <i>t</i> so that <i>rt</i> is a clean value; if the exponent comes out awkward, recheck the arithmetic. The same idea gives the doubling time: <i>t</i> = <frac><num>ln 2</num><den><i>r</i></den></frac>, which is 1 hour for <i>r</i> = 0.69 per hour',
     why: 'Spot a clean exponent such as 1, 2 or ln 2 and only one value has to be evaluated.',
     say: null,
@@ -310,7 +310,7 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 4,
     kind: 'remember',
-    q: 'How do you solve exponential growth for time, the doubling time and r?',
+    q: 'How do you solve exponential growth for time, the doubling time and <i>r</i>?',
     a: 'Take natural logarithms of <i>N</i><sub><i>t</i></sub> = <i>N</i><sub>0</sub><i>e</i><sup><i>rt</i></sup>: <i>t</i> = <frac><num>1</num><den><i>r</i></den></frac> ln <frac><num><i>N</i><sub><i>t</i></sub></num><den><i>N</i><sub>0</sub></den></frac>. Doubling time <i>t</i><sub>d</sub> = <frac><num>ln 2</num><den><i>r</i></den></frac> = <frac><num>0.693</num><den><i>r</i></den></frac>, which depends on <i>r</i> alone. From two counts, <i>r</i> = <frac><num>ln (<i>N</i><sub>2</sub>/<i>N</i><sub>1</sub>)</num><den>Δ<i>t</i></den></frac>, without needing <i>K</i>. Example: 500 cells to 10,000 at 0.3 h<sup>−1</sup> takes <frac><num>ln 20</num><den>0.3</den></frac> = <frac><num>2.996</num><den>0.3</den></frac> ≈ 10 hours; 1000 to 8000 yeast cells in 6 hours gives <i>r</i> = <frac><num>2.079</num><den>6</den></frac> ≈ 0.347 h<sup>−1</sup> and <i>t</i><sub>d</sub> = 2.0 hours',
     why: 'Check without logs: 8 is three doublings, and 6 hours over 3 is 2 hours each.',
     say: null,
@@ -319,9 +319,9 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 4,
     kind: 'remember',
-    q: 'How do you find the time to reach half of K, and how do you choose the model?',
+    q: 'How do you find the time to reach half of <i>K</i>, and how do you choose the model?',
     a: 'From the integral logistic equation, the time to <i>N</i> = <frac><num><i>K</i></num><den>2</den></frac> is <i>t</i> = <frac><num>1</num><den><i>r</i></den></frac> ln <frac><num><i>K</i> − <i>N</i><sub>0</sub></num><den><i>N</i><sub>0</sub></den></frac>. With <i>K</i> = 5000, <i>N</i><sub>0</sub> = 100 and <i>r</i> = 0.05 yr<sup>−1</sup> this is 20 × ln 49 = 20 × 3.892 ≈ 78 years. To choose the model: <i>K</i> given and resources scarce means logistic; unlimited resources or ideal conditions means exponential. For 200 fish growing to 350 in a lake with <i>K</i> = 1000 the logistic model fits, and the exponential <i>r</i> = ln 1.75 ≈ 0.56 yr<sup>−1</sup> is only the average net rate over the year',
-    why: 'The brake (K − N) over K falls from 0.80 to 0.65 across that year: growth is already slowing under crowding if the logistic model holds.',
+    why: 'The brake (<i>K</i> − <i>N</i>) over <i>K</i> falls from 0.80 to 0.65 across that year: growth is already slowing under crowding if the logistic model holds.',
     say: null,
   },
 
@@ -340,7 +340,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 5,
     kind: 'remember',
     q: 'Top-down or bottom-up regulation: which is which?',
-    a: 'Bottom-up: resources limit the population, plant productivity to herbivores to carnivores, as grass limits zebras and zebras limit lions; the logistic model’s limit <i>K</i> is a bottom-up (resource) limit. Top-down: predators limit prey, which in turn shapes the vegetation. In Paine’s removal of the starfish <i>Pisaster ochraceus</i> from a shore, one dominant prey species excluded others and prey diversity fell. Both operate at once, and which dominates depends on the trophic level and the ecosystem. The Lotka–Volterra pair d<i>N</i>/d<i>t</i> = <i>rN</i> − <i>aNP</i> and d<i>P</i>/d<i>t</i> = <i>baNP</i> − <i>dP</i> gives predator numbers that follow prey numbers with a lag',
+    a: 'Bottom-up: resources limit the population, plant productivity to herbivores to carnivores, as grass limits zebras and zebras limit lions; the logistic model’s limit <i>K</i> is a bottom-up (resource) limit. Top-down: predators limit prey, which in turn shapes the vegetation. In Paine’s removal of the starfish <i>Pisaster ochraceus</i> from a shore, one dominant prey species excluded others and prey diversity fell. Both operate at once, and which dominates depends on the trophic level and the ecosystem. The Lotka–Volterra pair d<i>N</i>/d<i>t</i> = <i>rN</i> − <i>aNP</i> and d<i>P</i>/d<i>t</i> = <i>caNP</i> − <i>mP</i> gives predator numbers that follow prey numbers with a lag',
     why: 'Top-down starts with the predator, bottom-up with the plants; ask which end of the chain is doing the limiting.',
     say: null,
   },
@@ -400,7 +400,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 8,
     kind: 'remember',
     q: 'How do age pyramids, the demographic dividend and population momentum fit together?',
-    a: 'A broad base with a narrow top is expanding (a Stage 2 pattern); roughly equal bars, stationary (Stage 3 or 4); a narrow base, contracting. The demographic dividend is the period when the working-age group (15–64 years in the book’s definition) is large compared with dependents; it pays off only if there are productive jobs and investment in education and health. Population momentum: when fertility falls below replacement, growth continues for a while because a large share is already of reproductive age. The book’s dates for India are approximate',
+    a: 'A broad base with a narrow top is expanding (a Stage 1 and 2 pattern); roughly equal bars, stationary (Stage 3 or 4); a narrow base, contracting. The demographic dividend is the period when the working-age group (15–64 years in the book’s definition) is large compared with dependents; it pays off only if there are productive jobs and investment in education and health. Population momentum: when fertility falls below replacement, growth continues for a while because a large share is already of reproductive age. The book’s dates for India are approximate',
     why: 'A large working-age group is an opportunity, and it becomes a burden if jobs are lacking.',
     say: null,
   },

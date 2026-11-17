@@ -78,7 +78,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Canonical larval forms</b> (a common NEET one-mark, the book’s estimate from past papers, not official figures): <b>planula</b> (Cnidaria), <b>trochophore</b> (Annelida, Mollusca), <b>veliger</b> (Mollusca), <b>bipinnaria</b> (Echinodermata, e.g. <i>Asterias</i>), <b>tadpole</b> (Amphibia), <b>ammocoete</b> (Cyclostomata, <i>Petromyzon</i>).',
+        html: '<b>Canonical larval forms</b> (a common NEET one-mark, in the book’s view): <b>planula</b> (Cnidaria), <b>trochophore</b> (Annelida, Mollusca), <b>veliger</b> (Mollusca), <b>bipinnaria</b> (Echinodermata, e.g. <i>Asterias</i>), <b>tadpole</b> (Amphibia), <b>ammocoete</b> (Cyclostomata, <i>Petromyzon</i>).',
       },
     ],
   },
@@ -144,7 +144,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>4. Coelom (body cavity)</b>: a cavity lying between the body wall and the gut, <b>lined by mesoderm</b>.<br>• <b>Acoelomate:</b> no body cavity; mesoderm packs the space solidly. <b>Platyhelminthes.</b><br>• <b>Pseudocoelomate:</b> a cavity is present but <b>not lined by mesoderm continuously</b>: mesoderm sits as scattered pouches between ectoderm and endoderm. <b>Aschelminthes (roundworms).</b><br>• <b>Coelomate / Eucoelomate:</b> a <b>true coelom</b> lined by mesoderm on both sides. <b>Annelida, Arthropoda, Mollusca, Echinodermata, Hemichordata, Chordata.</b> (NEET extension: by origin, a coelom that forms by the splitting of mesoderm is a <b>schizocoelom</b>: annelids, arthropods and, by body plan, molluscs; one that arises as outpocketings of the embryonic gut is an <b>enterocoelom</b>: echinoderms and hemichordates (and, in the usual textbook scheme, chordates).)',
+        html: '<b>4. Coelom (body cavity)</b>: a cavity lying between the body wall and the gut, <b>lined by mesoderm</b>.<br>• <b>Acoelomate:</b> no body cavity; mesoderm packs the space solidly. <b>Platyhelminthes.</b><br>• <b>Pseudocoelomate:</b> a cavity is present but <b>not lined by mesoderm continuously</b>: mesoderm sits as scattered pouches between ectoderm and endoderm. <b>Aschelminthes (roundworms).</b><br>• <b>Coelomate / Eucoelomate:</b> a <b>true coelom</b> lined by mesoderm on both sides. <b>Annelida, Arthropoda, Mollusca, Echinodermata, Hemichordata, Chordata.</b> (NEET extension: by origin, a coelom that forms by the splitting of mesoderm is a <b>schizocoelom</b>: annelids, arthropods and molluscs (in molluscs the coelom is small, mainly the cavity round the heart); one that arises as outpocketings of the embryonic gut is an <b>enterocoelom</b>: echinoderms and hemichordates (and, in the usual textbook scheme, chordates).)',
       },
       {
         t: 'p',
@@ -390,7 +390,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: '<b>Coelom</b>',
-            note: 'Acoelomate (flatworms) · Pseudocoelomate (roundworms) · Eucoelomate (annelids → chordates). Schizocoelom = mesoderm splits (annelids, arthropods and, by body plan, molluscs); enterocoelom = gut outpocketing (echinoderms and hemichordates, and in the usual textbook scheme chordates).',
+            note: 'Acoelomate (flatworms) · Pseudocoelomate (roundworms) · Eucoelomate (annelids → chordates). Schizocoelom = mesoderm splits (annelids, arthropods and molluscs); enterocoelom = gut outpocketing (echinoderms and hemichordates, and in the usual textbook scheme chordates).',
           },
           {
             f: '<b>Within the organ-system grade</b>',
@@ -441,7 +441,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Limiting conditions & assumptions you must respect:</b>' },
       {
         t: 'p',
-        html: '• Every “rule” in this gallery has a famous exception. Molluscs are open-circulatory, <b>except cephalopods</b> (octopus, squid), which are closed. Echinoderms are radial, <b>only as adults</b> (larvae are bilateral). Sponges are asymmetrical, but a few approach radial.<br>• These are descriptions of the <b>general body plan of the phylum</b>, not of every member; parasitic members often lose organs (e.g., tapeworms have no gut at all).<br>• <b>Hemichordata is a non-chordate.</b> It was once placed inside Chordata because of its gill slits, but it lacks a true notochord, so modern classification keeps it out. Do not let the gill slits fool you.<br>• Sponges sit at the <b>cellular</b> grade, so finer filters (true coelom, true germ layers) apply to them only loosely.',
+        html: '• Every “rule” in this gallery has a famous exception. Molluscs are open-circulatory, <b>except cephalopods</b> (octopus, squid), which are closed. Echinoderms are radial, <b>only as adults</b> (larvae are bilateral). Sponges are asymmetrical, but a few approach radial.<br>• These are descriptions of the <b>general body plan of the phylum</b>, not of every member; parasitic members often lose organs (e.g., tapeworms have no gut at all).<br>• <b>Hemichordata is a non-chordate.</b> It was once placed inside Chordata because of its gill slits and a short rod (the stomochord) that was taken for a notochord, but it lacks a true notochord, so modern classification keeps it out. Do not let the gill slits fool you.<br>• Sponges sit at the <b>cellular</b> grade, so finer filters (true coelom, true germ layers) apply to them only loosely.',
       },
 
       { t: 'part', title: 'Key terms and classification framework' },
@@ -590,7 +590,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Step 4: How did the coelom form?</b> This is the branch where the echinoderms separate from the worms, as the key in Figure 4.3 shows.<br>• Coelom from splitting of mesoderm (<b>schizocoelom</b>) → the segmented/jointed line (annelids, arthropods, and, by body plan, molluscs).<br>• Coelom from outpocketings of the embryonic gut (<b>enterocoelom</b>) → the echinoderm/hemichordate line (and, in the usual textbook scheme, chordates).',
+        html: '<b>Step 4: How did the coelom form?</b> This is the branch where the echinoderms separate from the worms, as the key in Figure 4.3 shows.<br>• Coelom from splitting of mesoderm (<b>schizocoelom</b>) → the segmented/jointed line (annelids, arthropods and molluscs; in molluscs the coelom is small, mainly the cavity round the heart).<br>• Coelom from outpocketings of the embryonic gut (<b>enterocoelom</b>) → the echinoderm/hemichordate line (and, in the usual textbook scheme, chordates).',
       },
       {
         t: 'p',
@@ -617,7 +617,7 @@ export const TOPICS: Topic[] = [
           '(ii) A <b>chitinous exoskeleton</b> gives protection and water-proofing on land, and provides firm anchorage for muscles; periodic moulting allows growth.',
           '(iii) An efficient <b>tracheal/book-lung respiratory system</b> and sensory organs (compound eyes, antennae) let arthropods exploit almost every habitat.',
           '<b>Step 2: Give two economically important examples.</b> <i>Apis</i> (honeybee: honey and beeswax) and <i>Bombyx</i> (silkworm: silk). (Other valid examples: <i>Laccifer</i> (now <i>Kerria</i>) for lac.)',
-          '<b>Concluding statement:</b> the combination of jointed limbs, a protective moulting exoskeleton, and versatile respiration explains why arthropods outnumber all other animals in both species and individuals.',
+          '<b>Concluding statement:</b> the combination of jointed limbs, a protective moulting exoskeleton, and versatile respiration explains why arthropods outnumber all other animals in number of species.',
         ],
         ans: '',
       },
@@ -799,7 +799,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: '<b>Coelom line-up</b>',
-            note: 'Acoelomate = Platyhelminthes · Pseudocoelomate = Aschelminthes · Eucoelomate = Annelida → Hemichordata (schizocoelom: Annelida, Arthropoda and, by body plan, Mollusca; enterocoelom: Echinodermata, Hemichordata and, in the usual textbook scheme, Chordata).',
+            note: 'Acoelomate = Platyhelminthes · Pseudocoelomate = Aschelminthes · Eucoelomate = Annelida → Hemichordata (schizocoelom: Annelida, Arthropoda and Mollusca; enterocoelom: Echinodermata, Hemichordata and, in the usual textbook scheme, Chordata).',
           },
           {
             f: '<b>Circulation</b>',

@@ -150,7 +150,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter lists the water-soluble vitamins among the micromolecules of the acid-soluble pool and names NAD<sup>+</sup> and FAD as coenzymes. This additional topic classifies vitamins by solubility and connects each vitamin to the deficiency disease that NEET asks by name.',
+        html: 'The chapter lists vitamins among the micromolecules of the acid-soluble pool (strictly, only the water-soluble ones; see Method) and names NAD<sup>+</sup> and FAD as coenzymes. This additional topic classifies vitamins by solubility and connects each vitamin to the deficiency disease that NEET asks by name.',
       },
 
       { t: 'part', title: 'Method' },
@@ -256,7 +256,7 @@ export const TOPICS: Topic[] = [
             a: '(i) Riboflavin → FAD (or FMN); participates in oxidation-reduction reactions (electron transfer). (ii) Niacin → NAD<sup>+</sup> (or NADP<sup>+</sup>); participates in oxidation-reduction (hydride transfer). (iii) Pyridoxine → Pyridoxal phosphate; participates in transamination reactions (amino group transfer).',
           },
           {
-            q: '[NEET, assertion–reason] A: Niacin deficiency causes the disease pellagra. R: Niacin is a coenzyme in oxidation-reduction reactions. Choose the correct relationship.',
+            q: '[NEET, assertion–reason] A: Niacin deficiency causes the disease pellagra. R: Niacin is the precursor of NAD<sup>+</sup>, a coenzyme in oxidation-reduction reactions. Choose the correct relationship.',
             a: 'Both A and R are true, and R correctly explains A. Niacin is the precursor of NAD<sup>+</sup>, a coenzyme in redox reactions; deficiency of the vitamin impairs these reactions, producing the clinical syndrome of pellagra.',
           },
         ],
@@ -330,7 +330,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET, MCQ reasoning',
         q: 'A sample gives a violet ring in the Molisch test and a blue-black colour with iodine, but a negative Benedict’s test. What does it contain?',
         steps: [
-          '<b>Reasoning.</b> Molisch positive ⇒ carbohydrate present. Iodine positive ⇒ starch present. Benedict negative ⇒ no reducing sugar. The sample is pure starch (a non-reducing polysaccharide).',
+          '<b>Reasoning.</b> Molisch positive ⇒ carbohydrate present. Iodine positive ⇒ starch present. Benedict negative ⇒ no reducing sugar. The sample contains starch and no free reducing sugar (a non-reducing carbohydrate such as sucrose is not ruled out by these three tests).',
         ],
         ans: 'Starch. The iodine test confirms starch; the negative Benedict’s test confirms no free reducing sugars are present.',
       },
@@ -389,7 +389,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'D1: Cholesterol: Structure and Membrane Function' },
       {
         t: 'p',
-        html: '<b>Structure.</b> Cholesterol is a tetracyclic sterol (cyclopentanophenanthrene nucleus):<br>• Four fused rings (A, B, C, D): three cyclohexane rings and one cyclopentane.<br>• C3-hydroxyl group: the only polar part; orients toward the aqueous surface.<br>• Short hydrocarbon tail at C17 (non-polar).<br>• One double bond between C5 and C6.<br>• Two angular methyl groups (C18 on C13 and C19 on C10) at the ring junctions; the side chain carries further methyl groups.<br>• Molecular formula C<sub>27</sub>H<sub>46</sub>O; molecular weight about 387 Da.',
+        html: '<b>Structure.</b> Cholesterol is a tetracyclic sterol (cyclopentanophenanthrene nucleus):<br>• Four fused rings (A, B, C, D): three six-membered rings and one five-membered ring.<br>• C3-hydroxyl group: the only polar part; orients toward the aqueous surface.<br>• Short hydrocarbon tail at C17 (non-polar).<br>• One double bond between C5 and C6.<br>• Two angular methyl groups (C18 on C13 and C19 on C10) at the ring junctions; the side chain carries further methyl groups.<br>• Molecular formula C<sub>27</sub>H<sub>46</sub>O; molecular weight about 387 Da.',
       },
       {
         t: 'p',
@@ -409,7 +409,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>As a metabolic parent molecule.</b> Cholesterol is the parent of:<br>• Steroid hormones (cortisol, aldosterone, testosterone, oestradiol: NEET expects you to know cholesterol as their parent molecule).<br>• Bile salts (cholesterol-derived emulsifiers in digestion).<br>Vitamin D<sub>3</sub> (cholecalciferol) comes from the same pathway: it is formed by UV action on 7-dehydrocholesterol, a sterol of the cholesterol pathway, in skin.',
+        html: '<b>As a metabolic parent molecule.</b> Cholesterol is the parent of:<br>• Steroid hormones (cortisol, aldosterone, testosterone, oestradiol: all made from cholesterol).<br>• Bile salts (cholesterol-derived emulsifiers in digestion).<br>Vitamin D<sub>3</sub> (cholecalciferol) comes from the same pathway: it is formed by UV action on 7-dehydrocholesterol, a sterol of the cholesterol pathway, in skin.',
       },
 
       { t: 'part', title: 'D2: Amino Acid Metabolism: Transamination and Deamination' },
@@ -473,9 +473,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'CUET, MCQ',
-        q: 'Which of the following statements about cholesterol is incorrect?<br>(a) It is a sterol with a tetracyclic ring system.<br>(b) It is absent from plant cell membranes.<br>(c) It is the precursor of vitamin D<sub>3</sub>.<br>(d) It is synthesised from amino acids.',
+        q: 'Which of the following statements about cholesterol is incorrect?<br>(a) It is a sterol with a tetracyclic ring system.<br>(b) It is the characteristic sterol of animal cell membranes.<br>(c) Its biosynthetic pathway supplies 7-dehydrocholesterol, from which vitamin D<sub>3</sub> forms in the skin.<br>(d) It is synthesised from amino acids.',
         steps: [
-          '<b>Reasoning.</b> Statements (a), (b) and (c) are the intended true statements. (b) follows the NEET idiom: cholesterol is the characteristic sterol of animal membranes, and plant membranes carry mainly phytosterols, with only traces of cholesterol. (c) is read loosely: vitamin D<sub>3</sub> is made from 7-dehydrocholesterol, a sterol of the cholesterol pathway. Cholesterol is synthesised from acetyl-CoA (the two-carbon precursor), not from amino acids. The acetyl-CoA units come from the breakdown of carbohydrates, fats, and proteins, but the cholesterol skeleton is built from acetate, not from amino acids.',
+          '<b>Reasoning.</b> Statements (a), (b) and (c) are true. Cholesterol is synthesised from acetyl-CoA (the two-carbon precursor), not from amino acids.',
         ],
         ans: '(d) Cholesterol is synthesised from acetyl-CoA, not from amino acids.',
       },
@@ -486,7 +486,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[CBSE] Draw the structure of cholesterol and label: (i) the tetracyclic ring system, (ii) the hydroxyl group, (iii) the hydrocarbon tail.',
-            a: 'Structure: four fused rings labelled A–D; ring A is cyclohexane, ring B is cyclohexane (with one double bond), ring C is cyclohexane, ring D is cyclopentane. The C3-hydroxyl (–OH) is on ring A. The hydrocarbon tail extends from ring D at C17.',
+            a: 'Structure: four fused rings labelled A–D; rings A, B and C are six-membered (ring B carries the C5=C6 double bond), ring D is five-membered. The C3-hydroxyl (–OH) is on ring A. The hydrocarbon tail extends from ring D at C17.',
           },
           {
             q: '[NEET] Explain the dual effect of cholesterol on membrane fluidity at high and low temperatures.',
@@ -572,7 +572,7 @@ export const TOPICS: Topic[] = [
         tag: 'Worked representative',
         q: 'The simplest amino acid is:<br>(a) Glycine<br>(b) Proline<br>(c) Leucine<br>(d) Tryptophan',
         steps: [
-          '<b>Solution:</b> Glycine has a hydrogen atom as its R-group, making it the smallest (simplest) and the only achiral amino acid. Proline, leucine and tryptophan all have R-groups other than H, so their α-carbons are chiral.',
+          '<b>Solution:</b> Glycine has a hydrogen atom as its R-group, making it the smallest (simplest) and the only achiral standard amino acid. Proline, leucine and tryptophan all have R-groups other than H, so their α-carbons are chiral.',
         ],
         ans: '(a)',
       },

@@ -22,7 +22,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A table-heavy, diagram-labelled topic, and a NEET favourite. CBSE Boards ask “distinguish dicot from monocot stem/root/leaf” as 2–3 mark comparisons and T.S. labelling. CUET tests single distinguishing features (which has scattered bundles, which guard cells are dumb-bell shaped). NEET leans hard on match-the-column grids and “identify the labelled T.S.” figure questions, and on the dicot-vs-monocot contrasts. A frequent topic in NEET (the book’s estimate from past papers, not official figures).',
+        html: '<b>Exam Relevance:</b> A table-heavy, diagram-labelled topic. CBSE Boards ask “distinguish dicot from monocot stem/root/leaf” as 2–3 mark comparisons and T.S. labelling. CUET tests single distinguishing features (which has scattered bundles, which guard cells are dumb-bell shaped). NEET relies on match-the-column grids and “identify the labelled T.S.” figure questions, and on the dicot-vs-monocot contrasts. A frequent topic in NEET (the book’s estimate from past papers, not official figures).',
       },
       {
         t: 'p',
@@ -203,12 +203,12 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Procedure D: Reading the endodermis (the ground-tissue clue in roots).</b><br>The innermost cortex layer, the <b>endodermis</b>, is a barrel-shaped ring of cells with <b>casparian thickenings</b> (suberin bands) on their walls; gaps called <b>passage cells</b> let water through. Just inside it lies the <b>pericycle</b> (parenchyma), which gives rise to <b>lateral roots</b> (and, in dicots, contributes to the vascular cambium). Spotting a casparian-banded endodermis with passage cells is a strong “this is a root” signal.',
+        html: '<b>Procedure D: Reading the endodermis (the ground-tissue clue in roots).</b><br>The innermost cortex layer, the <b>endodermis</b>, is a barrel-shaped ring of cells with <b>Casparian thickenings</b> (suberin bands) on their walls; some cells, usually opposite the protoxylem, stay thin-walled: these <b>passage cells</b> let water through. Just inside it lies the <b>pericycle</b> (parenchyma), which gives rise to <b>lateral roots</b> (and, in dicots, contributes to the vascular cambium). Spotting a Casparian-banded endodermis with passage cells is a strong “this is a root” signal.',
       },
       { t: 'fig', id: 'b11-06-fig-6.3' },
       {
         t: 'p',
-        html: '<b>Procedure E: Reading a root section from the outside in.</b><br>It helps to have the canonical layer sequence in your head so a labelled figure becomes obvious. Working inward in a <b>monocot root</b>, you pass through: <b>root hairs</b> → <b>epiblema</b> (the epidermis of the root, lacking a cuticle and stomata) → <b>cortex</b> (broad, parenchymatous) → <b>endodermis</b> (with casparian thickenings and passage cells) → <b>pericycle</b> (parenchyma) → the <b>radial vascular bundles</b> (alternating bundles of phloem and exarch xylem, here <b>polyarch</b>) with <b>conjunctive tissue</b> (parenchyma) filling the gaps between them → a large, distinct central <b>pith</b>. A dicot root reads the same way from the outside until the vascular cylinder, where you instead find only a few xylem groups (di/tetrarch) and little or no pith. In a <b>dicot stem</b>, by contrast, note the <b>starch sheath</b> (the innermost cortex layer / endodermis stores starch), a <b>heterogeneous pericycle</b>, the ring of open bundles, and the <b>medullary rays</b> of parenchyma running radially between adjacent bundles, features absent from the undifferentiated monocot stem.',
+        html: '<b>Procedure E: Reading a root section from the outside in.</b><br>It helps to have the canonical layer sequence in your head so a labelled figure becomes obvious. Working inward in a <b>monocot root</b>, you pass through: <b>root hairs</b> → <b>epiblema</b> (the epidermis of the root, lacking a cuticle and stomata) → <b>cortex</b> (broad, parenchymatous) → <b>endodermis</b> (with Casparian thickenings and passage cells) → <b>pericycle</b> (parenchyma) → the <b>radial vascular bundles</b> (alternating bundles of phloem and exarch xylem, here <b>polyarch</b>) with <b>conjunctive tissue</b> (parenchyma) filling the gaps between them → a large, distinct central <b>pith</b>. A dicot root reads the same way from the outside until the vascular cylinder, where you instead find only a few xylem groups (di/tetrarch) and little or no pith. In a <b>dicot stem</b>, by contrast, note the <b>starch sheath</b> (the innermost cortex layer / endodermis stores starch), a <b>heterogeneous pericycle</b>, the ring of open bundles, and the <b>medullary rays</b> of parenchyma running radially between adjacent bundles, features absent from the undifferentiated monocot stem.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -235,8 +235,8 @@ export const TOPICS: Topic[] = [
         tag: 'NEET level | Match the column',
         q: '<b>Column I</b><br>A. Bulliform cells<br>B. Endodermis<br>C. Pericycle<br>D. Collateral bundle<br><b>Column II</b><br>i. Casparian thickenings; passage cells<br>ii. Empty colourless cells; monocot leaf<br>iii. Phloem outside, xylem inside, same radius<br>iv. Origin of lateral roots',
         steps: [
-          '<b>Reasoning & answer.</b> A-ii (bulliform = empty colourless, monocot leaf), B-i (endodermis = casparian + passage cells), C-iv (pericycle → lateral roots), D-iii (collateral = phloem out, xylem in).',
-          'The trap swaps B and C (both are inner ground-tissue layers of the root): fix B by the casparian clue and C by the lateral-root clue.',
+          '<b>Reasoning & answer.</b> A-ii (bulliform = empty colourless, monocot leaf), B-i (endodermis = Casparian + passage cells), C-iv (pericycle → lateral roots), D-iii (collateral = phloem out, xylem in).',
+          'The trap swaps B and C (both are inner ground-tissue layers of the root): fix B by the Casparian clue and C by the lateral-root clue.',
         ],
         ans: 'A-ii, B-i, C-iv, D-iii.',
       },
@@ -394,7 +394,7 @@ export const TOPICS: Topic[] = [
             note: 'dicot <b>dorsiventral</b> (palisade + spongy, lower stomata); monocot <b>isobilateral</b> (uniform mesophyll, <b>bulliform cells</b>, stomata both sides).',
           },
           {
-            f: '<b>Endodermis</b> = casparian thickenings + passage cells; <b>pericycle</b> → lateral roots.',
+            f: '<b>Endodermis</b> = Casparian thickenings + passage cells; <b>pericycle</b> → lateral roots.',
             note: '',
           },
         ],
@@ -416,7 +416,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A perennial high-yield block. CBSE Boards favour the formation-and-activity of vascular cambium, the heartwood-vs-sapwood and spring-vs-autumn-wood distinctions, and the components of periderm as 2–3 mark questions, plus annual-ring diagram labelling. CUET tests single facts (what is phellem, what are lenticels for, which plants lack secondary growth). NEET loves match-the-column grids on periderm/wood terms and assertion–reason pairs on annual rings and heartwood function. A frequent topic in NEET (the book’s estimate from past papers, not official figures).',
+        html: '<b>Exam Relevance:</b> A high-yield block. CBSE Boards favour the formation-and-activity of vascular cambium, the heartwood-vs-sapwood and spring-vs-autumn-wood distinctions, and the components of periderm as 2–3 mark questions, plus annual-ring diagram labelling. CUET tests single facts (what is phellem, what are lenticels for, which plants lack secondary growth). NEET uses match-the-column grids on periderm/wood terms and assertion–reason pairs on annual rings and heartwood function. A frequent topic in NEET (the book’s estimate from past papers, not official figures).',
       },
       {
         t: 'p',
@@ -428,7 +428,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Two ground rules frame the whole topic. First, <b>secondary growth occurs in the dicot stems and roots (and in gymnosperms), but is essentially absent in monocots</b>: recall why: monocot vascular bundles are closed (no cambium to begin with). Second, secondary growth is overwhelmingly an adding-rings-outward process, so the <b>oldest tissue sits at the centre and the youngest at the periphery</b>, a fact that explains almost every feature below, from heartwood to bark.',
+        html: 'Two ground rules frame the whole topic. First, <b>secondary growth occurs in the dicot stems and roots (and in gymnosperms), but is essentially absent in monocots</b>: recall why: monocot vascular bundles are closed (no cambium to begin with). Second, the cambium adds wood on its inner face and phloem on its outer face, so in the wood the <b>oldest xylem sits at the centre and the youngest next to the cambium</b>, while in the phloem the order is reversed: the youngest phloem lies next to the cambium and the oldest is pushed outward, where it is crushed. This explains almost every feature below, from heartwood to bark.',
       },
       {
         t: 'p',
@@ -521,11 +521,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Phellem + phellogen + phelloderm = <b>periderm</b>. <b>Lenticels</b> are lens-shaped openings in the periderm, regions where the phellogen cuts off loose <b>complementary cells</b> (with intercellular spaces) that rupture the surface, allowing gas exchange across the otherwise impervious cork. <b>Bark</b> is a non-technical term for all tissues lying <b>outside the vascular cambium</b> (for example the secondary phloem and the periderm, together with any primary phloem and cortex still present); bark formed early in the season is “soft bark”, later “hard bark”.',
+        html: 'Phellem + phellogen + phelloderm = <b>periderm</b>. <b>Lenticels</b> are lens-shaped openings in the periderm, regions where the phellogen cuts off loose <b>complementary cells</b> (with intercellular spaces) that rupture the surface (NCERT calls these closely arranged parenchymatous cells), allowing gas exchange across the otherwise impervious cork. <b>Bark</b> is a non-technical term for all tissues lying <b>outside the vascular cambium</b> (for example the secondary phloem and the periderm, together with any primary phloem and cortex still present); bark formed early in the season is “soft bark”, later “hard bark”.',
       },
       {
         t: 'p',
-        html: '<b>Why it matters: the biology behind everyday materials.</b> Secondary growth is the origin of two of the most-used plant products. <b>Timber</b> is mostly cut from heartwood: because its vessels are blocked by tyloses and impregnated with tannins, resins and oils, it resists fungi and insects and stays dimensionally stable, which is exactly why furniture, railway sleepers and construction beams are cut from the dark central wood, not the perishable sapwood. <b>Commercial cork</b> (for bottle stoppers, insulation and floats) is the phellem peeled from the thick bark of the cork oak, <i>Quercus suber</i>; its suberised, air-filled dead cells make it light, compressible and waterproof. The same suberin that waterproofs cork is what lets a mature tree survive the loss of its original epidermis. And because cambial activity is written into the wood as annual rings, a <b>dendrochronologist</b> can read a trunk’s cross-section like a calendar, dating the tree and even reconstructing past climate from the relative widths of good and lean years.',
+        html: '<b>Why it matters: the biology behind everyday materials.</b> Secondary growth is the origin of two of the most-used plant products. <b>Timber</b> is mostly cut from heartwood: because its vessels are blocked by tyloses and impregnated with tannins, resins and oils, it resists fungi and insects and stays dimensionally stable, which is why heartwood is preferred for furniture, railway sleepers and construction beams, while sapwood is less durable unless treated. <b>Commercial cork</b> (for bottle stoppers, insulation and floats) is the phellem peeled from the thick bark of the cork oak, <i>Quercus suber</i>; its suberised, air-filled dead cells make it light, compressible and waterproof. The same suberin that waterproofs cork is what lets a mature tree survive the loss of its original epidermis. And because cambial activity is written into the wood as annual rings, a <b>dendrochronologist</b> can read a trunk’s cross-section like a calendar, dating the tree and even reconstructing past climate from the relative widths of good and lean years.',
       },
       {
         t: 'p',
@@ -730,7 +730,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (accuracy):</b> Orient every secondary-growth fact by the rule “<b>oldest at the centre, youngest at the edge, and the cambium makes xylem inward / phloem outward.</b>” From that single compass you can place heartwood (centre), sapwood (just outside it), cambium, secondary phloem and periderm in the correct order without rote memory.',
+        html: '<b>Pro-Tip (accuracy):</b> Orient every secondary-growth fact from the cambium: “<b>the cambium makes xylem inward and phloem outward, so the oldest wood is at the centre and the oldest phloem at the outside.</b>” From that compass you can place heartwood (centre), sapwood (just outside it), cambium, secondary phloem and periderm in the correct order without rote memory.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -765,7 +765,7 @@ export const TOPICS: Topic[] = [
         aids: [
           '“cork is <b>em</b>-itted outward (phell<b>em</b> out, phello<b>derm</b> in).”',
           '“Cambium: <b>xylem in, phloem out, xylem wins.</b>”',
-          '“Oldest centre → youngest edge.”',
+          '“Oldest wood at the centre, oldest phloem at the edge.”',
         ],
       },
     ],

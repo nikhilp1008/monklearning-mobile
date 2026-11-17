@@ -68,7 +68,7 @@
  *   "every time", "the single most common" and "answers a large share" are
  *   not repeated;
  * - temperature optimum is 37 °C for human enzymes (the worked example's 40 °C
- *   peak is not used); IUB (now IUBMB) is the book's name for the six-class scheme;
+ *   peak is not used); the six IUB classes (OTHLIL) are the book's scheme; IUBMB added a seventh, translocases, in 2018;
  * - FAD is both: a coenzyme when loosely bound, the prosthetic group in
  *   succinate dehydrogenase, as the book words it; NAD+ is the coenzyme
  *   example and haem the prosthetic-group example;
@@ -124,8 +124,8 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'shortcut',
     q: 'Micromolecule or macromolecule, acid-soluble or acid-insoluble: what one question settles it?',
-    a: 'Ask whether it is a single small unit (a sugar, an amino acid, a nucleotide) or a long chain or a membrane. A single unit is an acid-soluble micromolecule; a chain or a membrane is acid-insoluble. Glucose, alanine and a nucleotide are acid-soluble; a lipid is the one small molecule found in the acid-insoluble fraction',
-    why: 'The lipid exception is the only one to memorise against this rule. For primary against secondary: alanine and glucose are primary, morphine and rubber are secondary.',
+    a: 'Ask whether it is a single small unit (a sugar, an amino acid, a nucleotide) or a long chain or a membrane. A single unit is an acid-soluble micromolecule; a chain or a membrane is acid-insoluble. Glucose, alanine and a nucleotide are acid-soluble; a lipid is the classic small molecule found in the acid-insoluble fraction',
+    why: 'The lipid exception is the main one to memorise against this rule. For primary against secondary: alanine and glucose are primary, morphine and rubber are secondary.',
     say: null,
   },
 
@@ -229,7 +229,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'remember',
     q: 'What does an enzyme do, and how does the active site work?',
-    a: 'An enzyme is a biocatalyst, mostly protein (ribozymes are catalytic RNA), that speeds a specific reaction by lowering its activation energy, <i>E</i><sub>a</sub>, without being consumed. The substrate binds the active site to form the enzyme–substrate (ES) complex: E + S ⇌ ES → EP → E + P (the book’s shorthand omits the enzyme-product complex EP). The enzyme stabilises the transition state; the energy levels of reactants and products are unchanged. Lock-and-key (Fischer) treats the site as rigid; induced fit (Koshland) as flexible, the more accurate modern view',
+    a: 'An enzyme is a biocatalyst, mostly protein (ribozymes are catalytic RNA), that speeds a specific reaction by lowering its activation energy, <i>E</i><sub>a</sub>, without being consumed. The substrate binds the active site to form the enzyme–substrate (ES) complex: E + S ⇌ ES → EP → E + P (EP is the enzyme–product complex, formed before the product is released). The enzyme stabilises the transition state; the energy levels of reactants and products are unchanged. Lock-and-key (Fischer) treats the site as rigid; induced fit (Koshland) as flexible, the more accurate modern view',
     why: 'A competitive inhibitor mimics the substrate and sits in the active site (malonate against succinate on succinate dehydrogenase), and more substrate reverses it; a non-competitive one binds elsewhere and is not reversed by more substrate.',
     say: null,
   },
@@ -265,7 +265,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'shortcut',
     q: 'How do you name the enzyme class fastest?',
-    a: 'Key off the verb in the reaction. The six IUB (now IUBMB) classes (OTHLIL): Oxidoreductases (redox), Transferases (move a group), Hydrolases (cut with water), Lyases (add or remove groups to form a double bond, without water), Isomerases (rearrange), Ligases (join two molecules, using energy, usually from ATP)',
+    a: 'Key off the verb in the reaction. The six IUB classes (OTHLIL): Oxidoreductases (redox), Transferases (move a group), Hydrolases (cut with water), Lyases (add or remove groups to form or at a double bond, not by hydrolysis), Isomerases (rearrange), Ligases (join two molecules, using energy, usually from ATP)',
     why: 'Worked cases: breaking a peptide bond with water is a hydrolase; moving a phosphate from ATP to glucose is a transferase; stitching two DNA fragments with ATP is a ligase.',
     say: null,
   },

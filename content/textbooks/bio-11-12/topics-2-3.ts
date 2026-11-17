@@ -143,7 +143,7 @@ export const TOPICS: Topic[] = [
           'NADH delivers electrons to Complex I; FADH<sub>2</sub> delivers to Complex II. (Because FADH<sub>2</sub> enters after Complex I, it powers fewer proton pumps, which is exactly why it yields 2 ATP versus NADH’s 3.)',
           'Electrons pass downhill: Complex I → ubiquinone → Complex III → cytochrome c → Complex IV. At each major complex, the released energy pumps <b>H<sup>+</sup> from the matrix into the intermembrane space</b>.',
           'This builds an electrochemical proton gradient: a charged “reservoir” across the inner membrane.',
-          'Protons can only return to the matrix through <b>ATP synthase (Complex V)</b>: they enter the F<sub>0</sub> channel, and their flow turns the machinery of the F<sub>1</sub> headpiece, which catalyses ADP + P<sub>i</sub> → ATP.',
+          'Protons return to the matrix mainly through <b>ATP synthase (Complex V)</b>: they enter the F<sub>0</sub> channel, and their flow turns the machinery of the F<sub>1</sub> headpiece, which catalyses ADP + P<sub>i</sub> → ATP.',
           'At the end of the chain, <b>O<sub>2</sub> accepts the de-energised electrons and protons</b>, forming water. If O<sub>2</sub> is absent, electrons cannot be offloaded, the chain jams, NADH piles up, and oxidative phosphorylation halts.',
         ],
       },
@@ -176,7 +176,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET',
         q: 'An inhibitor blocks cytochrome c oxidase (Complex IV). Predict the immediate effect on (i) oxygen consumption, (ii) the proton gradient, and (iii) Krebs cycle activity.',
         steps: [
-          '<b>Reasoning.</b> (i) Complex IV is the only complex that hands electrons to O<sub>2</sub>. Block it and O<sub>2</sub> can no longer be reduced → <b>oxygen consumption stops</b>. (ii) With no electron flow through the chain, the proton-pumping complexes fall idle → the <b>gradient collapses</b> and ATP synthesis by oxidative phosphorylation ceases. (iii) Electrons back up, so NADH and FADH<sub>2</sub> cannot be reoxidised to NAD<sup>+</sup>/FAD. Lacking fresh NAD<sup>+</sup>/FAD, the <b>Krebs cycle stalls</b>. (This is exactly how cyanide, a Complex IV poison, is lethal.)',
+          '<b>Reasoning.</b> (i) Complex IV is the only complex of the standard chain that hands electrons to O<sub>2</sub>. Block it and O<sub>2</sub> can no longer be reduced through the chain → <b>oxygen consumption through the chain stops</b>. (ii) With no electron flow through the chain, the proton-pumping complexes fall idle → the <b>gradient collapses</b> and ATP synthesis by oxidative phosphorylation ceases. (iii) Electrons back up, so NADH and FADH<sub>2</sub> cannot be reoxidised to NAD<sup>+</sup>/FAD. Lacking fresh NAD<sup>+</sup>/FAD, the <b>Krebs cycle stalls</b>. (This is exactly how cyanide, a Complex IV poison, is lethal.) (Many plant tissues can still pass some electrons to O<sub>2</sub> through the cyanide-resistant alternative oxidase; see Additional topic D.)',
         ],
         ans: '',
       },
@@ -272,7 +272,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Acetyl CoA’s partner.</b> The cycle starts with acetyl CoA + <b>OAA</b> (4C) → citrate, not acetyl CoA + pyruvic acid. This wrong-partner option is a favourite NEET distractor.',
+          '<b>Acetyl CoA’s partner.</b> The cycle starts with acetyl CoA + <b>OAA</b> (4C) → citrate, not acetyl CoA + pyruvic acid. This wrong-partner option is a common NEET distractor.',
           '<b>NADH, never NADPH, in Krebs.</b> Several printed diagrams mislabel it. The Krebs cycle and ETS use <b>NAD<sup>+</sup>/NADH</b>; NADPH belongs to photosynthesis and biosynthesis.',
           '<b>Where the ATP really comes from.</b> Krebs makes only 1 ATP per turn directly; the <b>bulk</b> of ATP is made later in the ETS by oxidative phosphorylation from NADH/FADH<sub>2</sub>. Don’t credit Krebs with the big numbers.',
           '<b>Membrane vs matrix.</b> ETS and ATP synthase sit on the inner mitochondrial membrane; Krebs enzymes (except succinate dehydrogenase) are in the matrix. Mixing these up loses easy marks.',
@@ -368,7 +368,7 @@ export const TOPICS: Topic[] = [
         head: ['Substrate type', 'RQ', 'Why'],
         rows: [
           ['Carbohydrate (e.g. glucose)', '= 1', 'internal O of sugar balances <frac><num>CO<sub>2</sub></num><den>O<sub>2</sub></den></frac>'],
-          ['Protein', '≈ 0.8–0.9 (< 1)', 'moderately reduced'],
+          ['Protein', '≈ 0.8–0.9 (< 1; NCERT quotes about 0.9)', 'moderately reduced'],
           ['Fat (e.g. tripalmitin)', '≈ 0.7 (< 1)', 'O-poor, highly reduced → needs extra O<sub>2</sub>'],
           ['Organic acids (e.g. malic, oxalic)', '> 1 (malic 1.33, oxalic 4)', 'O-rich → little O<sub>2</sub> needed'],
           ['Anaerobic respiration / fermentation', '∞', 'CO<sub>2</sub> released, <b>no O<sub>2</sub> consumed</b>'],
@@ -514,7 +514,7 @@ export const TOPICS: Topic[] = [
           { label: 'less than one', nudge: '<b>(a)</b> describes fats (oxygen-poor). <b>Trap:</b> students reflexively pick “less than one” for any non-carbohydrate, forgetting that O-rich acids go the other way.' },
           { label: 'equal to one', nudge: '<b>(b)</b> describes carbohydrates.' },
           { label: 'greater than one', nudge: null },
-          { label: 'zero', nudge: '<b>(d)</b> would require no CO<sub>2</sub> at all, which never happens in active respiration.' },
+          { label: 'zero', nudge: '<b>(d)</b> would require no CO<sub>2</sub> to be given out at all; respiration always makes CO<sub>2</sub> (an apparent RQ near zero is quoted only for CAM succulents at night, because they re-fix that CO<sub>2</sub> into acids instead of releasing it).' },
         ],
         correct: 2,
         solution: 'Oxygen-rich substrates (organic acids) need little external O<sub>2</sub> while still releasing CO<sub>2</sub>, so <frac><num>CO<sub>2</sub></num><den>O<sub>2</sub></den></frac> > 1.',
@@ -561,8 +561,8 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>“All seeds give RQ = 1.”</b> False. Starchy seeds → ~1; oily seeds (castor, mustard) → < 1; some succulents/organic-acid tissues → > 1. Always identify the substrate first.',
-          '<b>Forgetting the anaerobic case.</b> Anaerobic respiration has RQ = ∞ (CO<sub>2</sub> but no O<sub>2</sub>), not 0. Zero would mean no CO<sub>2</sub> at all.',
-          '<b>Mislabelling the pathway.</b> “Amphibolic” means catabolic and anabolic, not “occurs in both plants and animals.” Examiners love this trap.',
+          '<b>Forgetting the anaerobic case.</b> Anaerobic respiration has RQ = ∞ (CO<sub>2</sub> but no O<sub>2</sub>), not 0. Zero would mean no CO<sub>2</sub> given out at all (an apparent RQ near zero is quoted only for CAM succulents at night, which re-fix their CO<sub>2</sub> into acids).',
+          '<b>Mislabelling the pathway.</b> “Amphibolic” means catabolic and anabolic, not “occurs in both plants and animals.” This is a common trap.',
           '<b>Treating 38 ATP as exact.</b> It is an idealised ceiling; intermediate withdrawal (the amphibolic reality) and shuttle costs mean real yields are lower (~36 or less).',
         ],
       },
@@ -578,7 +578,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>Amphibolic pathway:</b> respiration serves both catabolism and anabolism; intermediates (acetyl CoA, α-ketoglutarate, OAA) are withdrawn for synthesis of fats and amino acids.', note: '' },
           { f: '<b>Respiratory substrates:</b> not just glucose: fats (→ glycerol + fatty acids) and proteins (→ amino acids) feed in; most converge on <b>acetyl CoA</b>.', note: '' },
           { f: '<b>RQ</b> = <frac><num>CO<sub>2</sub> evolved</num><den>O<sub>2</sub> consumed</den></frac>, dimensionless.', note: '' },
-          { f: '<b>RQ values:</b> carbohydrate = 1; protein ≈ 0.8–0.9; <b>fat</b> ≈ 0.7; organic acids > 1 (malic 1.33, oxalic 4); <b>anaerobic</b> = ∞.', note: '' },
+          { f: '<b>RQ values:</b> carbohydrate = 1; protein ≈ 0.8–0.9 (< 1; NCERT quotes about 0.9); <b>fat</b> ≈ 0.7; organic acids > 1 (malic 1.33, oxalic 4); <b>anaerobic</b> = ∞.', note: '' },
           { f: '<b>Balance sheet (idealised):</b> glycolysis 2 + link/Krebs carriers → via ETS → <b>net ≈ 38 ATP/glucose</b> (~36 with shuttle); efficiency ≈ 40%.', note: '' },
         ],
         aids: [

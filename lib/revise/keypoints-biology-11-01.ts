@@ -53,7 +53,7 @@
  *   approximate and not NCERT; the cryptic-species example is the Anopheles
  *   gambiae complex (not Xenopus);
  * - "order -ales, family -aceae" is scoped to plants (animal orders have no
- *   fixed ending; animal families commonly end -idae);
+ *   fixed ending; animal family names end in -idae);
  * - superlatives ("the single most exploited trap") are worded "a classic
  *   trap"; exam shares are the book's estimate from past papers, not official
  *   figures, and no point says "every cycle".
@@ -238,7 +238,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'remember',
     q: 'Cytotaxonomy, chemotaxonomy, molecular taxonomy, cladistics: which data does each use?',
-    a: 'Cytotaxonomy uses chromosomes, their number, size, centromere position, banding and karyotype, so it helps where organisms look alike but differ in chromosome number. Chemotaxonomy, biochemical taxonomy, uses naturally occurring compounds: proteins, alkaloids, flavonoids, terpenoids, amino acid sequences; berberine, shared by Berberidaceae, Menispermaceae and Ranunculaceae, supports placing those families near one another. Molecular taxonomy uses DNA and RNA sequences, the 16S rRNA gene being the standard marker for bacteria. Phylogenetic systematics, cladistics, groups by shared derived characters, synapomorphies, that indicate common ancestry, not by overall similarity. Chromosome arithmetic: <i>B. rapa</i> (n = 10) crossed with <i>B. nigra</i> (n = 8) gives a hybrid with 18, and doubling gives 36, the 2<i>n</i> of <i>B. juncea</i>',
+    a: 'Cytotaxonomy uses chromosomes, their number, size, centromere position, banding and karyotype, so it helps where organisms look alike but differ in chromosome number. Chemotaxonomy, biochemical taxonomy, uses naturally occurring compounds: proteins, alkaloids, flavonoids, terpenoids, amino acid sequences; berberine, shared by Berberidaceae, Menispermaceae and Ranunculaceae, supports placing those families near one another. Molecular taxonomy uses DNA and RNA sequences, the 16S rRNA gene being the standard marker for bacteria. Phylogenetic systematics, cladistics, groups by shared derived characters, synapomorphies, that indicate common ancestry, not by overall similarity. Chromosome arithmetic: <i>B. rapa</i> (n = 10) crossed with <i>B. nigra</i> (n = 8) gives a hybrid with 18, and doubling gives 36, the 2n of <i>B. juncea</i>',
     why: 'Match: numerical taxonomy, computer clustering; cytotaxonomy, chromosome number and morphology; chemotaxonomy, secondary metabolites; molecular taxonomy, DNA and RNA sequences.',
     say: null,
   },
@@ -298,7 +298,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 6,
     kind: 'remember',
     q: 'What did Woese’s 16S rRNA work change, and is the five-kingdom system outdated?',
-    a: 'From 1977 Carl Woese (with George Fox) analysed 16S rRNA, which splits Monera into two kingdoms, giving the six kingdoms commonly credited to Woese in NEET material (in 1990 Woese went further and proposed three domains: Archaea, Bacteria, Eukarya). The six kingdoms are: Archaebacteria (Archaea), with ether-linked, branched-chain membrane lipids and no peptidoglycan, living in extreme environments (methanogens, halophiles, thermophiles), and Eubacteria (Bacteria), with ester-linked lipids and peptidoglycan, cyanobacteria included. Both are prokaryotic, so the five-kingdom system keeps them together as Monera. NCERT Class 11 teaches Whittaker’s five kingdoms and names Archaebacteria and Eubacteria within Monera; the six-kingdom label and Woese’s name are extra, but they appear in statement items. NCERT uses the five-kingdom framework as its main tool, so “outdated, replaced by the six-kingdom system” is only partly true: the six-kingdom system is more accurate for prokaryotic phylogeny',
+    a: 'From 1977 Carl Woese (with George Fox) analysed 16S rRNA, which splits Monera into two kingdoms, giving the six kingdoms commonly credited to Woese in NEET material (in 1990 Woese went further and proposed three domains: Archaea, Bacteria, Eukarya). Monera becomes two kingdoms: Archaebacteria (Archaea), with ether-linked, branched-chain membrane lipids and no peptidoglycan, living in harsh habitats such as salty areas (halophiles) and hot springs (thermoacidophiles), and in marshes and the gut of ruminants (methanogens), and Eubacteria (Bacteria), with ester-linked lipids and peptidoglycan, cyanobacteria included; with Protista, Fungi, Plantae and Animalia that makes six. Both are prokaryotic, so the five-kingdom system keeps them together as Monera. NCERT Class 11 teaches Whittaker’s five kingdoms and names Archaebacteria and Eubacteria within Monera; the six-kingdom label and Woese’s name are extra, but they appear in statement items. NCERT uses the five-kingdom framework as its main tool, so “outdated, replaced by the six-kingdom system” is only partly true: the six-kingdom system is more accurate for prokaryotic phylogeny',
     why: 'Cyanobacteria such as <i>Nostoc</i> are Monera in the five-kingdom system and Eubacteria in the six.',
     say: null,
   },
@@ -309,7 +309,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'remember',
     q: 'Which parts of the chapter does NEET ask most, and what are the recurring question types?',
-    a: 'The book’s estimate from past papers, not official figures: Characteristics of Living Organisms, about 35–40%; Biodiversity & Nomenclature, about 30–35%; Taxonomic Hierarchy, about 25–30%. The “defining property of life” question has appeared in several cycles, by the book’s estimate. The recurring types: which is the defining property; intrinsic against extrinsic growth; spot the wrong scientific name; match man, wheat, mango and housefly to their order, family or class; assertion-reason; and count the correct statements, where one reversed word, order for family or botanical for zoological, makes a statement false',
+    a: 'The book’s estimate from past papers, not official figures: Characteristics of Living Organisms, about 35–40%; Biodiversity & Nomenclature, about 30–35%; Taxonomic Hierarchy, about 25–30%. The “defining property of life” question is a recurring item. The recurring types: which is the defining property; intrinsic against extrinsic growth; spot the wrong scientific name; match man, wheat, mango and housefly to their order, family or class; assertion-reason; and count the correct statements, where one reversed word, order for family or botanical for zoological, makes a statement false',
     why: 'The orders to match: wheat Poales, mango Sapindales, housefly Diptera, man Primata.',
     say: null,
   },
@@ -318,7 +318,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'mistake',
     q: 'Which traps recur in the chapter’s questions?',
-    a: 'Calling growth defining: Gate 1, since non-living things grow by accretion. Calling reproduction defining: Gate 2, since some living things do not reproduce. Calling a test-tube metabolic reaction living: it is a living reaction, but the flask is not a living thing. Swapping ICBN and ICZN: B for Botany, Z for Zoo. Flipping the capitals in <i>Solanum melongena</i>: genus capital, species small. Mixing the suffixes of plant orders and families: in plants, order -ales, family -aceae (animal orders have no fixed ending; animal families commonly end -idae). Misplacing Family: going up, the middle is Genus, then Family, then Order. Calling Mammalia a category and Class a taxon. Calling <i>Panthera</i> monotypic: it is polytypic, with <i>leo</i>, <i>tigris</i>, <i>pardus</i> and <i>onca</i>',
+    a: 'Calling growth defining: Gate 1, since non-living things grow by accretion. Calling reproduction defining: Gate 2, since some living things do not reproduce. Calling a test-tube flask a living thing: the reaction is a living reaction, but the flask is not a living thing. Swapping ICBN and ICZN: B for Botany, Z for Zoo. Flipping the capitals in <i>Solanum melongena</i>: genus capital, species small. Mixing the suffixes of plant orders and families: in plants, order -ales, family -aceae (animal orders have no fixed ending; animal family names end in -idae). Misplacing Family: going up, the middle is Genus, then Family, then Order. Calling Mammalia a category and Class a taxon. Calling <i>Panthera</i> monotypic: it is polytypic, with <i>leo</i>, <i>tigris</i>, <i>pardus</i> and <i>onca</i>',
     why: 'In an assertion-reason pair, “ICBN deals with plants” and “ICZN deals with animals” are both true, but R does not explain A.',
     say: null,
   },

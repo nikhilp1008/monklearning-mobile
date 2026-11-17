@@ -18,8 +18,8 @@
  * Exam shortcuts: its Pro-Tip, with a worked example or practice answer. `say`:
  * the cheat sheet's first two memory aids, word for word, in the Chapter 1
  * form: no quotation marks and no bold. Each of Topics 01 to 04 prints three or
- * four aids and the first two are used; Topic 01's second aid is the book's
- * own colour line for the four chromatogram bands (the table beside it gives
+ * four aids and the first two are used; Topic 01's second aid is our own
+ * colour line for the four chromatogram bands, matching the table (the table gives
  * "bright or blue-green" for chlorophyll a; the point's answer uses the table).
  * Additional topics: the addenda's counting rules, shuttles, pathways,
  * definitions and worked examples; H: its distribution, archetypes and traps.
@@ -90,8 +90,8 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 0,
     kind: 'remember',
-    q: 'In what order do the leaf pigments run on a chromatogram, and what do the accessory pigments do?',
-    a: 'Paper chromatography resolves four bands, because the pigments travel at different rates by solubility and adsorption: chlorophyll a (bright or blue-green), chlorophyll b (yellow-green), xanthophylls (yellow) and carotenoids (yellow to yellow-orange). Chlorophyll a is the chief pigment, the one at the reaction centre of both photosystems. The accessory pigments, chlorophyll b, xanthophylls and carotenoids, widen the range of wavelengths the plant can harvest, funnel the energy to chlorophyll a and protect it from photo-oxidation',
+    q: 'Which four pigments does paper chromatography separate, with their colours, and what do the accessory pigments do?',
+    a: 'Paper chromatography resolves four bands, because the pigments travel at different rates by solubility and adsorption: chlorophyll a (bright or blue-green), chlorophyll b (yellow-green), xanthophylls (yellow) and carotenoids (yellow to yellow-orange) (this is NCERT’s order of listing; on the strip the carotenoids run farthest). Chlorophyll a is the chief pigment, the one at the reaction centre of both photosystems. The accessory pigments, chlorophyll b, xanthophylls and carotenoids, widen the range of wavelengths the plant can harvest, funnel the energy to chlorophyll a and protect it from photo-oxidation',
     why: 'Chlorophyll a absorbs most in the blue (about 430 nm) and red (about 660 nm) regions and least in green.',
     say: 'a-b-X-C → blue-green → yellow-green → yellow → yellow-orange: chromatogram colours of chl a, chl b, Xanthophyll, Carotenoid.',
   },
@@ -156,7 +156,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 1,
     kind: 'mistake',
     q: 'Which photosystem splits water and which reduces NADP<sup>+</sup>?',
-    a: 'PS II splits water and PS I reduces NADP<sup>+</sup>. The slip is to reverse them because PS I sounds first. In the electron’s journey PS II acts first even though it has the higher number: it sends electrons to PS I, which only receives them. Also, cyclic flow makes no oxygen, since no water is split in it, and the NADPH comes from PS I, not PS II',
+    a: 'PS II splits water and PS I reduces NADP<sup>+</sup>. The slip is to reverse them because PS I sounds first. In the electron’s journey PS II acts first even though it has the higher number: it sends electrons to PS I, which passes them on to NADP<sup>+</sup>. Also, cyclic flow makes no oxygen, since no water is split in it, and the NADPH comes from PS I, not PS II',
     why: 'Number against order: the higher-numbered photosystem acts first.',
     say: null,
   },
@@ -330,7 +330,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'remember',
     q: 'Which crops and temperatures go with C<sub>3</sub>, C<sub>4</sub> and CAM?',
-    a: 'C<sub>3</sub> has an optimum of 20–25 °C: wheat, gram, groundnut, soybean, mustard and sunflower. C<sub>4</sub> has an optimum of 30–45 °C: maize, sugarcane, sorghum, bajra, amaranth. CAM: <i>Kalanchoe</i>, <i>Opuntia</i>, pineapple. Photorespiration rises with temperature in C<sub>3</sub> plants, while in C<sub>4</sub> plants it is suppressed, so higher temperature favours them by speeding the PEP carboxylase reaction. That is why cool-season wheat suits the Punjab winter and warm-season maize its summer',
+    a: 'C<sub>3</sub> has an optimum of 20–25 °C: wheat, gram, groundnut, soybean, mustard and sunflower. C<sub>4</sub> has an optimum of 30–45 °C: maize, sugarcane, sorghum, bajra, amaranth. CAM: <i>Kalanchoe</i>, <i>Opuntia</i>, pineapple. Photorespiration rises with temperature in C<sub>3</sub> plants, while in C<sub>4</sub> plants it stays suppressed, so they keep working well when it is hot. That is why cool-season wheat suits the Punjab winter and warm-season maize its summer',
     why: 'If you know the C<sub>4</sub> and CAM examples, most other crops NEET mentions are C<sub>3</sub>.',
     say: null,
   },
@@ -400,7 +400,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'Which traps does the chapter’s question set keep using?',
     a: 'O<sub>2</sub> from CO<sub>2</sub> (it comes from water; 12 H<sub>2</sub>O in, 6 out). PS I and PS II jobs reversed. ATP and NADPH inverted (18 ∶ 12 per glucose, 3 ∶ 2 per CO<sub>2</sub>, never 2 ∶ 3). C<sub>3</sub> and C<sub>4</sub> named for the first product’s carbon count, not the acceptor’s. The Calvin cycle placed in the grana instead of the stroma. Cyclic flow said to make O<sub>2</sub>. Absorption and action spectra confused, or “chlorophyll absorbs green so leaves look green”, which is backwards. And H<sup>+</sup> piles up in the lumen, not the stroma',
-    why: 'In a sealed bright greenhouse CO<sub>2</sub> runs out first, so light or water cannot raise the rate.',
+    why: 'Before marking an option, check it against these swaps: many wrong options in this chapter are one of them.',
     say: null,
   },
 ];

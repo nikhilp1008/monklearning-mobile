@@ -29,8 +29,9 @@
  * sentences, word for word, cut at a clause: "The laws come first; the
  * definitions are built to obey them.", "State the domain first.", "The
  * product law for logarithms is the addition law for exponents, seen from the
- * other side.", "Extraneous roots are the norm in this topic, not the
- * exception." and the Addendum's "Logarithms are not confined to algebra
+ * other side.", "Extraneous roots are common in this topic, so always check.",
+ * "The direction of a logarithmic inequality depends on whether the base is
+ * bigger or smaller than 1." and the Addendum's "Logarithms are not confined to algebra
  * chapters." and "The logarithm is what converts the problem into one algebra
  * already knows how to solve."
  *
@@ -169,7 +170,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'remember',
     q: 'What is the change-of-base formula, and what follows from it?',
-    a: `For ${a}, ${c}${NB}>${NB}0, ${a}, ${c}${NB}≠${NB}1 and ${b}${NB}>${NB}0: ${LA(b)} = ${fr(LC(b), LC(a))}, needed because calculators give only base 10 or ${e}. Setting ${c} = ${b} (allowed as ${b}${NB}≠${NB}1) gives ${LA(b)} · ${LB(a)} = 1, and for ${p}, ${q}${NB}≠${NB}0, ${lg(`${a}<sup>${p}</sup>`, `(${pw(b, q)})`)} = ${fr(q, p)} ${LA(b)}`,
+    a: `For ${a}, ${c}${NB}>${NB}0, ${a}, ${c}${NB}≠${NB}1 and ${b}${NB}>${NB}0: ${LA(b)} = ${fr(LC(b), LC(a))}, needed because calculators give only base 10 or ${e}. Setting ${c} = ${b} (this needs ${b}${NB}≠${NB}1) gives ${LA(b)} · ${LB(a)} = 1, and for ${p}, ${q}${NB}≠${NB}0, ${lg(`${a}<sup>${p}</sup>`, `(${pw(b, q)})`)} = ${fr(q, p)} ${LA(b)}`,
     why: `${L2('8')} = 3, so ${lg('8', '2')} = ${fr('1', '3')}; and ${lg('4', '25')} = ${L2('5')}.`,
     say: null,
   },
@@ -236,7 +237,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'You solve a logarithmic equation and get two roots: do you keep both?',
     a: `Check each in the original domain: combining logarithms can widen the domain, and splitting ${L10(`(${x2})`)} into 2 ${L10(x)} can narrow it and lose a root. Reject any root that makes an argument zero or negative, and verify by substituting into the original form of the equation`,
     why: `${L2(`(${x} − 1)`)} + ${L2(`(${x} + 1)`)} = 3 gives ${x2} = 9; the domain is ${x}${NB}>${NB}1, so ${x} = −3 is rejected and ${x} = 3 is kept (check: 1 + 2 = 3).`,
-    say: 'Extraneous roots are the norm in this topic, not the exception.',
+    say: 'Extraneous roots are common in this topic, so always check.',
   },
   // pp. 15, 21
   {
@@ -327,7 +328,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 1,
     kind: 'mixup',
     q: `Is ${pw(x, x)} differentiated by the power rule or by the exponential rule?`,
-    a: `Neither alone: the power rule needs a constant exponent and the exponential rule a constant base. Take ln first, or write ${pw(x, x)} = ${pw(e, `${x} ln ${x}`)} and use the chain rule; or vary the base and the exponent one at a time and add`,
+    a: `Neither alone: the power rule needs a constant exponent and the exponential rule a constant base. Take ln first, or write ${pw(x, x)} = ${pw(e, `${x} ln ${x}`)} and use the chain rule`,
     why: `Every route gives ${pw(x, x)}(ln ${x} + 1).`,
     say: null,
   },

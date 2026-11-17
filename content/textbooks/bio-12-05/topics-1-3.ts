@@ -420,7 +420,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3.3 Hershey and Chase (1952): the clinching proof</b>' },
       {
         t: 'p',
-        html: 'Not everyone was convinced, so Hershey and Chase used <b>bacteriophages</b> (viruses that infect bacteria), which are essentially DNA inside a protein coat. Their elegance lay in <b>differential radioactive labelling</b>:<br>• DNA contains <b>phosphorus but no sulphur</b>; protein contains <b>sulphur but no phosphorus</b>. So they grew one batch of phages with <b>radioactive phosphorus (<sup>32</sup>P)</b> to tag the DNA, and another with <b>radioactive sulphur (<sup>35</sup>S)</b> to tag the protein.<br>• The labelled phages were allowed to infect <i>E. coli</i>, then the empty viral coats were stripped off by <b>agitation in a blender</b> and separated by <b>centrifugation</b>.',
+        html: 'Not everyone was convinced, so Hershey and Chase used <b>bacteriophages</b> (viruses that infect bacteria), which are essentially DNA inside a protein coat. Their elegance lay in <b>differential radioactive labelling</b>:<br>• DNA contains <b>phosphorus but no sulphur</b>; protein contains <b>sulphur but (unlike DNA) essentially no phosphorus</b>. So they grew one batch of phages with <b>radioactive phosphorus (<sup>32</sup>P)</b> to tag the DNA, and another with <b>radioactive sulphur (<sup>35</sup>S)</b> to tag the protein.<br>• The labelled phages were allowed to infect <i>E. coli</i>, then the empty viral coats were stripped off by <b>agitation in a blender</b> and separated by <b>centrifugation</b>.',
       },
       {
         t: 'p',
@@ -563,7 +563,7 @@ export const TOPICS: Topic[] = [
           '<b>Crediting Griffith with proving DNA is genetic material.</b> He only showed a transforming principle exists; Avery identified it as DNA. Keep the credit straight.',
           '<b>Swapping the Hershey–Chase isotopes.</b> <sup>32</sup>P → DNA (phosphorus), <sup>35</sup>S → protein (sulphur). Memory hook: “<b>P</b> for the <b>P</b>hosphate backbone; <b>S</b> for the <b>S</b>ulphur in amino acids (cysteine/methionine).”',
           '<b>Saying nitrogen could tag DNA specifically.</b> Nitrogen is in both DNA and protein, so it cannot tell them apart, a favourite distractor.',
-          '<b>Thinking RNA is the better genetic material because it came first.</b> First ≠ best for storage; RNA’s reactivity is exactly why DNA replaced it as the archive.',
+          '<b>Thinking RNA is the better genetic material because it came first.</b> First ≠ best for storage; RNA’s reactivity is thought to be why DNA took over as the archive.',
         ],
       },
       {
@@ -594,7 +594,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'RNA world',
-            note: 'RNA = first genetic material <b>and</b> catalyst (ribozyme); DNA evolved from RNA for stability.',
+            note: 'hypothesis: RNA as the first genetic material <b>and</b> catalyst (ribozyme); DNA thought to have evolved from RNA for stability.',
           },
         ],
         aids: [
@@ -633,7 +633,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b> Transcription copies a gene, not the whole chromosome: it begins and ends at defined signals (promoter and terminator), never randomly. The “one strand only” rule is about a single transcription unit; across a chromosome, different genes may use different strands as template. And the genetic code is read <b>without punctuation</b>: there are no commas between codons, so the cell must start at the right base; slip by one and every codon downstream is misread.',
+        html: '<b>Limiting conditions & assumptions.</b> Transcription copies a gene, not the whole chromosome: it normally begins and ends at defined signals (promoter and terminator), not at random. The “one strand only” rule is about a single transcription unit; across a chromosome, different genes may use different strands as template. And the genetic code is read <b>without punctuation</b>: there are no commas between codons, so the cell must start at the right base; slip by one and every codon downstream is misread.',
       },
 
       { t: 'part', title: 'Key definitions, structures and diagnostic features' },
@@ -682,7 +682,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Because a bacterium has no nuclear membrane, <b>the mRNA needs no processing</b> and translation can begin while transcription is still running: both happen in the same compartment.',
+        html: 'In a bacterium <b>the mRNA needs no processing</b>, and with no nuclear membrane translation can begin while transcription is still running: both happen in the same compartment.',
       },
       { t: 'p', html: '<b>3.2 Transcription in eukaryotes: two extra complications</b>' },
       {
@@ -793,7 +793,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Crack the MCQ' },
       {
         t: 'mcq',
-        q: 'The coding strand of a gene differs from the mRNA transcribed from that gene only in that:',
+        q: 'The base sequence of the coding strand of a gene differs from that of the mRNA transcribed from it only in that:',
         opts: [
           { label: 'the mRNA has thymine where the coding strand has uracil', nudge: '<b>(a)</b> reverses it (a very common slip).' },
           { label: 'the mRNA has uracil where the coding strand has thymine', nudge: null },

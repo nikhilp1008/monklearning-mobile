@@ -21,6 +21,7 @@ import type { Check, Diagram } from '@/lib/diagrams/types';
  * both ends. Fig 13.4: bar 1 is 8 h light then 16 h dark, bar 2 is 16 h light then 8 h dark, bar 3 is 8 h light, dark, a flash
  * centred on the 16 h mark one hour wide (read from the page at 300 dpi: 15.5 to 16.5 h), dark to 24 h; plant (a) flowers only on
  * bar 1, plant (b) only on bars 2 and 3.
+ * PANEL ORDER (layout decision, founder to confirm): panel (b) repeats panel (a)'s bar order (8/16, 16/8, night break) so the two panels compare row by row; the book prints its first two bars the other way round (16/8 FLOWERS, then 8/16 no flower, then the night break). Every outcome matches the book.
  * SCHEMATIC: all sizes and positions (re-laid for a phone width), the leader and arrow angles, the exact curve beyond the values
  * above, the box and beam proportions, and the colours (the app's style: no fills, one marigold highlight per drawing, dark time
  * drawn as hatching instead of the book's solid navy, light time as an open bar). The one-hour width of the flash is the book's

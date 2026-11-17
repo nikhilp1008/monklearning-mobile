@@ -29,8 +29,8 @@
  * chapter text as it stands:
  * - epithelium: the basement membrane plus a free surface is given as its
  *   signature, and the book’s “the other three tissues have no such membrane”
- *   and “no other tissue qualifies” are not repeated (muscle fibres and neurons
- *   also have a basal lamina);
+ *   and “no other tissue qualifies” are not repeated (muscle fibres also
+ *   have a basal lamina);
  * - insect blood: the cockroach haemolymph “carries no respiratory pigment” is
  *   given with the chapter’s corrected reason, that in insects the air is
  *   carried by tracheae, not by blood; the book’s “open circulation explains
@@ -117,7 +117,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'mistake',
     q: 'What marks out epithelium, and which junction does not belong to animal tissues?',
-    a: 'Tightly packed cells with one free (apical) surface, resting on a thin non-cellular basement membrane above the connective tissue; the cells are bound by cell junctions. A description of a tissue “resting on a basement membrane with a free surface” points to epithelium (muscle fibres and nerve cells have only a thin basal lamina round each cell, and do not form a sheet with a free surface). The animal junctions are three: tight (seal the gap), adhering (cement neighbours) and gap (cytoplasmic channels for rapid communication). Plasmodesmata are channels of plant cells and are the classic wrong option. Epithelial sub-types: squamous, cuboidal, columnar, ciliated and compound (stratified), with glands exocrine (ducts) or endocrine (ductless)',
+    a: 'Tightly packed cells with one free (apical) surface, resting on a thin non-cellular basement membrane above the connective tissue; the cells are bound by cell junctions. A description of a tissue “resting on a basement membrane with a free surface” points to epithelium (muscle fibres each have a thin basal lamina, but neither muscle nor nerve cells form a sheet with a free surface). The animal junctions are three: tight (seal the gap), adhering (cement neighbours) and gap (cytoplasmic channels for rapid communication). Plasmodesmata are channels of plant cells and are the classic wrong option. Epithelial sub-types: squamous, cuboidal, columnar, ciliated and compound (stratified), with glands exocrine (ducts) or endocrine (ductless)',
     why: 'A student who recognises “junction” words and does not filter for kingdom picks one of the three animal junctions instead of plasmodesmata.',
     say: null,
   },
@@ -146,7 +146,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 1,
     kind: 'remember',
     q: 'Which two contrasts sort the earthworm, cockroach and frog in comparison questions?',
-    a: 'Gut: complete (a separate mouth and anus, so food moves one way and is processed in stages) in all three; an incomplete gut, with one opening serving as mouth and anus, is the simpler pattern of cnidarians. Circulation: closed (blood stays in vessels) in the earthworm and frog; open in the cockroach, where blood (haemolymph) leaves the vessels and bathes the organs in the haemocoel. In an open system the blood (haemolymph) leaves the vessels and bathes the organs directly. Earthworm and frog blood, which carry oxygen, carry a respiratory pigment; in insects the air is carried by tracheae, not by blood, so the cockroach haemolymph has none',
+    a: 'Gut: complete (a separate mouth and anus, so food moves one way and is processed in stages) in all three; an incomplete gut, with one opening serving as mouth and anus, is the simpler pattern of cnidarians. Circulation: closed (blood stays in vessels) in the earthworm and frog; open in the cockroach, where blood (haemolymph) leaves the vessels and bathes the organs in the haemocoel. Earthworm and frog blood, which carry oxygen, carry a respiratory pigment; in insects the air is carried by tracheae, not by blood, so the cockroach haemolymph has none',
     why: 'Almost every comparison question is built on these two axes: complete versus incomplete, open versus closed.',
     say: null,
   },
@@ -157,7 +157,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 2,
     kind: 'remember',
     q: 'What is the earthworm’s gut, in order, and what does each part do?',
-    a: 'Mouth → buccal cavity (segments 1–3) → pharynx → oesophagus (5–7) → gizzard (8–9) → stomach (9–14) → intestine (from 15) → anus, a complete one-way tube. The gizzard grinds soil and food; the calciferous glands of the oesophagus and stomach region secrete calcium carbonate that neutralises the humic acid of decaying matter; the intestine absorbs, with an internal dorsal fold, the typhlosole, adding surface area, and a pair of intestinal caeca in segment 26 secreting enzymes. The worm is a detritivore, eating soil and dead leaf matter and leaving castings',
+    a: 'Mouth → buccal cavity (segments 1–3) → pharynx → oesophagus (5–7) → gizzard (8–9) → stomach (9–14) → intestine (from 15) → anus, a complete one-way tube. The gizzard grinds soil and food; the calciferous glands in the stomach wall secrete calcium carbonate that neutralises the humic acid of decaying matter; the intestine absorbs, with an internal dorsal fold, the typhlosole, adding surface area, and a pair of intestinal caeca in segment 26 secreting enzymes. The worm is a detritivore, eating soil and dead leaf matter and leaving castings',
     why: 'The gizzard sits in segments 8–9, not in the clitellum segments 14–16, the most common swap.',
     say: 'Gizzard ate (8) nine (9).',
   },
@@ -222,7 +222,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'mixup',
     q: 'How does the cockroach contrast with the earthworm, point by point?',
-    a: 'Earthworm: no skeleton, a fluid-filled coelom as a hydrostatic skeleton, closed circulation with haemoglobin in the plasma, breathing through the moist skin, nephridia. Cockroach: external chitinous skeleton, open circulation with no respiratory pigment, air tubes, Malpighian tubules and uric acid, which needs almost no water. Learn them as mirror images and a comparison question about either animal is answered from one contrast',
+    a: 'Earthworm: no hard skeleton, a fluid-filled coelom as a hydrostatic skeleton, closed circulation with haemoglobin in the plasma, breathing through the moist skin, nephridia. Cockroach: external chitinous skeleton, open circulation with no respiratory pigment, air tubes, Malpighian tubules and uric acid, which needs almost no water. Learn them as mirror images and a comparison question about either animal is answered from one contrast',
     why: 'The cockroach also has a decentralised nervous system: a ventral cord with ganglia (3 thoracic, 6 abdominal) and a supra-oesophageal ganglion as the “brain”, so it can survive without the head for up to about a week.',
     say: null,
   },
@@ -260,7 +260,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 4,
     kind: 'remember',
     q: 'What chambers does the frog’s heart have, and where does each kind of blood go?',
-    a: 'Closed circulation with red blood cells that are nucleated. Three main chambers, two atria and one ventricle, plus two accessory chambers: the sinus venosus, a thin, triangular, dorsal chamber that receives deoxygenated blood from the body and opens into the right atrium, and the truncus arteriosus (NCERT calls it the conus arteriosus), the cone-like chamber that distributes blood out of the ventricle. The left atrium receives oxygenated blood from the lungs. Both atria empty into the single ventricle, so some oxygenated and deoxygenated blood mix, an acceptable compromise for a cold-blooded animal. The heart lies in a pericardium',
+    a: 'Closed circulation with red blood cells that are nucleated. Three main chambers, two atria and one ventricle, plus two accessory chambers: the sinus venosus, a thin, triangular, dorsal chamber that receives deoxygenated blood from the body and opens into the right atrium, and the truncus arteriosus (NCERT: conus arteriosus), the outflow chamber that carries blood out of the ventricle. The left atrium receives oxygenated blood from the lungs. Both atria empty into the single ventricle, so some oxygenated and deoxygenated blood mix, an acceptable compromise for a cold-blooded animal. The heart lies in a pericardium',
     why: 'The sinus venosus and truncus arteriosus are accessory chambers, not ventricles.',
     say: 'SV → RA, LA from lungs, one ventricle.',
   },
@@ -318,7 +318,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 6,
     kind: 'remember',
     q: 'How do the three animals compare in body plan and digestion?',
-    a: 'Earthworm: metamerism, about 100–120 segments, a cuticle, epidermis and muscles with no skeleton, a true coelom partitioned segment by segment, a hydrostatic skeleton. Cockroach: head, thorax and abdomen (6, 3 and 10 segments), a chitinous exoskeleton, a haemocoel in place of a true coelom. Frog: head and trunk, moist scale-less skin, a true coelom, an endoskeleton of bone and cartilage. All three have a complete gut. Earthworm: detritivore, gizzard 8–9, caeca at segment 26, anus. Cockroach: omnivorous scavenger, crop and gizzard, hepatic caeca. Frog: carnivorous adult, no crop or gizzard, liver and pancreas, a cloaca',
+    a: 'Earthworm: metamerism, about 100–120 segments, a cuticle, epidermis and muscles with no hard skeleton, a true coelom partitioned segment by segment, a hydrostatic skeleton. Cockroach: head, thorax and abdomen (6, 3 and 10 segments), a chitinous exoskeleton, a haemocoel in place of a true coelom. Frog: head and trunk, moist scale-less skin, a true coelom, an endoskeleton of bone and cartilage. All three have a complete gut. Earthworm: detritivore, gizzard 8–9, caeca at segment 26, anus. Cockroach: omnivorous scavenger, crop and gizzard, hepatic caeca. Frog: carnivorous adult, no crop or gizzard, liver and pancreas, a cloaca',
     why: 'The cloaca of the frog is the one common opening for the digestive, urinary and reproductive systems.',
     say: null,
   },
@@ -367,7 +367,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 8,
     kind: 'remember',
     q: 'How do Malpighian tubules turn waste into uric acid and save water?',
-    a: 'Three steps. Uptake: the tubules take nitrogenous waste and salts from the surrounding haemolymph. Conversion: tubule cells change the waste to uric acid, non-toxic and nearly insoluble. Water reabsorption: as the fluid passes into the hindgut and rectum, water is reabsorbed and the solid uric acid is eliminated with minimal water loss. The tubules lie at the midgut–hindgut junction. The earthworm, living in moist soil, can afford to excrete waste that needs water to dissolve',
+    a: 'Three steps. Uptake: the tubules take nitrogenous waste and salts from the surrounding haemolymph. Conversion: tubule cells change the waste to uric acid, non-toxic and nearly insoluble (in insects much of it is made in the fat body and secreted by these cells). Water reabsorption: as the fluid passes into the hindgut and rectum, water is reabsorbed and the solid uric acid is eliminated with minimal water loss. The tubules lie at the midgut–hindgut junction. The earthworm, living in moist soil, can afford to excrete waste that needs water to dissolve',
     why: 'Uric acid precipitates as a solid, which is ideal for a land arthropod.',
     say: null,
   },
@@ -379,7 +379,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'Which three pairs of arteries leave the truncus arteriosus, and what is the renal portal system?',
     a: 'Carotid arteries: head and brain. Systemic arteries: body organs, limbs, kidneys and liver, carrying mixed blood. Pulmocutaneous arteries: lungs and skin, carrying deoxygenated blood to be oxygenated, the pair that goes to the lungs. The renal portal system: blood from the hindlimbs and posterior body passes through the renal portal vein into the kidneys before it returns to the heart; the frog also has a hepatic portal system. A renal portal system also occurs in fishes, reptiles and birds, and mammals have none',
-    why: 'The truncus arteriosus divides into three pairs as it leaves the single ventricle.',
+    why: 'The truncus arteriosus, leading out of the single ventricle, divides into three pairs.',
     say: null,
   },
   // pp. 450–451
@@ -447,7 +447,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 12,
     kind: 'remember',
     q: 'What do the mixed answers say about germ layers, frog metamorphosis and tissue identity?',
-    a: 'Skeletal muscle and tendon are both mesodermal and both help in movement; the ciliated epithelium of the trachea is endodermal and moves mucus, not the body. The pituitary and pineal glands are both ectodermal, the pituitary from Rathke’s pouch (oral ectoderm), the pineal from the diencephalon roof. Metamorphosis order: hatching of the tadpole, hindlimbs, forelimbs, tail disappears. A tissue of spindle-shaped, uninucleate, involuntary, non-striated cells is smooth muscle, of the gut and blood vessels',
+    a: 'Skeletal muscle and tendon are both mesodermal and both help in movement; the ciliated epithelium of the trachea is endodermal and moves mucus, not the body. The pituitary and pineal glands are both ectodermal, the pituitary from Rathke’s pouch (oral ectoderm) and the floor of the diencephalon, the pineal from the diencephalon roof. Metamorphosis order: hatching of the tadpole, hindlimbs, forelimbs, tail disappears. A tissue of spindle-shaped, uninucleate, involuntary, non-striated cells is smooth muscle, of the gut and blood vessels',
     why: 'The tadpole’s hatching is the first event, so the sequence begins with the tadpole, not with the limbs.',
     say: null,
   },

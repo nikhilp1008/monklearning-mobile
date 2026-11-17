@@ -205,7 +205,7 @@ const fig41: Diagram = { id: 'b11-04-fig-4.1', topic: 0, name: 'Classification o
 const CAP42 = 'Body-cavity types in triploblastic animals: acoelomate (solid mesoderm, no cavity), pseudocoelomate (mesoderm only as scattered patches, cavity not fully lined) and eucoelomate (true coelom lined by mesoderm on the body-wall and gut sides).';
 const CY42 = 134, XS42 = [60, 180, 300];
 const R_ECTO = 46, R_ENDO = 19;
-const R_MIN = 20.6, R_MOUT = 43.7, R_PSEUDO = 37.8, R_EUOUT = 43, R_EUIN = 22;
+const R_MIN = 20.6, R_MOUT = 43.7, R_PSEUDO = 39.1, R_EUOUT = 43, R_EUIN = 22;
 function draw42(): Sketch {
   const s = new Sketch(W, 318);
   lab(s, W / 2, 18, 'Triploblastic Body Plans: Coelom Types', { size: 13, bold: true });
@@ -251,7 +251,7 @@ function check42(): Check[] {
     ['Three body plans in the book\'s order: acoelomate, pseudocoelomate, eucoelomate', ['ACOELOMATE', 'PSEUDOCOELOMATE', 'EUCOELOMATE'].every((t) => has(s, t))],
     ['Pseudocoelomate mesoderm is 11 separate patches that do not overlap one another', patchGap > 2],
     ['Eucoelomate lining lies between the body wall and the gut: its two rings sit inside the ectoderm and outside the endoderm, the outer one against the ectoderm and the inner one against the endoderm', R_EUOUT + 1.1 <= R_ECTO - 1.7 + 0.05 && R_EUOUT + 1.1 > R_ECTO - 3.4 && R_EUIN - 1.1 > R_ENDO && R_EUIN - 1.1 < R_ENDO + 3],
-    ['Acoelomate mesoderm fills the space from the endoderm to the ectoderm, and the pseudocoelomate patches lie against the body wall', R_MIN - 0.6 <= R_ENDO + 1.8 && R_MOUT + 0.6 >= R_ECTO - 2.4 && R_PSEUDO + 5.5 + 0.95 >= R_ECTO - 2.4 && R_PSEUDO + 5.5 + 0.95 <= R_ECTO - 1.7 + 0.1],
+    ['Acoelomate mesoderm fills the space from the endoderm to the ectoderm, and the pseudocoelomate patches lie against the body wall', R_MIN - 0.6 <= R_ENDO + 1.8 && R_MOUT + 0.6 >= R_ECTO - 2.4 && R_PSEUDO + 5.5 + 0.95 >= R_ECTO - 1.7 && R_PSEUDO + 5.5 + 0.95 <= R_ECTO],
     ['The three germ layers are keyed (ectoderm, mesoderm, endoderm) and the mesoderm labels are all there', ['Ectoderm', 'Mesoderm', 'Endoderm', 'solid', 'mesoderm lining'].every((t) => has(s, t))],
     ...layout(s), clean(s),
   ];
@@ -351,8 +351,11 @@ const fig43: Diagram = { id: 'b11-04-fig-4.3', topic: 2, name: 'Key to the non-c
 const CAP44 = 'Longitudinal section of a <i>Sycon</i>-type sponge: water enters through the ostia, passes through the spongocoel lined with choanocytes (collar cells) and leaves through the osculum; spicules lie in the body wall.';
 const OUT: P[] = [[170, 82], [190, 82], [232, 106], [238, 200], [226, 300], [204, 342], [180, 356], [156, 342], [134, 300], [122, 200], [128, 106]];
 const INN: P[] = [[176, 86], [184, 86], [210, 114], [214, 200], [206, 296], [190, 326], [180, 332], [170, 326], [154, 296], [146, 200], [150, 114]];
-const CHOANO_Y = [126, 166, 206, 246, 286];
+const WATER_Y = [126, 166, 206, 246, 286];
+/** The choanocytes are one row lining the inner face of the spongocoel, on both sides. */
+const CHOANO_Y = [128, 146, 164, 182, 200, 218, 236, 254, 272, 290];
 const OSTIA_Y = [146, 186, 226, 266];
+const CHOANO_IN = 5.5;
 /** The x of a closed outline's left or right edge at a height y (the outline is symmetric about x = 180). */
 function edgeX(pts: P[], y: number, side: 'l' | 'r') {
   const R = pts.slice(1, 7);
@@ -371,10 +374,10 @@ function draw44(): Sketch {
   // water out
   lab(s, 180, 42, 'Water out', { size: 10.5, color: C.amber });
   s.vec(180, 70, 180, 52, { color: C.mari, w: 2 }); keep(s, [[180, 70], [180, 52]]);
-  // choanocytes (collar cells): five rows of five across the spongocoel
-  CHOANO_Y.forEach((y) => [-18, -9, 0, 9, 18].forEach((dx) => circle(s, 180 + dx, y, 4, { w: 1.4, plain: true })));
+  // choanocytes (collar cells): a single row lining the inner wall of the spongocoel, left and right
+  CHOANO_Y.forEach((y) => { const xl = edgeX(INN, y, 'l') + CHOANO_IN; circle(s, xl, y, 4, { w: 1.4, plain: true }); circle(s, 360 - xl, y, 4, { w: 1.4, plain: true }); });
   // the water path up the spongocoel
-  [[CHOANO_Y[0] - 8, 98], [CHOANO_Y[1] - 8, CHOANO_Y[0] + 8], [CHOANO_Y[2] - 8, CHOANO_Y[1] + 8], [CHOANO_Y[3] - 8, CHOANO_Y[2] + 8], [CHOANO_Y[4] - 8, CHOANO_Y[3] + 8]].forEach(([a, b]) => { s.vec(180, a, 180, b, { color: C.mari, w: 1.8 }); keep(s, [[180, a], [180, b]]); });
+  [[WATER_Y[0] - 8, 98], [WATER_Y[1] - 8, WATER_Y[0] + 8], [WATER_Y[2] - 8, WATER_Y[1] + 8], [WATER_Y[3] - 8, WATER_Y[2] + 8], [WATER_Y[4] - 8, WATER_Y[3] + 8]].forEach(([a, b]) => { s.vec(180, a, 180, b, { color: C.mari, w: 1.8 }); keep(s, [[180, a], [180, b]]); });
   // ostia on both walls, the incoming water on the left
   OSTIA_Y.forEach((y) => {
     const xl = (edgeX(OUT, y, 'l') + edgeX(INN, y, 'l')) / 2, xr = 360 - xl;
@@ -403,7 +406,7 @@ function draw44(): Sketch {
   lead([258, 172], [188, 186]);
   lab(s, 262, 262, 'Choanocytes', { size: 10.5, anchor: 'start' });
   lab(s, 262, 274.5, '(collar cells)', { size: 10.5, anchor: 'start' });
-  lead([258, 268], [198, 246]);
+  lead([258, 268], [360 - (edgeX(INN, 254, 'l') + CHOANO_IN) + 4.5, 254]);
   lab(s, 262, 70, 'Osculum', { size: 10.5, anchor: 'start' });
   lead([258, 66], [191, 80]);
   return s;
@@ -414,7 +417,7 @@ function check44(): Check[] {
   return [
     ['All five labels of the book are on it: Ostia (incurrent pores), Spicules, Body wall (mesohyl, with spicules), Spongocoel, Choanocytes (collar cells), with Osculum, Water in, Water out and Water flow through spongocoel', ['Ostia', '(incurrent pores)', 'Spicules', 'Body wall', '(mesohyl, with spicules)', 'Spongocoel', 'Choanocytes', '(collar cells)', 'Osculum', 'Water in', 'Water out', 'Water flow', 'through', 'spongocoel'].every((t) => has(s, t))],
     ['The body wall is thicker than nothing everywhere: the outer outline is wider than the spongocoel at every choanocyte row and ostium', [...CHOANO_Y, ...OSTIA_Y].every((y) => widthAt(OUT, y) > widthAt(INN, y) + 20)],
-    ['Every choanocyte row of five lies inside the spongocoel', CHOANO_Y.every((y) => widthAt(INN, y) > 2 * (18 + 4) + 8)],
+    ['The choanocytes are one row lining each inner wall of the spongocoel, none floating across its middle: every collar cell sits against the inner outline and leaves the centre line free for the water', CHOANO_Y.every((y) => widthAt(INN, y) > 2 * (CHOANO_IN + 4) + 30)],
     ...layout(s), clean(s),
   ];
 }

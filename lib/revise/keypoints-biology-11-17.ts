@@ -352,7 +352,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 6,
     kind: 'remember',
     q: 'What are a twitch, summation and tetanus?',
-    a: 'A twitch is the response to a single brief stimulus, with a latent period, a contraction phase and a relaxation phase. If a second stimulus arrives before relaxation is complete, the second contraction builds on the first (temporal summation). When stimuli come so fast that the muscle cannot relax between them, the twitches fuse into a smooth, sustained contraction, tetanus; in incomplete tetanus small drops in tension still show between the peaks',
+    a: 'A twitch is the response to a single brief stimulus, with a latent period, a contraction phase and a relaxation phase. If a second stimulus arrives before relaxation is complete, the second contraction builds on the first (temporal summation). When stimuli come so fast that the muscle has little or no time to relax between them, the twitches fuse into a sustained contraction, tetanus: complete (no relaxation, a smooth plateau) or incomplete (small drops in tension still show between the peaks)',
     why: 'Tetanus here is a state of contraction, and it is not the disorder tetany.',
     say: null,
   },

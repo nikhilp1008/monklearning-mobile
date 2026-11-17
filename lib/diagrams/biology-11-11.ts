@@ -337,7 +337,7 @@ function draw114(): Sketch {
   const sg = L(272, 204, ['Starch granule'])[0];
   lead(s, [268, 202], [237, 199], sg);
   const cc = L(6, 246, ['Calvin cycle', 'in stroma'], { color: C.slate });
-  lead(s, [cc[0][2] + 5, 248], [152, 238], cc[0]);
+  lead(s, [cc[0][2] + 5, 248], [170, 222], cc[0]);
   return s;
 }
 function check114(): Check[] {
@@ -355,6 +355,7 @@ function check114(): Check[] {
     ['The two stromal lamellae run from the lower granum\'s edge to the upper granum\'s base, and the "Stromal lamella" leader ends on one', lam && lamEndsOnGrana && lamOn],
     ['"Thylakoid lumen" points inside a thylakoid disc (the space the outline encloses)', lumenIn],
     ['The six parts and two callouts are the book\'s: Outer envelope, Inner envelope, Granum (stack of thylakoids), Stromal lamella, Thylakoid lumen, Starch granule, Stroma; Light reaction on thylakoid membrane; Calvin cycle in stroma', hasAll(s, ['Outer envelope', 'Inner envelope', 'Granum', '(stack of', 'thylakoids)', 'Stromal lamella', 'Thylakoid lumen', 'Starch granule', 'Stroma', 'Light reaction', 'on thylakoid', 'membrane', 'Calvin cycle', 'in stroma'])],
+    ['The "Calvin cycle in stroma" leader ends inside the stroma, at least 10 px clear of the inner envelope', inEll([170, 222], 10)],
     ['The one highlight (marigold) is the thylakoid membranes where the light reaction happens: the discs and lamellae', GRANA.reduce((n, g) => n + g.n, 0) === 11],
     ...layout(s), clean(s),
   ];
@@ -393,7 +394,7 @@ function draw115(): Sketch {
   lab(s, 125, 94, Z.names1[0], { size: 10, anchor: 'start', color: C.slate });
   lab(s, 130, 160, Z.names1[1], { size: 11.5, anchor: 'end' });
   lab(s, 180, 162, Z.names1[2], { size: 11.5, anchor: 'start' });
-  lab(s, 192, 226, Z.names1[3], { size: 11.5, anchor: 'end' });
+  lab(s, 196, 216, Z.names1[3], { size: 11.5, anchor: 'end' });
   lab(s, 255, 76, Z.names2[0], { size: 10, anchor: 'start', color: C.slate });
   lab(s, 281, 112, Z.names2[1], { size: 11.5, anchor: 'start' });
   lines(s, 280, 160, ['NADP<sup>+</sup>', 'reductase'], { size: 10.5, anchor: 'middle', lh: 14 });
@@ -401,8 +402,8 @@ function draw115(): Sketch {
   // notes
   lines(s, 93, 200, ['e<sup>−</sup> excited', 'by light'], { size: 10.5, anchor: 'start', color: C.slate, lh: 12 });
   lines(s, 217, 120, ['e<sup>−</sup> boosted', 'again by light'], { size: 10.5, anchor: 'end', color: C.slate, lh: 12 });
-  lines(s, 178, 240, ['energy released', '→ ATP synthesis'], { size: 10.5, anchor: 'middle', color: C.slate, lh: 12 });
-  arrow(s, [166, 226], [161, 170], { color: C.slate, w: 1.4 });
+  lines(s, 178, 250, ['energy released', '→ ATP synthesis'], { size: 10.5, anchor: 'middle', color: C.slate, lh: 12 });
+  arrow(s, [166, 236], [161, 170], { color: C.slate, w: 1.4 });
   lab(s, 100, 276, 'P680', { size: 12.5, bold: true, anchor: 'start' });
   lab(s, 136, 276, '(PS II)', { size: 10, anchor: 'start', color: C.slate });
   lab(s, 238, 244, 'P700', { size: 12.5, bold: true, anchor: 'start' });

@@ -31,7 +31,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Coelom Formation: Schizocoelom vs Enterocoelom' },
       {
         t: 'p',
-        html: 'NCERT classifies coelomates only by whether a coelom is present and lined by mesoderm. NEET sometimes goes one step further and asks how the coelom forms. This is beyond NCERT, but it reveals a deeper split within coelomates: a coelom that forms by splitting of the mesoderm is a schizocoelom (annelids, arthropods and, by body plan, molluscs); one that arises as outpocketings of the embryonic gut is an enterocoelom (echinoderms, hemichordates and, in the usual textbook scheme, chordates).',
+        html: 'NCERT classifies coelomates only by whether a coelom is present and lined by mesoderm. NEET sometimes goes one step further and asks how the coelom forms. This is beyond NCERT, but it reveals a deeper split within coelomates: a coelom that forms by splitting of the mesoderm is a schizocoelom (annelids, arthropods and molluscs; in molluscs the coelom is small, mainly the cavity round the heart); one that arises as outpocketings of the embryonic gut is an enterocoelom (echinoderms, hemichordates and, in the usual textbook scheme, chordates).',
       },
       { t: 'p', html: '<b>The developmental distinction:</b>' },
       {
@@ -46,18 +46,18 @@ export const TOPICS: Topic[] = [
           ],
           [
             '<b>Phyla</b>',
-            'Annelida, Arthropoda and, by body plan, Mollusca',
+            'Annelida, Arthropoda and Mollusca',
             'Echinodermata, Hemichordata, and Chordata (deuterostomes; the lancelet’s coelom forms by gut pouches, the vertebrate coelom by splitting of the lateral plate mesoderm, so the “enterocoelom” label for all chordates is a simplification)',
           ],
         ],
       },
       {
         t: 'p',
-        html: '<b>Why this matters for classification:</b> The schizocoelom phyla (annelids, arthropods and, by body plan, molluscs) are protostomes: the blastopore of the embryo becomes the mouth. The enterocoelom phyla (echinoderms, hemichordates and, in the usual scheme, chordates) are deuterostomes: the blastopore becomes the anus. NCERT does not use these terms, but they occasionally appear in NEET.',
+        html: '<b>Why this matters for classification:</b> The schizocoelom phyla (annelids, arthropods and molluscs; in molluscs the coelom is small, mainly the cavity round the heart) are protostomes: the blastopore of the embryo becomes the mouth. The enterocoelom phyla (echinoderms, hemichordates and, in the usual scheme, chordates) are deuterostomes: the blastopore becomes the anus. NCERT does not use these terms, but they occasionally appear in NEET.',
       },
       {
         t: 'p',
-        html: '<b>Three facts that follow from this scheme:</b><br>1. Echinoderms and chordates share enterocoelom formation: this is a deeper body-plan similarity than merely both being coelomates.<br>2. Hemichordates share enterocoelom formation with echinoderms and chordates, yet they are placed in Non-Chordata because they lack a true notochord.<br>3. Annelids and arthropods share schizocoelom formation but differ in segmentation (annelids are metamerically segmented; arthropods are also segmented but the segmentation is fused into tagmata in many groups).',
+        html: '<b>Three facts that follow from this scheme:</b><br>1. Echinoderms and chordates are both deuterostomes (and, in the usual textbook scheme, both enterocoelous): a deeper similarity than merely both being coelomates.<br>2. Hemichordates share enterocoelom formation with echinoderms and chordates, yet they are placed in Non-Chordata because they lack a true notochord.<br>3. Annelids and arthropods share schizocoelom formation but differ in segmentation (annelids are metamerically segmented; arthropods are also segmented but the segmentation is fused into tagmata in many groups).',
       },
 
       { t: 'part', title: 'The Status of Hemichordata: Why It Stays Non-Chordate' },
@@ -121,7 +121,7 @@ export const TOPICS: Topic[] = [
     n: 'E',
     title: 'Complete Practice Set (Mixed NEET and Board Format)',
     extra: true,
-    kalam: 'Which of the following is the correct sequence of larval forms in the life cycle of Fasciola?',
+    kalam: 'Test the whole chapter in mixed NEET and Board formats: single-concept, assertion–reason and HOTS.',
     blocks: [
       { t: 'part', title: 'Single-Concept MCQs' },
       {
@@ -318,7 +318,7 @@ export const TOPICS: Topic[] = [
         q: 'Assertion (A): Ambulacral system plays a major role in locomotion of echinoderms. Reason (R): Hydraulic pressure of fluid and contraction of muscles of tube feet make possible the movement of echinoderms.<br>(a) Both A and R are true and R explains A<br>(b) Both true, R does not explain A<br>(c) A true, R false<br>(d) A false, R true',
         steps: [
           '• A: The ambulacral (water vascular) system does play a major role in echinoderm locomotion. True.',
-          '• R: Tube feet extend by hydraulic pressure from coelomic fluid and contract by muscles: this is the mechanism. True.',
+          '• R: Tube feet extend by the hydraulic pressure of the water-vascular fluid, squeezed in by the ampullae, and shorten when their muscles contract: this is the mechanism. True.',
           '• Link: R directly describes the physical mechanism by which A occurs. R is a correct explanation of A.',
           '<b>Trap in option (b):</b> Students who see two true statements and assume no causal link without reading whether R actually explains how A works.',
         ],
@@ -452,15 +452,15 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 1: Direct recall] Which of the following is a characteristic feature of all mammals without any exception?<br>(a) Viviparous reproduction<br>(b) Presence of external ears (pinnae)<br>(c) Presence of mammary glands<br>(d) Teeth in the adult',
-            a: '<b>Answer: (c).</b><br>Mammary glands are the defining mammalian feature and are present in every member: monotremes secrete milk even though they lay eggs. Viviparity fails for monotremes; pinnae are absent in the platypus and in whales and seals; the adult platypus and echidnas have no teeth.',
+            a: '<b>Answer: (c).</b><br>Mammary glands are the defining mammalian feature and are present in every member: monotremes secrete milk even though they lay eggs. Viviparity fails for monotremes; pinnae are absent in the platypus, whales and true seals; the adult platypus and echidnas have no teeth.',
           },
           {
-            q: '[Level 1: Direct recall] In which of the following reptiles is the heart four-chambered?<br>(a) <i>Naja</i> (Cobra)<br>(b) <i>Chelone</i> (Turtle)<br>(c) Chameleon<br>(d) <i>Crocodilus</i> (Crocodile)',
-            a: '<b>Answer: (d).</b><br>Among the reptiles in this chapter’s lists, only crocodiles have a four-chambered heart; the others (cobra, turtle, chameleon) have three-chambered hearts.',
+            q: '[Level 1: Direct recall] In which of the following reptiles is the heart four-chambered?<br>(a) <i>Naja</i> (Cobra)<br>(b) <i>Chelone</i> (Turtle)<br>(c) <i>Chameleon</i> (tree lizard)<br>(d) <i>Crocodilus</i> (Crocodile)',
+            a: '<b>Answer: (d).</b><br>Among the reptiles in this chapter’s lists, only the crocodilians (<i>Crocodilus</i>, <i>Alligator</i>) have a four-chambered heart; the other options (cobra, turtle, tree lizard) have three-chambered hearts.',
           },
           {
             q: '[Level 2: Concept application] Assertion (A): Echinoderm adults are radially symmetric. Reason (R): Echinoderm larvae are bilaterally symmetric and the radial symmetry of the adult is secondarily acquired.<br>(a) Both A and R are true and R explains A<br>(b) Both true, R does not explain A<br>(c) A true, R false<br>(d) A false, R true',
-            a: '<b>Answer: (a).</b><br>Both statements are textbook facts. R directly explains why A is true: the radial adult symmetry is a derived condition, not the ancestral one. The larval bilateral stage reveals the echinoderm’s evolutionary relationship to other triploblastic bilaterians.',
+            a: '<b>Answer: (a).</b><br>Both statements are textbook facts. R directly explains why A is true: the radial adult symmetry is a derived condition, not the ancestral one. The larval bilateral stage reveals the echinoderm’s evolutionary relationship to other triploblastic bilaterians. Take care: R gives the evolutionary history of the adult symmetry (the adult is radial as an adaptation to a slow-moving, bottom-living life), so R does not by itself say why the adult is radial. This item keeps the book’s key (a); an exam that asks “does R explain how or why?” keys (b), as in Topic 03.',
           },
           {
             q: '[Level 2: Concept application] Which of the following statements about Cnidaria is correct?<br>(a) They are triploblastic and have a tissue level of organisation.<br>(b) They have a complete digestive system with separate mouth and anus.<br>(c) They reproduce only by asexual means.<br>(d) They are diploblastic with a gastrovascular cavity that has a single opening.',

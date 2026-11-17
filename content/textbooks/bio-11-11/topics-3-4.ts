@@ -78,7 +78,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Carboxylation → Reduction → Regeneration</b>' },
       {
         t: 'p',
-        html: '<b>The stoichiometry (high-yield numeric):</b> to build <b>one molecule of glucose</b>, the cycle turns <b>6 times</b>, fixing <b>6 CO<sub>2</sub></b> and spending <b>18 ATP</b> and <b>12 NADPH</b>.<br>6 CO<sub>2</sub> + 18 ATP + 12 NADPH + 12 H<sup>+</sup> → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 18 ADP + 18 P<sub>i</sub> + 12 NADP<sup>+</sup> + 6 H<sub>2</sub>O (ATP side schematic)<br>Per single turn (1 CO<sub>2</sub>): 3 ATP + 2 NADPH',
+        html: '<b>The stoichiometry (high-yield numeric):</b> to build <b>one molecule of glucose</b>, the cycle turns <b>6 times</b>, fixing <b>6 CO<sub>2</sub></b> and spending <b>18 ATP</b> and <b>12 NADPH</b>.<br>6 CO<sub>2</sub> + 18 ATP + 12 NADPH + 12 H<sup>+</sup> → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 18 ADP + 18 P<sub>i</sub> + 12 NADP<sup>+</sup> + 6 H<sub>2</sub>O (balanced for C, H and O; the water used in splitting ATP into ADP + P<sub>i</sub> is left out)<br>Per single turn (1 CO<sub>2</sub>): 3 ATP + 2 NADPH',
       },
 
       { t: 'part', title: 'Key procedures and mechanisms' },
@@ -290,7 +290,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: '<b>Overall</b>',
-            note: '6 CO<sub>2</sub> + 18 ATP + 12 NADPH + 12 H<sup>+</sup> → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 18 ADP + 18 P<sub>i</sub> + 12 NADP<sup>+</sup> + 6 H<sub>2</sub>O (ATP side schematic)',
+            note: '6 CO<sub>2</sub> + 18 ATP + 12 NADPH + 12 H<sup>+</sup> → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 18 ADP + 18 P<sub>i</sub> + 12 NADP<sup>+</sup> + 6 H<sub>2</sub>O (balanced for C, H and O; the water used in splitting ATP into ADP + P<sub>i</sub> is left out)',
           },
         ],
         aids: [
@@ -311,7 +311,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> Among the most heavily tested parts of the chapter. NEET reliably asks the C<sub>3</sub>-vs-C<sub>4</sub> comparison, “why photorespiration is wasteful,” and the three organelles of photorespiration (the book’s estimate from past papers, not official figures). CBSE Boards favour Kranz anatomy and a C<sub>4</sub>-pathway flow answer. CUET keeps it factual (first product, enzyme, examples). The “photorespiration is negligible in C<sub>4</sub>: why?” assertion–reason is a perennial NEET high-difficulty item.',
+        html: '<b>Exam Relevance:</b> Among the most heavily tested parts of the chapter. NEET reliably asks the C<sub>3</sub>-vs-C<sub>4</sub> comparison, “why photorespiration is wasteful,” and the three organelles of photorespiration (the book’s estimate from past papers, not official figures). CBSE Boards favour Kranz anatomy and a C<sub>4</sub>-pathway flow answer. CUET keeps it factual (first product, enzyme, examples). The “photorespiration is negligible in C<sub>4</sub>: why?” assertion–reason is a common NEET-style high-difficulty item.',
       },
       {
         t: 'p',
@@ -378,7 +378,7 @@ export const TOPICS: Topic[] = [
           '<b>Capture in the mesophyll.</b> Atmospheric CO<sub>2</sub> enters a mesophyll cell, where <b>PEP carboxylase</b> attaches it to the 3-carbon acceptor <b>PEP</b>, forming the 4-carbon <b>OAA</b>. Because PEPcase is sharp and has no oxygenase side-activity, it grabs CO<sub>2</sub> even at low concentrations.',
           '<b>Convert and transport.</b> OAA is converted to a stable 4-carbon acid (commonly <b>malic acid</b>) and shuttled through plasmodesmata into the inner <b>bundle-sheath</b> cells.',
           '<b>Decarboxylation = a CO<sub>2</sub> burst.</b> Inside the bundle sheath the 4-carbon acid is <b>decarboxylated</b>, releasing CO<sub>2</sub>. Because this happens in an enclosed cell, CO<sub>2</sub> concentration around RuBisCO shoots up.',
-          '<b>Calvin cycle, protected.</b> This concentrated CO<sub>2</sub> now feeds the ordinary <b>Calvin cycle</b> (RuBisCO + RuBP) in the bundle-sheath stroma. Swamped with CO<sub>2</sub>, RuBisCO essentially never binds O<sub>2</sub>, so <b>photorespiration is suppressed</b>.',
+          '<b>Calvin cycle, protected.</b> This concentrated CO<sub>2</sub> now feeds the ordinary <b>Calvin cycle</b> (RuBisCO + RuBP) in the bundle-sheath stroma. Swamped with CO<sub>2</sub>, RuBisCO rarely binds O<sub>2</sub>, so <b>photorespiration is suppressed</b>.',
           '<b>Recycle the acceptor.</b> The leftover 3-carbon <b>pyruvate</b> travels back to the mesophyll and is regenerated to PEP (at the cost of ATP), ready for the next round.',
         ],
       },
@@ -404,7 +404,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-11-fig-11.9' },
       {
         t: 'p',
-        html: '• <b>Light intensity:</b> rate rises with light, then <b>plateaus</b>: beyond a point, “other factors become limiting” (e.g. CO<sub>2</sub>), so more light doesn’t help.<br>• <b>CO<sub>2</sub> concentration:</b> usually the major limiting factor in nature; raising it (up to a point) boosts the rate.<br>• <b>Water:</b> under <b>water stress</b>, stomata close, cutting CO<sub>2</sub> supply, so the photosynthetic rate falls (water acts indirectly, mostly through stomata).<br>• <b>Temperature:</b> affects the enzyme-driven (dark) reactions strongly; C<sub>4</sub> plants tolerate and prefer higher temperatures.<br>• <b>NCERT values:</b> the optimum temperature is about 20–25 °C for C<sub>3</sub> plants and 30–45 °C for C<sub>4</sub> plants; the rate of C<sub>3</sub> plants keeps rising with CO<sub>2</sub> until about 450 µL L<sup>−1</sup>, whereas C<sub>4</sub> plants saturate at about 360 µL L<sup>−1</sup>; light saturates at about 10 per cent of full sunlight, so apart from shade or dense forest, light is rarely limiting in nature.<br>• <b>Worked illustration:</b> during the <b>monsoon</b>, dim cloudy skies make <b>light</b> the limiting factor, lowering the photosynthetic rate of crops such as rice.',
+        html: '• <b>Light intensity:</b> rate rises with light, then <b>plateaus</b>: beyond a point, “other factors become limiting” (e.g. CO<sub>2</sub>), so more light doesn’t help.<br>• <b>CO<sub>2</sub> concentration:</b> usually the major limiting factor in nature; raising it (up to a point) boosts the rate.<br>• <b>Water:</b> under <b>water stress</b>, stomata close, cutting CO<sub>2</sub> supply, so the photosynthetic rate falls (water acts indirectly, mostly through stomata).<br>• <b>Temperature:</b> affects the enzyme-driven (dark) reactions strongly; C<sub>4</sub> plants tolerate and prefer higher temperatures.<br>• <b>NCERT values:</b> C<sub>4</sub> plants respond to higher temperatures and show a higher rate of photosynthesis, while C<sub>3</sub> plants have a much lower temperature optimum; C<sub>4</sub> plants show CO<sub>2</sub> saturation at about 360 µL L<sup>−1</sup>, while C<sub>3</sub> plants respond to increasing CO<sub>2</sub> and saturate only beyond 450 µL L<sup>−1</sup>; light saturation occurs at about 10 per cent of full sunlight, so except for plants in shade or in dense forests, light is rarely a limiting factor in nature.<br>• <b>Worked illustration:</b> during the <b>monsoon</b>, dim cloudy skies make <b>light</b> the limiting factor, lowering the photosynthetic rate of crops such as rice.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -442,7 +442,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty / Assertion–Reason',
         q: '<b>Assertion (A):</b> Under hot, bright, dry conditions, C<sub>4</sub> plants outperform C<sub>3</sub> plants. <b>Reason (R):</b> C<sub>4</sub> plants concentrate CO<sub>2</sub> around RuBisCO in the bundle sheath, suppressing photorespiration. Options: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) A false, R true.',
         steps: [
-          'Both are true and R correctly explains A. In hot, dry conditions C<sub>3</sub> plants close stomata, CO<sub>2</sub> falls, O<sub>2</sub> rises, and RuBisCO’s oxygenase activity (photorespiration) wastes carbon. C<sub>4</sub> plants sidestep this entirely by using PEPcase to pump CO<sub>2</sub> into the bundle sheath, keeping RuBisCO saturated with CO<sub>2</sub>, so they keep photosynthesising efficiently exactly when C<sub>3</sub> plants falter.',
+          'Both are true and R correctly explains A. In hot, dry conditions C<sub>3</sub> plants close stomata, CO<sub>2</sub> falls, O<sub>2</sub> rises, and RuBisCO’s oxygenase activity (photorespiration) wastes carbon. C<sub>4</sub> plants largely sidestep this by using PEPcase to pump CO<sub>2</sub> into the bundle sheath, keeping RuBisCO saturated with CO<sub>2</sub>, so they keep photosynthesising efficiently exactly when C<sub>3</sub> plants falter.',
         ],
         ans: '<b>(a).</b>',
       },

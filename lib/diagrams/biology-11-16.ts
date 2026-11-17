@@ -241,6 +241,9 @@ const fig162: Diagram = { id: 'b11-16-fig-16.2', topic: 1, name: 'Human urinary 
 const CAP163 = 'Vertical section of the human kidney: capsule, cortex, medulla (pyramids), renal columns, calyces, renal pelvis, ureter and hilum, with a cortical and a juxtamedullary nephron.';
 const KC = { cx: 185, cy: 250, rx: 76, ry: 118 };
 const PYR_Y = [206, 250, 294];
+const PYR_APEX_X = 148, PYR_BASE_X = 222;
+// the juxtamedullary loop: a long U running down into the lowest pyramid toward its apex (the calyx)
+const JLOOP: P[] = [[226, 303], [214, 296], [190, 296], [162, 296], [160, 294], [162, 292], [190, 292], [214, 291], [228, 284], [236, 276]];
 function draw163(): Sketch {
   const s = new Sketch(W, 450);
   const { cx, cy, rx, ry } = KC;
@@ -257,11 +260,11 @@ function draw163(): Sketch {
   arrow(s, [20, 240], [118, 250], { color: C.ink, w: 2 });
   arrow(s, [118, 268], [20, 262], { color: C.slate, w: 2 });
   // the two nephrons
-  const cdot = beanPt(cx, cy, rx, ry, -1, -Math.PI / 2 - 0.3), jdot = beanPt(cx, cy, rx, ry, -1, 0.6);
+  const cdot = beanPt(cx, cy, rx, ry, -1, -Math.PI / 2 - 0.3), jdot = beanPt(cx + 4, cy, 58, 92, -1, 0.75);
   s.dot(cdot[0], cdot[1], 4.4);
-  path(s, [cdot, [168, 152], [196, 158], [172, 166], [206, 176], [188, 184], [210, 184]], { w: 1.4 });
+  path(s, [cdot, [168, 152], [196, 158], [176, 164], [200, 170]], { w: 1.4 });
   s.dot(jdot[0], jdot[1], 4.4);
-  path(s, [jdot, [234, 334], [216, 326], [200, 340], [184, 330]], { w: 1.4 });
+  path(s, [jdot, ...JLOOP], { w: 1.4 });
   // names, with leaders from the book's own two-line labels
   lines(s, 60, 60, ['Cortical', 'nephron'], { size: 10.5, dy: 12 });
   leader(s, [76, 80], cdot);
@@ -298,6 +301,7 @@ function check163(): Check[] {
     ['Every structure the book labels is on the drawing: capsule, cortex, medulla, medullary pyramid, renal column (of Bertini), hilum, renal artery, renal vein, ureter, major calyx / renal pelvis, minor calyx, cortical nephron, juxtamedullary nephron', hasAll(s, ['Capsule', 'Cortex', 'Medulla', 'Medullary', 'pyramid', 'Renal column', '(of Bertini)', 'Hilum', 'Renal', 'artery', 'vein', 'Ureter', 'Major calyx /', 'renal pelvis', 'Minor calyx', 'Cortical', 'Juxtamedullary', 'nephron'])],
     ['Three medullary pyramids, apex toward the pelvis and base toward the cortex, separated by renal columns (gaps of 10 px)', PYR_Y.length === 3 && PYR_Y.every((y, i) => i === 0 || y - PYR_Y[i - 1] - 34 === 10) && tri(0) > 0],
     ['The two nephrons are the two dots: the cortical one near the capsule (upper), the juxtamedullary one lower, near the medulla', s.points.length === 2 && s.points[0].y < KC.cy - 80 && s.points[1].y > KC.cy + 40],
+    ['The juxtamedullary nephron\'s corpuscle sits at the cortex-medulla line and its loop runs at least half way down into the lowest pyramid, while the cortical loop barely crosses the line', s.points[1].x > PYR_BASE_X && Math.min(...JLOOP.map((p) => p[0])) <= PYR_APEX_X + (PYR_BASE_X - PYR_APEX_X) / 2 && JLOOP.every((p) => Math.abs(p[1] - PYR_Y[2]) < 30)],
     ['The artery arrow points into the hilum, the vein arrow out of it, and the ureter leaves it downward with an arrow head', (s.svg().match(/<path d="M[^"]*Z" fill="#(2E2A24|57534B)"\/>/g) ?? []).length === 3],
     ['The three medullary pyramids are the marigold highlight (the medulla\'s tags are amber)', marigolds(s) === 3],
     ...layout(s), clean(s),
@@ -420,7 +424,7 @@ function draw165(): Sketch {
   path(s, [[D5.desc, 78], [D5.desc, 380], ...arc, [D5.asc, 380], [D5.asc, 78]], { color: C.mari, w: 3.4 });
   s.mid(D5.desc, 120, D5.desc, 140, C.ink); s.mid(D5.asc, 140, D5.asc, 120, C.ink);
   [160, 250, 335].forEach((y) => { arrow(s, [D5.desc - 3, y], [D5.desc - 20, y], { color: C.ink, w: 1.8 }); arrow(s, [D5.asc + 3, y], [D5.asc + 20, y], { color: C.ink, w: 1.8 }); });
-  lines(s, 136, 190, ['Descending limb', 'water out,', 'impermeable', 'to salt'], { size: 10, anchor: 'end', dy: 12, color: C.amber });
+  lines(s, 136, 190, ['Descending limb', 'water out,', 'almost impermeable', 'to salt'], { size: 10, anchor: 'end', dy: 12, color: C.amber });
   leader(s, [136, 235], [D5.desc + 1, 246], true);
   lines(s, 226, 96, ['Ascending limb', 'salt out', 'impermeable to water'], { size: 9.5, anchor: 'start', dy: 12, color: C.amber });
   leader(s, [232, 128], [D5.asc + 1, 150], true);
@@ -440,7 +444,7 @@ function check165(): Check[] {
   return [
     ['The osmolarity scale is the book\'s: Cortex 300, Outer medulla 600, 900, Inner medulla 1200 mOsm/L, with the title "Osmolarity (mOsm/L)"', hasAll(s, ['Cortex', 'Outer', 'Inner', 'medulla', '300', '600', '900', '1200', 'Osmolarity', '(mOsm/L)'])],
     ['Equal steps of 300 mOsm/L are equal steps down the scale (110 px each)', d.every((x) => Math.abs(x - 110) < 1e-9) && OSM.join() === '300,600,900,1200'],
-    ['Every arrow the book prints is here: filtrate in, water out of the descending limb and the collecting duct (to the left), salt out of the ascending limb (to the right), concentrated urine out', hasAll(s, ['Filtrate', 'Water out', '(ADH)', 'Descending limb', 'water out,', 'impermeable', 'to salt', 'Ascending limb', 'salt out', 'impermeable to water', 'Concentrated', 'urine']) && (s.svg().match(/<path d="M[^"]*Z" fill="#2E2A24"\/>/g) ?? []).length >= 10],
+    ['Every arrow the book prints is here: filtrate in, water out of the descending limb and the collecting duct (to the left), salt out of the ascending limb (to the right), concentrated urine out', hasAll(s, ['Filtrate', 'Water out', '(ADH)', 'Descending limb', 'water out,', 'almost impermeable', 'to salt', 'Ascending limb', 'salt out', 'impermeable to water', 'Concentrated', 'urine']) && (s.svg().match(/<path d="M[^"]*Z" fill="#2E2A24"\/>/g) ?? []).length >= 10],
     ['The vasa recta runs down one side of its U and up the other, and is named "Vasa recta (blood flow)"', D5.vd < D5.vu && hasAll(s, ['Vasa recta', '(blood flow)'])],
     ['The loop of Henle is the marigold highlight; the collecting duct is grey', marigolds(s) === 1],
     ...layout(s), clean(s),
@@ -450,7 +454,7 @@ const fig165: Diagram = { id: 'b11-16-fig-16.5', topic: 2, name: 'Counter-curren
 
 /* ================= Figure 16.6 ================= */
 const CAP166_1 = 'Regulation of kidney function: RAAS and ADH (low BP/volume) versus ANF (high BP/volume). (1) RAAS: low BP / volume makes the JGA release renin; renin acts on angiotensinogen, ACE (lungs) forms angiotensin II, which acts on the adrenal cortex to release aldosterone, and BP / volume is restored.';
-const CAP166_2 = 'Regulation of kidney function: RAAS and ADH (low BP/volume) versus ANF (high BP/volume). (2) ADH: the hypothalamus / posterior pituitary releases ADH, which acts on the collecting duct (water reabsorption), which aids BP recovery.';
+const CAP166_2 = 'Regulation of kidney function: RAAS and ADH (low BP/volume) versus ANF (high BP/volume). (2) ADH: when body fluids are too concentrated or volume falls, the hypothalamus / posterior pituitary releases ADH, which acts on the collecting duct (water reabsorption), which aids BP recovery.';
 const CAP166_3 = 'Regulation of kidney function: RAAS and ADH (low BP/volume) versus ANF (high BP/volume). (3) ANF: high BP / volume stretches the cardiac atria, which release ANF; ANF causes vasodilation and Na<sup>+</sup> and water excretion, and BP / volume falls to normal. ANF inhibits renin release.';
 const BXL = 65, BXR = 235, CX6 = 150;
 const bxr = (y0: number, y1: number): Rect => [BXL, y0, BXR, y1];

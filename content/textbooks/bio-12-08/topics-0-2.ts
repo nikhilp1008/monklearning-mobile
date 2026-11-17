@@ -216,7 +216,7 @@ export const TOPICS: Topic[] = [
         q: 'Swiss cheese and Roquefort cheese differ in their characteristic features because:',
         opts: [
           { label: 'both are ripened by the same bacterium', nudge: '<b>(a)</b> false: different organisms, and from different kingdoms.' },
-          { label: 'Swiss cheese is made by a fungus and Roquefort by a bacterium', nudge: '<b>(b)</b> is the exact reversal, the classic distractor. It swaps the kingdoms.' },
+          { label: 'Swiss cheese is made by a fungus and Roquefort by a bacterium', nudge: '<b>(b)</b> is the exact reversal, the reversed distractor. It swaps the kingdoms.' },
           { label: 'Swiss cheese holes come from CO<sub>2</sub> by a bacterium, while Roquefort flavour comes from a fungus', nudge: null },
           { label: 'neither involves any microorganism', nudge: '<b>(d)</b> false: cheese is a flagship example of microbes in food.' },
         ],
@@ -310,7 +310,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting Conditions & Assumptions.</b><br>• <b>Antibiotics work on microbes, not viruses.</b> They target bacterial/fungal structures and processes. Taking an antibiotic for a viral cold does nothing useful and breeds resistance: a favourite conceptual trap.<br>• <b>Distillation is the dividing line for beverages.</b> Wine and beer are produced without distillation (lower alcohol); whisky, brandy, and rum are produced with distillation of the fermented broth (higher alcohol). Mixing these up is a classic error.<br>• <b>Specificity of strain matters.</b> It is not “any fungus makes citric acid”; it is specifically <i>Aspergillus niger</i>. The exact organism is the examinable fact.<br>• <b>Scale changes the engineering, not the biology.</b> The microbe behaves the same; what industry adds is sterile control, aeration, and large vessels. The chemistry students must know is the small-scale principle.',
+        html: '<b>Limiting Conditions & Assumptions.</b><br>• <b>Antibiotics act on bacteria (and some on fungi), not on viruses.</b> They target bacterial/fungal structures and processes. Taking an antibiotic for a viral cold does nothing useful and breeds resistance: a common conceptual trap.<br>• <b>Distillation is the dividing line for beverages.</b> Wine and beer are produced without distillation (lower alcohol); whisky, brandy, and rum are produced with distillation of the fermented broth (higher alcohol). Mixing these up costs marks.<br>• <b>Specificity of strain matters.</b> It is not “any fungus makes citric acid”; it is specifically <i>Aspergillus niger</i>. The exact organism is the examinable fact.<br>• <b>Scale changes the engineering, not the biology.</b> The microbe behaves the same; what industry adds is sterile control, aeration, and large vessels. The chemistry students must know is the small-scale principle.',
       },
 
       { t: 'part', title: 'Classification framework and diagnostic features' },
@@ -531,7 +531,7 @@ export const TOPICS: Topic[] = [
           '<b>Pitfall 1: Swapping the two fungi.</b> <i>Aspergillus niger</i> = citric acid; <i>Monascus purpureus</i> = statins. Do not interchange.',
           '<b>Pitfall 2: Distillation confusion.</b> Wine and beer = without distillation; whisky/brandy/rum = with. A mark if memorised, a mark lost if guessed.',
           '<b>Pitfall 3: “Antibiotics kill viruses.”</b> They do not. Antibiotics act on microbes (chiefly bacteria/fungi); viral illnesses need other measures.',
-          '<b>Pitfall 4: Forgetting the enzyme jobs.</b> Lipase → detergents; pectinase/protease → juice clarification; streptokinase → clot buster. These three enzyme uses are often tested.',
+          '<b>Pitfall 4: Forgetting the enzyme jobs.</b> Lipase → detergents; pectinase/protease → juice clarification; streptokinase → clot buster. These three enzyme uses are worth learning.',
         ],
       },
       {

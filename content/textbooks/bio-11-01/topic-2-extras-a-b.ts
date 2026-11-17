@@ -38,7 +38,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Notice what happens as you climb this ladder. Two houses on the same street share almost everything: the same lane, the same pin code, the same neighbours. But two houses merely in the same state might share nothing beyond the state itself. <b>The higher you go, the fewer the characters in common, and the larger and more loosely-related the group becomes.</b> That single trend is the master key to this entire topic, and examiners test it relentlessly.',
+        html: 'Notice what happens as you climb this ladder. Two houses on the same street share almost everything: the same lane, the same pin code, the same neighbours. But two houses merely in the same state might share nothing beyond the state itself. <b>The higher you go, the fewer the characters in common, and the larger and more loosely-related the group becomes.</b> That single trend is the master key to this entire topic, and examiners test it often.',
       },
       {
         t: 'p',
@@ -193,7 +193,7 @@ export const TOPICS: Topic[] = [
         q: 'Assertion (A): Two insects belonging to the same order are certain to belong to the same class. Reason (R): A class is a higher category that contains its orders, so any group sharing an order automatically shares the class that surrounds it. Choose: <b>(1)</b> Both true, R explains A. <b>(2)</b> Both true, R not the explanation. <b>(3)</b> A true, R false. <b>(4)</b> A false, R true.',
         steps: [
           '<b>Solution.</b> A is true: class is above order in the ladder, and by the containment (nesting) principle, sharing the lower category guarantees sharing the higher one. R states precisely that containment logic and is itself true, and it is the correct reason for A.',
-          '(The instinctive wrong move is (3), where students “feel” R is just a restatement; in fact it is the mechanism.)',
+          '(The instinctive wrong move is (2), where students “feel” R is just a restatement; in fact it is the mechanism.)',
         ],
         ans: '(1).',
       },
@@ -251,7 +251,7 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'Which of the following is the correct sequence of taxonomic categories?',
         opts: [
-          { label: 'Species → Genus → Order → Family → Class → Phylum → Kingdom', nudge: '<b>(1)</b> swaps Family and Order: the single most common ordering error.' },
+          { label: 'Species → Genus → Order → Family → Class → Phylum → Kingdom', nudge: '<b>(1)</b> swaps Family and Order: a common ordering error.' },
           { label: 'Species → Genus → Family → Order → Class → Phylum → Kingdom', nudge: null },
           { label: 'Species → Family → Genus → Order → Class → Phylum → Kingdom', nudge: '<b>(3)</b> swaps Genus and Family.' },
           { label: 'Genus → Species → Family → Order → Class → Phylum → Kingdom', nudge: '<b>(4)</b> puts Genus below Species, which inverts the basic unit.' },
@@ -300,7 +300,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Family ↔ Order swap.</b> By far the most frequent sequencing error. The correct middle is <b>Family then Order</b> (genus is more specific than family; order is broader than family).',
+          '<b>Family ↔ Order swap.</b> A very common sequencing error. The correct middle is <b>Family then Order</b> (genus is more specific than family; order is broader than family).',
           '<b>Taxon called a category (and vice versa).</b> “Mammalia is a category” is wrong: Mammalia is a taxon; Class is the category. Real group = taxon; rank/label = category.',
           '<b>Mono/poly flip.</b> Monotypic = one species, polytypic = many. Don’t let the similar prefixes trip you.',
           '<b>Reversing the master trend.</b> As you ascend (species → kingdom), shared characters <b>decrease</b>; group size <b>increases</b>. Many wrong MCQ choices are built on the inverse.',
@@ -343,7 +343,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives you the defining properties of life, the rules of nomenclature, and the seven-category taxonomic ladder. Four examinable patterns still stand outside the door. Additional topic A marries the “classification” word of Topic 01 to the classification methods the chapter names but never teaches: Topic 01 names karyotaxonomy and chemotaxonomy in one line, Topic 02 names cytotaxonomy and chemotaxonomy in one phrase, and numerical taxonomy is not mentioned at all; none of them is explained. Additional topic B opens the biological species concept of Topics 01 and 02 to its three extensions (morphological, ecological, phylogenetic) and fixes the case of asexual organisms and bacteria that the interbreeding definition cannot reach. Additional topic C supplies the dichotomous key, the standard identification tool used in herbaria, and never taught anywhere in it, with full construction and use. Additional topic D supplies the five-kingdom table, which the chapter does not contain (Whittaker’s criteria and examples), and the six-kingdom update, completing the kingdom-level picture.',
+        html: 'The chapter gives you the defining properties of life, the rules of nomenclature, and the seven-category taxonomic ladder. Four examinable patterns still stand outside the door, and a last section shows what NEET actually asks. Additional topic A marries the “classification” word of Topic 01 to the classification methods the chapter barely touches: Topic 01 names karyotaxonomy and chemotaxonomy in one line, Topic 02 names cytotaxonomy and chemotaxonomy in one phrase, and numerical taxonomy is not mentioned at all; none of them is explained. Additional topic B opens the biological species concept of Topics 01 and 02 to its three extensions (morphological, ecological, phylogenetic) and fixes the case of asexual organisms and bacteria that the interbreeding definition cannot reach. Additional topic C supplies the dichotomous key, the standard identification tool used in herbaria, which the chapter never teaches, with full construction and use. Additional topic D supplies the five-kingdom table, which the chapter does not contain (Whittaker’s criteria and examples), and the six-kingdom update, completing the kingdom-level picture.',
       },
       {
         t: 'p',
@@ -357,7 +357,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Cytotaxonomy.</b><br>• Classifies organisms based on chromosome number, chromosome morphology (size, position of centromere, banding patterns), and karyotype.<br>• Chromosome number and structure are often stable within a species, so similar karyotypes often point to relatedness, while different numbers can separate look-alike species.<br>• Classic example: the three species of <i>Drosophila</i> (fruit fly), <i>D. melanogaster</i>, <i>D. simulans</i>, <i>D. yakuba</i>, were separated partly by chromosome inversions visible in their polytene chromosomes. The banding patterns of polytene chromosomes form a “fingerprint” unique to each species.<br>• Another example: <i>Brassica</i> (mustard family): <i>B. oleracea</i> (2n = 18), <i>B. nigra</i> (2n = 16), <i>B. rapa</i> (2n = 20). Chromosome counts helped confirm their evolutionary relationships and contributed to the theory of polyploidy in crop evolution.<br>• Key point for exams: cytotaxonomy uses intracellular characters (chromosomes) rather than external morphology. It is particularly useful when organisms look similar but have different chromosome numbers.',
+        html: '<b>Cytotaxonomy.</b><br>• Classifies organisms based on chromosome number, chromosome morphology (size, position of centromere, banding patterns), and karyotype.<br>• Chromosome number and structure are often stable within a species, so similar karyotypes often point to relatedness, while different numbers can separate look-alike species.<br>• Classic example: three species of <i>Drosophila</i> (fruit fly), <i>D. melanogaster</i>, <i>D. simulans</i> and <i>D. yakuba</i>, differ by chromosome inversions visible in the banding of their polytene chromosomes, so the banding pattern helps tell the species apart.<br>• Another example: <i>Brassica</i> (mustard family): <i>B. oleracea</i> (2n = 18), <i>B. nigra</i> (2n = 16), <i>B. rapa</i> (2n = 20). Chromosome counts helped confirm their evolutionary relationships and contributed to the theory of polyploidy in crop evolution.<br>• Key point for exams: cytotaxonomy uses intracellular characters (chromosomes) rather than external morphology. It is particularly useful when organisms look similar but have different chromosome numbers.',
       },
       {
         t: 'p',
@@ -376,9 +376,9 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Step 1: A vs B character by character.</b> Flagellum: 1 vs 1 → match (1). Spore: 1 vs 1 → match (1). Capsule: 0 vs 0 → match (1). Aerobic: 1 vs 0 → mismatch (0). Gram-positive: 1 vs 1 → match (1). Matches = 4, total characters = 5. SM = <frac><num>4</num><den>5</den></frac> = 0.80.',
           '<b>Step 2: C vs D character by character.</b> Flagellum: 0 vs 0 → match (1). Spore: 0 vs 0 → match (1). Capsule: 1 vs 1 → match (1). Aerobic: 1 vs 0 → mismatch (0). Gram-positive: 0 vs 0 → match (1). Matches = 4, total characters = 5. SM = <frac><num>4</num><den>5</den></frac> = 0.80.',
-          '<b>Step 3: Compare.</b> Both pairs give SM = 0.80. In this case the similarity coefficient is identical, but the pattern of matches differs: A and B share flagellum, spore, Gram-positive and the absence of a capsule, while C and D share the non-flagellate, non-sporulating, Gram-negative, capsule-bearing. They are similar within each pair but by different character suites.',
+          '<b>Step 3: Compare.</b> Both pairs give SM = 0.80. In this case the similarity coefficient is identical, but the pattern of matches differs: A and B share flagellum, spore, Gram-positive and the absence of a capsule, while C and D share the non-flagellate, non-sporulating, Gram-negative, capsule-bearing pattern. They are similar within each pair but by different character suites.',
         ],
-        ans: 'SM(A, B) = 0.80; SM(C, D) = 0.80. Both pairs are equally similar by this metric; Both pairs are equally similar (SM = 0.80). Among A to D the other pairs score at most <frac><num>1</num><den>5</den></frac> (A with C, B with D), so A and B would form one cluster and C and D another, far apart.',
+        ans: 'SM(A, B) = 0.80; SM(C, D) = 0.80. Both pairs are equally similar by this metric. Among A to D the other pairs score at most <frac><num>1</num><den>5</den></frac> (A with C, B with D), so A and B would form one cluster and C and D another, far apart.',
       },
       {
         t: 'ex',
@@ -442,7 +442,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'Topic 01 gives you the biological species concept: a group of organisms capable of interbreeding freely in nature and producing fertile offspring, sharing a common gene pool. Topic 02 applies it throughout the hierarchy. Topics 01 and 02 note only briefly that the interbreeding definition “breaks down for asexual organisms”. What the chapter does not tell you is that biologists use four species concepts, and why the biological concept fails for bacteria, asexual organisms, fossils and hybridising plants. NEET asks all of these.',
+        html: 'Topic 01 gives you the biological species concept: a group of organisms capable of interbreeding freely in nature and producing fertile offspring, sharing a common gene pool. Topic 02 applies it throughout the hierarchy. Topics 01 and 02 note only briefly that the interbreeding definition “breaks down for asexual organisms”. What the chapter does not tell you is that biologists use several species concepts, four of them common, and why the biological concept fails for bacteria, asexual organisms, fossils and hybridising plants. NEET asks all of these.',
       },
 
       { t: 'part', title: 'The Four Species Concepts' },
@@ -459,7 +459,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Why the biological species concept fails for bacteria and asexual organisms.</b><br><br>Bacteria reproduce entirely asexually by binary fission. Bacteria reproduce by binary fission, so a bacterial lineage is a set of clones and there is no interbreeding population or shared gene pool for the biological concept to test. The concept of “interbreeding” is inapplicable. For bacteria, species are defined operationally: a group of strains with ≥70% DNA–DNA hybridisation (molecular approach) or ≥97% (older figure; about 98.65% in current work) 16S rRNA identity. These are approximate operational thresholds, not NCERT; they are operational definitions, not biological definitions, a point that catches students who assume the biological species concept is universal.<br><br>Similarly, obligate parthenogens (certain lizards, insects, rotifers) and vegetatively reproducing plants cannot be assessed by interbreeding. Here morphological or ecological species concepts are applied instead.',
+        html: '<b>Why the biological species concept fails for bacteria and asexual organisms.</b><br><br>Bacteria reproduce mainly by binary fission, so a bacterial lineage is a set of clones and there is no interbreeding population or shared gene pool for the biological concept to test. The concept of “interbreeding” is inapplicable. For bacteria, species are defined operationally: a group of strains with ≥70% DNA–DNA hybridisation (molecular approach) or ≥97% (older figure; about 98.65% in current work) 16S rRNA identity. These are approximate operational thresholds, not NCERT; they are operational definitions, not biological definitions, a point that catches students who assume the biological species concept is universal.<br><br>Similarly, obligate parthenogens (certain lizards, insects, rotifers) and vegetatively reproducing plants cannot be assessed by interbreeding. Here morphological or ecological species concepts are applied instead.',
       },
       {
         t: 'p',
@@ -481,7 +481,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET statement analysis',
         q: '<b>How many statements are correct?</b><br><b>(A)</b> The biological species concept works for all sexually reproducing organisms.<br><b>(B)</b> Two organisms that look identical must belong to the same species.<br><b>(C)</b> The ecological species concept would treat two fish populations that occupy different water depths, using different resources, as different species.<br><b>(D)</b> Bacteria are classified using the biological species concept based on their ability to exchange genetic material through conjugation.',
         steps: [
-          '<b>Analysis.</b> (A) False: even among sexually reproducing organisms, the biological concept fails for fossils (cannot test interbreeding) and for plants that form hybrids (e.g., the <i>Brassica</i> allotetraploids <i>B. juncea</i>, <i>B. napus</i> and <i>B. carinata</i> arose by hybridisation between pairs of the diploid species <i>B. rapa</i>, <i>B. nigra</i> and <i>B. oleracea</i>). (B) False: cryptic species look identical but are genetically isolated. This is exactly when the biological concept is needed to separate them. (C) True: ecological species concept classifies based on niche. Different water depths = different niches = different species. (D) False: bacteria can exchange genetic material by conjugation, but “species” in bacteria is defined by molecular criteria (DNA–DNA hybridisation ≥70%, ≥97% (older figure; about 98.65% in current work) 16S rRNA identity; approximate operational thresholds, not NCERT), not by the biological species concept’s interbreeding test. Conjugation does occur within a bacterial species but is not the defining criterion.',
+          '<b>Analysis.</b> (A) False: even among sexually reproducing organisms, the biological concept fails for fossils (cannot test interbreeding) and for plants that form hybrids (e.g., the <i>Brassica</i> allotetraploids <i>B. juncea</i>, <i>B. napus</i> and <i>B. carinata</i> arose by hybridisation between pairs of the diploid species <i>B. rapa</i>, <i>B. nigra</i> and <i>B. oleracea</i>). (B) False: cryptic species look identical but are genetically isolated. This is exactly when the biological concept is needed to separate them. (C) True: the ecological species concept classifies based on niche, so populations occupying different niches would be treated as different species. (D) False: bacteria can exchange genetic material by conjugation, but “species” in bacteria is defined by molecular criteria (DNA–DNA hybridisation ≥70%, ≥97% (older figure; about 98.65% in current work) 16S rRNA identity; approximate operational thresholds, not NCERT), not by the biological species concept’s interbreeding test. Conjugation does occur within a bacterial species but is not the defining criterion.',
         ],
         ans: 'Only (C) is correct, so the number of correct statements is one.',
       },

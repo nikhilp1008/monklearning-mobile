@@ -162,7 +162,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives both forms of the species-area equation (<i>S</i> = <i>CA</i><sup><i>z</i></sup> and log <i>S</i> = log <i>C</i> + <i>z</i> log <i>A</i>), states typical <i>z</i>-ranges for small and continental scales, and works a prediction. It does not go further into what the intercept means for a fitted line, why the log-log line is used for prediction, or the limits of extending a fitted line beyond the areas it covers. Questions of this kind can be asked at 2-mark and high-difficulty level.',
+        html: 'The chapter gives both forms of the species-area equation (<i>S</i> = <i>CA</i><sup><i>z</i></sup> and log <i>S</i> = log <i>C</i> + <i>z</i> log <i>A</i>), states typical <i>z</i>-ranges for small and continental scales, and works a prediction and notes in one line that <i>C</i> is the species count at unit area. It does not go further into how to read the intercept of a fitted line, why the log-log line is used for prediction, or the limits of extending a fitted line beyond the areas it covers. Questions of this kind can be asked at 2-mark and high-difficulty level.',
       },
 
       { t: 'part', title: 'Method' },
@@ -263,7 +263,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] A student plots log <i>S</i> against log <i>A</i> and finds a straight line of slope 0.22. Is this a local or continental study?',
-            a: '<i>z</i> = 0.22 sits just above the local range (0.1–0.2) but well below the continental range (0.6–1.2). It is nearer the within-region band (about 0.1–0.2, sometimes a little higher) than the continental one. This is a regional-to-local scale study.',
+            a: '<i>z</i> = 0.22 sits just above the local range (0.1–0.2) and well below the continental range (0.6–1.2), so it is much nearer the local values: a regional-to-local scale study.',
           },
           {
             q: '[NEET] Why does the species-area curve flatten on ordinary (non-log) axes but remain linear on log-log axes?',
@@ -347,9 +347,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'CUET / Match',
-        q: '<b>Endemism and Hotspots.</b> Column I:<br>(P) an endemic amphibian of the Western Ghats, taken as a species<br>(Q) Invasive weed from tropical America<br>(R) Indian hotspot that also includes Sri Lanka<br>(S) Endangered native tiger subspecies<br>Column II:<br>(i) Western Ghats–Sri Lanka hotspot<br>(ii) <i>Lantana camara</i><br>(iii) Bengal tiger (<i>Panthera tigris tigris</i>)<br>(iv) any endemic amphibian',
+        q: '<b>Endemism and Hotspots.</b> Column I:<br>(P) <i>Hydrophylax malabaricus</i><br>(Q) Invasive weed from tropical America<br>(R) Indian hotspot that also includes Sri Lanka<br>(S) Endangered native tiger subspecies<br>Column II:<br>(i) Western Ghats–Sri Lanka hotspot<br>(ii) <i>Lantana camara</i><br>(iii) Bengal tiger (<i>Panthera tigris tigris</i>)<br>(iv) Endemic to the Western Ghats',
         steps: [
-          '<b>Reasoning:</b> (P) an endemic amphibian of the Western Ghats, taken as a species, is an endemic species (iv). (Q) <i>Lantana camara</i> is exotic, introduced from tropical America (ii). (R) The Western Ghats–Sri Lanka hotspot is the Indian hotspot that also includes Sri Lanka (i); like every hotspot it has more than 1,500 endemic vascular plants. (S) The Bengal tiger is a native Indian tiger subspecies (not exotic); it also occurs in neighbouring countries, so it is native rather than strictly endemic to India (iii).',
+          '<b>Reasoning:</b> (P) <i>Hydrophylax malabaricus</i> is found naturally only in the Western Ghats, so it is endemic there (iv). (Q) <i>Lantana camara</i> is exotic, introduced from tropical America (ii). (R) The Western Ghats–Sri Lanka hotspot is the Indian hotspot that also includes Sri Lanka (i); like every hotspot it has more than 1,500 endemic vascular plants. (S) The Bengal tiger is a native Indian tiger subspecies (not exotic); it also occurs in neighbouring countries, so it is native rather than strictly endemic to India (iii).',
         ],
         ans: 'P–iv, Q–ii, R–i, S–iii.',
       },
@@ -440,7 +440,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET',
         q: '<b>Assertion-Reason on Extinction Rates.</b> Assertion (A): The ongoing sixth mass extinction is considered more worrying than the five past natural mass extinctions. Reason (R): The five past extinctions were caused by natural events whereas the current one is human-caused and far faster. Options: <b>(a)</b> Both true, R explains A; <b>(b)</b> Both true, R does not explain A; <b>(c)</b> A true, R false; <b>(d)</b> A false, R true.',
         steps: [
-          'A is true: the sixth extinction is considered more worrying because it is human-driven and occurs at 100–1000 times the natural rate, which is far faster than the geological-time-scale natural events. R is true: the cause is the key distinction. The faster rate (which R implies by the “far faster” characterisation) is the reason A holds.',
+          'A is true: the sixth extinction is considered more worrying because it is human-driven and is running at 100–1000 times the natural background rate. R is true as the item states it: the past five were natural events and the present one is human-caused. The cause is the key distinction and it explains A. (The chapter compares the present rate with the natural background rate; the “far faster” in R is the item’s own wording.)',
         ],
         ans: '(a) Both true, R explains A.',
       },
@@ -450,7 +450,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Interpreting the Percentage of Threatened Species.</b> The chapter states ~32% of amphibians are threatened. Explain what “threatened” means in this context and which IUCN categories it encompasses.',
         steps: [
           'In IUCN terminology, “threatened” is a collective term for the three highest-risk categories: Critically Endangered (CR), Endangered (EN), and Vulnerable (VU). “Threatened” does NOT include Extinct (EX), Near Threatened (NT), or Least Concern (LC).',
-          'So the statement “~32% of amphibians are threatened” means approximately 32% of the assessed amphibian species fall into CR, EN, or VU categories. The remaining ~68% are distributed among EW, NT, LC, DD and NE (and the few EX).',
+          'So the statement “~32% of amphibians are threatened” means approximately 32% of the assessed amphibian species fall into CR, EN, or VU categories. The remaining ~68% of the assessed species are in EX, EW, NT, LC or DD; Not Evaluated (NE) species are outside the count.',
         ],
         ans: '“Threatened” = CR + EN + VU. The 32% figure means roughly one in three amphibian species faces a high to extremely high risk of extinction in the wild.',
       },
@@ -488,11 +488,11 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Why does “threatened” include CR, EN, and VU but not EX?',
-            a: '“Threatened” means facing a high to extremely high risk of extinction in the wild in the near future. Extinct (EX) species are already gone: they are not facing a future risk. NT species are likely threatened but do not currently meet the criteria for CR/EN/VU.',
+            a: '“Threatened” means facing a high to extremely high risk of extinction in the wild in the near future. Extinct (EX) species are already gone: they are not facing a future risk. NT species are close to qualifying for a threatened category (or likely to qualify in the near future) but do not currently meet the criteria for CR, EN or VU.',
           },
           {
             q: '[NEET High-Difficulty] A rainforest fragment of 50 hectares shows 5 species extinctions over 20 years. The original species pool (before fragmentation) was 200 species. Calculate the rate of extinction per century. Compare this to the background rate of 1 species per million per year.',
-            a: 'Observed rate = <frac><num>5 extinctions</num><den>20 years</den></frac> = 0.25 species per year = 25 species per century. Background rate for 200 species = 200 × 10<sup>−6</sup> = 2 × 10<sup>−4</sup> per year = 0.02 species per century. The observed rate is therefore <frac><num>25</num><den>0.02</den></frac> = 1,250 times the background rate: at the upper end of (slightly above) the textbook 100–1000 range, as expected for a heavily fragmented habitat. (A local fragment is not like for like with the global background rate; the arithmetic is a classroom illustration.)',
+            a: 'Observed rate = <frac><num>5 extinctions</num><den>20 years</den></frac> = 0.25 species per year = 25 species per century. Background rate for 200 species = 200 × 10<sup>−6</sup> = 2 × 10<sup>−4</sup> per year = 0.02 species per century. The observed rate is therefore <frac><num>25</num><den>0.02</den></frac> = 1,250 times the background rate: slightly above the textbook 100–1000 range, as expected for a heavily fragmented habitat. (A local fragment is not like for like with the global background rate; the arithmetic is a classroom illustration.)',
           },
         ],
       },

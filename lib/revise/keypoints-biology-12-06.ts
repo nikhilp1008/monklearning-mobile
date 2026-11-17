@@ -28,8 +28,8 @@
  * repeat the claim:
  * - homology "proves" common ancestry (pp. 297, 304): said to indicate it, and
  *   analogy is said to show similar environment, not ancestry;
- * - the human–chimpanzee DNA difference "about 1.8%": given as the book's
- *   figure, with the note that the value depends on how differences are
+ * - the human–chimpanzee DNA difference "about 1.8%": now "about 1–2%"
+ *   as in Topic 01, with the note that the value depends on how differences are
  *   counted;
  * - Earth "~4.6 bya", RNA "~3 bya", first cells "~2000 mya", jawless fishes
  *   and amphibians both "~350 mya", dinosaur extinction "~65 mya": no
@@ -89,8 +89,7 @@
  *   also be chance in a small sample;
  * - Additional B: geographic isolation is the barrier, not a reproductive
  *   isolating mechanism; hybrid inviability includes a hybrid that dies before
- *   maturity; Additional C: the human and chimpanzee DNA figure is about 1.2 to
- *   1.8% by how differences are counted, and the rate is that of the pair
+ *   maturity; Additional C: the human and chimpanzee DNA figure is about 1–2% by how differences are counted, and the rate is that of the pair
  *   diverging;
  * - Additional D: the strict form of Haeckel's law is rejected (von Baer), not
  *   the whole of embryology; no exam share, count, year or "every cycle" is repeated; the
@@ -120,7 +119,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'remember',
     q: 'What are the five classes of evidence for evolution, and what does each show?',
-    a: 'Palaeontological (fossils: older strata hold older, simpler forms, so life has changed over geological time); biogeographical (related species track continental history, as in Wegener’s continental drift and the distinctive Australian fauna); morphological and comparative anatomy (shared body plans, homologous and vestigial organs); embryological (early development shows relatedness); molecular (the more alike the genetic material, the closer the relationship; the book gives human and chimpanzee DNA as differing in about 1.8% of bases, and the figure depends on how differences are counted). One class could be a coincidence, and the agreement of all five is what makes the case strong',
+    a: 'Palaeontological (fossils: older strata hold older, simpler forms, so life has changed over geological time); biogeographical (related species track continental history, as in Wegener’s continental drift and the distinctive Australian fauna); morphological and comparative anatomy (shared body plans, homologous and vestigial organs); embryological (early development shows relatedness); molecular (the more alike the genetic material, the closer the relationship; human and chimpanzee DNA differ in only about 1–2% of aligned bases, and the figure depends on how differences are counted). One class could be a coincidence, and the agreement of all five is what makes the case strong',
     why: 'Match the example to the class: a sequence comparison is molecular, strata are palaeontological, Pangaea is biogeographical.',
     say: 'evidence classes → F-B-A-E-M (Fossils, Biogeography, Anatomy, Embryology, Molecular).',
   },
@@ -348,7 +347,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 6,
     kind: 'remember',
     q: 'What does the clock assume, why can its dates disagree with fossils, and which rate convention matters?',
-    a: 'It assumes that most mutations are neutral, that the rate stayed roughly constant, and that the two lineages evolved independently after splitting. Disagreement with fossil dates can come from calibration error (the oldest fossil need not mark the true split), rate variation (generation time, DNA repair, selection) and incomplete lineage sorting (different genes can split at different times). For 8% divergence at 0.5% per million years the time is <frac><num>8</num><den>0.5</den></frac> = 16 mya if 0.5% is the rate for the pair’s total difference, as the book works it; if 0.5% is the rate in each lineage, the two together add 2 × 0.5% per million years and the time is 8 mya. Most DNA differences are neutral, which is why a small DNA difference (about 1.8% for human and chimpanzee in the book, and about 1.2 to 1.8% depending on how differences are counted) sits beside large differences in appearance',
+    a: 'It assumes that most mutations are neutral, that the rate stayed roughly constant, and that the two lineages evolved independently after splitting. Disagreement with fossil dates can come from calibration error (the oldest fossil need not mark the true split), rate variation (generation time, DNA repair, selection) and incomplete lineage sorting (different genes can split at different times). For 8% divergence at 0.5% per million years the time is <frac><num>8</num><den>0.5</den></frac> = 16 mya if 0.5% is the rate for the pair’s total difference, as the book works it; if 0.5% is the rate in each lineage, the two together add 2 × 0.5% per million years and the time is 8 mya. Most DNA differences are neutral, which is why a small DNA difference (about 1–2% for human and chimpanzee, depending on how differences are counted) sits beside large differences in appearance',
     why: 'State whether a rate is for the pair or for each lineage before you divide.',
     say: null,
   },
@@ -359,7 +358,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'remember',
     q: 'Which question shapes does the book say come back, and how do you crack each?',
-    a: 'The weighting and the shapes are the book’s estimate from past papers, not official figures. Six shapes. Miller–Urey recall: a reducing atmosphere of CH<sub>4</sub>, NH<sub>3</sub>, H<sub>2</sub> and water vapour, amino acids as the product, support for Oparin–Haldane, and no living cell. Homology against analogy: ask whether the structure is the same (the <i>Bougainvillea</i> thorn and <i>Cucurbita</i> tendril are homologous, octopus and monkey eyes are convergent and analogous). Hardy–Weinberg numerical: the recessive fraction is <i>q</i><sup>2</sup>, take the root, <i>p</i> = 1 − <i>q</i>, and 2<i>pq</i> for the heterozygotes (<i>p</i> = 0.7 gives 0.42, <i>p</i> = 0.6 gives 0.48), checking that the three sum to 1. Assertion–reason: judge A, then R, then ask whether R explains A. Match the column: anchor the sure pairs (Darwin and <i>On the Origin of Species</i>, Lamarck and <i>Philosophie Zoologique</i>, de Vries and mutation theory, Haeckel and the biogenetic law, Weismann and germplasm theory). Diagram: the Miller apparatus (electrodes, boiling-water ocean, condenser, U-trap) and the selection graphs, where a taller narrower peak is stabilising',
+    a: 'The weighting and the shapes are the book’s estimate from past papers, not official figures. Six shapes. Miller–Urey recall: a reducing atmosphere of CH<sub>4</sub>, NH<sub>3</sub>, H<sub>2</sub> and water vapour, amino acids as the product, support for Oparin–Haldane, and no living cell. Homology against analogy: ask whether the structure is the same (the <i>Bougainvillea</i> thorn and <i>Cucurbita</i> tendril are homologous, octopus and monkey eyes are convergent and analogous). Hardy–Weinberg numerical: the recessive fraction is <i>q</i><sup>2</sup>, take the root, <i>p</i> = 1 − <i>q</i>, and 2<i>pq</i> for the heterozygotes (<i>p</i> = 0.7 gives 0.42, <i>p</i> = 0.6 gives 0.48), checking that the three sum to 1. Assertion–reason: judge A, then R, then ask whether R explains A. Match the column: anchor the sure pairs (Darwin and On the Origin of Species, Lamarck and Philosophie Zoologique, de Vries and mutation theory, Haeckel and the biogenetic law, Weismann and germplasm theory). Diagram: the Miller apparatus (electrodes, boiling-water ocean, condenser, U-trap) and the selection graphs, where a taller narrower peak is stabilising',
     why: 'Use the weighting to decide what to revise first, not as a count of past questions.',
     say: null,
   },
@@ -368,7 +367,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'mistake',
     q: 'Which wrong options keep recurring in this chapter?',
-    a: 'The book’s estimate, not official figures. Miller “made living cells”: he made amino acids. Haeckel’s recapitulation as the reason for embryological evidence: its strict form is rejected, and von Baer’s point stands. Forelimbs of whale, bat and horse called analogous: they are homologous. <i>Homo habilis</i> before <i>Australopithecus</i>: the ape-men are older. The recessive fraction used as <i>q</i> without a square root, or the heterozygote given as <i>pq</i> instead of 2<i>pq</i>. Random mating listed as a disturbing factor: it is a condition for equilibrium. Industrial melanism as acquired inheritance: selection acted on variants already present. “Survival of the fittest” credited to Darwin: Herbert Spencer introduced the phrase, in <i>Principles of Biology</i> (1864). Mammals from dinosaurs: they came from mammal-like reptiles and coexisted with the dinosaurs',
+    a: 'The book’s estimate, not official figures. Miller “made living cells”: he made amino acids. Haeckel’s recapitulation as the reason for embryological evidence: its strict form is rejected, and von Baer’s point stands. Forelimbs of whale, bat and horse called analogous: they are homologous. <i>Homo habilis</i> before <i>Australopithecus</i>: the ape-men are older. The recessive fraction used as <i>q</i> without a square root, or the heterozygote given as <i>pq</i> instead of 2<i>pq</i>. Random mating listed as a disturbing factor: it is a condition for equilibrium. Industrial melanism as acquired inheritance: selection acted on variants already present. “Survival of the fittest” credited to Darwin: Herbert Spencer introduced the phrase, in Principles of Biology (1864). Mammals from dinosaurs: they came from mammal-like reptiles and coexisted with the dinosaurs',
     why: 'Read what the option actually says: each wrong option attaches a real-sounding statement to the wrong species, theory or step.',
     say: null,
   },

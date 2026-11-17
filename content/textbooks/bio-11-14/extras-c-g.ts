@@ -24,7 +24,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives the bicarbonate reaction and names the Haldane effect and chloride shift as enrichments. NEET asks both by name, and the Haldane effect has a specific numerical implication that the chapter states qualitatively but does not quantify: deoxygenated blood carries more CO<sub>2</sub> than oxygenated blood. This additional topic makes both mechanisms examinable.',
+        html: 'The chapter gives the bicarbonate reaction and names the Haldane effect and chloride shift as enrichments. Both can be asked by name, and the Haldane effect has a specific numerical implication that the chapter states qualitatively but does not quantify: deoxygenated blood carries more CO<sub>2</sub> than oxygenated blood. This additional topic makes both mechanisms examinable.',
       },
 
       { t: 'part', title: 'Method' },
@@ -104,7 +104,7 @@ export const TOPICS: Topic[] = [
             a: 'Carbonic anhydrase, located inside red blood cells (erythrocytes).',
           },
           {
-            q: '[NEET A-R] Assertion: The chloride shift is important for maintaining electrical neutrality during bicarbonate transport. Reason: As HCO<sub>3</sub><sup>−</sup> leaves the RBC, Cl<sup>−</sup> enters to replace it, maintaining the Gibbs-Donnan equilibrium. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> Both false',
+            q: '[NEET A-R] Assertion: The chloride shift is important for maintaining electrical neutrality during bicarbonate transport. Reason: As HCO<sub>3</sub><sup>−</sup> leaves the RBC, Cl<sup>−</sup> enters to replace it, maintaining the Gibbs-Donnan equilibrium. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
             a: '(a) Both true and R correctly explains A. The chloride shift maintains electrical neutrality by exchanging HCO<sub>3</sub><sup>−</sup> (out) for Cl<sup>−</sup> (in) across the RBC membrane.',
           },
           {
@@ -121,18 +121,18 @@ export const TOPICS: Topic[] = [
     n: 'D',
     title: 'Ventilation–Perfusion Matching and Diffusion Capacity',
     extra: true,
-    kalam: 'V/Q mismatch is the most common cause of impaired gas exchange in lung disease, and it is a standard NEET-trap concept.',
+    kalam: 'V/Q mismatch is the most common cause of impaired gas exchange in lung disease, and it goes beyond the NCERT text.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter lists the three factors affecting diffusion rate (gradient, solubility, thickness) but never brings the ventilation–perfusion ratio (V/Q) onto the stage. V/Q mismatch is the most common cause of impaired gas exchange in lung disease, and it is a standard NEET-trap concept. This additional topic fills the gap.',
+        html: 'The chapter lists the three factors affecting diffusion rate (gradient, solubility, thickness) but never brings the ventilation–perfusion ratio (V/Q) onto the stage. V/Q mismatch is the most common cause of impaired gas exchange in lung disease, and it goes beyond the NCERT text. This additional topic fills the gap.',
       },
 
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Ventilation–Perfusion ratio (V/Q).</b><br>• Ventilation (<i>V</i>) = fresh air reaching alveoli per minute (about 4.2 L/min at rest, from Additional topic A).<br>• Perfusion (<i>Q</i>) = blood flow through pulmonary capillaries per minute (≈ 5 L/min at rest).<br>• Normal <i>V</i>/<i>Q</i> = <frac><num>4.2</num><den>5</den></frac> ≈ 0.8. (The book prints 4.5 over 5, about 0.9; with the 4.2 L/min of Additional topic A the ratio is 0.84, so about 0.8 is used here.)',
+        html: '<b>Ventilation–Perfusion ratio (V/Q).</b><br>• Ventilation (<i>V</i>) = fresh air reaching alveoli per minute (about 4.2 L/min at rest, from Additional topic A).<br>• Perfusion (<i>Q</i>) = blood flow through pulmonary capillaries per minute (≈ 5 L/min at rest).<br>• Normal <i>V</i>/<i>Q</i> = <frac><num>4.2</num><den>5</den></frac> ≈ 0.8. (Normal <i>V</i>/<i>Q</i> is usually quoted as about 0.8; a ventilation of 4.5 L/min would give 0.9.)',
       },
       {
         t: 'p',
@@ -141,7 +141,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: 'Interpretation of V/Q',
-        head: ['V/Q', 'Condition', 'Alveolar pO2', 'Alveolar pCO2', 'Gas Exchange'],
+        head: ['V/Q', 'Condition', 'Alveolar <i>p</i>O<sub>2</sub>', 'Alveolar <i>p</i>CO<sub>2</sub>', 'Gas Exchange'],
         rows: [
           ['0.8 (normal)', 'Ideal', '~104 mmHg', '~40 mmHg', 'Optimal'],
           ['0 (shunt)', 'Blood to unventilated alveolus', 'Low (mixes with venous)', 'High', 'No O<sub>2</sub> gain, no CO<sub>2</sub> loss'],
@@ -173,7 +173,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Step 1: V/Q at the affected region.</b> No blood flows through the blocked vessel → perfusion (Q) = 0. Ventilation (V) continues → V is normal.<br><i>V</i>/<i>Q</i> = <frac><num><i>V</i></num><den>0</den></frac> = ∞ (dead space)',
           '<b>Step 2: Gas composition in dead space alveolus.</b> Since no blood reaches the alveolus, no gas exchange occurs. The alveolar gas composition approaches inspired air: <i>p</i>O<sub>2</sub> ≈ 150 mmHg (humidified inspired), <i>p</i>CO<sub>2</sub> ≈ 0 mmHg.',
-          '<b>Step 3: Effect on systemic oxygenation.</b> This dead space region is “wasted”: it ventilates but does not oxygenate blood. To maintain systemic oxygenation, the body must increase ventilation to the healthy regions and increase cardiac output to compensate. If the dead space fraction becomes too large, compensatory mechanisms fail and systemic hypoxaemia (low blood O<sub>2</sub>) develops.',
+          '<b>Step 3: Effect on systemic oxygenation.</b> This dead-space region is “wasted”: it ventilates but does not oxygenate blood. The blood it should have carried is pushed through the rest of the lung, where perfusion now exceeds ventilation (low <i>V</i>/<i>Q</i>); that poorly oxygenated blood lowers the systemic O<sub>2</sub> (hypoxaemia). The body raises ventilation and cardiac output to compensate.',
           '<b>Clinical note.</b> Pulmonary embolism causes increased physiological dead space (V/Q = ∞ regions), not shunt. This is why measuring dead space (e.g., via the Bohr method using CO<sub>2</sub>) can help diagnose embolism.',
         ],
         ans: '',
@@ -219,7 +219,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] A patient with COPD has areas of both airway obstruction (low V/Q) and destroyed alveolar walls (increased dead space). Explain why this causes more severe hypoxaemia than either abnormality alone.',
-            a: 'Airway obstruction creates regions with low V/Q (blood passes through but is poorly oxygenated). Destroyed alveolar walls create dead space (ventilation goes to regions with no perfusion). Both problems reduce the overall effectiveness of gas exchange, and the body cannot compensate as easily because both ventilation and perfusion are compromised. Hypoxaemia is worse because it affects both the oxygenation of blood AND the removal of CO<sub>2</sub>.',
+            a: 'Airway obstruction creates regions with low V/Q (blood passes through but is poorly oxygenated). Destroyed alveolar walls create dead space (ventilation goes to regions with no perfusion). Both problems reduce the overall effectiveness of gas exchange, and the body cannot compensate as easily because both ventilation and perfusion are compromised. The combination both lowers blood O<sub>2</sub> (hypoxaemia) and hinders the removal of CO<sub>2</sub>.',
           },
           {
             q: '[NEET A-R] Assertion: In a pulmonary embolism, increasing inspired oxygen concentration fully corrects hypoxaemia. Reason: Dead-space alveoli are ventilated but not perfused. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
@@ -240,7 +240,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter explains the mechanism of inspiration and expiration (volume change → pressure change → airflow) but mentions <b>lung compliance</b> (how easily the lungs expand under pressure) only in passing (fibrosis “reducing compliance”) and never defines it, and it does not address why <b>surfactant</b> is essential. These are examinable, especially for understanding why premature babies develop Infant Respiratory Distress Syndrome (IRDS), a classic NEET and CUET topic that builds directly on the chapter’s physics of breathing.',
+        html: 'The chapter explains the mechanism of inspiration and expiration (volume change → pressure change → airflow) but mentions <b>lung compliance</b> (how easily the lungs expand under pressure) only in passing (fibrosis “reducing compliance”) and never defines it, and it does not address why <b>surfactant</b> is essential. These are examinable, especially for understanding why premature babies develop Infant Respiratory Distress Syndrome (IRDS), a topic that builds directly on the chapter’s physics of breathing.',
       },
 
       { t: 'part', title: 'Method' },
@@ -258,7 +258,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Surfactant: the physics.</b><br>The inner surface of every alveolus is covered with a thin liquid film. Surface tension (the cohesive force between liquid molecules at an air–liquid interface) acts to collapse the alveolus: smaller alveoli experience greater inward force (Law of Laplace: pressure ∝ <frac><num>surface tension</num><den>radius</den></frac>). Without intervention, small alveoli would empty into large ones during expiration, and the lungs would be impossible to reinflate.',
+        html: '<b>Surfactant: the physics.</b><br>The inner surface of every alveolus is covered with a thin liquid film. Surface tension (the cohesive force between liquid molecules at an air–liquid interface) acts to collapse the alveolus: smaller alveoli experience greater inward force (Law of Laplace: pressure ∝ <frac><num>surface tension</num><den>radius</den></frac>). Without intervention, small alveoli would empty into large ones during expiration, and the lungs would be very hard to reinflate.',
       },
       {
         t: 'p',
@@ -332,7 +332,7 @@ export const TOPICS: Topic[] = [
             a: 'Adequate surfactant production is reached around 35 weeks of gestation. Premature birth causes Infant Respiratory Distress Syndrome (IRDS).',
           },
           {
-            q: '[NEET A-R] Assertion: A premature infant with IRDS has low lung compliance. Reason: Lack of surfactant causes increased surface tension, making the lungs stiff and difficult to inflate. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> Both false',
+            q: '[NEET A-R] Assertion: A premature infant with IRDS has low lung compliance. Reason: Lack of surfactant causes increased surface tension, making the lungs stiff and difficult to inflate. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
             a: '(a) Both true and R correctly explains A. Low surfactant → high surface tension → stiff lungs (low compliance) → difficult inflation. This is the pathophysiology of IRDS exactly.',
           },
         ],
@@ -350,7 +350,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter names the respiratory organs across the animal kingdom (earthworm, insects, fish, birds, mammals) and meets high altitude in Topic 04 (thin air and acclimatisation). It does not systematically compare the adaptations that allow different animals to thrive in radically different environments: deep sea, high altitude, apnea diving. These comparisons are high-yield for NEET’s comparative-physiology questions.',
+        html: 'The chapter names the respiratory organs across the animal kingdom (earthworm, insects, fish, birds, mammals) and meets high altitude in Topic 04 (thin air and acclimatisation). It does not systematically compare the adaptations that allow different animals to thrive in radically different environments: deep sea, high altitude, apnea diving. These comparisons go beyond the NCERT text but help with comparative-physiology questions.',
       },
 
       { t: 'part', title: 'Method' },
@@ -370,7 +370,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Diving mammals (apnea adaptation):</b><br>Mammals that dive (whales, dolphins, seals, humans during breath-hold diving) face a different problem: they must carry all their oxygen with them and use it sparingly.<br>1. <b>Bradycardia:</b> Heart rate drops dramatically (from about 100 to about 10–20 beats/min in a diving seal): the “diving reflex.”<br>2. <b>Peripheral vasoconstriction:</b> Blood flow is shunted away from non-essential tissues (skin, gut) to the brain, heart, and exercising muscles only.<br>3. <b>Myoglobin-bound O<sub>2</sub>:</b> High concentrations of myoglobin (an O<sub>2</sub>-binding protein similar to Hb but in muscle) release O<sub>2</sub> during extended dives.<br>4. <b>Lung collapse:</b> Diving mammals’ rib cages are flexible enough to allow lung collapse at depth, preventing nitrogen absorption (which causes decompression sickness) and protecting against pressure effects. Air is compressed into the upper airways.<br>5. <b>Low metabolic rate:</b> Seals (and other diving mammals) can reduce metabolic rate by 20–30% during dives, extending dive duration.',
+        html: '<b>Diving mammals (apnea adaptation):</b><br>Mammals that dive (whales, dolphins, seals, humans during breath-hold diving) face a different problem: they must carry all their oxygen with them and use it sparingly.<br>1. <b>Bradycardia:</b> Heart rate drops dramatically (from about 100 to about 10–20 beats/min in a diving seal): the “diving reflex.”<br>2. <b>Peripheral vasoconstriction:</b> Blood flow is shunted away from the skin, gut, kidneys and muscles to the brain and heart; the muscles work largely on the O<sub>2</sub> stored in their myoglobin.<br>3. <b>Myoglobin-bound O<sub>2</sub>:</b> High concentrations of myoglobin (an O<sub>2</sub>-binding protein similar to Hb but in muscle) release O<sub>2</sub> during extended dives.<br>4. <b>Lung collapse:</b> Diving mammals’ rib cages are flexible enough to allow lung collapse at depth, preventing nitrogen absorption (which causes decompression sickness) and protecting against pressure effects. Air is compressed into the upper airways.<br>5. <b>Low metabolic rate:</b> Seals (and other diving mammals) can reduce metabolic rate by 20–30% during dives, extending dive duration.',
       },
       {
         t: 'p',
@@ -397,7 +397,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Diving Mammal Adaptations.</b> Explain why a seal can hold its breath for 20–30 minutes while a human struggles for 2–3 minutes, listing at least four structural or functional adaptations.',
         steps: [
           '<b>Step 1: Oxygen storage.</b> The seal has higher [Hb] and dramatically higher myoglobin concentration in muscle (5–10× human levels). Myoglobin releases O<sub>2</sub> only under very low <i>p</i>O<sub>2</sub> conditions, making it available during the late stages of a long dive when blood O<sub>2</sub> is nearly depleted.',
-          '<b>Step 2: Oxygen conservation (diving reflex).</b> Upon submersion, the seal experiences:<br>• Bradycardia: heart rate drops from about 100 to about 10–20 beats/min.<br>• Massive peripheral vasoconstriction: blood flow to skin, kidneys, and gut ceases almost entirely.<br>• Blood is shunted exclusively to the brain and heart (organs most sensitive to hypoxia) and to exercising muscle when needed.<br>This dramatically reduces total O<sub>2</sub> consumption.',
+          '<b>Step 2: Oxygen conservation (diving reflex).</b> Upon submersion, the seal experiences:<br>• Bradycardia: heart rate drops from about 100 to about 10–20 beats/min.<br>• Massive peripheral vasoconstriction: blood flow to skin, kidneys, and gut ceases almost entirely.<br>• Blood is shunted mainly to the brain and heart (organs most sensitive to hypoxia); the working muscles rely largely on their myoglobin store.<br>This dramatically reduces total O<sub>2</sub> consumption.',
           '<b>Step 3: Lung adaptations.</b> The seal’s flexible rib cage allows the lungs to collapse at depth, forcing air into the upper respiratory tract (trachea and nasal passages) where no gas exchange occurs. This prevents:<br>• Decompression sickness (nitrogen not absorbed under pressure)<br>• Pressure-related lung damage',
           '<b>Step 4: Metabolic suppression.</b> Seals can reduce their metabolic rate by 20–30% during voluntary dives, further stretching their O<sub>2</sub> stores.',
           '<b>Result.</b> Combined, these adaptations allow the seal to use its stored O<sub>2</sub> over 20–30 minutes rather than 2–3 minutes. Human breath-hold divers (trained) can reach 5–10 minutes through voluntary bradycardia and splenic contraction (releasing stored RBCs), but they lack the myoglobin and structural adaptations of true diving mammals.',
@@ -438,7 +438,7 @@ export const TOPICS: Topic[] = [
             a: '2,3-BPG binds to deoxyhaemoglobin (not oxyhaemoglobin) and reduces Hb’s affinity for O<sub>2</sub>, shifting the dissociation curve right. At high altitude (low arterial <i>p</i>O<sub>2</sub>), this allows tissues to extract more O<sub>2</sub> from the blood despite reduced O<sub>2</sub> loading at the lungs.',
           },
           {
-            q: '[NEET A-R] Assertion: Birds can fly at higher altitudes than mammals. Reason: Bird lungs have unidirectional airflow through parabronchi with cross-current exchange, allowing more efficient oxygen extraction. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> Both false',
+            q: '[NEET A-R] Assertion: Birds can fly at higher altitudes than mammals. Reason: Bird lungs have unidirectional airflow through parabronchi with cross-current exchange, allowing more efficient oxygen extraction. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
             a: '(a) Both true and R correctly explains A. The avian parabronchial system with unidirectional flow and cross-current exchange is biomechanically superior to the mammalian alveoli system, enabling birds to sustain the extreme metabolic demands of flight and to fly at altitudes where mammals cannot maintain adequate oxygenation.',
           },
         ],
@@ -532,12 +532,12 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 3: Assertion–Reason</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Two statements (A) and (R) linked; four answer choices: <b>(a)</b> both true and R explains A; <b>(b)</b> both true but R does not explain A; <b>(c)</b> A true, R false; <b>(d)</b> both false.<br><b>Approach:</b> Evaluate A and R independently first, before matching them. The most common error is assuming R explains A just because both happen to be true: always check the causal link.',
+        html: '<b>What it looks like:</b> Two statements (A) and (R) linked; four answer choices: <b>(a)</b> both true and R explains A; <b>(b)</b> both true but R does not explain A; <b>(c)</b> A true, R false; <b>(d)</b> A false, R true.<br><b>Approach:</b> Evaluate A and R independently first, before matching them. The most common error is assuming R explains A just because both happen to be true: always check the causal link.',
       },
       {
         t: 'ex',
         tag: 'Worked representative',
-        q: 'Assertion (A): A rise in <i>p</i>CO<sub>2</sub>, H<sup>+</sup> ions and temperature shifts the HbO<sub>2</sub> dissociation curve to the right.<br>Reason (R): A rise in <i>p</i>CO<sub>2</sub> or fall in pH decreases oxygen affinity of haemoglobin.<br>Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> Both false.',
+        q: 'Assertion (A): A rise in <i>p</i>CO<sub>2</sub>, H<sup>+</sup> ions and temperature shifts the HbO<sub>2</sub> dissociation curve to the right.<br>Reason (R): A rise in <i>p</i>CO<sub>2</sub> or fall in pH decreases oxygen affinity of haemoglobin.<br>Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
         steps: [
           'A is true: high <i>p</i>CO<sub>2</sub>, high H<sup>+</sup> (low pH), and high temperature all right-shift the curve (Bohr effect).',
           'R is true: decreased affinity is exactly why the curve shifts right; more O<sub>2</sub> is released.',
@@ -550,7 +550,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 4: Matching (Column I ↔ Column II)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Two columns to be paired. Usually 4–5 items per column; one option combination is fully correct.<br><b>Approach:</b> Match the easiest pair first and eliminate options that contradict it. In NEET, these are almost always fully resolvable by recall alone.',
+        html: '<b>What it looks like:</b> Two columns to be paired. Usually 4–5 items per column; one option combination is fully correct.<br><b>Approach:</b> Match the easiest pair first and eliminate options that contradict it. Most can be solved by recall alone.',
       },
       {
         t: 'ex',
@@ -568,7 +568,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 5: Diagram Identification</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A labelled diagram (or its description) of the respiratory system; the question asks to identify a structure or its function.<br><b>Approach:</b> Trace the airway in order and match the labelled part to its NCERT description. The diagram in the NCERT textbook (Figure 14.1, the diagrammatic view of the human respiratory system) is the reference.',
+        html: '<b>What it looks like:</b> A labelled diagram (or its description) of the respiratory system; the question asks to identify a structure or its function.<br><b>Approach:</b> Trace the airway in order and match the labelled part to its NCERT description. The NCERT textbook’s diagram of the human respiratory system (its own Figure 14.1, not Figure 14.1 of this chapter) is the reference.',
       },
       {
         t: 'ex',
@@ -678,19 +678,19 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 3: Numerical / Percentage] In a healthy adult, approximately what percentage of CO<sub>2</sub> is transported as bicarbonate ions in the blood?<br>(a) 7 %<br>(b) 20–25 %<br>(c) 70 %<br>(d) 90 %',
-            a: '(c) 70 %. The three modes are: bicarbonate ≈70 %; carbaminohaemoglobin ≈20–25 %; dissolved in plasma ≈7 %. The trap option (d) is an inflated figure far above any real transport fraction (the oxygen carried as oxyhaemoglobin is about 97 %).',
+            a: '(c) 70 %. The three modes are: bicarbonate ≈70 %; carbaminohaemoglobin ≈20–25 %; dissolved in plasma ≈7 %. The trap option (d) is inflated: no form of CO<sub>2</sub> transport comes near 90 % (it is oxygen that is carried about 97 % as oxyhaemoglobin).',
           },
           {
             q: '[Level 3: Numerical / Percentage] Each haemoglobin molecule can bind a maximum of how many molecules of oxygen?<br>(a) 1<br>(b) 2<br>(c) 4<br>(d) 8',
-            a: '(c) 4. Haemoglobin has four heme groups, each binding one O<sub>2</sub> reversibly. (d) = 8 is the distractor for students who count oxygen atoms (4 O<sub>2</sub> = 8 O atoms) instead of oxygen molecules.',
+            a: '(c) 4. Haemoglobin has four haem groups, each binding one O<sub>2</sub> reversibly. (d) = 8 is the distractor for students who count oxygen atoms (4 O<sub>2</sub> = 8 O atoms) instead of oxygen molecules.',
           },
           {
-            q: '[Level 4: Assertion–Reason] Assertion (A): Workers in grinding and stone-breaking industries are prone to a serious lung condition.<br>Reason (R): Prolonged inhalation of dust provokes proliferation of fibrous tissue in the lungs.<br>(a) Both A and R are true and R correctly explains A.<br>(b) Both A and R are true but R does not explain A.<br>(c) A is true, R is false.<br>(d) Both A and R are false.',
+            q: '[Level 4: Assertion–Reason] Assertion (A): Workers in grinding and stone-breaking industries are prone to a serious lung condition.<br>Reason (R): Prolonged inhalation of dust provokes proliferation of fibrous tissue in the lungs.<br>(a) Both A and R are true and R correctly explains A.<br>(b) Both A and R are true but R does not explain A.<br>(c) A is true, R is false.<br>(d) A is false, R is true.',
             a: '(a): Both are true. Chronic dust inhalation (silica, asbestos) triggers the body’s defence response: fibrous tissue proliferation → lung fibrosis, which thickens the diffusion membrane and reduces compliance. R is the direct mechanism behind A.',
           },
           {
-            q: '[Level 4: Assertion–Reason] Assertion (A): The urge to breathe when holding one’s breath is primarily triggered by falling oxygen levels in the blood.<br>Reason (R): Peripheral chemoreceptors in the carotid bodies are the main sensors that drive increased ventilation.<br>(a) Both A and R are true and R correctly explains A.<br>(b) Both A and R are true but R does not explain A.<br>(c) A is true, R is false.<br>(d) Both A and R are false.',
-            a: '(d): A is false: the drive to breathe is triggered by rising CO<sub>2</sub> (and rising H<sup>+</sup>), not falling O<sub>2</sub>, under normal conditions. R is also false: although the carotid bodies do sense chemicals, under normal conditions the main sensor is the chemosensitive area near the rhythm centre, which responds to CO<sub>2</sub> and H<sup>+</sup>, and the role of O<sub>2</sub> is quite insignificant. Both statements are wrong.',
+            q: '[Level 4: Assertion–Reason] Assertion (A): The urge to breathe when holding one’s breath is primarily triggered by falling oxygen levels in the blood.<br>Reason (R): The chemosensitive area next to the respiratory rhythm centre is highly sensitive to CO<sub>2</sub> and H<sup>+</sup>.<br>(a) Both A and R are true and R correctly explains A.<br>(b) Both A and R are true but R does not explain A.<br>(c) A is true, R is false.<br>(d) A is false, R is true.',
+            a: '(d): A is false: under normal conditions the urge to breathe is triggered by rising CO<sub>2</sub> (and rising H<sup>+</sup>), not by falling O<sub>2</sub>. R is true: the chemosensitive area beside the rhythm centre is highly sensitive to CO<sub>2</sub> and H<sup>+</sup>, and the role of O<sub>2</sub> in the normal rhythm is quite insignificant.',
           },
           {
             q: '[Level 5: Matching] Match the respiratory capacities in Column I with their correct compositions in Column II.<br><br>Column I | Column II<br>A. Inspiratory Capacity | I. ERV + RV<br>B. Vital Capacity | II. TV + IRV<br>C. Functional Residual Capacity | III. TV + ERV<br>D. Expiratory Capacity | IV. ERV + TV + IRV<br><br>(a) A–I, B–II, C–III, D–IV<br>(b) A–II, B–IV, C–I, D–III<br>(c) A–III, B–I, C–IV, D–II<br>(d) A–IV, B–II, C–I, D–III',
@@ -698,11 +698,11 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 6: Diagram / Applied] In a spirogram of a normal adult, if tidal volume is 500 mL, IRV is 3000 mL, ERV is 1100 mL and RV is 1200 mL, what is the Inspiratory Capacity?<br>(a) 1600 mL<br>(b) 3500 mL<br>(c) 4600 mL<br>(d) 5800 mL',
-            a: '(b) 3500 mL: IC = TV + IRV = 500 + 3000 = 3500 mL. (a) = TV + ERV = 500 + 1100 = 1600 mL (EC); (c) = ERV + TV + IRV = 1100 + 500 + 3000 = 4600 mL (VC); (d) = VC + RV = 4600 + 1200 = 5800 mL (TLC). Note: these values give a VC of 4600 mL, the top of the chapter’s own range (about 4000–4600 mL); NCERT quotes about 3500–4500 mL for an adult.',
+            a: '(b) 3500 mL: IC = TV + IRV = 500 + 3000 = 3500 mL. (a) = TV + ERV = 500 + 1100 = 1600 mL (EC); (c) = ERV + TV + IRV = 1100 + 500 + 3000 = 4600 mL (VC); (d) = VC + RV = 4600 + 1200 = 5800 mL (TLC). Note: these values give a VC of 4600 mL, the top of the range that the chapter’s volumes give (about 4000–4600 mL).',
           },
           {
-            q: '[Level 6: Diagram / Applied] A patient has permanently enlarged air spaces in the terminal bronchioles with destruction of alveolar walls. The surface area for gas exchange is drastically decreased. The most likely cause is:<br>(a) Allergic reaction to pollen<br>(b) Spasm of bronchial smooth muscle<br>(c) Cigarette smoking<br>(d) Bacterial infection of the trachea',
-            a: '(c) Cigarette smoking: this describes emphysema: permanent abnormal inflation of terminal bronchioles/alveolar sacs and destruction of alveolar walls, reducing the surface area for gas exchange. Options (a) and (b) describe asthma (reversible, airway-narrowing, not alveolar destruction); (d) describes tracheitis.',
+            q: '[Level 6: Diagram / Applied] A patient has permanently enlarged air spaces beyond the terminal bronchioles, with destruction of alveolar walls. The surface area for gas exchange is drastically decreased. The most likely cause is:<br>(a) Allergic reaction to pollen<br>(b) Spasm of bronchial smooth muscle<br>(c) Cigarette smoking<br>(d) Bacterial infection of the trachea',
+            a: '(c) Cigarette smoking: this describes emphysema: permanent enlargement of the air spaces beyond the terminal bronchioles (alveolar ducts and alveoli) with destruction of alveolar walls, reducing the surface area for gas exchange. Options (a) and (b) describe asthma (reversible, airway-narrowing, not alveolar destruction); (d) describes tracheitis.',
           },
           {
             q: '[Level 6: Diagram / Applied] The partial pressure of oxygen in the alveolar air is approximately 104 mmHg while that in the deoxygenated blood entering the pulmonary capillaries is 40 mmHg. Which gas and in which direction will diffuse across the respiratory membrane?<br>(a) O<sub>2</sub> from alveoli to blood; CO<sub>2</sub> from blood to alveoli simultaneously.<br>(b) CO<sub>2</sub> from alveoli to blood; O<sub>2</sub> from blood to alveoli simultaneously.<br>(c) Only O<sub>2</sub> diffuses; CO<sub>2</sub> does not diffuse at the same point.<br>(d) Both gases diffuse from alveoli to blood.',
@@ -714,7 +714,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key Things to Master' },
       {
         t: 'p',
-        html: 'NEET questions from this chapter repeatedly test three things, so make sure you can state each one without hesitation: (1) the exact percentages of CO<sub>2</sub> transport: about 70 % as bicarbonate, 20–25 % as carbaminohaemoglobin and 7 % dissolved in plasma, because distractors swap these numbers (for example, a “70 % carbaminohaemoglobin” option); (2) the directional logic of the Bohr effect and its precise link to affinity reduction (the conditions that shift the curve right, and why that lowers Hb’s affinity for O<sub>2</sub>), which is exactly the cause–effect chain an assertion–reason item demands; and (3) the <b>distinction between the conducting zone end-point and the respiratory zone start-point</b>, a subtlety that NEET exploits in diagram-based and definition-based questions where students cannot distinguish terminal bronchioles from respiratory bronchioles or cannot say where conduction stops. (Respiratory bronchioles are beyond the NCERT text, which takes the conducting part to end at the terminal bronchioles.)',
+        html: 'Three things are worth being able to state without hesitation: (1) the exact percentages of CO<sub>2</sub> transport: about 70 % as bicarbonate, 20–25 % as carbaminohaemoglobin and 7 % dissolved in plasma, because distractors swap these numbers (for example, a “70 % carbaminohaemoglobin” option); (2) the directional logic of the Bohr effect and its precise link to affinity reduction (the conditions that shift the curve right, and why that lowers Hb’s affinity for O<sub>2</sub>), which is exactly the cause–effect chain an assertion–reason item demands; and (3) the <b>distinction between the conducting zone end-point and the respiratory zone start-point</b>, a subtlety that NEET exploits in diagram-based and definition-based questions where students cannot distinguish terminal bronchioles from respiratory bronchioles or cannot say where conduction stops. (Respiratory bronchioles are beyond the NCERT text, which takes the conducting part to end at the terminal bronchioles.)',
       },
     ],
   },

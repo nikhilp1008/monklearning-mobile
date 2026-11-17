@@ -34,7 +34,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A reliable scoring cluster for <b>NEET</b>: seed structure (dicot vs monocot), true/false/parthenocarpic fruits, and the <b>Solanaceae floral formula</b> appear almost every year (the book’s estimate from past papers, not official figures), often as match-the-column or “identify the family” items. <b>CUET (Biology)</b> asks single-correct MCQs on pericarp layers and seed types; <b>CBSE Boards</b> favour labelled dicot/monocot seed diagrams and the semi-technical description of Solanaceae. <b>No Biology in JEE.</b> The boundary to guard: this is morphology of the fruit and seed, not the Class-12 reproductive events that form them.',
+        html: '<b>Exam Relevance:</b> A reliable scoring cluster for <b>NEET</b>: seed structure (dicot vs monocot), true/false/parthenocarpic fruits, and the <b>Solanaceae floral formula</b> appear regularly (the book’s estimate from past papers, not official figures), often as match-the-column or “identify the family” items. <b>CUET (Biology)</b> asks single-correct MCQs on pericarp layers and seed types; <b>CBSE Boards</b> favour labelled dicot/monocot seed diagrams and the semi-technical description of Solanaceae. <b>No Biology in JEE.</b> The boundary to guard: this is morphology of the fruit and seed, not the Class-12 reproductive events that form them.',
       },
       {
         t: 'p',
@@ -96,7 +96,7 @@ export const TOPICS: Topic[] = [
         rows: [
           ['Seed coat', 'protective covering: outer <b>testa</b> (thick, hard) + inner <b>tegmen</b> (thin, papery)'],
           ['Hilum', 'scar marking where the seed was attached (via the funicle) to the fruit'],
-          ['Micropyle', 'small pore just below the hilum; route of water entry at germination'],
+          ['Micropyle', 'small pore just above the hilum (as NCERT puts it); route of water entry at germination'],
           ['Embryo', 'the young plant: <b>radicle</b> (→ root), <b>plumule</b> (→ shoot), <b>cotyledon(s)</b> (seed leaves)'],
           ['Endosperm', 'food-storage tissue (when present); outermost proteinous sheet = <b>aleurone layer</b>'],
         ],
@@ -368,7 +368,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> The capstone of the chapter and a dependable scorer. <b>NEET</b> asks 1–2 questions every year on the three families (the book’s estimate from past papers, not official figures), often floral formula, floral diagram, or “identify the family” from a feature set. <b>CUET</b> lifts direct single-correct items on family characters and economic plants. <b>CBSE Boards</b> ask the full <b>semi-technical description</b> of a given plant (with floral diagram + formula) as a 3–5 mark question, and short questions on Fabaceae/Solanaceae/Liliaceae. <b>No Biology in JEE.</b> This topic ties Topic 01 to Topic 03 together: a family description is the whole plant described organ by organ.',
+        html: '<b>Exam Relevance:</b> The capstone of the chapter and a dependable scorer. <b>NEET</b> asks questions on the three families regularly (the book’s estimate from past papers, not official figures), often floral formula, floral diagram, or “identify the family” from a feature set. <b>CUET</b> lifts direct single-correct items on family characters and economic plants. <b>CBSE Boards</b> ask the full <b>semi-technical description</b> of a given plant (with floral diagram + formula) as a 3–5 mark question, and short questions on Fabaceae/Solanaceae/Liliaceae. <b>No Biology in JEE.</b> This topic ties Topic 01 to Topic 03 together: a family description is the whole plant described organ by organ.',
       },
       {
         t: 'p',
@@ -380,7 +380,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The pay-off is <b>classification</b>. Plants that share a pattern of floral characters are grouped into a <b>family</b>. NCERT studies three: <b>Fabaceae</b> (the pea/legume family), <b>Solanaceae</b> (the potato/tomato family, detailed in Topic 03), and <b>Liliaceae</b> (the lily family). Learn each as a single recognisable “signature,” and family questions answer themselves: the moment you see a papilionaceous corolla with diadelphous stamens, it is Fabaceae; five fused epipetalous stamens on a berry-forming plant, it is Solanaceae; six petaloid tepals with stamens on the perianth, it is Liliaceae.',
+        html: 'The pay-off is <b>classification</b>. Plants that share a pattern of floral characters are grouped into a <b>family</b>. NCERT studies three: <b>Fabaceae</b> (the pea/legume family), <b>Solanaceae</b> (the potato/tomato family, detailed in Topic 03), and <b>Liliaceae</b> (the lily family). Learn each as a single recognisable “signature,” and family questions answer themselves: the moment you see a papilionaceous corolla with diadelphous stamens, it is Fabaceae; five epipetalous stamens (free from one another, borne on the corolla) on a berry-forming plant, it is Solanaceae; six petaloid tepals with stamens on the perianth, it is Liliaceae.',
       },
       {
         t: 'p',
@@ -431,7 +431,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>D. Family Fabaceae (Papilionoideae): full description</b>' },
       {
         t: 'p',
-        html: 'Habit: trees, shrubs, herbs; <b>roots bear nodules</b>. Stem erect or climbing. Leaves alternate, <b>pinnately compound</b> or simple, with a swollen <b>pulvinus</b> leaf base, stipulate, reticulate venation. Inflorescence racemose. Flower bisexual, <b>zygomorphic</b>. Calyx 5, gamosepalous. Corolla 5, polypetalous, <b>papilionaceous</b>: one posterior <b>standard (vexillum)</b>, two lateral <b>wings</b>, two anterior fused into a <b>keel</b>; <b>vexillary (descending imbricate)</b> aestivation. Androecium 10, <b>diadelphous</b> (9 fused + 1 free), anthers dithecous. Gynoecium <b>monocarpellary</b>, ovary superior, unilocular, <b>marginal placentation</b>, many ovules. <b>Fruit a legume (pod); seeds non-endospermous. Economic importance:</b> pulses (gram, pea, arhar, beans); edible oils (soybean, groundnut); dye (<i>Indigofera</i>); fibre (sunn hemp); fodder (<i>Sesbania</i>, <i>Trifolium</i>); ornamentals (lupin, sweet pea); medicine (Mulethi/liquorice).',
+        html: 'Habit: trees, shrubs, herbs; <b>roots bear nodules</b>. Stem erect or climbing. Leaves alternate, <b>pinnately compound</b> or simple, with a swollen <b>pulvinus</b> leaf base, stipulate, reticulate venation. Inflorescence racemose. Flower bisexual, <b>zygomorphic</b>. Calyx 5, gamosepalous; imbricate aestivation. Corolla 5, polypetalous, <b>papilionaceous</b>: one posterior <b>standard (vexillum)</b>, two lateral <b>wings</b>, two anterior fused into a <b>keel</b>; <b>vexillary (descending imbricate)</b> aestivation. Androecium 10, <b>diadelphous</b> (9 fused + 1 free), anthers dithecous. Gynoecium <b>monocarpellary</b>, ovary superior, unilocular, <b>marginal placentation</b>, many ovules. <b>Fruit a legume (pod); seeds non-endospermous. Economic importance:</b> pulses (gram, pea, arhar, beans); edible oils (soybean, groundnut); dye (<i>Indigofera</i>); fibre (sunn hemp); fodder (<i>Sesbania</i>, <i>Trifolium</i>); ornamentals (lupin, sweet pea); medicine (Mulethi/liquorice).',
       },
       { t: 'p', html: '<b>E. Family Solanaceae: recap</b> (full treatment in Topic 03)' },
       {

@@ -39,7 +39,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Reading the fluid-mosaic diagram.</b> The bilayer has two leaflets. The outer leaflet carries glycolipids and glycoproteins (carbohydrate chains facing outward) that form the glycocalyx’s molecular detail. Cholesterol (in animal membranes) or phytosterols (in plant membranes) nest between the hydrophobic tails, modulating fluidity. Integral proteins span the bilayer; peripheral proteins sit on either face. Lateral movement within a leaflet is free; transverse movement (flip-flop) is rare for lipids and essentially absent for proteins.',
+        html: '<b>Reading the fluid-mosaic diagram.</b> The bilayer has two leaflets. The outer leaflet carries glycolipids and glycoproteins (carbohydrate chains facing outward) that form the cell coat on the outer face (in animal cells also called the glycocalyx). Cholesterol (in animal membranes) or phytosterols (in plant membranes) nest between the hydrophobic tails, modulating fluidity. Integral proteins span the bilayer; peripheral proteins sit on either face. Lateral movement within a leaflet is free; transverse movement (flip-flop) is rare for lipids and essentially absent for proteins.',
       },
       {
         t: 'table',
@@ -102,7 +102,7 @@ export const TOPICS: Topic[] = [
           '<b>Step 1: State the wall thickness.</b> Gram-positive: thick, multilayered peptidoglycan (up to 40 layers) forming up to 90% of the wall dry weight. Gram-negative: thin, single or few layers of peptidoglycan sandwiched between the inner plasma membrane and an outer membrane.',
           '<b>Step 2: Name the additional gram-negative component.</b> Gram-negative walls carry an outer membrane of lipopolysaccharide (LPS) and lipoproteins above the thin peptidoglycan layer; this outer membrane is absent in gram-positive walls.',
           '<b>Step 3: Explain the gram response.</b> The thick peptidoglycan of gram-positive cells traps crystal violet-iodine complexes, retaining the purple colour after ethanol decolorisation. The thin gram-negative wall and the solvent action of ethanol on the LPS layer allow the dye to wash out; only the counterstain safranin remains, giving pink.',
-          '<b>Step 4: Other consequences.</b> Gram-positive cells have no outer membrane, so they lack the wide periplasmic space that gram-negative cells have between their inner and outer membranes; gram-negative cells are more resistant to antibiotics, detergents and bile salts because of the outer LPS barrier.',
+          '<b>Step 4: Other consequences.</b> Gram-positive cells have no outer membrane, so they lack the wide periplasmic space that gram-negative cells have between their inner and outer membranes; gram-negative cells are more resistant to many antibiotics (such as penicillin), detergents and bile salts because of the outer LPS barrier.',
         ],
         ans: 'Gram-positive bacteria have a thick, multilayered peptidoglycan wall (no outer membrane), retain crystal violet, and appear purple. Gram-negative bacteria have a thin peptidoglycan layer plus an outer lipopolysaccharide membrane, lose crystal violet, and appear pink after counterstaining.',
       },
@@ -175,7 +175,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Leucoplasts further specialise: an amyloplast stores starch (found in tubers and seeds; it gives starch-storing tissues such as potato their white colour), an elaioplast stores fats and oils (found in oily seeds), and an aleuroplast (proteinoplast) stores proteins (found in protein-rich seeds such as legumes).',
+        html: 'Leucoplasts further specialise: an amyloplast stores starch (found in tubers and seeds), an elaioplast stores fats and oils (found in oily seeds), and an aleuroplast (proteinoplast) stores proteins (found in protein-rich seeds such as legumes).',
       },
       {
         t: 'p',
@@ -193,7 +193,7 @@ export const TOPICS: Topic[] = [
           ['Own DNA', 'Circular, bacterial-type (not histones)', 'Circular, bacterial-type'],
           ['Own ribosomes', '70S as NCERT gives it (prokaryotic size, sensitive to chloramphenicol; animal mitochondrial ribosomes are in fact smaller, about 55S)', '70S'],
           ['Divide independently', 'Binary fission, not by host-cell mitosis', 'Binary fission'],
-          ['Double membrane origin', 'One membrane from host, one from symbiont', 'One from host, one from symbiont'],
+          ['Double membrane origin', 'Inner membrane from the symbiont; the outer is classically said to come from the host’s engulfing vesicle', 'Inner membrane from the symbiont; the outer is classically said to come from the host’s engulfing vesicle'],
         ],
       },
       {
@@ -218,9 +218,9 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Step 1: State the observation.</b> Mitochondria possess their own circular DNA and 70S ribosomes and divide by binary fission, consistent with an independent origin. However, the mitochondrial genome is highly reduced: human mitochondrial DNA encodes only 13 proteins, 22 tRNAs, and 2 rRNAs, while the ~1,500 proteins required for mitochondrial function are encoded by nuclear DNA.',
           '<b>Step 2: Evaluate the statement.</b> The reduction is precisely what the endosymbiotic theory predicts: once engulfed, the symbiont progressively transferred genes to the host nucleus (gene transfer hypothesis), retaining only those genes essential for the organelle’s core, hydrophobic, membrane-bound functions. The statement is therefore consistent with, not contradictory to, the endosymbiotic theory.',
-          '<b>Step 3: Add the corroborating evidence.</b> Mitochondria are bounded by two membranes (the inner derived from the symbiont, the outer from the host’s endocytic vesicle); their ribosomes are chloramphenicol-sensitive (like prokaryotic ribosomes); and they cannot be synthesised de novo by the cell: new mitochondria arise only by the growth and division of existing ones.',
+          '<b>Step 3: Add the corroborating evidence.</b> Mitochondria are bounded by two membranes (the inner derived from the symbiont, the outer, in the classic account, from the host’s endocytic vesicle); their ribosomes are chloramphenicol-sensitive (like prokaryotic ribosomes); and they cannot be synthesised de novo by the cell: new mitochondria arise only by the growth and division of existing ones.',
         ],
-        ans: 'The statement supports rather than undermines the endosymbiotic theory. Gene transfer from symbiont to host explains both the circular DNA (ancient prokaryotic heritage) and the reduced genome (evolutionary simplification after symbiosis was established). Mitochondria are symbiotic remnants that retain enough autonomy to divide but depend on the nucleus for most of their proteins.',
+        ans: 'The statement supports rather than undermines the endosymbiotic theory. The bacterial ancestry explains the circular DNA, and gene transfer from symbiont to host explains the reduced genome (evolutionary simplification after symbiosis was established). Mitochondria are symbiotic remnants that retain enough autonomy to divide but depend on the nucleus for most of their proteins.',
       },
       {
         t: 'ex',
@@ -242,7 +242,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Differentiate between a peroxisome and a glyoxysome with respect to their occurrence and specific enzymes.',
-            a: 'Peroxisomes: found in nearly all eukaryotes (plant and animal cells); contain catalase and oxidases that break down H<sub>2</sub>O<sub>2</sub> and oxidise fatty acids. Glyoxysomes: found specifically in germinating fatty seeds ; additionally carry the glyoxylate cycle enzymes (isocitrate lyase and malate synthase) that allow mobilisation of stored fats into carbohydrate. Both share H<sub>2</sub>O<sub>2</sub> breakdown and fatty acid oxidation; the glyoxylate cycle enzymes are what the glyoxysome adds.',
+            a: 'Peroxisomes: found in nearly all eukaryotes (plant and animal cells); contain catalase and oxidases that break down H<sub>2</sub>O<sub>2</sub> and oxidise fatty acids. Glyoxysomes: found specifically in germinating fatty seeds; additionally carry the glyoxylate cycle enzymes (isocitrate lyase and malate synthase) that allow mobilisation of stored fats into carbohydrate. Both share H<sub>2</sub>O<sub>2</sub> breakdown and fatty acid oxidation; the glyoxylate cycle enzymes are what the glyoxysome adds.',
           },
           {
             q: '[NEET] State three predictions of the endosymbiotic hypothesis that have been experimentally verified for mitochondria.',
@@ -250,7 +250,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Why is the mitochondrial genome described as “highly reduced”? What does this imply about the origin of mitochondria?',
-            a: 'The human mitochondrial genome encodes only 13 proteins, whereas the organelle requires approximately 1,500 proteins for full function. This implies that most mitochondrial proteins are encoded by nuclear DNA: genes were transferred from the symbiont to the host nucleus during the course of evolution. The bacterial ancestry explains the circular DNA, and gene transfer from symbiont to host explains the reduced genome (evolutionary simplification after symbiosis was established).',
+            a: 'The human mitochondrial genome encodes only 13 proteins, whereas the organelle requires approximately 1,500 proteins for full function. This implies that most mitochondrial proteins are encoded by nuclear DNA: genes were transferred from the symbiont to the host nucleus during the course of evolution. The “highly reduced” genome is exactly what the endosymbiotic theory predicts for a former free-living organism that became dependent on its host.',
           },
           {
             q: '[NEET] A germinating castor seed uses its stored fat. Name the organelle responsible and write its two key functions in this context.',
@@ -290,7 +290,7 @@ export const TOPICS: Topic[] = [
             'Gap junction (communicating junction)',
             'Connexons (six connexin proteins forming a channel) connecting two cells; intercellular channel 1–2 nm wide',
             'Animal tissues (liver, heart, uterus)',
-            'Allows direct cytoplasmic communication: ions, small molecules, and signalling molecules pass between cells; absent in mature plant cells',
+            'Allows direct cytoplasmic communication: ions, small molecules, and signalling molecules pass between cells; not found in plants, which use plasmodesmata instead',
           ],
           [
             'Desmosome (macula adherens)',
@@ -308,7 +308,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Key distinction:</b> Tight junctions, gap junctions and desmosomes occur only in animal cells; plasmodesmata occur only in plant cells. Questions frequently contrast the two groups.',
+        html: '<b>Key distinction:</b> Tight junctions, gap junctions and desmosomes are junctions of animal cells; plasmodesmata are the channels of plant cells (and some algae). Questions frequently contrast the two groups.',
       },
       {
         t: 'p',
@@ -390,22 +390,22 @@ export const TOPICS: Topic[] = [
     n: 'D',
     title: 'Nucleus, Chromatin, and Chromosome Banding Patterns',
     extra: true,
-    kalam: 'The chapter defines chromatin as DNA wound on histone proteins, names the four chromosome types classified by centromere position, and says the SAT chromosome acts as the nucleolar organiser.',
+    kalam: 'The chapter defines chromatin as DNA wound on histone proteins, names the four chromosome types classified by centromere position, and says the nucleolus forms at a SAT chromosome’s secondary constriction, the nucleolar organiser.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter defines chromatin as DNA wound on histone proteins, names the four chromosome types classified by centromere position, and says the SAT chromosome acts as the nucleolar organiser. This additional topic adds the two functional states of chromatin (euchromatin and heterochromatin), the banding patterns used in karyotyping, and the nucleolus organiser region (NOR), the link between a satellite chromosome and the formation of the nucleolus.',
+        html: 'The chapter defines chromatin as DNA wound on histone proteins, names the four chromosome types classified by centromere position, says the nucleolus forms at a SAT chromosome’s secondary constriction, the nucleolar organiser, and mentions euchromatin and heterochromatin only in passing. This additional topic explains the two functional states of chromatin (euchromatin and heterochromatin), the banding patterns used in karyotyping, and the rDNA of the nucleolus organiser region (NOR), the link between a satellite chromosome and the formation of the nucleolus.',
       },
 
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Euchromatin vs heterochromatin.</b> During interphase, not all chromatin is equally condensed. Euchromatin is loosely packed, transcriptionally active chromatin (genes being expressed); it stains pale with DNA-specific dyes and appears as light bands on a karyotype. Heterochromatin is densely packed, transcriptionally inactive chromatin (genes not being expressed, or structural regions such as centromeres and telomeres); it stains dark and appears as dark bands on a karyotype. Constitutive heterochromatin (centromeres, telomeres) is always heterochromatic; facultative heterochromatin (e.g., the Barr body, the inactivated X chromosome in females) can become heterochromatic in certain cells.',
+        html: '<b>Euchromatin vs heterochromatin.</b> During interphase, not all chromatin is equally condensed. Euchromatin is loosely packed, transcriptionally active chromatin (genes being expressed); it stains pale with DNA-specific dyes. Heterochromatin is densely packed, transcriptionally inactive chromatin (genes not being expressed, or structural regions such as centromeres and telomeres); it stains dark. Constitutive heterochromatin (centromeres, telomeres) is always heterochromatic; facultative heterochromatin (e.g., the Barr body, the inactivated X chromosome in females) can become heterochromatic in certain cells.',
       },
       {
         t: 'p',
-        html: '<b>Chromosome banding patterns.</b> Dyes such as Giemsa (G-banding) and quinacrine (Q-banding) give each chromosome a pattern of light and dark bands. Each band corresponds to a region of alternating euchromatin (light) and heterochromatin (dark). The pattern is characteristic and reproducible for each chromosome, enabling karyotyping: the systematic arrangement of chromosomes by size and banding pattern. This is the basis for detecting Down syndrome (trisomy 21), Turner syndrome (45,X), and other chromosomal abnormalities.',
+        html: '<b>Chromosome banding patterns.</b> Dyes such as Giemsa (G-banding) and quinacrine (Q-banding) give each chromosome a pattern of light and dark bands. Dark G-bands are broadly the more condensed, gene-poor regions and light bands the gene-rich, more active ones; banding is not a simple map of euchromatin and heterochromatin. The pattern is characteristic and reproducible for each chromosome, enabling karyotyping: the systematic arrangement of chromosomes by size and banding pattern. This is the basis for detecting Down syndrome (trisomy 21), Turner syndrome (45,X), and other chromosomal abnormalities.',
       },
       {
         t: 'p',
@@ -440,7 +440,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[CBSE] Distinguish between euchromatin and heterochromatin with respect to staining, transcriptional activity, and location in a chromosome.',
-            a: 'Euchromatin: loosely packed, transcriptionally active, stains pale (light bands on a karyotype); generally located in chromosome arms. Heterochromatin: densely packed, transcriptionally inactive (or less active), stains dark with DNA dyes (dark bands on a karyotype); found at centromeres, telomeres, and secondary constrictions. Both are chromatin; the functional difference is transcriptional status.',
+            a: 'Euchromatin: loosely packed, transcriptionally active, stains pale; generally located in chromosome arms. Heterochromatin: densely packed, transcriptionally inactive (or less active), stains dark with DNA dyes; found at centromeres and telomeres. Both are chromatin; the functional difference is transcriptional status.',
           },
           {
             q: '[CUET] What is a karyotype? Name one chromosomal abnormality that can be detected by karyotyping.',
@@ -448,7 +448,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Explain the role of the nucleolus organiser region (NOR) in nucleolus formation.',
-            a: 'The nucleolus organiser region (NOR) is a secondary constriction on acrocentric chromosomes (SAT chromosomes) that contains tandem repeats of ribosomal RNA genes (rDNA). After mitosis, the NORs from one or more acrocentric chromosomes cluster together and recruit nucleolar proteins, forming the nucleolus. The NOR is therefore the source of the nucleolus: it is the genetic template for rRNA synthesis, and the nucleolus is the cytological structure that assembles around the NOR.',
+            a: 'The nucleolus organiser region (NOR) is a secondary constriction on SAT chromosomes (in humans, the acrocentric chromosomes 13, 14, 15, 21 and 22) that contains tandem repeats of ribosomal RNA genes (rDNA). After mitosis, the NORs from one or more acrocentric chromosomes cluster together and recruit nucleolar proteins, forming the nucleolus. The NOR is therefore the source of the nucleolus: it is the genetic template for rRNA synthesis, and the nucleolus is the cytological structure that assembles around the NOR.',
           },
           {
             q: '[NEET] A cell from a female mammal shows a darkly staining body at the nuclear periphery. Name this structure and state its origin.',
@@ -456,7 +456,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] State two differences between constitutive and facultative heterochromatin.',
-            a: 'Constitutive heterochromatin: always condensed in all cell types (e.g., centromeres, telomeres); never transcribed; structural role. Facultative heterochromatin: condensed in some cell types or developmental stages but not others (e.g., the inactive X chromosome); the same genetic region can be active in other cells; transcriptional silencing is reversible. The key distinction: constitutive is permanently silent; facultative is contextually silent.',
+            a: 'Constitutive heterochromatin: always condensed in all cell types (e.g., centromeres, telomeres); rarely transcribed; structural role. Facultative heterochromatin: condensed in some cell types or developmental stages but not others (e.g., the inactive X chromosome); the same genetic region can be active in other cells; transcriptional silencing is reversible. The key distinction: constitutive is permanently silent; facultative is contextually silent.',
           },
         ],
       },
@@ -479,7 +479,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Bacterial binary fission: four sequential stages.</b> Prokaryotes divide by binary fission. Replication and elongation overlap in a living cell, but the standard exam sequence is:<br>1. <b>DNA replication:</b> The single circular chromosome, attached to the plasma membrane, is replicated bidirectionally from the origin of replication (oriC). Each copy stays attached to the membrane.<br>2. <b>Cell elongation and segregation:</b> The cell grows longer, adding new peptidoglycan to the plasma membrane and wall; the diameter stays constant. As the cell lengthens, the growing membrane between the two attachment points pushes the daughter chromosomes toward opposite poles.<br>3. <b>Septum formation:</b> The FtsZ ring (a tubulin-like protein) assembles at the cell centre and contracts, and the wall and plasma membrane grow inward as a division septum; new cell wall material is deposited.<br>4. <b>Separation:</b> The septum completes, the cytoplasm is divided, and the cell splits into two genetically identical daughter cells.',
+        html: '<b>Bacterial binary fission: four sequential stages.</b> Prokaryotes divide by binary fission. Replication and elongation overlap in a living cell, but the standard exam sequence is:<br>1. <b>DNA replication:</b> The single circular chromosome, attached to the plasma membrane, is replicated bidirectionally from the origin of replication (oriC). Each copy stays attached to the membrane.<br>2. <b>Cell elongation and segregation:</b> The cell grows longer, adding new plasma membrane and new peptidoglycan wall; the diameter stays constant. As the cell lengthens, the growing membrane between the two attachment points pushes the daughter chromosomes toward opposite poles.<br>3. <b>Septum formation:</b> The FtsZ ring (a tubulin-like protein) assembles at the cell centre and contracts, and the wall and plasma membrane grow inward as a division septum; new cell wall material is deposited.<br>4. <b>Separation:</b> The septum completes, the cytoplasm is divided, and the cell splits into two genetically identical daughter cells.',
       },
       {
         t: 'p',
@@ -513,7 +513,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Cytokinesis contrast.</b> In animal cells, cytokinesis is achieved by cleavage furrow formation: actin and myosin filaments contract in a ring beneath the plasma membrane at the equator, pinching the cell into two. In plant cells, the cell plate forms from Golgi-derived vesicles that fuse at the equator along the plane of the spindle, depositing new cell wall material and the middle lamella between the daughter cells. No constriction is possible because the rigid cell wall prevents membrane pinching.',
+        html: '<b>Cytokinesis contrast.</b> In animal cells, cytokinesis is achieved by cleavage furrow formation: actin and myosin filaments contract in a ring beneath the plasma membrane at the equator, pinching the cell into two. In plant cells, the cell plate forms from Golgi-derived vesicles that fuse at the equator, across the middle of the spindle, depositing new cell wall material and the middle lamella between the daughter cells. No constriction is possible because the rigid cell wall prevents membrane pinching.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -575,7 +575,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'The Distribution' },
       {
         t: 'p',
-        html: 'Past NEET papers spread their questions on this chapter across its four topics roughly as follows (indicative shares; they vary from year to year; the book’s rough estimate of emphasis, not counted from past papers and not official figures):',
+        html: 'Past NEET papers spread their questions on this chapter across its four topics roughly as follows (indicative shares; they vary from year to year; the book’s estimate from past papers, not official figures):',
       },
       {
         t: 'table',
@@ -618,7 +618,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 1: The “Correctly Matched / Incorrectly Paired” Statement Set</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b><br>The question lists four or five numbered statements and asks “which is/are correct?” or “which is/are incorrect?” The options are typically “(i) only,” “(i) and (ii),” “all of the above,” etc.<br><b>Approach that cracks it:</b><br>Treat each statement as a true/false binary. Do not read the statements in the order they are printed; read the option list first so you know which statements you need to evaluate. Mark each on your rough sheet before looking at the options.',
+        html: '<b>What it looks like:</b><br>The question lists four or five numbered statements and asks “which is/are correct?” or “which is/are incorrect?” The options are typically “(i) only,” “(i) and (ii),” “all of the above,” etc.<br><b>Approach that cracks it:</b><br>Treat each statement as a true/false binary. Do not read the statements in the order they are printed; glance at the option list first so you know which statements you need to evaluate, then mark each of those true or false on your rough sheet before choosing an option.',
       },
       {
         t: 'ex',
@@ -764,7 +764,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Trap 1: “Glycocalyx outermost, wall middle, membrane innermost”</b><br>The most common single error in the chapter. The question will describe the plasma membrane as the outermost layer of the bacterial envelope, or ask which structure lies outside the cell wall and give “plasma membrane” as a tempting option. <b>Anchor it: the plasma membrane is the innermost layer of the envelope; the layers outside it are the cell wall and the glycocalyx.</b> (A Gram-negative wall also carries an outer membrane, but the plasma membrane is still the innermost layer.)',
+        html: '<b>Trap 1: “Glycocalyx outermost, wall middle, membrane innermost”</b><br>A common error in this chapter. The question will describe the plasma membrane as the outermost layer of the bacterial envelope, or ask which structure lies outside the cell wall and give “plasma membrane” as a tempting option. <b>Anchor it: the plasma membrane is the innermost layer of the envelope; the layers outside it are the cell wall and the glycocalyx.</b> (A Gram-negative wall also carries an outer membrane, but the plasma membrane is still the innermost layer.)',
       },
       {
         t: 'p',
@@ -776,7 +776,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Trap 4: Amyloplast = protein</b><br>Amyloplasts store <b>starch</b> (think amylum). Proteins go to <b>aleuroplasts</b> (also called proteinoplasts). This is tested persistently in leucoplast classification questions.',
+        html: '<b>Trap 4: Amyloplast = protein</b><br>Amyloplasts store <b>starch</b> (think amylum). Proteins go to <b>aleuroplasts</b> (also called proteinoplasts). It is a common trap in leucoplast classification questions.',
       },
       {
         t: 'p',
@@ -800,13 +800,13 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Trap 10: “Centrioles in plant cells” / “All respiration needs mitochondria”</b><br>Higher plants lack centrioles and build spindles without them. Bacteria respire aerobically on the plasma membrane and its infoldings (NCERT’s mesosome), with no mitochondria at all. Both statements are true facts that NEET tests as traps when students project animal or eukaryotic biology onto plants or bacteria.',
+        html: '<b>Trap 10: “Centrioles in plant cells” / “All respiration needs mitochondria”</b><br>Higher plants lack centrioles and build spindles without them. Bacteria respire aerobically on the plasma membrane and its infoldings (NCERT’s mesosome), with no mitochondria at all. Both corrections are true facts that NEET tests as traps when students project animal or eukaryotic biology onto plants or bacteria.',
       },
 
       { t: 'part', title: 'A Graded Practice Set' },
       {
         t: 'p',
-        html: 'Questions are arranged in ascending difficulty. Answers follow NCERT wording where NCERT gives one.',
+        html: 'Questions are arranged in ascending difficulty. Answers have been checked against NCERT where NCERT covers the point.',
       },
       {
         t: 'practice',

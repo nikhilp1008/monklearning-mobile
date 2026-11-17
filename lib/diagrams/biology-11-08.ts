@@ -99,7 +99,7 @@ const SMALL = 'ribosomes';
 
 /* ================= Figure 8.1 ================= */
 const CAP81 = 'Bacterial cell envelope in cross-section, three concentric labelled layers from outside in: glycocalyx (capsule), cell wall, plasma membrane; with mesosome shown as an infolding of the plasma membrane into the cytoplasm, and the nucleoid + a small circular plasmid in the cytoplasm.';
-const E81 = { cx: 180, cy: 185, gly: 84, wallOut: 78, mem: 72, nuc: [158, 172, 26, 17] as const, pla: [212, 164, 7.5] as const };
+const E81 = { cx: 180, cy: 185, gly: 86, wallOut: 80, mem: 70, nuc: [158, 172, 26, 17] as const, pla: [212, 164, 7.5] as const };
 const MESO: P[] = (() => {
   const a = polar(E81.cx, E81.cy, E81.mem, 125);
   return [a, [a[0] + 7, a[1] - 10], [a[0] + 1, a[1] - 18], [a[0] + 14, a[1] - 26], [a[0] + 8, a[1] - 34]];
@@ -133,7 +133,7 @@ function check81(): Check[] {
   const tags = ['Glycocalyx (capsule)', 'Cell wall (peptidoglycan)', 'Plasma membrane', 'Mesosome (infolding)', 'Nucleoid', 'Plasmid'];
   const meso = MESO.slice(1).every((p) => rad(p) < E81.mem - 3);
   return [
-    ['Three concentric layers from outside in: glycocalyx (dashed) outside the cell wall outside the plasma membrane, so radii fall 84 > 78 > 72', E81.gly > E81.wallOut && E81.wallOut > E81.mem && E81.gly - E81.wallOut >= 5 && E81.wallOut - E81.mem >= 5],
+    ['Three concentric layers from outside in: glycocalyx (dashed) outside the cell wall outside the plasma membrane, so radii fall 86 > 80 > 70', E81.gly > E81.wallOut && E81.wallOut > E81.mem && E81.gly - E81.wallOut >= 5 && E81.wallOut - E81.mem >= 5],
     ['The cell wall band lies between the wall circle and the plasma membrane and its leader ends in that band', (() => { const p = polar(cx, cy, 75, -125); return rad(p) < E81.wallOut && rad(p) > E81.mem; })()],
     ['The mesosome is an infolding: it starts on the plasma membrane and runs into the cytoplasm, inside the membrane', Math.abs(rad(MESO[0]) - E81.mem) < 0.5 && meso],
     ['The nucleoid and the plasmid lie wholly inside the plasma membrane', nucFar < E81.mem - 3 && plaFar < E81.mem - 3],
@@ -336,7 +336,7 @@ function drawChloro(): Sketch {
   const pe = onE(100, 52, 100), g1 = GRANA[1];
   s.tag(8, 36, 'Envelope: outer + inner membrane', pe[0], pe[1]);
   s.tag(140, 66, 'Granum (stack of thylakoids)', g1.x, g1.y - ((g1.n - 1) * TH_STEP) / 2 - TH_RY, { hi: true });
-  s.tag(150, 262, 'Stroma', 176, 162);
+  s.tag(150, 262, 'Stroma', 180, 182);
   s.tag(40, 232, 'Circular DNA', CDNA[0], CDNA[1] + 6);
   s.tag(238, 232, 'Starch granule', STARCH[0], STARCH[1] + 4.5);
   s.tag(220, 262, 'Stromal lamella', 205, 146.5);
@@ -368,6 +368,7 @@ function checkChloro(): Check[] {
     ['The grana are stacks of flat thylakoid discs (at least 4 each), and all of them lie inside the envelope', GRANA.every((g) => g.n >= 4) && grOk],
     ['Two stromal lamellae link the three grana in a chain (left to middle, middle to right)', GRANA[0].x + TH_RX < GRANA[2].x - TH_RX && GRANA[2].x + TH_RX < GRANA[1].x - TH_RX],
     ['The circular DNA and the starch granule lie in the stroma, inside the envelope and clear of the grana', inner(CDNA) && inner(STARCH) && GRANA.every((g) => Math.hypot(CDNA[0] - g.x, CDNA[1] - g.y) > 14 && Math.hypot(STARCH[0] - g.x, STARCH[1] - g.y) > 14)],
+    ['The Stroma leader ends in open stroma, inside the envelope and clear of every granum thylakoid', inner([180, 182]) && GRANA.every((g) => Math.hypot(180 - g.x, 182 - g.y) > 14 + 0 && 182 > g.y + ((g.n - 1) * TH_STEP) / 2 + TH_RY + 4)],
     ['All six names of the book are on the drawing, with the panel title', tags.every((t) => tagged(s, t)) && has(s, '(b) Chloroplast')],
     ['The grana are the one highlight (marigold)', tagged(s, 'Granum (stack of thylakoids)')],
     ...layout(s), clean(s),

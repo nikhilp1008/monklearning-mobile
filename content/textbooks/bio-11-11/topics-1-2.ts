@@ -67,7 +67,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The photosynthetic pigments.</b> Leaf pigments can be separated on a strip by <b>paper chromatography</b>, which resolves them into four bands. In order, with their characteristic colours (listed as NCERT lists them):',
+        html: '<b>The photosynthetic pigments.</b> Leaf pigments can be separated on a strip by <b>paper chromatography</b>, which resolves them into four bands. With their characteristic colours, in the order NCERT lists them (not the order of the bands on the strip):',
       },
       {
         t: 'table',
@@ -312,7 +312,7 @@ export const TOPICS: Topic[] = [
         ],
         aids: [
           '“<b>Pigs In Sachs’s Engine, Never CO<sub>2</sub></b>”: <b>P</b>riestley, <b>I</b>ngenhousz, <b>S</b>achs, <b>E</b>ngelmann, <b>N</b>iel (in order); “Never CO<sub>2</sub>” = O<sub>2</sub> comes from water.',
-          '“<b>a-b-X-C → green→green→yellow→orange</b>”: chromatogram colours of chl <b>a</b>, chl <b>b</b>, <b>X</b>anthophyll, <b>C</b>arotenoid.',
+          '“<b>a-b-X-C → blue-green → yellow-green → yellow → yellow-orange</b>”: chromatogram colours of chl <b>a</b>, chl <b>b</b>, <b>X</b>anthophyll, <b>C</b>arotenoid.',
           'Reading the mnemonic: a-b-X-C is blue-green → yellow-green → yellow → yellow-orange, so the two “greens” are blue-green (chl a) then yellow-green (chl b).',
           '“<b>Blue & Red feed the plant; Green is sent back</b>”: most/least effective wavelengths.',
         ],
@@ -424,7 +424,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>How the membrane actually makes ATP: chemiosmosis</b>' },
       {
         t: 'p',
-        html: 'The ATP isn’t made “by magic” as the electron slides down: it is made by building up a <b>proton (H<sup>+</sup>) gradient</b> across the thylakoid membrane, exactly the principle examiners call <b>chemiosmosis</b>. Three things crowd protons into the thylakoid lumen:',
+        html: 'The ATP isn’t made “by magic” as the electron slides down: it is made by building up a <b>proton (H<sup>+</sup>) gradient</b> across the thylakoid membrane, exactly the principle examiners call <b>chemiosmosis</b>. Three things build the gradient: two add protons to the thylakoid lumen, and one removes them from the stroma:',
       },
       {
         t: 'p',
@@ -479,7 +479,7 @@ export const TOPICS: Topic[] = [
         q: 'In a field, a weedicide is sprayed that blocks electron transport from PS II to PS I. Predict the consequence for the light reaction, and explain.',
         steps: [
           '<b>Answer.</b> Blocking the PS II → PS I link breaks the open electron path. Two things fail at once:',
-          '• <b>ATP lost or sharply reduced:</b> without electrons sliding down the carriers, little proton gradient is built across that stretch, so the ATP made by the non-cyclic chain is lost or sharply reduced (some ATP may still come from cyclic flow around PS I).<br>• <b>No NADP<sup>+</sup> reduction:</b> No NADPH is made because electrons never reach PS I. With NADPH missing, the Calvin cycle halts, starved of its reducing power, and carbon fixation stops; the plant effectively cannot photosynthesise, which is precisely how such herbicides kill weeds. (This is the mechanism of DCMU-type inhibitors, which clamp the PS II acceptor side.)',
+          '• <b>ATP lost or sharply reduced:</b> without electrons sliding down the carriers, little proton gradient is built across that stretch, so the ATP made by the non-cyclic chain is lost or sharply reduced (some ATP may still come from cyclic flow around PS I).<br>• <b>No NADP<sup>+</sup> reduction:</b> No NADPH is made because electrons never reach PS I. With NADPH missing, the Calvin cycle halts, starved of its reducing power, and carbon fixation stops; the plant effectively cannot photosynthesise; together with the light damage that the blocked chain causes, this is how such herbicides kill weeds. (This is the mechanism of DCMU-type inhibitors, which clamp the PS II acceptor side.)',
           'Hence NADP<sup>+</sup> reduction fails and chain-linked ATP synthesis is lost or sharply reduced.',
         ],
         ans: '',
@@ -520,7 +520,7 @@ export const TOPICS: Topic[] = [
           {
             label: 'Photosystem II',
             nudge:
-              '<b>(a)</b> PS II: trap: students who remember “PS II is first” wrongly assume it does everything; PS II only splits water.',
+              '<b>(a)</b> PS II: trap: students who remember “PS II is first” wrongly assume it does everything; PS II splits water and passes electrons on; it does not reduce NADP<sup>+</sup>.',
           },
           { label: 'Photosystem I', nudge: null },
           {
@@ -611,7 +611,7 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Swapping the photosystem jobs.</b> A very commonly tested confusion: PS II splits water; PS I reduces NADP<sup>+</sup>. Students reverse it because PS I “sounds first.” Remember by <b>number-vs-order</b>: PS II acts first in the electron’s journey even though it carries the higher number.',
-          '<b>Saying cyclic flow makes oxygen.</b> No water is split in cyclic flow, so <b>no O<sub>2</sub> and no NADPH</b>, only ATP. Examiners plant this in assertion–reason questions constantly.',
+          '<b>Saying cyclic flow makes oxygen.</b> No water is split in cyclic flow, so <b>no O<sub>2</sub> and no NADPH</b>, only ATP. Examiners often plant this in assertion–reason questions.',
           '<b>Confusing absorption spectrum with action spectrum.</b> Absorption spectrum = how much light a pigment (chlorophyll a) soaks up; action spectrum = how fast photosynthesis actually runs at each wavelength. They overlap but are not the same graph.',
           '<b>Locating the dark reaction wrongly.</b> Light reaction is on the <b>thylakoid membrane</b>; the Calvin cycle is in the <b>stroma</b>. Don’t put carbon fixation “in the grana.”',
         ],
@@ -643,7 +643,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Chemiosmosis',
-            note: 'H<sup>+</sup> piled into the lumen (water-splitting + carrier shuttle + NADP<sup>+</sup> reduction) → rush back through <b>ATP synthase (F<sub>0</sub>–F<sub>1</sub>)</b> → ATP. Gradient = the real energy store (works even in the dark).',
+            note: 'H<sup>+</sup> piled into the lumen (water-splitting + carrier shuttle) and stromal H<sup>+</sup> used up in NADP<sup>+</sup> reduction → rush back through <b>ATP synthase (F<sub>0</sub>–F<sub>1</sub>)</b> → ATP. Gradient = the real energy store (works even in the dark).',
           },
           {
             f: 'Photolysis of water',

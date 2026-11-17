@@ -82,7 +82,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key reasoning and comparative framework' },
       {
         t: 'p',
-        html: '<b>Why can a plant manage without respiratory organs?</b> This is the question examiners love, so reason it through as a four-link chain rather than memorising a list:',
+        html: '<b>Why can a plant manage without respiratory organs?</b> This is a common exam question, so reason it through as a four-link chain rather than memorising a list:',
       },
       {
         t: 'proc',
@@ -165,7 +165,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Why is the respiratory rate of a plant generally much lower than that of an animal of comparable mass?',
-            a: 'Because plants are generally non-motile, have no heat-generating tissue to keep a body temperature, and have a large proportion of dead/inactive tissue, giving a low overall O<sub>2</sub> demand.',
+            a: 'Because plants are generally non-motile, do not keep a constant warm body temperature, and have a large proportion of dead/inactive tissue, giving a low overall O<sub>2</sub> demand.',
           },
           {
             q: '[NEET High-Difficulty] A student argues that diffusion is “too slow” to supply oxygen to a tree and that plants must therefore have a hidden transport system. Identify the flaw in this argument using the concepts of demand and distance.',
@@ -212,7 +212,7 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'uptake of O<sub>2</sub> and release of CO<sub>2</sub>',
-            nudge: '<b>(a)</b> describes night-time (respiration only): the favourite trap for students who forget the day/night switch.',
+            nudge: '<b>(a)</b> describes night-time (respiration only): a classic trap for students who forget the day/night switch.',
           },
           { label: 'uptake of CO<sub>2</sub> and release of O<sub>2</sub>', nudge: null },
           { label: 'no gas exchange at all', nudge: '<b>(c)</b> is wrong because both processes are active.' },
@@ -396,11 +396,11 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-12-fig-12.1' },
       {
         t: 'p',
-        html: '<b>Investment phase (steps 1–3):</b><br>1. <b>Glucose → Glucose-6-phosphate.</b> Hexokinase attaches a phosphate (from ATP). This traps glucose inside the cell and primes it. Why? A charged, phosphorylated sugar cannot leak back out through the membrane: the cell has committed.<br>2. <b>Glucose-6-P → Fructose-6-P.</b> An isomerisation; the molecule is rearranged so the next phosphate can be added symmetrically.<br>3. <b>Fructose-6-P → Fructose-1,6-bisphosphate.</b> Phosphofructokinase spends a second ATP. Why here? This is the committed, irreversible, rate-limiting step, the cell’s main “go/no-go” valve, which is why PFK is the pacemaker.',
+        html: '<b>Investment phase (steps 1–3):</b><br>1. <b>Glucose → Glucose-6-phosphate.</b> Hexokinase attaches a phosphate (from ATP). This traps glucose inside the cell and primes it. Why? A charged, phosphorylated sugar cannot leak back out through the membrane: the glucose is now held inside the cell.<br>2. <b>Glucose-6-P → Fructose-6-P.</b> An isomerisation; the molecule is rearranged so the next phosphate can be added symmetrically.<br>3. <b>Fructose-6-P → Fructose-1,6-bisphosphate.</b> Phosphofructokinase spends a second ATP. Why here? This is the committed, irreversible, rate-limiting step, the cell’s main “go/no-go” valve, which is why PFK is the pacemaker.',
       },
       {
         t: 'p',
-        html: '<b>Splitting:</b><br>4. <b>Aldolase</b> cleaves the 6-carbon F-1,6-bisP into two 3-carbon trioses: glyceraldehyde-3-phosphate (G3P) and dihydroxyacetone phosphate (DHAP). Only G3P continues, so <b>triose phosphate isomerase</b> converts DHAP into a second G3P. From here, everything happens twice per glucose. (The book numbers the steps 1 to 9 because triose phosphate isomerase is folded into step 4; counted separately, glycolysis is ten reactions.)',
+        html: '<b>Splitting:</b><br>4. <b>Aldolase</b> cleaves the 6-carbon F-1,6-bisP into two 3-carbon trioses: glyceraldehyde-3-phosphate (G3P) and dihydroxyacetone phosphate (DHAP). Only G3P continues, so <b>triose phosphate isomerase</b> converts DHAP into a second G3P. From here, everything happens twice per glucose. (The steps here are numbered 1 to 9 because triose phosphate isomerase is folded into step 4; counted separately, glycolysis is ten reactions.)',
       },
       {
         t: 'p',
@@ -412,11 +412,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The fermentation mechanism: why it exists.</b> Notice that step 5 consumes NAD<sup>+</sup>. The cell’s NAD<sup>+</sup> pool is tiny, so it must be continuously recycled from NADH. With oxygen, the mitochondrial electron transport chain does this recycling. Without oxygen, the cell uses pyruvate as a disposal site for the hydrogen:<br>• <b>In yeast (alcoholic):</b> pyruvate is decarboxylated (losing CO<sub>2</sub>) to acetaldehyde, which is then reduced to ethanol, and that reduction is what oxidises NADH back to NAD<sup>+</sup>. Yeast poison themselves once ethanol reaches about <b>13%</b>.<br>• <b>In animal muscle and some bacteria (lactic):</b> pyruvate is directly reduced to lactic acid by lactate dehydrogenase, regenerating NAD<sup>+</sup>. <b>No CO<sub>2</sub></b> is released: a favourite NEET discriminator.<br>Either way the purpose is identical: keep NAD<sup>+</sup> available so glycolysis, and its trickle of 2 ATP, never stops.',
+        html: '<b>The fermentation mechanism: why it exists.</b> Notice that step 5 consumes NAD<sup>+</sup>. The cell’s NAD<sup>+</sup> pool is tiny, so it must be continuously recycled from NADH. With oxygen, the mitochondrial electron transport chain does this recycling. Without oxygen, the cell uses pyruvate as a disposal site for the hydrogen:<br>• <b>In yeast (alcoholic):</b> pyruvate is decarboxylated (losing CO<sub>2</sub>) to acetaldehyde, which is then reduced to ethanol, and that reduction is what oxidises NADH back to NAD<sup>+</sup>. Yeast poison themselves once ethanol reaches about <b>13%</b>.<br>• <b>In animal muscle and some bacteria (lactic):</b> pyruvate is directly reduced to lactic acid by lactate dehydrogenase, regenerating NAD<sup>+</sup>. <b>No CO<sub>2</sub></b> is released: a common NEET discriminator.<br>Either way the purpose is identical: keep NAD<sup>+</sup> available so glycolysis, and its trickle of 2 ATP, never stops.',
       },
       {
         t: 'p',
-        html: '<b>Pyruvate is the crossroads.</b> This is a key branch-point molecule, the “where do I go next?” molecule, in the whole chapter, so fix it now. Glycolysis is universal: it runs in essentially every living organism, which is why pyruvate sits at a junction shared by two fates. (i) If oxygen is <b>absent,</b> pyruvate becomes the hydrogen-dumping ground of fermentation, turning into ethanol or lactic acid. (ii) If oxygen is <b>present,</b> pyruvate is instead transported into the mitochondrion, where it is oxidatively decarboxylated, losing CO<sub>2</sub> and joining the aerobic mainline (the link reaction and the Krebs cycle, covered in the next topics). The same three-carbon acid therefore decides whether the cell settles for a meagre net 2 ATP or unlocks the far larger aerobic harvest. Hold that fork in mind: everything in Respiration that follows hangs off this one branch point.',
+        html: '<b>Pyruvate is the crossroads.</b> This is the chapter’s key branch point, the “where do I go next?” molecule, so fix it now. Glycolysis is universal: it runs in essentially every living organism, which is why pyruvate sits at a junction shared by two fates. (i) If oxygen is <b>absent,</b> pyruvate becomes the hydrogen-dumping ground of fermentation, turning into ethanol or lactic acid. (ii) If oxygen is <b>present,</b> pyruvate is instead transported into the mitochondrion, where it is oxidatively decarboxylated, losing CO<sub>2</sub> and joining the aerobic mainline (the link reaction and the Krebs cycle, covered in the next topics). The same three-carbon acid therefore decides whether the cell settles for a meagre net 2 ATP or unlocks the far larger aerobic harvest. Hold that fork in mind: everything in Respiration that follows hangs off this one branch point.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -454,7 +454,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET High-Difficulty / Assertion–Reason',
-        q: 'Assertion (A): If hexokinase is competitively inhibited, lactic acid fermentation in a muscle cell also stops (taking glucose as the only entry, as in this chapter). Reason (R): Hexokinase catalyses the first reaction of glycolysis, and fermentation depends on pyruvate supplied by glycolysis. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
+        q: 'Assertion (A): If hexokinase is competitively inhibited, lactic acid fermentation in a muscle cell also stops (taking free glucose as the cell’s only fuel). Reason (R): Hexokinase catalyses the first reaction of glycolysis, and fermentation depends on pyruvate supplied by glycolysis. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
         steps: [
           '<b>Analysis.</b> Hexokinase catalyses step 1 (glucose → glucose-6-phosphate). Block it and glucose is never phosphorylated, so the entire pathway halts and no pyruvate is produced. Fermentation has no substrate to act on, so it stops too. <b>A is true.</b> R correctly states hexokinase’s role and correctly identifies that fermentation is downstream of glycolysis, dependent on glycolytic pyruvate. <b>R is true, and it is the correct explanation of A.</b>',
         ],
@@ -474,7 +474,7 @@ export const TOPICS: Topic[] = [
             a: 'A–iii, B–iv, C–i, D–ii.',
           },
           {
-            q: '[NEET] During vigorous exercise a sprinter’s calf muscle accumulates a 3-carbon acid before lactic acid builds up and the muscle tires. Name the acid, the enzyme, and explain why no CO<sub>2</sub> is liberated.',
+            q: '[NEET] During vigorous exercise a sprinter’s calf muscle accumulates a 3-carbon acid and tires. Name the acid, the enzyme, and explain why no CO<sub>2</sub> is liberated.',
             a: 'Lactic acid; lactate dehydrogenase; pyruvate is reduced directly without a decarboxylation step, so no CO<sub>2</sub>.',
           },
           {
@@ -579,9 +579,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Gross vs net ATP.</b> The single most common Board/NEET error: writing 4 instead of 2. Always subtract the 2 invested.',
+          '<b>Gross vs net ATP.</b> A very common Board/NEET error: writing 4 instead of 2. Always subtract the 2 invested.',
           '<b>“Anaerobic” mis-reading.</b> Glycolysis does not need oxygen, but it is not blocked by oxygen either: it runs in both conditions. Reserve “strictly anaerobic” for fermentation.',
-          '<b>CO<sub>2</sub> in the wrong fermentation.</b> Lactic acid fermentation releases <b>no</b> CO<sub>2</sub>; only the alcoholic route does. Examiners exploit this constantly.',
+          '<b>CO<sub>2</sub> in the wrong fermentation.</b> Lactic acid fermentation releases <b>no</b> CO<sub>2</sub>; only the alcoholic route does. Examiners often test this.',
           '<b>Reducing power confusion.</b> Glycolysis makes <b>NADH</b>, never NADPH (some printed diagrams get this wrong). NADPH belongs to the biosynthetic/photosynthetic side, not glycolysis.',
         ],
       },

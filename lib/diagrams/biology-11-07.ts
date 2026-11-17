@@ -149,7 +149,7 @@ const HEAD71: Record<string, string> = { a: '(a) Simple Squamous Epithelium', b:
 /** Panel (a): three flat cells (one layer) on a wavy basement membrane. */
 const CELLS_A = [112, 180, 248].map((x) => ({ x, rx: 34, ry: 11 }));
 const CY_A = 143;
-const waveY = (x: number) => 154 + 4 * Math.sin(((x - 20) / 100) * 2 * Math.PI);
+const waveY = (x: number) => 160 + 4 * Math.sin(((x - 20) / 100) * 2 * Math.PI);
 function draw71a(): Sketch {
   const s = new Sketch(W, 226);
   head2(s, HEAD71.a);
@@ -159,14 +159,14 @@ function draw71a(): Sketch {
   tags(s, [
     { t: 'free surface', p: [180, 78], at: [[198, 60, 'start']] },
     { t: 'single layer of flat cells', p: [118, 137], hi: true, at: [[8, 66, 'start'], [8, 170, 'start']] },
-    { t: 'basement membrane', p: [324, 150], at: [[196, 186, 'start'], [150, 192, 'start']] },
+    { t: 'basement membrane', p: [324, Math.round(waveY(324))], at: [[196, 186, 'start'], [150, 192, 'start']] },
   ]);
   return s;
 }
 function check71a(): Check[] {
   const s = draw71a();
   const touch = CELLS_A.every((c, i) => i === 0 || Math.abs(c.x - CELLS_A[i - 1].x - (c.rx + CELLS_A[i - 1].rx)) < 1);
-  const sits = CELLS_A.every((c) => Math.abs(CY_A + c.ry - waveY(c.x)) <= 4.5);
+  const sits = CELLS_A.every((c) => Math.abs(CY_A + c.ry + 6 - waveY(c.x)) <= 4.5);
   return [
     ['One layer: three flat cells side by side, none above another, each wider than it is tall', CELLS_A.length === 3 && CELLS_A.length === 3 && CELLS_A.every((c) => c.rx > 2.5 * c.ry)],
     ['The cells touch their neighbours edge to edge, and rest on the basement membrane (the wave)', touch && sits],

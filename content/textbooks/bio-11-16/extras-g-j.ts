@@ -20,7 +20,7 @@ export const TOPICS: Topic[] = [
     n: 'G',
     title: 'Osmoregulation in Different Habitats',
     extra: true,
-    kalam: 'The chapter mentions osmoregulation as a function shared across animal groups in Topic 01.',
+    kalam: 'Freshwater animals fight water coming in; marine bony fish fight water going out.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -40,7 +40,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>3. Terrestrial animals</b>: the major challenge is <b>water conservation</b>.<br>• <b>Strategy:</b> Mammals make highly concentrated urine (hyperosmotic); birds, reptiles and insects store the excretory product as solid or semi-solid uric acid. Minimize evaporative water loss. Nocturnal activity reduces water loss.<br>• <b>Nitrogenous waste:</b> Uricotelic (most birds, reptiles and terrestrial insects): nearly water-free excretion; ureotelic (mammals): concentrated urea; ammonotelism is costly on land (too much water needed).<br>• <b>Desert mammals:</b> Can concentrate urine to several times the human maximum (about 1,200 mOsm/L; kangaroo rats about 5,000–6,000 mOsm/L; these values are not in NCERT) via very long loops of Henle. Counter-current multiplier is maximally developed. Minimal sweating.<br>• <b>Insects:</b> Malpighian tubules → hindgut water reabsorption → crystalline uric acid is deposited in the rectum → nearly zero water loss in excretion.',
+        html: '<b>3. Terrestrial animals</b>: the major challenge is <b>water conservation</b>.<br>• <b>Strategy:</b> Mammals make highly concentrated urine (hyperosmotic); birds, reptiles and insects store the excretory product as solid or semi-solid uric acid. Minimize evaporative water loss. Nocturnal activity reduces water loss.<br>• <b>Nitrogenous waste:</b> Uricotelic (most birds, reptiles and terrestrial insects): nearly water-free excretion; ureotelic (mammals): concentrated urea; ammonotelism is costly on land (too much water needed).<br>• <b>Desert mammals:</b> Can concentrate urine to several times the human maximum (about 1,200 mOsm/L, the NCERT figure; kangaroo rats reach about 5,000–6,000 mOsm/L, a value not in NCERT) via very long loops of Henle. Counter-current multiplier is maximally developed. Minimal sweating.<br>• <b>Insects:</b> Malpighian tubules → hindgut water reabsorption → crystalline uric acid is deposited in the rectum → nearly zero water loss in excretion.',
       },
       {
         t: 'table',
@@ -71,7 +71,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board Level',
         q: '<b>Desert Mammal vs Human.</b> How does the kidney of a desert mammal like a kangaroo rat achieve greater urine concentration than a human kidney? (2 marks)',
         steps: [
-          'The kangaroo rat’s loop of Henle is proportionally much longer relative to its body size than the human loop. A longer loop means a greater vertical extent of the medullary osmotic gradient: the counter-current multiplier can build a steeper gradient, reaching a urine concentration of about 5,000–6,000 mOsm/L (compared with ~1,200 mOsm/L in humans). With more water available to be drawn osmotically from the collecting duct, a much smaller volume of highly concentrated urine can be produced with minimal water loss. Additionally, the kangaroo rat’s vasa recta is highly efficient at preserving this gradient, and it produces very dry faeces (minimal water loss via gut).',
+          'The kangaroo rat’s loop of Henle is proportionally much longer relative to its body size than the human loop. A longer loop means a greater vertical extent of the medullary osmotic gradient: the counter-current multiplier can build a steeper gradient, reaching a urine concentration of about 5,000–6,000 mOsm/L (compared with ~1,200 mOsm/L in humans). With a steeper gradient, more water can be drawn osmotically out of the collecting duct, so a much smaller volume of highly concentrated urine is produced with minimal water loss. Additionally, the kangaroo rat’s vasa recta is highly efficient at preserving this gradient, and it produces very dry faeces (minimal water loss via gut).',
         ],
         ans: 'Longer loop of Henle → steeper medullary gradient → greater water reabsorption from collecting duct → more concentrated urine → reduced water loss.',
       },
@@ -90,7 +90,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Why are insects described as uricotelic, and how does this relate to their water economy?',
-            a: 'Terrestrial insects are uricotelic: they excrete nitrogen as uric acid, which is nearly insoluble and can be excreted as a solid paste with minimal water. This is a key adaptation to land life, where water conservation is critical. The Malpighian tubules produce dilute fluid that is modified in the hindgut by water reabsorption, leaving dry uric acid crystals.',
+            a: 'Terrestrial insects are uricotelic: they excrete nitrogen as uric acid, which is nearly insoluble and can be excreted as a solid paste with minimal water. This is a key adaptation to land life, where water conservation is critical. The Malpighian tubules produce a watery fluid (roughly isosmotic to the haemolymph) that is modified in the hindgut by water reabsorption, leaving dry uric acid crystals.',
           },
           {
             q: '[CBSE] Explain why ammonotelism is not a viable strategy for a desert mammal.',
@@ -114,7 +114,7 @@ export const TOPICS: Topic[] = [
     n: 'H',
     title: 'Tubular Reabsorption and Secretion: Segmental Details',
     extra: true,
-    kalam: 'The chapter states the three steps of urine formation and identifies PCT as the major reabsorption site.',
+    kalam: 'The PCT takes the bulk; the later segments fine-tune.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -131,7 +131,7 @@ export const TOPICS: Topic[] = [
           [
             '<b>PCT</b>',
             'Na<sup>+</sup>, glucose, amino acids, Cl<sup>−</sup>, water, K<sup>+</sup>, phosphate, bicarbonate, urea',
-            'about 65% of filtered Na<sup>+</sup> and water (the usual physiology figure; NCERT’s 70–80% of electrolytes and water is a different measure and does not add up with the 25%, 5% and 3% below); 100% glucose; 100% amino acids',
+            'about 65% of filtered Na<sup>+</sup> and water (the usual physiology figure; NCERT gives 70–80% of electrolytes and water, a higher estimate that does not add up with the 25%, 5% and 3% below; give 70–80% in an NCERT-based question); 100% glucose; 100% amino acids',
             'Obligatory; active transport (Na<sup>+</sup>/glucose, Na<sup>+</sup>/amino acid cotransporters); passive water follows; brush border enzymes',
           ],
           [
@@ -202,7 +202,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board Level',
         q: '<b>Renal Threshold.</b> A healthy adult and an untreated diabetic patient both consume a meal containing 100 g of glucose. Predict what happens to blood glucose levels and urinary glucose excretion in each case. (3 marks)',
         steps: [
-          'In the <b>healthy adult</b>: blood glucose rises after the meal but stays below the renal threshold (~180 mg/dL). The PCT completely reabsorbs all filtered glucose (via SGLT transporters) → no glucose in urine. In the <b>untreated diabetic patient</b>: blood glucose rises well above the renal threshold (often 250–400 mg/dL). The PCT’s SGLT transporters are saturated at the threshold concentration; above this, the transporters cannot keep up → excess glucose spills into the urine (glycosuria). The glycosuria causes an osmotic diuresis (glucose in the tubule holds water osmotically) → increased urine volume, further water and electrolyte loss → dehydration risk.',
+          'In the <b>healthy adult</b>: blood glucose rises after the meal but stays below the renal threshold (~180 mg/dL). The PCT completely reabsorbs all filtered glucose (via SGLT transporters) → no glucose in urine. In the <b>untreated diabetic patient</b>: blood glucose rises well above the renal threshold (often 250–400 mg/dL). Above the threshold concentration the PCT’s SGLT transporters begin to saturate and cannot keep up → excess glucose spills into the urine (glycosuria). The glycosuria causes an osmotic diuresis (glucose in the tubule holds water osmotically) → increased urine volume, further water and electrolyte loss → dehydration risk.',
         ],
         ans: 'Healthy adult: glucose below threshold → complete PCT reabsorption → no glycosuria. Diabetic patient: glucose above threshold → PCT transporters saturated → glucose in urine → osmotic diuresis.',
       },
@@ -349,7 +349,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'Question patterns of the kind NEET uses (the book’s estimate from past papers, not official figures), each with a fully worked example, followed by a graded practice set.',
+        html: 'Question patterns of the kind NEET uses, each with a fully worked example, followed by a graded practice set. The shares and frequencies below are the book’s estimate from past papers, not official figures.',
       },
 
       { t: 'part', title: 'The Distribution' },
@@ -460,7 +460,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 5: Diagram / Section Identification</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like.</b> A schematic nephron or kidney L.S. with labelled parts; one label (usually X or Y or a numbered structure) is the question target. Common targets: vasa recta, loop of Henle, glomerulus, Bowman’s capsule, peritubular capillaries, collecting duct.<br><br><b>The approach that cracks it.</b> Two facts decide most of these:<br>1. <b>Location:</b> Is the structure in the cortex or the medulla? Cortical structures include the renal corpuscle, PCT, and DCT. Medullary structures include the loops of Henle of juxtamedullary nephrons and the vasa recta (which parallels it).<br>2. <b>Function signature:</b> The vasa recta is a U-shaped capillary running parallel to the loop of Henle; its job is to supply the medulla without washing out the osmotic gradient (counter-current exchanger). The loop of Henle is a U-shaped tubule that multiplies the gradient by handling water and salt in opposite directions in its two limbs.',
+        html: '<b>What it looks like.</b> A schematic nephron or kidney L.S. with labelled parts; one label (usually X or Y or a numbered structure) is the question target. Common targets: vasa recta, loop of Henle, glomerulus, Bowman’s capsule, peritubular capillaries, collecting duct.<br><br><b>The approach that cracks it.</b> Two facts decide most of these:<br>1. <b>Location:</b> Is the structure in the cortex or the medulla? Cortical structures include the renal corpuscle, PCT, and DCT. Medullary structures include the loops of Henle of juxtamedullary nephrons and the vasa recta (which runs alongside them).<br>2. <b>Function signature:</b> The vasa recta is a U-shaped capillary running parallel to the loop of Henle; its job is to supply the medulla without washing out the osmotic gradient (counter-current exchanger). The loop of Henle is a U-shaped tubule that multiplies the gradient by handling water and salt in opposite directions in its two limbs.',
       },
       { t: 'p', html: '<b>Fully worked representative example:</b>' },
       {
@@ -582,8 +582,8 @@ export const TOPICS: Topic[] = [
             a: '(a): The Net Filtration Pressure (NFP) is given by:<br>NFP = GHP − (GCOP + CHP)<br>Where:<br>• GHP (glomerular hydrostatic pressure) = 55 mmHg: the outward force<br>• GCOP (colloidal osmotic pressure) = 30 mmHg: pulls fluid back in<br>• CHP (capsular hydrostatic pressure) = 15 mmHg: back-pressure of fluid already in Bowman’s capsule<br><br>NFP = 55 − (30 + 15) = 55 − 45 = +10 mmHg<br><br>A positive NFP means filtration proceeds. If GHP fell below ~45 mmHg (e.g., in severe hypotension), NFP would become zero or negative and filtration, and thus urine formation, would stop.',
           },
           {
-            q: '[Question 10: Organ integration (Hard)] A patient with chronic liver failure is found to have elevated blood ammonia and low blood urea levels. Which organ’s failure best explains this finding, and why does it produce this specific pattern?<br>(a) Kidney: because the kidney excretes urea<br>(b) Kidney: because the kidney converts ammonia to urea<br>(c) Liver: because it converts ammonia to urea<br>(d) Liver: because it stores urea for excretion',
-            a: '(c):<br>• The <b>liver</b> is the site of the ornithine (urea) cycle, where toxic ammonia is converted to the far less toxic urea. In liver failure, this conversion stalls → ammonia accumulates in the blood while urea synthesis falls.<br>• The <b>kidney</b> does not convert ammonia to urea; it only excretes urea that has already been synthesised in the liver.<br>• Option (d) is wrong because the liver does not store urea; urea is a waste product that must be continuously removed.<br><br>This question integrates three distinct facts: the site of urea synthesis (liver), the consequence of liver failure (ammonia rises), and the misconception that the kidney is the site of urea formation.',
+            q: '[Question 10: Organ integration (Hard)] A patient is found to have elevated blood ammonia and low blood urea levels. Which organ’s failure best explains this finding, and why does it produce this specific pattern?<br>(a) Kidney: because the kidney excretes urea<br>(b) Kidney: because the kidney converts ammonia to urea<br>(c) Liver: because it converts ammonia to urea<br>(d) Liver: because it stores urea for excretion',
+            a: '(c):<br>• The <b>liver</b> is the site of the ornithine (urea) cycle, where toxic ammonia is converted to the far less toxic urea. In liver failure, this conversion stalls → ammonia accumulates in the blood while urea synthesis falls.<br>• The <b>kidney</b> does not convert ammonia to urea; it excretes urea that has already been synthesised in the liver.<br>• Option (d) is wrong because the liver does not store urea; urea is a waste product that must be continuously removed.<br><br>This question integrates three distinct facts: the site of urea synthesis (liver), the consequence of liver failure (ammonia rises), and the misconception that the kidney is the site of urea formation.',
           },
         ],
       },

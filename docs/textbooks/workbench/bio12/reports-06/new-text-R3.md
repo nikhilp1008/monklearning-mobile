@@ -1,0 +1,30 @@
+# Bio 12 Ch 6: R3 fixes (reconstructed from the diff against HEAD and review-R3.md; the fixer wrote no list). Files: content/textbooks/bio-12-06/{topics-1-2,topics-3-4-extra-a,extras-b-d}.ts, lib/diagrams/biology-12-06.ts, lib/revise/keypoints-biology-12-06.ts.
+
+## [NEW] wording
+1. extras-b-d.ts, Additional D graded Q10 answer (R3-1): the editor's sentence removed; answer now ends "...(Current work treats the early atmosphere as less strongly reducing than NCERT states.)" (old added: "If the key (a) is preferred, reword R to “Because free oxygen was absent, organic molecules formed from the gases could accumulate instead of being oxidised.”"). Key stays (b).
+2. topics-1-2.ts, Topic 02 Precision note (R3-2): "...that is the exam-expected answer, but the forces that actually change allele frequencies are selection, drift and gene flow, with mutation acting only very slowly." (old: "but selection and drift are the forces that actually change frequencies.")
+3. extras-b-d.ts, Additional B Introduction (R3-3): "The chapter treats adaptive radiation (Topic 01 and Topic 04) and, in the Modern Synthesis (Topic 02), names reproductive isolation..." (old "Topic 02 and Topic 04").
+4. 1.8% reconciled to Topic 01's "1–2%" (R3-4): extras-b-d.ts C Introduction: "The chapter mentions molecular evidence for evolution (human and chimpanzee DNA differ in only about 1–2% of aligned bases, the figure depending on how differences are counted) but does not develop..." (old "human–chimpanzee DNA differing in ~1.8% of base pairs, about 1.2 to 1.8% depending on how differences are counted"). C.2 stem: "...than the observed 1–2%." C.2 last sentence: "The 1–2% figure counts differences, most of them neutral; it does not measure the rate of morphological change." Key points topic 0: "human and chimpanzee DNA differ in only about 1–2% of aligned bases, and the figure depends on how differences are counted" (old "the book gives human and chimpanzee DNA as differing in about 1.8% of bases"). Key points topic 6: "(about 1–2% for human and chimpanzee, depending on how differences are counted)". Key-point file header comment updated to "about 1–2%".
+5. topics-3-4-extra-a.ts, Topic 03 Practice 1 (iii) (R3-5): "(iii) the hominin that covered the body with hides and buried its dead." (old "an early Neanderthal-associated burial."). Answer "(iii) Neanderthal man" unchanged.
+6. topics-1-2.ts, Topic 02 Concept intuition (R3-6): "first by Hugo de Vries, who proposed, from his work on the evening primrose, that new heritable variation arises by sudden large mutations (saltation)" (old "who showed that heritable variation arises...").
+7. extras-b-d.ts, Additional B Practice 4 (R3-7): "Two species of frog, Rana pipiens and Rana clamitans, live in the same ponds but breed at different times of the year (R. pipiens in early spring, R. clamitans in early summer). What type of isolating mechanism is this?" (old "breed in the same pond but at different times of day"). Answer unchanged (temporal, pre-zygotic).
+8. extras-b-d.ts, Additional B pre-zygotic table, temporal row (R3-8): "Periodical cicadas (Magicicada) with 13-year and 17-year cycles, emerging in different years" (old "Cicada species emerging in different years").
+9. topics-3-4-extra-a.ts, Topic 03 note under hominin table (R3-9): "Dates and brain sizes in this table are the book’s round figures, mostly NCERT’s (NCERT gives about 2 mya for Australopithecus); current work gives earlier or wider ranges (for example Homo sapiens about 300,000 years ago, Neanderthals about 400,000 to 40,000 years ago). The order is what is examined." Homo sapiens now italic.
+10. lib/diagrams/biology-12-06.ts, Figure 6.4 caption CAP64 (R3-10 and R3-12): "Values are the book’s (the earliest cells are now dated to about 3.5 bya, the oldest jawless fishes to about 500 mya, well before the first amphibians, and the first land plants to about 470 mya)." Bars unchanged.
+11. extras-b-d.ts, Additional D Distribution table (R3-11): Homology vs Analogy row "Very high: asked in most papers" (old "Very high: 2–3 items per paper is common"). topics-3-4-extra-a.ts, Topic 03 Exam Relevance: "usually a chronological-sequence item" (old "overwhelmingly").
+12. extras-b-d.ts, Additional C NEET example step (R3-13): "These changes accumulate at a roughly constant rate regardless of how different the organisms look externally."
+13. topics-1-2.ts, Topic 01 lead-in to the evidence table (R3-14): "They are usually grouped into these classes:" (old "NCERT groups them into these classes:").
+14. topics-3-4-extra-a.ts, Topic 03 hominin table first column head (R3-15): "Ape or hominin" (old "Hominin").
+15. lib/revise/keypoints-biology-12-06.ts, Additional D (R3-16): italics removed from the book titles On the Origin of Species, Philosophie Zoologique, Principles of Biology.
+
+## Printed keys, numbers, titles, headings changed
+- No answer key changed in this round (D Q10 stays (b), the F2 change from the book's (a) is still a founder decision; Topic 03 Practice 1 answer unchanged; frog answer unchanged).
+- Numbers: "~1.8%" / "1.2 to 1.8%" -> "1–2%" (item 4); "2–3 items per paper is common" -> "asked in most papers" (item 11); frog "different times of day" -> "different times of the year" with spring/summer (item 7).
+- Table head "Hominin" -> "Ape or hominin" (item 14); cicada table cell (item 8).
+- Figure bars (starts 350/350/500/700 etc.) NOT changed; only the caption.
+
+## Founder decisions / not applied
+- R3-12 optional better fix (shift plant-track boundaries to about 470, 430, 360 and 130 mya): not applied; only the caption clause was added. The bars stay as the book draws them (founder decision 3 earlier).
+- R3-17 (Weismann "22 generations"): note only, no change proposed or made.
+- Not applied: nothing else of the 17 flags is left undone. D Q10 key (a) vs (b) remains open for the founder (new-text-F2 decision 1).
+- No fixer report exists for this round, so no reasons are stated by the fixer; R3's offered wording was followed in each item above.

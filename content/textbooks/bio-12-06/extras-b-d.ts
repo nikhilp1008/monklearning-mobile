@@ -26,7 +26,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `The chapter treats adaptive radiation (Topic 02 and Topic 04) and, in the Modern Synthesis (Topic 02), names reproductive isolation as part of how speciation is explained. It does not systematise the two modes of speciation (allopatric and sympatric) or classify the isolating mechanisms that prevent gene flow between populations. NEET and CUET regularly ask students to identify speciation type from a description and to distinguish pre-zygotic from post-zygotic isolating mechanisms ${EST}.`,
+        html: `The chapter treats adaptive radiation (Topic 01 and Topic 04) and, in the Modern Synthesis (Topic 02), names reproductive isolation as part of how speciation is explained. It does not systematise the two modes of speciation (allopatric and sympatric) or classify the isolating mechanisms that prevent gene flow between populations. NEET and CUET regularly ask students to identify speciation type from a description and to distinguish pre-zygotic from post-zygotic isolating mechanisms ${EST}.`,
       },
 
       { t: 'part', title: 'Method' },
@@ -49,7 +49,7 @@ export const TOPICS: Topic[] = [
         head: ['Mechanism', 'What it does', 'Example'],
         rows: [
           ['Habitat isolation', 'Species occupy different habitats', '<i>Rana</i> frogs in ponds vs streams'],
-          ['Temporal isolation', 'Different breeding seasons or times', '<i>Cicada</i> species emerging in different years'],
+          ['Temporal isolation', 'Different breeding seasons or times', 'Periodical cicadas (<i>Magicicada</i>) with 13-year and 17-year cycles, emerging in different years'],
           ['Behavioural isolation', 'Different mating rituals or calls', 'Bird song differences; firefly flash patterns'],
           ['Mechanical isolation', 'Structural differences prevent mating', 'Flower shape matching pollinator; insect genitalia mismatch'],
           ['Gametic isolation', 'Sperm and egg are incompatible', 'Sea urchin species with species-specific egg coat proteins'],
@@ -128,7 +128,7 @@ export const TOPICS: Topic[] = [
             a: '(c) Hybrid sterility: the hybrid is viable but sterile (e.g., mule), so reproduction fails after fertilisation (post-zygotic). (a), (b), and (d) are all pre-zygotic.',
           },
           {
-            q: '[NEET] Two species of frog, <i>Rana pipiens</i> and <i>Rana clamitans</i>, breed in the same pond but at different times of day. What type of isolating mechanism is this?',
+            q: '[NEET] Two species of frog, <i>Rana pipiens</i> and <i>Rana clamitans</i>, live in the same ponds but breed at different times of the year (<i>R. pipiens</i> in early spring, <i>R. clamitans</i> in early summer). What type of isolating mechanism is this?',
             a: 'Temporal isolation (pre-zygotic): the two species breed at different times and therefore do not encounter each other as potential mates.',
           },
           {
@@ -150,7 +150,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `The chapter mentions molecular evidence for evolution (human–chimpanzee DNA differing in ~1.8% of base pairs, about 1.2 to 1.8% depending on how differences are counted) but does not develop the concept of a molecular clock: the idea that DNA or protein sequence divergence accumulates at roughly constant rates over time, allowing us to estimate when two species last shared a common ancestor. This concept appears in NEET assertion–reason items and in CUET’s applied questions ${EST}.`,
+        html: `The chapter mentions molecular evidence for evolution (human and chimpanzee DNA differ in only about 1–2% of aligned bases, the figure depending on how differences are counted) but does not develop the concept of a molecular clock: the idea that DNA or protein sequence divergence accumulates at roughly constant rates over time, allowing us to estimate when two species last shared a common ancestor. This concept appears in NEET assertion–reason items and in CUET’s applied questions ${EST}.`,
       },
 
       { t: 'part', title: 'Method' },
@@ -190,9 +190,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET',
-        q: '<b>Molecular vs Morphological Evolution.</b> A student argues that because human and chimpanzee skulls look very different, their DNA should differ by a much larger percentage than the observed ~1.8%. Evaluate this argument using the concept of neutral mutations.',
+        q: '<b>Molecular vs Morphological Evolution.</b> A student argues that because human and chimpanzee skulls look very different, their DNA should differ by a much larger percentage than the observed 1–2%. Evaluate this argument using the concept of neutral mutations.',
         steps: [
-          'The student’s argument confuses morphological evolution with molecular evolution. Most DNA differences are <b>neutral</b>: they occur in non-coding regions or in codon positions that do not change the amino acid sequence. These changes accumulate at a constant rate regardless of how different the organisms look externally. Morphological traits (skull shape, brain size) are shaped by natural selection and often evolve rapidly under strong selective pressure. DNA differences, particularly in slowly-evolving genes like those coding for cytochrome-C or ribosomal RNA, reflect time since common ancestry more directly than morphology does. The ~1.8% figure counts differences, most of them neutral; it does not measure the rate of morphological change.',
+          'The student’s argument confuses morphological evolution with molecular evolution. Most DNA differences are <b>neutral</b>: they occur in non-coding regions or in codon positions that do not change the amino acid sequence. These changes accumulate at a roughly constant rate regardless of how different the organisms look externally. Morphological traits (skull shape, brain size) are shaped by natural selection and often evolve rapidly under strong selective pressure. DNA differences, particularly in slowly-evolving genes like those coding for cytochrome-C or ribosomal RNA, reflect time since common ancestry more directly than morphology does. The 1–2% figure counts differences, most of them neutral; it does not measure the rate of morphological change.',
         ],
         ans: 'The argument is incorrect. Most DNA differences are neutral and accumulate slowly; morphological differences are subject to strong selection and can change rapidly. The two evolve at different rates.',
       },
@@ -253,7 +253,7 @@ export const TOPICS: Topic[] = [
         head: ['Topic', 'Frequency signal'],
         rows: [
           ['<b>Origin of Life & Chemical Evolution</b>', 'High: appears in nearly every paper'],
-          ['<b>Homology vs Analogy</b>', 'Very high: 2–3 items per paper is common'],
+          ['<b>Homology vs Analogy</b>', 'Very high: asked in most papers'],
           ['<b>Hardy–Weinberg Principle</b>', 'Moderate to high: one numerical every 2–3 years'],
           ['<b>Natural Selection (types & evidence)</b>', 'High: appears annually'],
           ['<b>Human Evolution</b>', 'Moderate: 1 question most years'],
@@ -509,7 +509,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Hard: Analysis, Multi-step, Assertion–Reason] Assertion (A): The primitive atmosphere was reducing, i.e., without free oxygen. Reason (R): Free oxygen in the primitive atmosphere would have destroyed the fragile organic molecules required for chemical evolution before they could accumulate.<br><b>(a)</b> Both A and R are true and R is the correct explanation of A<br><b>(b)</b> Both A and R are true but R is not the correct explanation of A<br><b>(c)</b> A is true but R is false<br><b>(d)</b> A is false but R is true',
-            a: '<b>Answer:</b> (b). Both are true, but R does not explain why the atmosphere was reducing; it explains why a reducing atmosphere was necessary for chemical evolution: oxygen is a strong oxidising agent that would have oxidised organic monomers as fast as they formed, so without it step 2 of chemical evolution (inorganic → organic monomers) could not proceed. (Current work treats the early atmosphere as less strongly reducing than NCERT states.) If the key (a) is preferred, reword R to “Because free oxygen was absent, organic molecules formed from the gases could accumulate instead of being oxidised.”',
+            a: '<b>Answer:</b> (b). Both are true, but R does not explain why the atmosphere was reducing; it explains why a reducing atmosphere was necessary for chemical evolution: oxygen is a strong oxidising agent that would have oxidised organic monomers as fast as they formed, so without it step 2 of chemical evolution (inorganic → organic monomers) could not proceed. (Current work treats the early atmosphere as less strongly reducing than NCERT states.)',
           },
         ],
       },

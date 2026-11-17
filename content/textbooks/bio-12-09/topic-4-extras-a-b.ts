@@ -12,7 +12,7 @@ import type { Topic } from '@/lib/textbooks';
  * Topic indexes: Topic 04 = 3, A = 4, B = 5. Em dashes of the book are written as a colon, commas, brackets or a
  * semicolon (every one is listed in the report). The book's "Q1 — [CBSE Board] Title" and "Example A.1 — [CUET] Title"
  * become the tag (the bracket) and a bold lead on the question. The book's "subtopic" is "topic"; its "subtopic 01"
- * (the toolkit and the cutting mechanism) is Topic 02. "lacZ" and "vir" are upright as the page prints them. Where the
+ * (the toolkit and the cutting mechanism) is Topic 02. Gene symbols (amp, tet, ori, rop, lacZ, vir) are italic throughout, as the house rule asks. Where the
  * book prints no answer line of its own, the example's ans is ''.
  */
 export const TOPICS: Topic[] = [
@@ -211,7 +211,7 @@ export const TOPICS: Topic[] = [
           { label: 'the largest possible laboratory flask', nudge: '<b>(a)</b> a flask cannot match a bioreactor’s controlled aeration/mixing.' },
           { label: 'a stirred-tank bioreactor with no inlets or outlets', nudge: '<b>(b)</b> a sealed reactor with no inlets/outlets cannot sustain continuous growth.' },
           { label: 'a continuous culture system', nudge: null },
-          { label: 'repeated PCR', nudge: '<b>(d)</b> PCR amplifies DNA, not protein: a frequent NEET confusion (the book’s estimate from past papers, not official figures).' },
+          { label: 'repeated PCR', nudge: '<b>(d)</b> PCR amplifies DNA, not protein: a frequent NEET confusion.' },
         ],
         correct: 2,
         solution: 'A continuous culture system keeps cells in log phase, maximising biomass and yield.',
@@ -271,11 +271,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'These Additional topics extend Chapter 9 by covering five examinable layers that the main topics treat only briefly or not at all: the full spectrum of cloning vectors beyond pBR322, blue-white and other screening mechanisms (the main topics teach insertional inactivation only), the distinction between selection and screening, the gene-delivery methods beyond CaCl<sub>2</sub> and heat shock with their conditions, and the rDNA applications (gene therapy, DNA fingerprinting, transgenic production) plus their ethical dimensions. Each section provides method statements, fully-worked NEET/CUET/CBSE examples, and practice with complete answers. A strong student finishing this chapter who also masters these Additional topics closes the gaps that recent papers have shown to be persistent sources of marks lost (the book’s estimate from past papers, not official figures).',
+        html: 'These Additional topics extend Chapter 9 by covering five examinable layers that the main topics treat only briefly or not at all: the full spectrum of cloning vectors beyond pBR322, blue-white and other screening mechanisms (the main topics teach insertional inactivation only), the distinction between selection and screening, the gene-delivery methods beyond CaCl<sub>2</sub> and heat shock with their conditions, and the rDNA applications (gene therapy, DNA fingerprinting, transgenic production) plus their ethical dimensions. A last Additional topic then sets out what NEET actually asks from this chapter and how to answer each question shape. A last Additional topic then sets out what NEET actually asks from this chapter and how to answer each question shape. Each section provides method statements, fully-worked NEET/CUET/CBSE examples, and practice with complete answers. A strong student finishing this chapter who also masters these Additional topics closes the gaps that recent papers have shown to be persistent sources of marks lost (the book’s estimate from past papers, not official figures).',
       },
       {
         t: 'p',
-        html: 'The chapter names pBR322 as the classic bacterial plasmid vector and lists its four essential features. NEET and CUET go further (the book’s estimate from past papers, not official figures), asking about lambda phage vectors for genomic libraries, cosmids and BACs for large fragments, Ti plasmid for plants, and retroviral and adenoviral vectors for animal cells. This section develops that additional tier (the Ti plasmid and retroviral vectors are only named in Topic 02; lambda, cosmid, BAC, YAC and adenoviral vectors are new).',
+        html: 'The chapter names pBR322 as the classic bacterial plasmid vector and lists its four essential features. NEET and CUET go further (the book’s estimate from past papers, not official figures), asking about lambda phage vectors for genomic libraries, cosmids and BACs for large fragments, Ti plasmid for plants, and retroviral and adenoviral vectors for animal cells. This section develops that additional tier (the Ti plasmid and retroviral vectors are named in Topics 02 and 04 without being developed; lambda, cosmid, BAC, YAC and adenoviral vectors are new).',
       },
 
       { t: 'part', title: 'Method' },
@@ -292,7 +292,7 @@ export const TOPICS: Topic[] = [
           ['Lambda phage', '<i>E. coli</i>', '10–25 kb', 'Genomic library construction'],
           ['Cosmid', '<i>E. coli</i>', '30–45 kb', 'Combines plasmid + phage features'],
           ['BAC (bacterial artificial chromosome)', '<i>E. coli</i>', '100–300 kb', 'F-factor based; stable for large genomes'],
-          ['YAC (yeast artificial chromosome)', '<i>Saccharomyces</i>', 'about 200 kb – 2 Mb', 'Telomeres + centromere + <i>ori</i>'],
+          ['YAC (yeast artificial chromosome)', '<i>Saccharomyces</i>', '500 kb – 1.5 Mb (published YACs span about 0.2–2 Mb)', 'Telomeres + centromere + <i>ori</i>'],
           ['Ti plasmid (disarmed)', '<i>Agrobacterium</i>', '10–20 kb T-DNA', 'Plant transformation'],
           ['Retroviral vector', 'Animal cells', '8–10 kb', 'Integrates into host genome'],
           ['Adenoviral vector', 'Animal cells', '8 kb', 'Does not integrate; transient expression'],
@@ -312,7 +312,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Retroviral vector cycle.</b> A retrovirus is an RNA virus that reverse-transcribes its RNA into DNA inside the host cell. This DNA integrates permanently into the host genome (provirus). For use as a vector: the viral genes required for replication are removed, leaving the LTR (long terminal repeat) sequences, the packaging signal, and the gene of interest. The engineered virus can infect cells and integrate the gene but cannot replicate on its own: it is replication-defective. It delivers the gene into the host genome, where it is copied with the chromosome (the provirus can sometimes be silenced, and a random insertion can disrupt a host gene).',
+        html: '<b>Retroviral vector cycle.</b> A retrovirus is an RNA virus that reverse-transcribes its RNA into DNA inside the host cell. This DNA integrates into the host genome as a <b>provirus</b> and is copied with the chromosome at every division. For use as a vector: the viral genes required for replication are removed, leaving the LTR (long terminal repeat) sequences, the packaging signal, and the gene of interest. The engineered virus can infect cells and integrate the gene but cannot replicate on its own: it is replication-defective. It delivers the gene into the host genome (the provirus can sometimes be silenced, and a random insertion can disrupt a host gene).',
       },
       {
         t: 'p',
@@ -325,7 +325,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET',
         q: '<b>Vector Feature Matching.</b> Which cloning vector should be chosen to clone a 200 kb genomic fragment of a plant gene, and why?',
         steps: [
-          'A plasmid vector can carry only 5–10 kb. A BAC (bacterial artificial chromosome) uses the F-factor origin of replication and stably maintains inserts of 100–300 kb in <i>E. coli</i>. A YAC could also hold it (typical YACs carry about 0.2–2 Mb) but is less stable. Therefore a BAC is the appropriate choice.',
+          'A plasmid vector can carry only 5–10 kb. A BAC (bacterial artificial chromosome) uses the F-factor origin of replication and stably maintains inserts of 100–300 kb in <i>E. coli</i>. A YAC could also hold it, but is less stable. Therefore a BAC is the appropriate choice.',
         ],
         ans: 'BAC; stably maintains 100–300 kb inserts in <i>E. coli</i> due to its F-factor origin of replication.',
       },
@@ -364,7 +364,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[CUET] Distinguish between a BAC and a YAC in terms of the host organism and maximum insert size.',
-            a: 'BAC: host is <i>E. coli</i>, insert size 100–300 kb; YAC: host is <i>Saccharomyces cerevisiae</i> (yeast), insert size about 200 kb–2 Mb.',
+            a: 'BAC: host is <i>E. coli</i>, insert size 100–300 kb; YAC: host is <i>Saccharomyces cerevisiae</i> (yeast), insert size 500 kb–1.5 Mb as given here.',
           },
           {
             q: '[NEET] Name the vector used for cloning large fragments (e.g. entire eukaryotic genomes), and state the origin of replication it uses.',
@@ -384,7 +384,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET High-Difficulty] Explain why a BAC is preferred over a plasmid for cloning a 150 kb genomic fragment, but a YAC can carry an even larger fragment than a BAC.',
-            a: 'A plasmid carries only 5–10 kb, far too small for 150 kb. A BAC uses the F-factor replicon which stably maintains large fragments in <i>E. coli</i> up to 300 kb. A YAC uses yeast chromosomal elements (telomeres, centromere, <i>ori</i>) that can accommodate fragments up to about 2 Mb, exceeding BAC capacity, though YACs are less stable.',
+            a: 'A plasmid carries only 5–10 kb, far too small for 150 kb. A BAC uses the F-factor replicon which stably maintains large fragments in <i>E. coli</i> up to 300 kb. A YAC uses yeast chromosomal elements (telomeres, centromere, <i>ori</i>) that can accommodate fragments up to 1.5 Mb as given here (published YACs span about 0.2–2 Mb), exceeding BAC capacity, though YACs are less stable.',
           },
         ],
       },
@@ -411,11 +411,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Many students lose marks by calling screening “selection.” The distinction matters: antibiotic resistance is selection; <i>lacZ</i> disruption is screening.',
-      },
-      {
-        t: 'p',
-        html: 'NCERT calls insertional inactivation and the chromogenic (blue-white) test selectable markers for recombinants; in this strict sense they are screening steps that follow the antibiotic selection. Use NCERT’s wording in a CBSE answer.',
+        html: 'Keep the two ideas apart in your own reasoning: the antibiotic plate is a selection (non-transformants die), while blue-white colour or insertional inactivation is a test applied to the colonies that survived. NCERT calls the chromogenic (blue-white) test and insertional inactivation <b>selectable markers for recombinants</b>, so in a CBSE answer use NCERT’s words and keep the mechanism straight.',
       },
       {
         t: 'p',
@@ -423,7 +419,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Electroporation.</b> A brief high-voltage electrical pulse applied to a cell suspension creates transient pores in the cell membrane, through which DNA enters. Used for bacteria, yeast, plant protoplasts and animal cells. Typical conditions for <i>E. coli</i>: field strength about 12–18 kV cm<sup>−1</sup>, a pulse lasting a few milliseconds, cells in a low-ionic-strength buffer at 0–4 °C. Unlike CaCl<sub>2</sub>/heat shock (which works mainly for bacteria), electroporation works across a broader range of organisms.',
+        html: '<b>Electroporation.</b> A brief high-voltage electrical pulse applied to a cell suspension creates transient pores in the cell membrane, through which DNA enters. Used for bacteria, yeast, plant protoplasts and animal cells. Typical conditions for <i>E. coli</i>: field strength about 12–15 kV cm<sup>−1</sup> as this chapter gives it (published protocols run to about 18 kV cm<sup>−1</sup>), a pulse lasting a few milliseconds, cells in a low-ionic-strength buffer at 0–4 °C. Unlike CaCl<sub>2</sub>/heat shock (which works mainly for bacteria), electroporation works across a broader range of organisms.',
       },
       {
         t: 'p',
@@ -499,7 +495,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Name the physical method that uses high-voltage electrical pulses to create transient membrane pores for DNA uptake.',
-            a: 'Electroporation (for <i>E. coli</i>, typically about 12–18 kV cm<sup>−1</sup>).',
+            a: 'Electroporation (for <i>E. coli</i>, about 12–15 kV cm<sup>−1</sup> as given here).',
           },
           {
             q: '[CUET] State two advantages of biolistics over <i>Agrobacterium</i>-mediated gene delivery in plants.',

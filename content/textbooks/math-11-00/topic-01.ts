@@ -83,7 +83,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `Every chapter that follows this one assumes you can already do three things without thinking: manipulate exponents, simplify surds, and read a logarithm the instant you see one. None of these is a Class 11 topic in its own right (the NCERT syllabus treats indices and surds as revision from earlier classes, Classes 8 and 9, and never gives logarithms a chapter of their own), yet the rest of this book leans on all three constantly. Sequences and series turn geometric-progression problems into logarithmic equations the moment a question asks “after how many terms”. Domain-of-a-function problems routinely hide behind log(·) and demand that you know, instantly and without hesitation, what makes the expression inside a logarithm legal. Limits and derivatives use log and ln as some of their most important building blocks, and logarithmic differentiation is a named technique you will meet from Chapter 12 onward. If any of this feels shaky, this chapter is the toolkit built to fix it, once, before you need it fifty pages from now. Treat it as a reference you return to, not a chapter you read and file away.`,
+        html: `Every chapter that follows this one assumes you can already do three things without thinking: manipulate exponents, simplify surds, and read a logarithm the instant you see one. None of these is a Class 11 topic in its own right (the NCERT syllabus treats indices and surds as revision from earlier classes and never gives logarithms a chapter of their own), yet the rest of this book leans on all three constantly. Sequences and series turn geometric-progression problems into logarithmic equations the moment a question asks “after how many terms”. Domain-of-a-function problems routinely hide behind log(·) and demand that you know, instantly and without hesitation, what makes the expression inside a logarithm legal. Limits and derivatives use log and ln as some of their most important building blocks, and logarithmic differentiation is a named technique of calculus (Chapter 12 mentions it; it is taught in Class 12). If any of this feels shaky, this chapter is the toolkit built to fix it, once, before you need it fifty pages from now. Treat it as a reference you return to, not a chapter you read and file away.`,
       },
 
       // ──────────────── Section 1 · pp. 10–11 ────────────────
@@ -185,7 +185,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `When three surds sit in the denominator, rationalise in two passes: group two of them, rationalise once, then rationalise again against the remaining term. This two-step technique, often called <b>double rationalisation</b>, reappears constantly in limit problems in Chapter 12, where an expression like √(${x} + 1) − √${x} in a denominator is cleared the same way. As a worked instance, rationalise ${fr('1', '1 + √2 + √3')}. Group the first two terms and treat √3 as the term to remove first, multiplying by the conjugate (1 + √2) − √3:<br><br>${disp(
+        html: `When three surds sit in the denominator, rationalise in two passes: group two of them, rationalise once, then rationalise again against the remaining term. This two-step technique is often called <b>double rationalisation</b>. Its first step, multiplying by a conjugate, reappears in limit problems in Chapter 12, where an expression like √(${x} + 1) − √${x} in a denominator is cleared by one multiplication by √(${x} + 1) + √${x}. As a worked instance, rationalise ${fr('1', '1 + √2 + √3')}. Group the first two terms and treat √3 as the term to remove first, multiplying by the conjugate (1 + √2) − √3:<br><br>${disp(
           `${fr('1', '(1 + √2) + √3')} · ${fr('(1 + √2) − √3', '(1 + √2) − √3')}`,
           `= ${fr('1 + √2 − √3', `(1 + √2)${sup('2')} − 3`)}`,
           `= ${fr('1 + √2 − √3', '(3 + 2√2) − 3')}`,
@@ -257,7 +257,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `The first says applying ${pw(a, '(·)')} and then ${lg(a)} (or the reverse) returns the original number, the defining property of inverse functions. The second and third are the special cases ${x}${NB}=${NB}1 (since ${pw(a, '0')} = 1) and ${x}${NB}=${NB}${a} (since ${pw(a, '1')} = ${a}).`,
+        html: `The first says applying ${lg(a)} and then ${pw(a, '(·)')} (or the reverse) returns the original number, the defining property of inverse functions. The second and third are the special cases ${x}${NB}=${NB}1 (since ${pw(a, '0')} = 1) and ${x}${NB}=${NB}${a} (since ${pw(a, '1')} = ${a}).`,
       },
       {
         t: 'p',
@@ -281,7 +281,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: 'Two consequences follow immediately and are used constantly.' },
       {
         t: 'p',
-        html: `<b>1. The reciprocal relation.</b> Setting ${c}${NB}=${NB}${b} in the formula (allowed because ${b}${NB}>${NB}0 and ${b}${NB}≠${NB}1):<br><br>${LA(b)} = ${fr(LB(b), LB(a))} = ${fr('1', LB(a))}, i.e.<br>${LA(b)} · ${LB(a)} = 1 (valid for ${a}, ${b}${NB}>${NB}0 and ${a}, ${b}${NB}≠${NB}1).<br>For instance, since ${L2('8')} = 3, it must be that ${lg('8', '2')} = ${fr('1', '3')}; and indeed 3 × ${fr('1', '3')} = 1.`,
+        html: `<b>1. The reciprocal relation.</b> Setting ${c}${NB}=${NB}${b} in the formula (this needs ${b}${NB}≠${NB}1 as well as ${b}${NB}>${NB}0, since ${b} becomes the new base):<br><br>${LA(b)} = ${fr(LB(b), LB(a))} = ${fr('1', LB(a))}, i.e.<br>${LA(b)} · ${LB(a)} = 1 (valid for ${a}, ${b}${NB}>${NB}0 and ${a}, ${b}${NB}≠${NB}1).<br>For instance, since ${L2('8')} = 3, it must be that ${lg('8', '2')} = ${fr('1', '3')}; and indeed 3 × ${fr('1', '3')} = 1.`,
       },
       {
         t: 'p',

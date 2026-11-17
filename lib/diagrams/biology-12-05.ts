@@ -127,7 +127,7 @@ const clean = (s: Sketch): Check => { const a = audit(s); return [`Layout audit 
 const marigolds = (s: Sketch) => (s.svg().match(/stroke="#EEA31F"/g) ?? []).length;
 
 /* ================= Figure 5.1 ================= */
-const CAP51 = 'Packaging of DNA in the eukaryotic nucleus: the naked 2 nm DNA double helix is wrapped ~1.65 turns (the core of about 147 bp) around a histone octamer to form a nucleosome; nucleosomes strung together give “beads-on-string” chromatin with H1 at each linker; this coils into a 30 nm fibre, folds into looped domains and finally condenses into the metaphase chromosome.';
+const CAP51 = 'Packaging of DNA in the eukaryotic nucleus: the naked 2 nm DNA double helix is wrapped ~1.65 turns (the core of about 146 bp) around a histone octamer to form a nucleosome; nucleosomes strung together give “beads-on-string” chromatin with H1 at each linker; this coils into a 30 nm fibre, folds into looped domains and finally condenses into the metaphase chromosome.';
 /** The levels from the top of the page down (the most packaged first), with the sizes the book prints in nm. */
 const LEVELS: { name: string; lines: string[]; nm: number }[] = [
   { name: 'Metaphase chromosome', lines: ['(~1400 nm width)'], nm: 1400 },
@@ -283,7 +283,7 @@ const CAP53_2 = 'The Hershey–Chase experiment. Track 2: phage with <sup>35</su
 type Track = { n: 1 | 2; title: string; phage: string[]; inside: string[]; pellet: string[]; super: string[]; hot: 'pellet' | 'supernatant'; label: string };
 const TRACKS: Track[] = [
   { n: 1, title: 'Track 1: <sup>32</sup>P-labelled DNA', phage: ['<sup>32</sup>P-DNA', 'phage'], inside: ['Radioactivity inside the cells', '(DNA enters)'], pellet: ['PELLET', '(radioactive)'], super: ['Supernatant', '(empty coats)'], hot: 'pellet', label: '32P' },
-  { n: 2, title: 'Track 2: <sup>35</sup>S-labelled protein', phage: ['<sup>35</sup>S-protein', 'phage'], inside: ['No radioactivity in the cells', '(protein stays outside)'], pellet: ['PELLET', '(not radioactive)'], super: ['Supernatant', '(<sup>35</sup>S coats,', 'radioactive)'], hot: 'supernatant', label: '35S' },
+  { n: 2, title: 'Track 2: <sup>35</sup>S-labelled protein', phage: ['<sup>35</sup>S-protein', 'phage'], inside: ['Little radioactivity in the cells', '(protein stays outside)'], pellet: ['PELLET', '(barely radioactive)'], super: ['Supernatant', '(<sup>35</sup>S coats,', 'radioactive)'], hot: 'supernatant', label: '35S' },
 ];
 function lines(s: Sketch, cx: number, y0: number, ts: string[], name: string, o: { color?: string; bold?: boolean; size?: number; gap?: number } = {}) {
   const gap = o.gap ?? 14;
@@ -324,7 +324,7 @@ function check53(c: { track: 1 | 2 }): Check[] {
   const inCells = dnaLabelled, inPellet = inCells;
   return [
     [`Track ${c.track} as printed: ${dnaLabelled ? '32P-labelled DNA' : '35S-labelled protein'}`, has(s, plain(t.title)) && has(s, plain(t.phage[0])) && has(s, 'Hershey–Chase Experiment (1952)')],
-    [dnaLabelled ? '32P labels DNA, which is inside the cells: the pellet is radioactive and the supernatant (empty coats) is not' : '35S labels protein, which stays outside: the pellet is not radioactive and the supernatant (the 35S coats) is', inCells === inPellet && has(s, dnaLabelled ? '(radioactive)' : '(not radioactive)') && has(s, dnaLabelled ? '(empty coats)' : 'radioactive)')],
+    [dnaLabelled ? '32P labels DNA, which is inside the cells: the pellet is radioactive and the supernatant (empty coats) is not' : '35S labels protein, which stays outside: the pellet is barely radioactive and the supernatant (the 35S coats) holds the radioactivity', inCells === inPellet && has(s, dnaLabelled ? '(radioactive)' : '(barely radioactive)') && has(s, dnaLabelled ? '(empty coats)' : 'radioactive)')],
     [`The words under the E. coli box and in the two result boxes are the book's`, hasAll(s, t.inside.map(plain)) && hasAll(s, t.pellet.map(plain)) && hasAll(s, t.super.map(plain)) && has(s, 'Blender + centrifuge') && has(s, 'Infects E. coli')],
     ['Two arrows run from the blender step, one to the pellet (left) and one to the supernatant (right); the radioactive one is the highlight', (s.svg().match(/<path d="M[^"]*Z" fill="#57534B"\/>/g) ?? []).length === 4 && marigolds(s) === 1 && t.hot === (dnaLabelled ? 'pellet' : 'supernatant')],
     ['The conclusion is the book\'s (em dash set as a colon): DNA is the genetic material, it enters the cell and directs the making of new virus particles', s.tags.some((g) => g.name === 'CONCLUSION DNA is the genetic material: it enters the cell and directs the making of new virus particles.')],
@@ -508,7 +508,7 @@ function draw56(): Sketch {
   arrow(s, [36, 246], [330, 246], { color: C.ink, w: 2.6 });
   lab(s, 22, 250, '5′', { size: 12, anchor: 'end' });
   lab(s, 336, 250, '3′', { size: 12, anchor: 'start' });
-  lab(s, 336, 268, 'mRNA', { size: 11, anchor: 'end', italic: true });
+  lab(s, 330, 238, 'mRNA', { size: 11, anchor: 'end', italic: true });
   CODONS.forEach((cd, i) => lab(s, CX[i], 266, cd, { size: 12 }));
   // small subunit
   box(s, 'small', [16, 276, 344, 352], {});
@@ -611,7 +611,7 @@ const fig57: Diagram = {
 };
 
 /* ================= Figure 5.8 ================= */
-const CAP58 = 'DNA fingerprinting workflow: isolation of DNA; optional PCR amplification (a modern addition to the book’s steps) when the sample is tiny; digestion with restriction endonucleases; separation of the fragments by gel electrophoresis; Southern blotting (transfer to a nylon or nitrocellulose membrane); hybridisation with a labelled VNTR probe; and autoradiography, which reveals the band pattern (the “fingerprint”).';
+const CAP58 = 'DNA fingerprinting workflow: isolation of DNA; optional PCR amplification (a modern addition to NCERT’s list of steps) when the sample is tiny; digestion with restriction endonucleases; separation of the fragments by gel electrophoresis; Southern blotting (transfer to a nylon or nitrocellulose membrane); hybridisation with a labelled VNTR probe; and autoradiography, which reveals the band pattern (the “fingerprint”).';
 const STEPS: { n: number; head: string; body: string[]; optional?: boolean }[] = [
   { n: 1, head: 'DNA isolation', body: ['Cells lysed; DNA purified', 'from the nucleus'] },
   { n: 2, head: 'PCR amplification (optional)', body: ['Makes many copies when', 'the sample is tiny'], optional: true },

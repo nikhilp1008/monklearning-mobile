@@ -167,7 +167,7 @@ function drawXylem(): Sketch {
   // vessel: three elements end to end, perforation plates (marigold) where they meet
   const vx = 215, rects: [number, number][] = [[72, 118], [126, 168], [176, 222]];
   rects.forEach(([a, b]) => path(s, [[vx - 20, a], [vx + 20, a], [vx + 20, b], [vx - 20, b]], { close: true, w: 1.7 }));
-  [122, 172].forEach((y) => { path(s, [[vx - 20, y], [vx + 20, y]], { color: C.mari, w: 3 }); fact(s, 'plate'); });
+  [122, 172].forEach((y) => { path(s, [[vx - 20, y], [vx - 9, y]], { color: C.mari, w: 3 }); path(s, [[vx + 9, y], [vx + 20, y]], { color: C.mari, w: 3 }); fact(s, 'plate'); }); // each perforation plate is drawn open: a rim at each wall with a gap between
   note(s, 'r', 146, 50, ['Tapering', 'closed ends'], [tx + 15, 76]);
   note(s, 'l', 64, 150, ['Pits'], [tx - 20, 156]);
   note(s, 'r', 252, 96, ['Elements form one', 'continuous tube'], [vx + 20, 96]);

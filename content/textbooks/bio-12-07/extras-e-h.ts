@@ -60,7 +60,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Diagnosis and treatment.</b> All three are bacterial and are treated with antibiotics. Gonorrhoea: cephalosporins (ceftriaxone). Syphilis: penicillin G. Chlamydia: azithromycin or doxycycline. No vaccine against these three is in India’s routine immunisation schedule (a meningococcal B vaccine gives partial protection against gonorrhoea and is used in some countries).',
+        html: '<b>Diagnosis and treatment.</b> All three are bacterial and are treated with antibiotics. Gonorrhoea: cephalosporins (ceftriaxone). Syphilis: penicillin G. Chlamydia: azithromycin or doxycycline. None of the three has a vaccine of its own (a meningococcal B vaccine gives partial protection against gonorrhoea and is offered for this in some countries).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -178,7 +178,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Why resistance develops.</b> Bacteria acquire resistance through:<br>1. <b>Gene mutation</b>: a random mutation alters the antibiotic’s target (e.g., a mutated ribosomal protein binds tetracycline less well).<br>2. <b>Horizontal gene transfer</b>: resistance genes spread via plasmids (conjugation), transduction (phages), or transformation (naked DNA). This is how resistance spreads rapidly through bacterial populations.<br>3. <b>Enzymatic inactivation</b>: bacteria produce enzymes that destroy the antibiotic (e.g., beta-lactamase breaks penicillin).<br>4. <b>Efflux pumps</b>: bacteria pump the antibiotic out of the cell before it can act.',
+        html: '<b>Why resistance develops.</b> Bacteria acquire resistance through:<br>1. <b>Gene mutation</b>: a random mutation alters the antibiotic’s target (e.g., a mutated ribosomal protein makes the ribosome bind streptomycin less well).<br>2. <b>Horizontal gene transfer</b>: resistance genes spread via plasmids (conjugation), transduction (phages), or transformation (naked DNA). This is how resistance spreads rapidly through bacterial populations.<br>3. <b>Enzymatic inactivation</b>: bacteria produce enzymes that destroy the antibiotic (e.g., beta-lactamase breaks penicillin).<br>4. <b>Efflux pumps</b>: bacteria pump the antibiotic out of the cell before it can act.',
       },
       {
         t: 'p',
@@ -653,12 +653,12 @@ export const TOPICS: Topic[] = [
             a: '<b>Answer:</b> (b)<br>Benzopyrene, a polycyclic aromatic hydrocarbon in cigarette smoke, damages DNA and can mutate growth-control genes (proto-oncogenes and tumour suppressor genes). Nicotine is the addictive alkaloid; CO reduces oxygen-carrying capacity; ethanol is the active constituent of alcoholic drinks, not a carcinogen of tobacco smoke.',
           },
           {
-            q: '[Q7: Medium] A child is given an oral polio vaccine (OPV) at birth and a booster at 6 weeks. The same child, after a dog bite, is injected with anti-rabies serum. Which statement correctly classifies these two interventions?<br><b>(a)</b> Both are active immunity<br><b>(b)</b> Both are passive immunity<br><b>(c)</b> OPV is active; anti-rabies serum is passive<br><b>(d)</b> OPV is passive; anti-rabies serum is active',
+            q: '[Q7: Medium] A child is given an oral polio vaccine (OPV) at birth and further doses from 6 weeks. The same child, after a dog bite, is injected with anti-rabies serum. Which statement correctly classifies these two interventions?<br><b>(a)</b> Both are active immunity<br><b>(b)</b> Both are passive immunity<br><b>(c)</b> OPV is active; anti-rabies serum is passive<br><b>(d)</b> OPV is passive; anti-rabies serum is active',
             a: '<b>Answer:</b> (c)<br>OPV contains attenuated poliovirus: the body makes its own antibodies and memory cells (active, artificially acquired). Anti-rabies serum contains pre-formed antibodies harvested from immunised animals: immediate but short-lived (passive).',
           },
           {
             q: '[Q8: Hard] Assertion (A): Humans are resistant to most infectious diseases despite constant exposure to pathogens.<br>Reason (R): The innate immune system provides non-specific, always-active defence against a wide variety of pathogens.<br><b>(a)</b> Both A and R are true and R explains A<br><b>(b)</b> Both true, R does not explain A<br><b>(c)</b> A true, R false<br><b>(d)</b> A false, R true',
-            a: '<b>Answer:</b> (a)<br>Humans possess innate immunity (physical barriers, phagocytes, interferons) that provides immediate, non-specific protection. This explains why we do not fall ill from every pathogen we encounter. Both statements are true and the reason directly explains the assertion. Innate immunity is a large part of the explanation (adaptive immunity and the narrow host range of most microbes also matter), so (a) is the intended answer.',
+            a: '<b>Answer:</b> (a)<br>Humans possess innate immunity (physical barriers, phagocytes, interferons) that provides immediate, non-specific protection. This explains why we do not fall ill from every pathogen we encounter. Both statements are true, and innate immunity is a large part of the explanation (adaptive immunity and the narrow host range of most microbes also matter), so (a) is the intended answer.',
           },
           {
             q: '[Q9: Hard] AIDS patients mostly die of opportunistic infections and cancers rather than of direct killing by HIV. The biological reason is:<br><b>(a)</b> HIV is a weak virus that cannot kill directly<br><b>(b)</b> HIV destroys helper T-lymphocytes, collapsing adaptive immunity<br><b>(c)</b> Opportunistic pathogens are more virulent than HIV<br><b>(d)</b> HIV only attacks red blood cells',
@@ -674,7 +674,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Q12: Hard] Which of the following is NOT a property of cancerous cells?<br><b>(a)</b> Uncontrolled division<br><b>(b)</b> Contact inhibition<br><b>(c)</b> Competition with normal cells for nutrients<br><b>(d)</b> Metastasis',
-            a: '<b>Answer:</b> (b)<br>Contact inhibition (the phenomenon by which normal cells stop dividing when they touch neighbours) is lost in cancer cells. This loss is the defining feature of malignant transformation. Options (a), (c), and (d) are all established properties of cancer cells.',
+            a: '<b>Answer:</b> (b)<br>Contact inhibition (the phenomenon by which normal cells stop dividing when they touch neighbours) is lost in cancer cells. so they divide without limit; invasion and metastasis are what make a tumour malignant. Options (a), (c), and (d) are all established properties of cancer cells.',
           },
         ],
       },

@@ -50,7 +50,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b><br>• The somatic/autonomic split is about the target and control, not the nerve type: the same spinal nerve can carry both somatic and autonomic fibres.<br>• “Involuntary” doesn’t mean “uncontrollable”: breathing is partly under autonomic control yet you can override it briefly. The categories describe the default mode.<br>• Sympathetic and parasympathetic are usually antagonistic, but not on every organ: some structures (like sweat glands or most blood vessels) receive mainly one division.<br>• The PNS has no information-processing of its own beyond simple relays (apart from the gut’s own enteric network); integration happens mainly in the CNS. The PNS is wiring, not brain: when you read that a nerve “controls” an organ, it really means it delivers the CNS’s instructions there.',
+        html: '<b>Limiting conditions & assumptions.</b><br>• The somatic/autonomic split is about the target and control, not the nerve type: the same spinal nerve can carry both somatic and autonomic fibres.<br>• “Involuntary” doesn’t mean “uncontrollable”: breathing runs automatically from centres in the brain stem, yet you can override it briefly. The categories describe the default mode.<br>• Sympathetic and parasympathetic are usually antagonistic, but not on every organ: some structures (like sweat glands or most blood vessels) receive mainly one division.<br>• The PNS has no information-processing of its own beyond simple relays (apart from the gut’s own enteric network); integration happens mainly in the CNS. The PNS is wiring, not brain: when you read that a nerve “controls” an organ, it really means it delivers the CNS’s instructions there.',
       },
 
       { t: 'part', title: 'Key structures, definitions and terminology' },
@@ -151,7 +151,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Link to the endocrine system.</b> The sympathetic division does not act through nerves alone. It also stimulates the adrenal medulla to pour adrenaline (epinephrine) into the blood, broadcasting the fight-or-flight signal throughout the body as a hormone. This is the body’s main bridge from fast electrical control to slower, longer-lasting chemical control: the theme you will pick up in the next chapter on chemical coordination. (Note the homonym trap: the adrenal medulla is an endocrine gland, entirely different from the medulla oblongata of the brain.)',
+        html: '<b>Link to the endocrine system.</b> The sympathetic division does not act through nerves alone. It also stimulates the adrenal medulla to pour adrenaline (epinephrine) into the blood, broadcasting the fight-or-flight signal throughout the body as a hormone. This is one of the bridges from fast electrical control to slower, longer-lasting chemical control (the hypothalamus and pituitary are the other): the theme you will pick up in the next chapter on chemical coordination. (Note the homonym trap: the adrenal medulla is an endocrine gland, entirely different from the medulla oblongata of the brain.)',
       },
       {
         t: 'p',
@@ -349,7 +349,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Reflex arc:</b> the neural pathway followed by the impulse during a reflex action. It has up to five components, in order:<br>1. <b>Receptor:</b> detects the stimulus (e.g., a pain receptor in the skin).<br>2. <b>Afferent (sensory) neuron:</b> carries the impulse from the receptor to the CNS, entering through the dorsal root of the spinal nerve.<br>3. <b>CNS centre (interneuron):</b> within the spinal cord (grey matter); processes and relays the signal (absent in a monosynaptic arc).<br>4. <b>Efferent (motor) neuron:</b> carries the command out from the CNS through the ventral root to the effector.<br>5. <b>Effector:</b> the muscle or gland that carries out the response.',
+        html: '<b>Reflex arc:</b> the neural pathway followed by the impulse during a reflex action. It has five components, in order:<br>1. <b>Receptor:</b> detects the stimulus (e.g., a pain receptor in the skin).<br>2. <b>Afferent (sensory) neuron:</b> carries the impulse from the receptor to the CNS, entering through the dorsal root of the spinal nerve.<br>3. <b>CNS centre:</b> within the spinal cord (grey matter), where the signal is passed from the sensory to the motor side, through one or more interneurons in a polysynaptic arc or by a single direct synapse in a monosynaptic arc.<br>4. <b>Efferent (motor) neuron:</b> carries the command out from the CNS through the ventral root to the effector.<br>5. <b>Effector:</b> the muscle or gland that carries out the response.',
       },
       {
         t: 'p',
@@ -388,7 +388,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Notice how each component is indispensable and non-interchangeable: the receptor alone cannot move the hand, and the motor neuron alone cannot sense the heat. The arc works only because the parts are arranged in this exact one-way sequence, each handing off to the next. This is also why the direction is fixed: the chemical synapses in the cord allow the impulse to travel only from sensory side to motor side, never backwards, guaranteeing that a stimulus always produces the correct, stereotyped response.',
+        html: 'Notice how each component is indispensable and non-interchangeable: the receptor alone cannot move the hand, and the motor neuron alone cannot sense the heat. The arc works only because the parts are arranged in this exact one-way sequence, each handing off to the next. This is also why the direction is fixed: the chemical synapses in the cord allow the impulse to travel only from sensory side to motor side, never backwards, so that a stimulus produces the correct, stereotyped response.',
       },
       {
         t: 'p',
@@ -560,7 +560,7 @@ export const TOPICS: Topic[] = [
   {
     n: 'A',
     title: 'Action Potential: The Complete Waveform and Refractory Periods',
-    kalam: 'A subthreshold stimulus produces no impulse regardless of how many times it is applied.',
+    kalam: 'Only when the graded potential at the axon hillock reaches approximately −55 mV (the threshold) does the all-or-none action potential fire.',
     extra: true,
     blocks: [
       { t: 'part', title: 'Introduction' },
@@ -599,11 +599,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Graded potential vs action potential: the threshold decision.</b><br>A stimulus that does not reach threshold produces a local, graded response called a receptor potential (also called a generator potential) at a sensory receptor, and an EPSP or IPSP at a synapse. This local depolarisation:<br>• decays with distance from the point of stimulation,<br>• decays with time if the stimulus is not maintained,<br>• does not regenerate along the membrane.',
+        html: '<b>Graded potential vs action potential: the threshold decision.</b><br>A stimulus that does not reach threshold produces a local, graded response called a receptor potential (also called a generator potential) at a sensory receptor, and an EPSP or IPSP at a synapse. This local change:<br>• decays with distance from the point of stimulation,<br>• decays with time if the stimulus is not maintained,<br>• does not regenerate along the membrane.',
       },
       {
         t: 'p',
-        html: 'Only when the graded potential at the axon hillock reaches approximately −55 mV (the threshold) does the all-or-none action potential fire. A subthreshold stimulus produces no impulse regardless of how many times it is applied.',
+        html: 'Only when the graded potential at the axon hillock reaches approximately −55 mV (the threshold) does the all-or-none action potential fire. A single subthreshold stimulus produces no impulse; repeated subthreshold stimuli fire one only if they arrive close enough together to add up to threshold (temporal summation, Additional topic D).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -698,7 +698,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET',
-        q: '<b>Identify Nerve from Function.</b> A patient with damage to the facial nerve cannot close the eyelid properly, has loss of taste on the anterior two-thirds of the tongue, and produces less saliva. Which nerve is affected, and what is its type?',
+        q: '<b>Identify Nerve from Function.</b> A patient cannot close the eyelid properly, has loss of taste on the anterior two-thirds of the tongue, and produces less saliva. Which cranial nerve is damaged, and what is its type?',
         steps: [
           '<b>Reasoning:</b> Facial expression muscles, taste anterior tongue, and lacrimal/salivary parasympathetic output all belong to cranial nerve VII (facial). This nerve is mixed (both sensory and motor).',
         ],
@@ -722,7 +722,7 @@ export const TOPICS: Topic[] = [
           { q: '[CUET] Match: (A) Olfactory (1) Mixed (B) Trigeminal (2) Sensory (C) Oculomotor (3) Motor', a: 'A–2, B–1, C–3.' },
           { q: '[CBSE] Which cranial nerve is responsible for the knee-jerk response? Explain.', a: 'None: the knee-jerk is a spinal reflex mediated by spinal nerves, not cranial nerves.' },
           { q: '[NEET] Damage to the optic nerve (II) would affect: (a) smell (b) vision (c) eye movement (d) hearing', a: '(b): optic nerve carries visual information from retina to brain.' },
-          { q: '[CUET] Which cranial nerve is purely sensory? (a) Facial (b) Glossopharyngeal (c) Vestibulocochlear (d) Vagus', a: '(c): vestibulocochlear (VIII) is a sensory nerve for hearing and balance.' },
+          { q: '[CUET] Which of these cranial nerves is a sensory nerve? (a) Facial (b) Glossopharyngeal (c) Vestibulocochlear (d) Vagus', a: '(c): vestibulocochlear (VIII) is a sensory nerve for hearing and balance.' },
         ],
       },
     ],

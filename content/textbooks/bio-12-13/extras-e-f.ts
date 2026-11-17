@@ -51,7 +51,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limitation:</b> if the second sample is too small (<i>R</i> is small), the estimate becomes unreliable (division by a small number inflates the estimate).',
+        html: '<b>Limitation:</b> if few marked animals are recaptured (<i>R</i> is small), the estimate becomes unreliable (division by a small number inflates the estimate).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -152,7 +152,7 @@ export const TOPICS: Topic[] = [
           [
             '<b>Biodiversity patterns & loss</b> (levels, latitudinal gradient, species–area, Evil Quartet, IUCN numbers)',
             '~35 %',
-            'Exact figures are the hook: 784 extinct/500 yr, 32 % amphibians threatened, 2.4 % land / 8.1 % species for India. “Evil Quartet” order (HOAC) is asked as a direct-recall item.',
+            'Exact figures are the hook: 784 extinct/500 yr, 32 % amphibians threatened, 2.4 % land / 8.1 % species for India. The four causes of the Evil Quartet (memory order HOAC) are asked as a direct-recall item.',
           ],
           [
             '<b>Conservation strategies</b> (in situ vs ex situ, hotspots, biosphere-reserve zonation, sacred groves)',
@@ -180,7 +180,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>1. Definition / One-line Fact (Easy)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A single statement with four options: three are textbook definitions, one is a distractor that swaps a key word.<br><b>Approach:</b> Read the NCERT line verbatim. The distractor may invert a qualifier (“all levels” → “below species level”; “endemic” → “cosmopolitan”).',
+        html: '<b>What it looks like:</b> A single statement with four options: one is the textbook definition, the other three are distractors that swap a key word.<br><b>Approach:</b> Read the NCERT line verbatim. The distractor may invert a qualifier (“all levels” → “below species level”; “endemic” → “cosmopolitan”).',
       },
       {
         t: 'ex',
@@ -258,7 +258,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Solution:</b><br>(a) By comparison with log <i>S</i> = log <i>C</i> + <i>z</i> log <i>A</i>: <i>z</i> = 0.25; log <i>C</i> = 1.40, so <i>C</i> = 10<sup>1.40</sup> ≈ 25.1.',
           '(b) For <i>A</i> = 100 ha: log <i>S</i> = 0.25 × log 100 + 1.40 = 0.25 × 2 + 1.40 = 1.90, so <i>S</i> = 10<sup>1.90</sup> ≈ <b>79 species</b>.',
-          '(c) <i>z</i> = 0.25 falls in the within-region band (0.1–0.2, or just above it for a regional study). A continental <i>z</i> would be 0.6–1.2. Reading: 0.25 is nearer the within-region band (about 0.1–0.2, sometimes a little higher) than the continental 0.6–1.2. This is a <b>within-region / landscape-scale</b> study.',
+          '(c) <i>z</i> = 0.25 lies just above the within-region band (0.1–0.2) and far below the continental band (0.6–1.2), so it is much nearer the within-region values. This is a <b>within-region / landscape-scale</b> study.',
         ],
         ans: '',
       },
@@ -286,7 +286,7 @@ export const TOPICS: Topic[] = [
           ],
           [
             '<b>°F vs °C in cryopreservation</b>',
-            '−196 °F is offered as an option → the correct answer is “none of these”',
+            '−196 °F is offered in place of −196 °C → reject it (if no option gives −196 °C, the answer is “none of these”)',
             'NCERT gives −196 <b>°C</b>. The Fahrenheit option is a unit trap.',
           ],
           [
@@ -296,7 +296,7 @@ export const TOPICS: Topic[] = [
           ],
           [
             '<b>34 vs 36 hotspots</b>',
-            'Most answer keys say 34',
+            'Answer keys based on NCERT say 34',
             'The NCERT-based key says 34; Conservation International now counts 36. Match the source the question implies.',
           ],
           [
@@ -348,8 +348,8 @@ export const TOPICS: Topic[] = [
             a: '(a): the species–area relationship states that species richness rises with sampled area (rising more slowly as area grows). Option (b) confounds individual body size with range size; (c) and (d) are unrelated.',
           },
           {
-            q: '[Medium] A region with very high endemism (more than 1,500 endemic plant species) that is also under severe threat must have lost at least what percentage of its original vegetation (the threshold value)?<br><b>(a)</b> 30 %<br><b>(b)</b> 50 %<br><b>(c)</b> 70 %<br><b>(d)</b> 90 %',
-            a: '(c): the hotspot threat criterion is ≥70 % original vegetation lost (equivalently, ≤30 % remaining). The 30 % and 50 % options are not the threshold the criterion uses (a region that has lost 70 % has also lost more than 30 %), and the criterion is Myers’s, with the 1,500 endemic plant condition.',
+            q: '[Medium] A region with very high endemism (at least 1,500 endemic plant species) that is also under severe threat must have lost at least what percentage of its original vegetation (the threshold value)?<br><b>(a)</b> 30 %<br><b>(b)</b> 50 %<br><b>(c)</b> 70 %<br><b>(d)</b> 90 %',
+            a: '(c): the hotspot threat criterion is that at least 70 % of the original vegetation has been lost (no more than 30 % remains). 30 % and 50 % are not the threshold, and 90 % is stricter than it. The criterion is Myers’s, together with at least 1,500 endemic vascular plants.',
           },
           {
             q: '[Hard] Assertion (A): A species-rich community is generally more stable than a species-poor one. Reason (R): Higher diversity guarantees that every individual species in the community is itself immune to disturbance.<br><b>(a)</b> Both true, R explains A<br><b>(b)</b> Both true, R does not explain A<br><b>(c)</b> A true, R false<br><b>(d)</b> A false, R true',

@@ -261,7 +261,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>Traditional</b> (curd, bread, wine: fermentation) vs <b>modern</b> (rDNA, sterile bioprocess).', note: '' },
           { f: 'Two core techniques', note: 'genetic engineering (alter + transfer DNA) + bioprocess engineering (sterile large-scale culture).' },
           {
-            f: 'First rDNA, Cohen & Boyer (1972; the paper appeared in 1973)',
+            f: 'First rDNA, Cohen & Boyer (1972)',
             note: 'antibiotic-resistance gene cut from a <i>Salmonella typhimurium</i> plasmid + ligated to a vector plasmid → introduced into <i>E. coli</i> → cloned.',
           },
           { f: 'Three steps of genetic modification', note: 'identify DNA → introduce into host → maintain and transfer to progeny.' },
@@ -378,7 +378,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>pBR322</b>, the classic <i>E. coli</i> plasmid vector, carries an <b><i>ori</i></b>, the <b><i>rop</i></b> region (proteins involved in replication / copy-number control), two resistance genes <b><i>amp</i><sup>R</sup></b> and <b><i>tet</i><sup>R</sup></b>, and several unique restriction sites (EcoRI, HindIII, BamHI, SalI, PvuII, PstI, ClaI). The map is schematic: EcoRI and PvuII lie in neither resistance gene, so insertion there does not inactivate either marker.',
+        html: '<b>pBR322</b>, the classic <i>E. coli</i> plasmid vector, carries an <b><i>ori</i></b>, the <b><i>rop</i></b> region (proteins involved in replication / copy-number control), two resistance genes <b><i>amp</i><sup>R</sup></b> and <b><i>tet</i><sup>R</sup></b>, and several unique restriction sites (EcoRI, HindIII, BamHI, SalI, PvuII, PstI, ClaI). The map is schematic. Of the sites drawn, only PstI and PvuI (in <i>amp</i><sup>R</sup>) and BamHI and SalI (in <i>tet</i><sup>R</sup>) are used for insertional inactivation in this chapter. EcoRI lies in neither resistance gene; PvuII is drawn on the <i>rop</i> arc, and ClaI and HindIII sit just beside <i>tet</i><sup>R</sup>, so this drawing should not be used to predict what an insert at those three sites would switch off.',
       },
       {
         t: 'p',
@@ -489,7 +489,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET high-difficulty] A vector contains two recognition sites for the restriction enzyme you intend to use. Predict the consequence for cloning and justify your answer.',
-            a: 'The enzyme will cut the vector at both sites and cut it into two fragments, so it no longer stays one intact carrier; a usable vector needs a single recognition site for that enzyme.',
+            a: 'A circular vector cut at two sites falls into two fragments (n cuts on a circle give n pieces), so it no longer stays one intact carrier and the gene cannot be cloned on it; a usable vector needs a single recognition site for the enzyme you intend to use.',
           },
         ],
       },
@@ -539,7 +539,7 @@ export const TOPICS: Topic[] = [
           { label: 'staggered cut leaving complementary single-stranded overhangs', nudge: null },
           {
             label: 'cut only on one of the two strands',
-            nudge: '<b>(c)</b> is false: restriction endonucleases cut both strands (a classic NEET distractor (the book’s estimate from past papers, not official figures)).',
+            nudge: '<b>(c)</b> is false: restriction endonucleases cut both strands. This is a recurring distractor.',
           },
           { label: 'random cut anywhere on the DNA', nudge: '<b>(d)</b> contradicts the defining specificity of the enzyme.' },
         ],

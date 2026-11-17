@@ -26,7 +26,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A small topic that is often asked. NEET almost always asks one question here (the book’s estimate from past papers, not official figures), overwhelmingly a <b>chronological-sequence</b> item (arrange the hominins from earliest to latest) or a <b>brain-capacity / feature match</b>. CUET likes single-fact recall (who used fire, which had the largest brain). CBSE Boards may ask a short “trends in human evolution” answer. The facts are few and finite, so this is high return for low effort: lock the order and the brain-capacity ladder and you have it.',
+        html: '<b>Exam Relevance:</b> A small topic that is often asked. NEET almost always asks one question here (the book’s estimate from past papers, not official figures), usually a <b>chronological-sequence</b> item (arrange the hominins from earliest to latest) or a <b>brain-capacity / feature match</b>. CUET likes single-fact recall (who used fire, which had the largest brain). CBSE Boards may ask a short “trends in human evolution” answer. The facts are few and finite, so this is high return for low effort: lock the order and the brain-capacity ladder and you have it.',
       },
       {
         t: 'p',
@@ -65,7 +65,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Hominin', 'Roughly when', 'Where', 'Brain capacity', 'Diagnostic features'],
+        head: ['Ape or hominin', 'Roughly when', 'Where', 'Brain capacity', 'Diagnostic features'],
         rows: [
           ['<i>Dryopithecus</i> & <i>Ramapithecus</i>', '~15\u00a0mya', 'Africa & Asia', 'ape-sized', 'Ape-like, hairy, walked like apes; <i>Ramapithecus</i> more man-like, <i>Dryopithecus</i> more ape-like'],
           ['<i>Australopithecus</i>', '~3–4\u00a0mya', 'Eastern Africa', '~400–500\u00a0cc', 'An early, well-established <b>bipedal</b> “ape-man”; lived on grasslands, ate fruit; hunted with stones'],
@@ -77,7 +77,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Dates and brain sizes in this table are the book’s (mostly NCERT’s) round figures; current work gives earlier or wider ranges (for example <i>Homo sapiens</i> about 300,000 years ago, Neanderthals about 400,000 to 40,000 years ago). The order is what is examined.',
+        html: 'Dates and brain sizes in this table are the book’s round figures, mostly NCERT’s (NCERT gives about 2 mya for <i>Australopithecus</i>); current work gives earlier or wider ranges (for example <i>Homo sapiens</i> about 300,000 years ago, Neanderthals about 400,000 to 40,000 years ago). The order is what is examined.',
       },
       {
         t: 'p',
@@ -182,7 +182,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[CBSE] Name the hominin associated with each: (i) an early bipedal hominin, (ii) the “handy man”, credited with tools, (iii) an early Neanderthal-associated burial.',
+            q: '[CBSE] Name the hominin associated with each: (i) an early bipedal hominin, (ii) the “handy man”, credited with tools, (iii) the hominin that covered the body with hides and buried its dead.',
             a: '(i) <i>Australopithecus</i>; (ii) <i>Homo habilis</i>; (iii) Neanderthal man.',
           },
           {

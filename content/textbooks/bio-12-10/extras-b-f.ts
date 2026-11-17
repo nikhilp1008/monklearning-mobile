@@ -232,7 +232,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] If a PCR reaction has 30 cycles, what is the theoretical amplification factor?',
-            a: '2<sup>30</sup> ≈ 1.07 × 10<sup>9</sup> copies (about 1 billion).',
+            a: '2<sup>30</sup> ≈ 1.07 × 10<sup>9</sup>-fold (about a billionfold); starting from a single molecule that is about 10<sup>9</sup> copies.',
           },
           {
             q: '[NEET] State two differences between the annealing step and the denaturation step in PCR.',
@@ -347,7 +347,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Name two vectors used in gene therapy and one disease treated with each.',
-            a: 'Retrovirus: ADA-SCID (ADA deficiency); Adenovirus: cystic fibrosis (<i>CFTR</i> gene); Liposome: experimental muscle/gene therapy.',
+            a: 'Any two, for example retrovirus for ADA-SCID (ADA deficiency) and adenovirus for cystic fibrosis (the <i>CFTR</i> gene). (Liposomes are the third vector in the table, used experimentally, with no established disease example.)',
           },
           {
             q: '[NEET] Why is a replication-incompetent retrovirus used rather than a wild-type retrovirus?',
@@ -386,7 +386,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Three specific patent cases:</b><br>1. <b>Turmeric (<i>Curcuma longa</i>) wound healing: US Patent 5,401,504.</b> Filed in 1993 by the University of Mississippi Medical Center, claiming turmeric powder as an effective wound-healing agent. India challenged this by submitting ancient Ayurvedic texts (dating back centuries) as prior art: evidence that the use was known in India long before the patent was filed. The US Patent Office revoked the patent in 1997 on the grounds of lack of novelty. This was a landmark case demonstrating that traditional knowledge can invalidate biopiracy patents.<br>2. <b>Neem (<i>Azadirachta indica</i>) fungicidal properties: European Patent EP 436257.</b> Granted in 1994 to the US Department of Agriculture and the US company W. R. Grace & Co., claiming a method of controlling fungal infections on plants using a neem-oil extract. Opposition by Indian and international groups, supported by evidence of traditional Indian use of neem, led the European Patent Office to revoke the patent (first in 2000, and the revocation was upheld on appeal in 2005). The argument: the fungicidal use was ancient common knowledge in India, not a novel invention.<br>3. <b>Basmati rice: US Patent 5,663,484 (RiceTec, 1997).</b> RiceTec, a US-based company, obtained a patent on Basmati rice lines and grains, creating confusion in international markets by claiming a unique product derived from Indian varieties. India challenged this through diplomatic and legal channels, and several of the claims were withdrawn or narrowed. India’s case rested on the fact that Basmati varieties had been cultivated in India and Pakistan for centuries; the “novelty” claimed by RiceTec did not exist.',
+        html: '<b>Three specific patent cases:</b><br>1. <b>Turmeric (<i>Curcuma longa</i>) wound healing: US Patent 5,401,504.</b> Filed in 1993 by the University of Mississippi Medical Center, claiming turmeric powder as an effective wound-healing agent. India challenged this by submitting ancient Ayurvedic texts (dating back centuries) as prior art: evidence that the use was known in India long before the patent was filed. The US Patent Office revoked the patent in 1997 on the grounds of lack of novelty. This was a landmark case demonstrating that traditional knowledge can invalidate biopiracy patents.<br>2. <b>Neem (<i>Azadirachta indica</i>) fungicidal properties: European Patent EP 436257.</b> Granted in 1994 to the US Department of Agriculture and the US company W. R. Grace & Co., claiming a method of controlling fungal infections on plants using a neem-oil extract. Opposition by Indian and international groups, supported by evidence of traditional Indian use of neem, led the European Patent Office to revoke the patent (the European Patent Office first revoked it in 2000 and the revocation was upheld on appeal in 2005; these dates are not in NCERT). The argument: the fungicidal use was ancient common knowledge in India, not a novel invention.<br>3. <b>Basmati rice: US Patent 5,663,484 (RiceTec, 1997).</b> RiceTec, a US-based company, obtained a patent on Basmati rice lines and grains, creating confusion in international markets by claiming a unique product derived from Indian varieties. India challenged this through diplomatic and legal channels, and several of the claims were withdrawn or narrowed. India’s case rested on the fact that Basmati varieties had been cultivated in India and Pakistan for centuries; the “novelty” claimed by RiceTec did not exist.',
       },
       {
         t: 'p',
@@ -674,7 +674,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '<b>Q10.</b> The correct sequence of labels for the maturation of proinsulin into insulin is: A = Free C-peptide; B = Insulin; C = cell peptidases; D = Proinsulin<br><b>(a)</b> D → C → B + A<br><b>(b)</b> B → C → D + A<br><b>(c)</b> A → B → C → D<br><b>(d)</b> C → B → D → A',
-            a: '<b>Answer:</b> (a). D (proinsulin) → C (cell peptidases cut the C-peptide) → B (insulin, the A+B+disulphide product) + A (free C-peptide).',
+            a: '<b>Answer:</b> (a). D (proinsulin) → C (cell peptidases cut the C-peptide) → B (insulin, the A+B+disulphide product) + A (free C-peptide). (The letters here are not the ones used in Archetype 6: read each question’s own label list before matching.)',
           },
           {
             q: '<b>Q11.</b> A novel strategy to prevent <i>Meloidogyne incognita</i> infestation in tobacco was based on<br><b>(a)</b> DNA interference<br><b>(b)</b> RNA interference<br><b>(c)</b> producing a Bt-type pore-forming toxin<br><b>(d)</b> spraying a chemical nematicide',

@@ -26,7 +26,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A high-yield topic for NEET: the open circulation with the 13-chambered heart, Malpighian-tubule excretion (uricotelic), the tracheal system with 10 pairs of spiracles, and paurometabolous development recur every year (the book’s estimate from past papers, not official figures). CBSE asks the alimentary-canal diagram and digestive/circulatory/reproductive short answers. CUET reuses segment-and-number one-liners.',
+        html: '<b>Exam Relevance:</b> A high-yield topic for NEET: the open circulation with the 13-chambered heart, Malpighian-tubule excretion (uricotelic), the tracheal system with 10 pairs of spiracles, and paurometabolous development recur almost every year (the book’s estimate from past papers, not official figures). CBSE asks the alimentary-canal diagram and digestive/circulatory/reproductive short answers. CUET reuses segment-and-number one-liners.',
       },
       {
         t: 'p',
@@ -38,7 +38,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Think about it this way…</b> Picture a knight in segmented plate armour riding in an open boat that is flooded with water. The armour is the exoskeleton. The flooded boat is the <b>haemocoel</b>: the cockroach does not pump blood through closed vessels; instead its body cavity is filled with <b>haemolymph</b> that bathes the organs directly. This <b>open circulation</b> is cheap and works fine for a small insect, and it goes with a surprising fact: the haemolymph carries <b>no respiratory pigment</b> at all, because in insects the air is carried by tracheae, not by blood, whereas earthworm and frog blood, which carry oxygen, do have one. Instead it breathes through a private pipework, the <b>tracheal system</b>, that carries air straight to the tissues through holes called <b>spiracles</b>.',
+        html: '<b>Think about it this way…</b> Picture a knight in segmented plate armour riding in an open boat that is flooded with water. The armour is the exoskeleton. The flooded boat is the <b>haemocoel</b>: the cockroach does not pump blood through closed vessels; instead its body cavity is filled with <b>haemolymph</b> that bathes the organs directly. This <b>open circulation</b> is cheap and works fine for a small insect, and it goes with a surprising fact: the haemolymph carries <b>no respiratory pigment</b> at all, because in insects the air is carried by tracheae, not by blood, whereas earthworm and frog blood, which carry oxygen, do have one. Instead the cockroach breathes through a private pipework, the <b>tracheal system</b>, that carries air straight to the tissues through holes called <b>spiracles</b>.',
       },
       {
         t: 'p',
@@ -346,7 +346,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'You have almost certainly seen a frog near a pond after the first monsoon rains. It seems like a simple little animal, but a frog is one of biology’s great “in-between” creatures, and that is exactly why it earns a whole chapter. It is an <b>amphibian</b>: it lives part of its life in water and part on land, and its body is a beautiful compromise built to handle both worlds.',
+        html: 'You have almost certainly seen a frog near a pond after the first monsoon rains. It seems like a simple little animal, but a frog is one of biology’s great “in-between” creatures, and that is exactly why it earns a whole topic of its own. It is an <b>amphibian</b>: it lives part of its life in water and part on land, and its body is a beautiful compromise built to handle both worlds.',
       },
       {
         t: 'p',
@@ -523,7 +523,7 @@ export const TOPICS: Topic[] = [
           { label: 'sinus venosus and truncus arteriosus', nudge: null },
           {
             label: 'sinus venosus and conus medullaris',
-            nudge: '<b>(b)</b> “conus medullaris” is part of the spinal cord; the heart’s cone-like chamber is the conus (truncus) arteriosus.',
+            nudge: '<b>(b)</b> “conus medullaris” is part of the spinal cord; the heart’s cone-shaped outflow chamber is the conus arteriosus (NCERT’s name; the book calls the outflow the truncus arteriosus).',
           },
           {
             label: 'two extra ventricles',
@@ -717,9 +717,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET Assertion–Reason',
-        q: '<b>Embryonic Origin of Tissues.</b> <b>Assertion (A):</b> All connective tissues are derived from the mesoderm. <b>Reason (R):</b> The mesoderm gives rise to bone, cartilage, blood and the loose and dense connective tissues. Choose: <b>(a)</b> Both A and R true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
+        q: '<b>Embryonic Origin of Tissues.</b> <b>Assertion (A):</b> Bone, cartilage, blood and areolar tissue are all derived from the mesoderm. <b>Reason (R):</b> The mesoderm, the middle germ layer, forms the body’s supporting, packing and circulating tissues. Choose: <b>(a)</b> Both A and R true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
         steps: [
-          '<b>Reasoning.</b> A is true: areolar tissue, adipose tissue, dense connective tissue, cartilage, bone and blood are all connective tissues, and all of them arise from the mesoderm. This is the NEET convention; the connective tissue of the head and face is the exception, arising from neural crest. (Neural tissue and epithelial tissue are not connective tissues.) R is true, and it is exactly the list of connective tissues that supports A. The correct option is (a): both A and R true, R is the correct explanation of A.',
+          '<b>Reasoning.</b> A is true: these connective tissues of the trunk and limbs arise from the mesoderm. R is true and explains A: bone and cartilage support, areolar tissue packs, and blood circulates, and these are the jobs of the tissues the middle layer forms. (Some connective tissue of the head and face comes from the neural crest instead, which is why the assertion names the tissues rather than saying “all”.) The correct option is (a): both A and R true, R is the correct explanation of A.',
         ],
         ans: '(a).',
       },
@@ -782,7 +782,7 @@ export const TOPICS: Topic[] = [
           ],
           [
             'Body wall',
-            'Cuticle + epidermis + muscles (no skeleton)',
+            'Cuticle + epidermis + muscles (no hard skeleton)',
             'Chitinous exoskeleton (sclerites + arthrodial membrane)',
             'Moist skin (no scales) + underlying muscles',
           ],
@@ -893,7 +893,7 @@ export const TOPICS: Topic[] = [
             'Spiracles',
             'None',
             '<b>10 pairs</b> (2 thoracic + 8 abdominal)',
-            'None (lungs via mouth)',
+            'None (air reaches the lungs through the nostrils and buccal cavity)',
           ],
           ['Tadpole stage', '–', '–', '<b>Gills</b> (external then internal)'],
         ],
@@ -1035,8 +1035,8 @@ export const TOPICS: Topic[] = [
             a: 'Frog (via the tadpole, a larva). The cockroach also develops indirectly, through nymphs, but a nymph is not a larva. Earthworm shows direct development.',
           },
           {
-            q: '[NEET] The heart of a frog differs from that of a cockroach in being: (a) 13-chambered, (b) dorsal, (c) closed with haemoglobin, (d) open.',
-            a: '(c) Closed with haemoglobin. The frog heart is closed (blood in vessels) with haemoglobin in nucleated RBCs. The cockroach has an open heart (discharging into haemocoel) with no haemoglobin.',
+            q: '[NEET] The heart of a frog differs from that of a cockroach in being: (a) 13-chambered, (b) dorsal, (c) part of a closed circulation with haemoglobin, (d) part of an open circulation.',
+            a: '(c) Closed with haemoglobin. The frog’s heart pumps blood that stays in vessels (closed circulation) and carries haemoglobin in nucleated RBCs. The cockroach’s heart discharges haemolymph into the haemocoel (open circulation), with no haemoglobin.',
           },
         ],
       },

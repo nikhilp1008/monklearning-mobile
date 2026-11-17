@@ -406,7 +406,7 @@ const INTER: Inter[] = [
   { name: 'Predation', a: '+', b: '−', left: ['predator'], right: ['prey'], link: 'to', desc: ['One eats other'] },
   { name: 'Parasitism', a: '+', b: '−', left: ['tick'], right: ['dog'], link: 'to', desc: ['One benefits,', 'lives on host'] },
   { name: 'Commensalism', a: '+', b: '0', left: ['orchid'], right: ['tree'], link: 'to', desc: ['One benefits,', 'other unaffected'] },
-  { name: 'Amensalism', a: '−', b: '0', left: ['mould'], right: ['microbe'], link: 'bar', desc: ['One harmed,', 'other unaffected'] },
+  { name: 'Amensalism', a: '−', b: '0', left: ['microbe'], right: ['mould'], link: 'bar', desc: ['One harmed,', 'other unaffected'] },
 ];
 const IW = 162, IH = 88, IX = [12, 186], IY = [44, 176, 308];
 const pos = (i: number): P => [IX[i % 2], IY[Math.floor(i / 2)]];
@@ -429,8 +429,8 @@ function draw116(): Sketch {
       s.vec(a0, ay, a1, ay, { w: 1.6 });
       keep(s, [[a0, ay], [a1, ay]]);
     } else {
-      path(s, [[a0, ay], [a1 - 4, ay]], { w: 1.6 });
-      path(s, [[a1 + 2, ay - 9], [a1 - 4, ay - 9], [a1 - 4, ay + 9], [a1 + 2, ay + 9]], { w: 1.6 });
+      path(s, [[a1, ay], [a0 + 4, ay]], { w: 1.6 });
+      path(s, [[a0 - 2, ay - 9], [a0 + 4, ay - 9], [a0 + 4, ay + 9], [a0 - 2, ay + 9]], { w: 1.6 });
     }
     lab(s, x + IW / 2, y + 58, name, { size: 13, bold: true, within: name });
     lab(s, x + IW / 2, y + 78, effect(it), { size: 14, bold: true, color: C.amber, within: name });
@@ -448,7 +448,7 @@ function check116(): Check[] {
     ['Each description agrees with its effects: both +, both harmed (−, −), one gains and one loses, one gains and the other is unaffected (+, 0), one is harmed and the other unaffected (−, 0)', INTER.every((it) => ({ '1,1': 'Both benefit', '-1,-1': 'Both harmed', '1,-1': it.name === 'Predation' ? 'One eats other' : 'One benefits,', '1,0': 'One benefits,', '-1,0': 'One harmed,' }[kind(it)] === it.desc[0]))],
     ['The two (+, −) interactions are predation and parasitism, the only repeated effect pair; the other four pairs are all different', INTER.filter((it) => kind(it) === '1,-1').map((it) => it.name).join() === 'Predation,Parasitism' && new Set(INTER.filter((it) => kind(it) !== '1,-1').map(kind)).size === 4],
     ['The link follows the effects: a double arrow when both species are affected alike (mutualism, competition), one arrow toward the species that is acted on or hosts (predation, parasitism, commensalism), and a blocking bar for amensalism (the mould harms the microbe, no return)', INTER.map(heads).join() === '2,2,1,1,1,0' && INTER[5].link === 'bar' && INTER.filter((it) => it.link === 'both').every((it) => sign(it.a) === sign(it.b) && it.a !== '0')],
-    ['The example pairs are the book\'s: bee and flower, species A and B, predator and prey, tick and dog, orchid and tree, mould and microbe', INTER.map((it) => `${it.left.join(' ')} ${it.right.join(' ')}`).join('|') === 'bee flower|species A species B|predator prey|tick dog|orchid tree|mould microbe' && INTER.every((it) => [...it.left, ...it.right].every((t) => has(s, t)))],
+    ['The example pairs are the book\'s: bee and flower, species A and B, predator and prey, tick and dog, orchid and tree, microbe and mould (the harmed species first, as A)', INTER.map((it) => `${it.left.join(' ')} ${it.right.join(' ')}`).join('|') === 'bee flower|species A species B|predator prey|tick dog|orchid tree|microbe mould' && INTER.every((it) => [...it.left, ...it.right].every((t) => has(s, t)))],
     ['All six names, effects and descriptions are on the drawing, with the book\'s title; the effects (the +, −, 0 classification) are the highlight', has(s, 'Types of Species Interactions') && INTER.every((it) => has(s, it.name) && has(s, effect(it)) && it.desc.every((t) => has(s, t))) && count(s, '(+, −)') === 2],
     ...layout(s), clean(s),
   ];

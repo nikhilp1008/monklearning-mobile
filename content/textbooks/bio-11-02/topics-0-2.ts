@@ -61,11 +61,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '1. <b>Cell structure</b>: whether the cell is prokaryotic (no membrane-bound nucleus, as in bacteria) or eukaryotic (a true, membrane-bound nucleus with organelles). This is the deepest division in all of biology and is why Monera stands apart from every other kingdom, however else its members behave.<br>2. <b>Body organisation</b>: whether the organism is unicellular or multicellular, and if multicellular, whether it is organised at the loose cellular/thallus level (as in fungi and algae) or built into tissues, organs and organ systems (as in higher plants and animals). This is the criterion that separates a colony of cells from a true organism with a division of labour.<br>3. <b>Mode of nutrition</b>: autotrophic (making food, either photosynthetically using light or chemosynthetically by oxidising chemicals) or heterotrophic (obtaining food from others, by absorption as in saprophytes/parasites or by ingestion as in holozoic animals). This single criterion does much of the work of separating the eukaryotic kingdoms from one another.<br>4. <b>Reproduction</b>: the asexual and sexual methods an organism uses, which differ characteristically between groups and often mark a kingdom as clearly as nutrition does.<br>5. <b>Phylogenetic relationships</b>: evolutionary kinship, so that, as far as possible, members of a kingdom share common ancestry rather than just surface resemblance. This is the criterion students most often forget, yet it is what makes a classification natural rather than merely convenient.',
+        html: '1. <b>Cell structure</b>: whether the cell is prokaryotic (no membrane-bound nucleus, as in bacteria) or eukaryotic (a true, membrane-bound nucleus with organelles). This is the most fundamental division used in the five-kingdom system and is why Monera stands apart from every other kingdom, however else its members behave.<br>2. <b>Body organisation</b>: whether the organism is unicellular or multicellular, and if multicellular, whether it is organised at the loose cellular/thallus level (as in fungi and algae) or built into tissues, organs and organ systems (as in higher plants and animals). This is the criterion that separates a colony of cells from a true organism with a division of labour.<br>3. <b>Mode of nutrition</b>: autotrophic (making food, either photosynthetically using light or chemosynthetically by oxidising chemicals) or heterotrophic (obtaining food from others, by absorption as in saprophytes/parasites or by ingestion as in holozoic animals). This single criterion does much of the work of separating the eukaryotic kingdoms from one another.<br>4. <b>Reproduction</b>: the asexual and sexual methods an organism uses, which differ characteristically between groups and often mark a kingdom as clearly as nutrition does.<br>5. <b>Phylogenetic relationships</b>: evolutionary kinship, so that, as far as possible, members of a kingdom share common ancestry rather than just surface resemblance. This is the criterion students most often forget, yet it is what makes a classification natural rather than merely convenient.',
       },
       {
         t: 'table',
-        title: 'The master comparison table (the single most useful table in the chapter)',
+        title: 'The master comparison table (a very useful table in the chapter)',
         head: ['Character', 'Monera', 'Protista', 'Fungi', 'Plantae', 'Animalia'],
         rows: [
           ['Cell type', 'Prokaryotic', 'Eukaryotic', 'Eukaryotic', 'Eukaryotic', 'Eukaryotic'],
@@ -110,7 +110,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>How the five kingdoms reorganised life</b>' },
       {
         t: 'p',
-        html: 'The real test of a classification is not how many boxes it has but whether the boxes capture something fundamental. The power of Whittaker’s scheme is best seen in what it fixed:<br>• <b>Prokaryotes were pulled out</b> of “plants/animals” into their own kingdom, <b>Monera</b>, because lacking a true nucleus is a more fundamental difference than colour, size or habit, the very features the old system relied on.<br>• <b>Single-celled eukaryotes were gathered</b> into <b>Protista</b>, ending the awkward splitting of organisms like <i>Euglena</i> (part plant because it photosynthesises, part animal because it can also ingest and move) between the old two kingdoms, where neither label ever fitted.<br>• <b>Fungi were separated from plants</b>: they have no chlorophyll, absorb their food rather than make it, and have a chitin (not cellulose) wall, so grouping them with green plants never made biological sense and only persisted because both happen to be non-motile.<br>• <b>Plantae and Animalia were left</b> as the multicellular autotrophs and multicellular heterotrophs respectively, now cleanly defined, because everything that didn’t belong had been removed.',
+        html: 'The real test of a classification is not how many boxes it has but whether the boxes capture something fundamental. The power of Whittaker’s scheme is best seen in what it fixed:<br>• <b>Prokaryotes were pulled out</b> of “plants/animals” into their own kingdom, <b>Monera</b>, because lacking a true nucleus is a more fundamental difference than colour, size or habit, the very features the old system relied on.<br>• <b>Single-celled eukaryotes were gathered</b> into <b>Protista</b>, ending the awkward splitting of organisms like <i>Euglena</i> (part plant because it photosynthesises, part animal because it can also ingest and move) between the old two kingdoms, where neither label ever fitted.<br>• <b>Fungi were separated from plants</b>: they have no chlorophyll, absorb their food rather than make it, and have a chitin (not cellulose) wall, so grouping them with green plants never made biological sense and persisted mainly because both are walled and non-motile.<br>• <b>Plantae and Animalia were left</b> as the multicellular autotrophs and multicellular heterotrophs respectively, now cleanly defined, because everything that didn’t belong had been removed.',
       },
       {
         t: 'p',
@@ -214,7 +214,7 @@ export const TOPICS: Topic[] = [
         ],
         correct: 1,
         solution:
-          'The prokaryote/eukaryote divide turns on the nuclear membrane, and it is a far deeper difference than colour, size or nutrition, which is exactly why Monera is set apart from the other four kingdoms.',
+          'The prokaryote/eukaryote divide turns on the nuclear membrane, and it is a far more fundamental difference than colour, size or nutrition, which is exactly why Monera is set apart from the other four kingdoms.',
       },
       {
         t: 'mcq',
@@ -223,7 +223,7 @@ export const TOPICS: Topic[] = [
           { label: 'Monera', nudge: '<b>(a)</b> Monera is prokaryotic.' },
           { label: 'Protista', nudge: null },
           { label: 'Fungi', nudge: '<b>(c)</b> Fungi are exclusively heterotrophic.' },
-          { label: 'Plantae', nudge: '<b>(d)</b> Plantae are autotrophic and multicellular.' },
+          { label: 'Plantae', nudge: '<b>(d)</b> Plantae are mostly autotrophic and mostly multicellular.' },
         ],
         correct: 1,
         solution:
@@ -263,13 +263,13 @@ export const TOPICS: Topic[] = [
           '<b>Calling the two-kingdom system “wrong”.</b> It wasn’t wrong, just insufficient: it couldn’t capture prokaryotes, unicellular life, or the fungi/plant distinction, so it was refined rather than discarded.',
           '<b>Confusing kingdoms with domains.</b> Five <b>kingdoms</b> (Whittaker, 1969); three <b>domains</b> (Woese). Domains are a higher rank that sits above kingdoms: they don’t replace them.',
           '<b>Forgetting a Whittaker criterion.</b> The five are cell structure, body organisation, nutrition, reproduction and phylogeny; students most often drop “phylogenetic relationships”.',
-          '<b>Treating the five kingdoms as flawless.</b> Know its limitations (heterogeneous Monera/Protista; viruses excluded; little on inter-kingdom evolution): they are frequently asked, often as the “odd one out” or assertion–reason.',
+          '<b>Treating the five kingdoms as flawless.</b> Know its limitations (heterogeneous Monera/Protista; viruses excluded; little on inter-kingdom evolution): they are often asked, often as the “odd one out” or assertion–reason.',
           '<b>Mixing up who proposed what.</b> Aristotle (first scientific grouping), Linnaeus (two kingdoms), Haeckel (added Protista), Whittaker (five kingdoms), Woese (three domains).',
         ],
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed):</b> To place any organism, run the table top-down: <b>(1) prokaryote? → Monera.</b> If eukaryote: <b>(2) Multicellular? If single-celled, Protista. If multicellular: makes its own food with a cellulose wall → Plantae; absorbs food with a chitin wall → Fungi; ingests food with no wall → Animalia.</b> Cell type first, then body organisation, then nutrition + wall. This one decision tree answers the majority of “identify the kingdom” questions in the chapter (the book’s estimate from past papers, not official figures), and it is far more reliable than trying to recall scattered example lists.',
+        html: '<b>Pro-Tip (speed):</b> To place any organism, run the table top-down: <b>(1) prokaryote? → Monera.</b> If eukaryote: <b>(2) Makes its own food with a cellulose wall → Plantae; absorbs food with a chitin wall → Fungi (yeast too, though single-celled); multicellular, ingests food, no wall → Animalia. (3) A single-celled eukaryote that fits none of these → Protista</b> (diatoms and dinoflagellates are walled and photosynthetic, yet protists). Cell type first, then nutrition + wall, then body organisation. This one decision tree answers the majority of “identify the kingdom” questions in the chapter (the book’s estimate from past papers, not official figures), and it is far more reliable than trying to recall scattered example lists.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -317,7 +317,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Imagine you’re walking through the oldest lane of a city, say Old Delhi’s Chandni Chowk, where the buildings predate every planned colony around them. Kingdom <b>Monera</b> is biology’s version of that oldest lane: the prokaryotes were the <b>first cellular life on Earth</b>, and they’re still everywhere: in the curd setting in your kitchen, in the soil around a mango tree’s roots, in boiling hot springs, in your own gut. They are the single most abundant and the most metabolically diverse organisms on the planet.',
+        html: 'Imagine you’re walking through the oldest lane of a city, say Old Delhi’s Chandni Chowk, where the buildings predate every planned colony around them. Kingdom <b>Monera</b> is biology’s version of that oldest lane: the prokaryotes were the <b>first cellular life on Earth</b>, and they’re still everywhere: in the curd setting in your kitchen, in the soil around a mango tree’s roots, in boiling hot springs, in your own gut. They are the most abundant micro-organisms and among the most metabolically diverse organisms on the planet.',
       },
       {
         t: 'p',
@@ -333,7 +333,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'And here’s the part that makes Monera worth your respect: this “simplest” kingdom is the <b>ecological engine</b> the rest of life depends on. Bacteria decompose dead matter and return nutrients to the soil, fix atmospheric nitrogen into forms plants can use, and even set your dahi (curd) overnight. Remove Monera and ecosystems would choke on their own waste within weeks. So as you study it, hold two ideas together: structurally minimal, ecologically irreplaceable.',
+        html: 'And here’s the part that makes Monera worth your respect: this “simplest” kingdom is the <b>ecological engine</b> the rest of life depends on. Bacteria decompose dead matter and return nutrients to the soil, fix atmospheric nitrogen into forms plants can use, and even set your dahi (curd) overnight. Without bacteria, dead matter would build up and nutrient cycles would stall. So as you study it, hold two ideas together: structurally minimal, ecologically irreplaceable.',
       },
       { t: 'p', html: '<b>Limiting conditions & what Monera is NOT (a high-yield trap):</b>' },
       {
@@ -352,10 +352,10 @@ export const TOPICS: Topic[] = [
         title: 'Diagnostic table: Archaebacteria vs Eubacteria',
         head: ['Feature', 'Archaebacteria', 'Eubacteria'],
         rows: [
-          ['Habitat', 'Extreme / harsh (the “oldest” survivors)', 'Everywhere, including ordinary environments'],
+          ['Habitat', 'Extreme / harsh habitats', 'Everywhere, including ordinary environments'],
           [
             'Cell wall',
-            '<b>No peptidoglycan</b>; wall has protein + non-cellulosic polysaccharides (pseudomurein)',
+            '<b>No peptidoglycan</b>; wall of protein and non-cellulosic polysaccharides (pseudomurein in some methanogens)',
             '<b>Peptidoglycan (murein)</b> present (absent in <i>Mycoplasma</i>, which has no wall)',
           ],
           ['Membrane lipids', '<b>Branched-chain lipids</b> → resist heat & low pH', 'Straight-chain (unbranched) lipids'],
@@ -429,7 +429,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3.2 Reproduction</b>' },
       {
         t: 'p',
-        html: '• <b>Asexual reproduction (the main route): binary fission</b>: the cell copies its DNA and splits into two identical daughter cells. Under favourable conditions this is extremely rapid.<br>• <b>Under unfavourable conditions:</b> many form <b>endospores</b>: tough, dormant, highly resistant structures that survive heat, drought and chemicals, then germinate when conditions improve.',
+        html: '• <b>Asexual reproduction (the main route): binary fission</b>: the cell copies its DNA and splits into two identical daughter cells. Under favourable conditions this is extremely rapid.<br>• <b>Under unfavourable conditions:</b> some (e.g., <i>Bacillus</i>, <i>Clostridium</i>) form <b>endospores</b>: tough, dormant, highly resistant structures that survive heat, drought and chemicals, then germinate when conditions improve.',
       },
       { t: 'p', html: '<b>3.3 “Primitive sexual reproduction”: gene transfer without gametes</b>' },
       {
@@ -471,7 +471,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Clean short-answer technique.</b> “Give any three features that distinguish archaebacteria from eubacteria.”',
         steps: [
           '<b>How to answer for full marks (pick clearly contrasting features and pair them):</b> 1. <b>Cell wall:</b> Archaebacteria lack peptidoglycan; eubacteria have a peptidoglycan wall. 2. <b>Membrane lipids:</b> Archaebacteria have branched-chain lipids that resist heat and low pH; eubacteria have unbranched lipids. 3. <b>Habitat:</b> Archaebacteria typically occupy extreme habitats (hot springs, salt lakes, marshes); eubacteria are widespread, including ordinary environments.',
-          '<b>Examiner tip:</b> present as paired contrasts, not two separate lists: that’s what earns the comparison marks. If the question carries an extra mark, add a fourth contrast: archaebacteria are often the oldest, most extremophilic lineage, whereas eubacteria dominate everyday habitats including the human body and soil.',
+          '<b>Examiner tip:</b> present as paired contrasts, not two separate lists: that’s what earns the comparison marks. If the question carries an extra mark, add a fourth contrast: archaebacteria are typically extremophiles of harsh habitats, whereas eubacteria dominate everyday habitats including the human body and soil.',
           '<b>Common follow-up (be ready):</b> “On what basis are bacteria grouped by nutrition?” Autotrophic bacteria make their own food (photosynthetic, e.g. cyanobacteria; or chemosynthetic, oxidising inorganic substances), while heterotrophic bacteria depend on others (saprophytic on dead matter, or parasitic/symbiotic on a host). State the two-way autotroph/heterotroph split first, then sub-divide: markers reward that logical structure.',
         ],
         ans: '',
@@ -565,7 +565,7 @@ export const TOPICS: Topic[] = [
         opts: [
           { label: 'Cyanobacteria', nudge: '<b>(a)</b> and <b>(d)</b> are eubacteria and do contain peptidoglycan, so the “peptidoglycan-free” clue rules them out immediately.' },
           { label: 'Archaebacteria', nudge: null },
-          { label: 'Mycoplasma', nudge: '<b>(c)</b> <i>Mycoplasma</i> has no wall at all, and its membrane does not have the branched lipids of archaebacteria.' },
+          { label: '<i>Mycoplasma</i>', nudge: '<b>(c)</b> <i>Mycoplasma</i> has no wall at all, and its membrane does not have the branched lipids of archaebacteria.' },
           { label: 'Heterotrophic eubacteria', nudge: '<b>(a)</b> and <b>(d)</b> are eubacteria and do contain peptidoglycan, so the “peptidoglycan-free” clue rules them out immediately.' },
         ],
         correct: 1,
@@ -645,7 +645,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> Protista is one of the highest-yield topics in the chapter for NEET: expect 1–2 MCQs almost every year (the book’s estimate from past papers, not official figures), very often on diatoms, dinoflagellates, <i>Euglena</i>, or the four protozoan classes (and a steady stream of assertion–reason questions). Many recent NEET items test fine discriminations (silica vs cellulose walls, mixotrophy in <i>Euglena</i>, or which group causes red tides), so precise group features matter more than broad definitions here. CBSE Boards favour a 2–3 mark question on the distinguishing features of a named group. CUET leans on direct one-fact recall.',
+        html: '<b>Exam Relevance:</b> Protista is a high-yield topic in the chapter for NEET: expect 1–2 MCQs almost every year (the book’s estimate from past papers, not official figures), very often on diatoms, dinoflagellates, <i>Euglena</i>, or the four protozoan classes (and a steady stream of assertion–reason questions). NEET items often test fine discriminations (silica vs cellulose walls, mixotrophy in <i>Euglena</i>, or which group causes red tides), so precise group features matter more than broad definitions here. CBSE Boards favour a 2–3 mark question on the distinguishing features of a named group. CUET leans on direct one-fact recall.',
       },
       {
         t: 'p',
@@ -665,7 +665,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Because protists hedge their bets between plant, animal and fungal lifestyles, their <b>nutrition is the most varied of any single kingdom</b>: some are photoautotrophs (make food by photosynthesis), some are heterotrophs (eat or absorb others), and some are <b>mixotrophs</b> that switch between the two depending on conditions.',
+        html: 'Because protists hedge their bets between plant, animal and fungal lifestyles, their <b>nutrition is among the most varied of any kingdom</b>: some are photoautotrophs (make food by photosynthesis), some are heterotrophs (eat or absorb others), and some are <b>mixotrophs</b> that switch between the two depending on conditions.',
       },
       {
         t: 'p',
@@ -696,7 +696,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'table',
-        title: 'The protist groups at a glance (this is the table examiners love to test)',
+        title: 'The protist groups at a glance (a table examiners often test)',
         head: ['Group', 'Lifestyle', 'Cell wall / covering', 'Flagella', 'Stored food', 'Examples'],
         rows: [
           [
@@ -754,12 +754,12 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'This three-way split is a very useful mental scaffold for the whole topic: nearly every exam question is really asking “which lifestyle, and then which group within it?” Fix the lifestyle first (does it photosynthesise, hunt, or absorb decaying matter?) and you have already narrowed the answer to one of three branches before you look at any fine detail.',
+        html: 'This three-way split is a very useful mental scaffold for the whole topic: nearly every exam question is really asking “which lifestyle, and then which group within it?” Fix the lifestyle first (does it photosynthesise, hunt, or feed on decaying matter?) and you have already narrowed the answer to one of three branches before you look at any fine detail.',
       },
       { t: 'p', html: '<b>3.2 The plant-like protists in detail</b>' },
       {
         t: 'p',
-        html: '• <b>Chrysophytes</b> include <b>diatoms</b> and <b>desmids</b> (golden algae). (Desmids are strictly green algae, but NCERT lists them here.) They are microscopic and <b>float passively as plankton</b>, and are the <b>chief producers in the oceans</b>. The diatom wall is embedded with <b>silica</b>, so it is virtually indestructible; the two halves fit together like the lid and base of a soap box. Their intricately patterned, glass-like walls have earned diatoms the nickname “jewels of the sea”. Because they sit at the base of aquatic food chains and photosynthesise in vast numbers, diatoms are responsible for a substantial share of the planet’s oxygen. Over millions of years their walls pile up into deposits called <b>‘diatomaceous earth’</b>, used in polishing and in the filtration of oils and syrups.<br>• <b>Dinoflagellates</b> are mostly <b>marine and photosynthetic</b>, with stiff <b>cellulose plates</b> on the outside and <b>two flagella</b> (one lying longitudinally, one transversely in a groove). The cellulose plates fit together like overlapping armour, and the perpendicular beat of the two flagella makes the cell spin as it swims. They appear yellow, green, brown, blue or red depending on their pigments. When they multiply rapidly they cause <b>red tides</b> (e.g., <i>Gonyaulax</i>) and may release <b>toxins</b> that kill marine life; some (e.g., <i>Noctiluca</i>, a mostly heterotrophic, bioluminescent dinoflagellate) are <b>bioluminescent</b>: the eerie “sea sparkle” sometimes seen glowing blue along Indian coastlines at night is a <i>Noctiluca</i> bloom.<br>• <b>Euglenoids</b> (e.g., <i>Euglena</i>) lack a cell wall; instead a protein-rich <b>pellicle</b> makes the body flexible. They are the classic <b>mixotrophs</b>: photosynthetic in sunlight, but in its absence they feed heterotrophically like animals. They store the carbohydrate <b>paramylon</b>, possess a gullet, and swim using two flagella (one long, one short) while a light-sensitive eyespot helps them orient toward light: a neat illustration of why <i>Euglena</i> is described as standing “between plant and animal”.',
+        html: '• <b>Chrysophytes</b> include <b>diatoms</b> and <b>desmids</b> (golden algae). (Desmids are strictly green algae, but NCERT lists them here.) They are microscopic and <b>float passively as plankton</b>, and are the <b>chief producers in the oceans</b>. The diatom wall is embedded with <b>silica</b>, so it is virtually indestructible; the two halves fit together like the lid and base of a soap box. Their intricately patterned, glass-like walls have earned diatoms the nickname “jewels of the sea”. Because they sit at the base of aquatic food chains and photosynthesise in vast numbers, diatoms are responsible for a substantial share of the planet’s oxygen. Over millions of years their walls pile up into deposits called <b>‘diatomaceous earth’</b>, used in polishing and in the filtration of oils and syrups.<br>• <b>Dinoflagellates</b> are mostly <b>marine and photosynthetic</b>, with stiff <b>cellulose plates</b> on the outside and <b>two flagella</b> (one lying longitudinally, one transversely in a groove). The cellulose plates fit together like overlapping armour, and the perpendicular beat of the two flagella makes the cell spin as it swims. They appear yellow, green, brown, blue or red depending on their pigments. When they multiply rapidly they cause <b>red tides</b> (e.g., <i>Gonyaulax</i>) and may release <b>toxins</b> that kill marine life; some are <b>bioluminescent</b> (e.g., <i>Noctiluca</i>, a mostly heterotrophic dinoflagellate): the eerie “sea sparkle” sometimes seen glowing blue along Indian coastlines at night is a <i>Noctiluca</i> bloom.<br>• <b>Euglenoids</b> (e.g., <i>Euglena</i>) lack a cell wall; instead a protein-rich <b>pellicle</b> makes the body flexible. They are the classic <b>mixotrophs</b>: photosynthetic in sunlight, but in its absence they feed heterotrophically like animals. They store the carbohydrate <b>paramylon</b>, possess a gullet, and swim using two flagella (one long, one short) while a light-sensitive eyespot helps them orient toward light: a neat illustration of why <i>Euglena</i> is described as standing “between plant and animal”.',
       },
       { t: 'p', html: '<b>3.3 The fungus-like protists</b>' },
       {
@@ -915,10 +915,10 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'Which protozoan possesses an infectious spore-like stage in its life cycle?',
         opts: [
-          { label: 'Amoeba', nudge: '<b>(a)</b> amoeboid (pseudopodia), <b>(b)</b> ciliated (cilia), <b>(c)</b> flagellated (flagella): each is the type-example of a different protozoan class, so picking any of them reveals a scrambled mental map of the four groups.' },
-          { label: 'Paramecium', nudge: '<b>(a)</b> amoeboid (pseudopodia), <b>(b)</b> ciliated (cilia), <b>(c)</b> flagellated (flagella): each is the type-example of a different protozoan class, so picking any of them reveals a scrambled mental map of the four groups.' },
-          { label: 'Trypanosoma', nudge: '<b>(a)</b> amoeboid (pseudopodia), <b>(b)</b> ciliated (cilia), <b>(c)</b> flagellated (flagella): each is the type-example of a different protozoan class, so picking any of them reveals a scrambled mental map of the four groups.' },
-          { label: 'Plasmodium', nudge: null },
+          { label: '<i>Amoeba</i>', nudge: '<b>(a)</b> amoeboid (pseudopodia), <b>(b)</b> ciliated (cilia), <b>(c)</b> flagellated (flagella): each is the type-example of a different protozoan class, so picking any of them reveals a scrambled mental map of the four groups.' },
+          { label: '<i>Paramecium</i>', nudge: '<b>(a)</b> amoeboid (pseudopodia), <b>(b)</b> ciliated (cilia), <b>(c)</b> flagellated (flagella): each is the type-example of a different protozoan class, so picking any of them reveals a scrambled mental map of the four groups.' },
+          { label: '<i>Trypanosoma</i>', nudge: '<b>(a)</b> amoeboid (pseudopodia), <b>(b)</b> ciliated (cilia), <b>(c)</b> flagellated (flagella): each is the type-example of a different protozoan class, so picking any of them reveals a scrambled mental map of the four groups.' },
+          { label: '<i>Plasmodium</i>', nudge: null },
         ],
         correct: 3,
         solution:
@@ -949,7 +949,7 @@ export const TOPICS: Topic[] = [
             f: 'Defining trait',
             note: 'single-celled <b>eukaryotes</b>, primarily <b>aquatic</b>; the link between Monera and the plant/animal/fungal kingdoms.',
           },
-          { f: 'Most varied nutrition of any kingdom', note: 'photo-, hetero-, and <b>mixotrophic</b>.' },
+          { f: 'Very varied nutrition', note: 'photo-, hetero-, and <b>mixotrophic</b>.' },
           {
             f: 'Chrysophytes',
             note: 'diatoms + desmids; <b>silica</b> wall (soap-box), indestructible → <b>diatomaceous earth</b>; chief ocean producers; food = chrysolaminarin.',

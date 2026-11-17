@@ -39,7 +39,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives you root, stem, leaf, inflorescence, flower, fruit, seed, and three families. Five patterns that NEET and CBSE Boards regularly examine are still standing outside the door. Additional topic A adds the two economically important families the chapter introduces but never describes in full, Brassicaceae (Cruciferae) and Asteraceae (Compositae), because exam questions routinely present their floral formulae and ask you to identify the family by name. Additional topic B supplies the comparison tables the chapter builds element by element but never consolidates: underground storage organs, phylloclade versus phyllode, tendril and spine origins, and the five ovule types (orthotropous, anatropous, campylotropous, amphitropous, hemianatropous) that do not appear in the main text. Additional topic C completes the fruit-classification system (aggregate, multiple, and their subtypes) and ties seed germination to cotyledon function, both of which NEET examines as distinct question types. Additional topic D is the step-by-step routine for writing a full semi-technical description from a given specimen and for translating a plant description back into a floral formula, with worked examples at board and NEET level. Additional topic E is a cheat-sheet consolidation of the four before it.<br><br>Numbering continues from the chapter’s Topic 04. The terms below follow standard plant-morphology usage and the NCERT Class 11 Biology Chapter 5 vocabulary; where a topic goes beyond NCERT, the text says so.<br><br>The chapter names Brassicaceae as a family (mustard appears in the Topic 02 ovary-position and placentation lists and practice items) and Asteraceae by implication (sunflower is the basal-placentation and epigynous example in the Topic 02 tables, and Asteraceae is named only as an option in a Topic 02 MCQ), but neither receives a full semi-technical treatment. Exam questions can present a floral formula and ask you to name the family, or ask which family shows a composite head, and boards ask for the full description of a Brassicaceae flower. Both are supplied here.',
+        html: 'The chapter gives you root, stem, leaf, inflorescence, flower, fruit, seed, and three families. Five patterns that NEET and CBSE Boards regularly examine are still standing outside the door. Additional topic A adds the two economically important families the chapter introduces but never describes in full, Brassicaceae (Cruciferae) and Asteraceae (Compositae), because exam questions routinely present their floral formulae and ask you to identify the family by name. Additional topic B supplies the comparison tables the chapter builds element by element but never consolidates: underground storage organs, phylloclade versus phyllode, tendril and spine origins, and the five ovule types (orthotropous, anatropous, campylotropous, amphitropous, hemianatropous), of which the main text draws only the anatropous. Additional topic C completes the fruit-classification system (aggregate, multiple, and their subtypes) and ties seed germination to cotyledon function, both of which NEET examines as distinct question types. Additional topic D is the step-by-step routine for writing a full semi-technical description from a given specimen and for translating a plant description back into a floral formula, with worked examples at board and NEET level. Additional topic E is a cheat-sheet consolidation of the four before it.<br><br>Numbering continues from the chapter’s Topic 04. The terms below follow standard plant-morphology usage and the NCERT Class 11 Biology Chapter 5 vocabulary; where a topic goes beyond NCERT, the text says so.<br><br>The chapter names Brassicaceae as a family (mustard appears in the Topic 02 ovary-position and placentation lists and practice items) and Asteraceae by implication (sunflower is the basal-placentation and epigynous example in the Topic 02 tables, and Asteraceae is named only as an option in a Topic 02 MCQ), but neither receives a full semi-technical treatment. Exam questions can present a floral formula and ask you to name the family, or ask which family shows a composite head, and boards ask for the full description of a Brassicaceae flower. Both are supplied here.',
       },
 
       { t: 'part', title: 'Method: Writing a Family Description' },
@@ -51,7 +51,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Family Brassicaceae (Cruciferae): the Mustard Family' },
       {
         t: 'p',
-        html: 'Examples: <i>Brassica</i> (mustard, cabbage, cauliflower, broccoli), <i>Raphanus</i> (radish), <i>Erysimum</i> (wallflower), <i>Iberis</i> (candytuft), <i>Capsella</i> (shepherd’s purse).<br><br><b>Habit:</b> Annual or biennial herbs; tap root often swollen for storage.<br><br><b>Stem:</b> Herbaceous, erect, branched.<br><br><b>Leaf:</b> Alternate; simple; exstipulate; reticulate venation. Basal leaves often form a rosette.<br><br><b>Inflorescence:</b> Racemose.<br><br><b>Flower:</b> Ebracteate; bisexual; actinomorphic (radial); tetramerous (parts in fours).<br><br><b>Calyx:</b> 4 sepals, polysepalous (free); aestivation is imbricate (not given in NCERT). Two inner sepals are often saccate (bag-like, as in <i>Brassica</i>).<br><br><b>Corolla:</b> 4 petals, polypetalous (free); each petal has a distinct limb (blade) and claw (stalk). Aestivation is imbricate. The arrangement (one petal at the top, one at the bottom, one on each side) gives the family its name: “cruciform” (cross-shaped), like the four arms of a plus sign. Colour is typically yellow or white.<br><br><b>Androecium:</b> 6 stamens, tetradynamous. The two short stamens form the outer whorl (the lateral pair); the four long stamens form the inner whorl, as two median pairs (one anterior pair and one posterior pair). The prefix “tetradynamous” means “four strong”: the four long stamens dominate. This is a key identifying character of Brassicaceae.<br><br><b>Gynoecium:</b> Bicarpellary (2 carpels); syncarpous; ovary superior; unilocular at first but becomes bilocular because a false septum (a membranous partition) grows across the ovary from the replum. Placentation is parietal: ovules attached to the two inner walls. Many ovules.<br><br><b>Fruit:</b> A siliqua, a dry, dehiscent, elongated fruit that develops from a bicarpellary superior ovary. It splits open along two sutures; the valves fall away and the persistent replum is left as a frame, with the membranous false septum stretched across it. (A short, broad fruit of the same kind is called a silicula, as in <i>Capsella</i>; the long mustard pod is a siliqua.)<br><br><b>Seed:</b> Non-endospermic (ex-albuminous); food stored in two cotyledons, which are often folded around the radicle.<br><br><b>Floral formula:</b><br>' + BRA + '<br>Note: subscripts denote numbers; brackets denote fusion; the line below G marks a superior ovary.<br><br><b>Diagnostic fingerprint:</b> Cruciform corolla + tetradynamous stamens + siliqua fruit = Brassicaceae. No other family in this chapter shares all three.',
+        html: 'Examples: <i>Brassica</i> (mustard, cabbage, cauliflower, broccoli), <i>Raphanus</i> (radish), <i>Erysimum</i> (wallflower), <i>Iberis</i> (candytuft), <i>Capsella</i> (shepherd’s purse).<br><br><b>Habit:</b> Annual or biennial herbs; tap root often swollen for storage.<br><br><b>Stem:</b> Herbaceous, erect, branched.<br><br><b>Leaf:</b> Alternate; simple; exstipulate; reticulate venation. Basal leaves often form a rosette.<br><br><b>Inflorescence:</b> Racemose.<br><br><b>Flower:</b> Ebracteate; bisexual; actinomorphic (radial); tetramerous (parts in fours).<br><br><b>Calyx:</b> 4 sepals, polysepalous (free); aestivation is imbricate (not given in NCERT). Two inner sepals are often saccate (bag-like, as in <i>Brassica</i>).<br><br><b>Corolla:</b> 4 petals, polypetalous (free); each petal has a distinct limb (blade) and claw (stalk). Aestivation is imbricate. The four petals stand diagonally, alternating with the four sepals, and spread like the four arms of a cross; this gives the family its name: “cruciform” (cross-shaped). Colour is typically yellow or white.<br><br><b>Androecium:</b> 6 stamens, tetradynamous. The two short stamens form the outer whorl (the lateral pair); the four long stamens form the inner whorl, as two median pairs (one anterior pair and one posterior pair). The prefix “tetradynamous” means “four strong”: the four long stamens dominate. This is a key identifying character of Brassicaceae.<br><br><b>Gynoecium:</b> Bicarpellary (2 carpels); syncarpous; ovary superior; unilocular at first but becomes bilocular because a false septum (a membranous partition) grows across the ovary from the replum. Placentation is parietal: ovules attached to the two inner walls. Many ovules.<br><br><b>Fruit:</b> A siliqua, a dry, dehiscent, elongated fruit that develops from a bicarpellary superior ovary. It splits open along two sutures; the valves fall away and the persistent replum is left as a frame, with the membranous false septum stretched across it. (A short, broad fruit of the same kind is called a silicula, as in <i>Capsella</i>; the long mustard pod is a siliqua.)<br><br><b>Seed:</b> Non-endospermic (ex-albuminous); food stored in two cotyledons, which are often folded around the radicle.<br><br><b>Floral formula:</b><br>' + BRA + '<br>Note: subscripts denote numbers; brackets denote fusion; the line below G marks a superior ovary.<br><br><b>Diagnostic fingerprint:</b> Cruciform corolla + tetradynamous stamens + siliqua fruit = Brassicaceae. No other family in this chapter shares all three.',
       },
       {
         t: 'ex',
@@ -109,7 +109,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET tricky] Why is a sunflower “capitulum” considered a type of racemose inflorescence and not a single flower?',
-            a: 'The capitulum is not one flower because it bears many florets, each with its own calyx, corolla, stamens, and ovary. The whole structure is a condensed axis (receptacle) bearing many flowers, which is the definition of an inflorescence. The apparent single “petal” of a ray floret is an entire reduced corolla, not one petal of a single flower.',
+            a: 'The capitulum is not one flower because it bears many florets, each a flower in its own right on the common receptacle (a disc floret has a corolla, stamens and an ovary; a ray floret usually lacks stamens). The whole structure is a condensed axis (receptacle) bearing many flowers, which is the definition of an inflorescence. The apparent single “petal” of a ray floret is an entire reduced corolla, not one petal of a single flower.',
           },
           {
             q: '[CBSE] Describe the androecium of Brassicaceae using the term “tetradynamous.”',
@@ -152,7 +152,7 @@ export const TOPICS: Topic[] = [
             'compressed into the stem disc; internodes not visible',
           ],
           ['Buds', 'present at nodes (“eyes”)', 'present at apex (one or few)', 'at the stem disc and in leaf axils (none on the outer scale surface)'],
-          ['Scale-leaves', 'roughly absent (only tiny, early-falling scale leaves at the eyes)', 'thin dry scales', 'thick fleshy scales (storage leaves)'],
+          ['Scale-leaves', 'absent on the mature tuber (only tiny scale leaves, or their scars, at the eyes)', 'thin dry scales', 'thick fleshy scales (storage leaves)'],
           ['Origin of food', 'stored in parenchyma of pith/cortex', 'stored in starchy parenchyma', 'stored in fleshy leaf bases (not in stem)'],
           [
             'Structural unit',
@@ -314,8 +314,8 @@ export const TOPICS: Topic[] = [
             a: 'Stem tendril arises from an axillary bud (stem origin); leaf tendril arises from a leaf or part of a leaf (leaflet, petiole, stipule). Examples: stem tendril: cucumber; leaf tendril: pea.',
           },
           {
-            q: '[NEET] What is an anatropous ovule? Why is it the most common type in angiosperms?',
-            a: 'Anatropous ovule: the ovule body is inverted 180 degrees on the funicle, the funicle is fused along the body to form the raphe, and the micropyle lies close to the funicle. It is the commonest ovule type in angiosperms (the book gives no further reason).',
+            q: '[NEET] What is an anatropous ovule, and which ovule type is the most common in angiosperms?',
+            a: 'Anatropous ovule: the ovule body is inverted 180 degrees on the funicle, the funicle is fused along the body to form the raphe, and the micropyle lies close to the funicle. It is the most common ovule type in angiosperms.',
           },
           {
             q: '[CBSE] Draw and label the five types of ovules.',
@@ -336,7 +336,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter defines true, false, parthenocarpic fruits and the drupe, and names berry, capsule and legume as family fruit types. It omits <b>aggregate fruits, multiple fruits</b> and <b>seed germination types</b>, all three of which NEET examines.',
+        html: 'The chapter defines true, false, parthenocarpic fruits and the drupe, and names berry, capsule and legume as family fruit types. It omits <b>aggregate fruits, multiple fruits</b> and <b>seed germination types</b>, which go beyond the NCERT text but appear in board and entrance questions.',
       },
 
       { t: 'part', title: 'C1: Aggregate Fruits' },
@@ -465,7 +465,7 @@ export const TOPICS: Topic[] = [
           { q: '[CBSE] Define aggregate fruit. Name one aggregate true fruit and one aggregate false fruit.', a: 'Aggregate fruit: develops from a single flower with many free (apocarpous) carpels. Aggregate true fruit: <i>Calotropis</i> (etaerio of follicles); aggregate false fruit: strawberry.' },
           {
             q: '[NEET] How is a multiple fruit different from a composite fruit? (Composite = synonym for multiple in this context.)',
-            a: 'Multiple fruit: develops from an entire inflorescence (many flowers); composite fruit is another name for the same type (also called a composite fruit in some books). Aggregate fruit: from one flower with many free carpels.',
+            a: 'Multiple fruit: develops from an entire inflorescence (many flowers); “Composite fruit” is another name for the same type used in some books, so there is no difference between them. An aggregate fruit, by contrast, comes from one flower with many free carpels.',
           },
           { q: '[CUET] Give two differences between a drupe and a berry.', a: 'Drupe: one seed, stony endocarp, usually from a superior ovary (mango); Berry: many seeds, no stony endocarp, usually from a superior ovary (tomato).' },
           {
@@ -494,7 +494,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'D1: The Routine (Specimen → Full Description)' },
       {
         t: 'p',
-        html: 'Apply the fixed sequence from Additional topic A’s method to any plant. The mark scheme awards one mark per field; completeness and correct order are the only requirements.',
+        html: 'Apply the fixed sequence from Additional topic A’s method to any plant. Marks are usually given field by field, so a complete answer in the correct order, with each character stated accurately, scores best.',
       },
 
       { t: 'part', title: 'D2: The Reverse Routine (Description → Formula)' },
@@ -547,8 +547,8 @@ export const TOPICS: Topic[] = [
             a: FAB + '. Family: Fabaceae (formerly the subfamily Papilionoideae of Leguminosae).',
           },
           {
-            q: '[NEET tricky] Draw and label the floral diagram of a disc floret of <i>Helianthus</i> (sunflower, family Asteraceae), indicating the position of the inferior ovary.',
-            a: '(Diagram answer.) Draw the capitulum as a T.S. showing the involucre (bracts) at the periphery, the receptacle, ray florets on the outside, disc florets in the centre. For each disc floret: 5 fused perianth parts, 5 epipetalous stamens with connate anthers (drawn as a tube around the style), and at the centre a bicarpellary inferior ovary with a single basal ovule. The line above G in the floral formula indicates the inferior position.',
+            q: '[NEET tricky] Draw and label the floral diagram of a disc floret of <i>Helianthus</i> (sunflower, family Asteraceae), and write the floral formula that shows its inferior ovary.',
+            a: '(Diagram answer.) Mother axis at the top; calyx absent or a pappus (small bristles); 5 fused petals; 5 epipetalous stamens alternating with the petals, their anthers drawn joined in a ring round the style; at the centre a one-chambered bicarpellary ovary with a single basal ovule. The diagram cannot show that the ovary is inferior: the formula does, by the line above G: ' + AST + '.',
           },
         ],
       },
@@ -713,7 +713,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 2: Root-vs-Stem Decision Tree</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b><br>“Ginger has a prostrate-growing rhizome.” / “The fleshy scales of an onion bulb are modified leaves borne on a short underground stem.” / “Corm of <i>Colocasia</i> is a modified ______.”<br><b>The approach:</b> Three checks in order:<br>1. <b>Nodes, internodes, buds present?</b> → STEM regardless of depth.<br>2. <b>Scale leaves visible?</b> → STEM.<br>3. <b>Smooth, tapering, no buds?</b> → ROOT.<br>Potato = tuber (has “eyes” = axillary buds at nodes).<br>Sweet potato = storage adventitious ROOT (no buds).<br>Ginger = rhizome (nodes with scale leaves and buds).<br>Onion bulb = an underground modified shoot: a very short stem (basal disc) bearing fleshy storage leaves; it has a stem disc, so it is not a root.',
+        html: '<b>What it looks like:</b><br>“Ginger has a prostrate-growing rhizome.” / “The fleshy scales of an onion bulb are modified leaves borne on a short underground stem.” / “Corm of <i>Colocasia</i> is a modified ______.”<br><b>The approach:</b> Three checks in order:<br>1. <b>Nodes, internodes, buds present?</b> → STEM regardless of depth.<br>2. <b>Scale leaves visible?</b> → STEM.<br>3. <b>Smooth, tapering, no buds?</b> → ROOT.<br>Potato = tuber (has “eyes” = axillary buds at nodes).<br>Sweet potato = storage adventitious ROOT (no nodes or axillary buds).<br>Ginger = rhizome (nodes with scale leaves and buds).<br>Onion bulb = an underground modified shoot: a very short stem (basal disc) bearing fleshy storage leaves; it has a stem disc, so it is not a root.',
       },
       {
         t: 'ex',
@@ -734,7 +734,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'Fully worked example',
-        q: '“Leaves of dicotyledonous plants possess reticulate venation, while parallel venation is the characteristic of most monocotyledons.”<br>(a) reticulate, parallel<br>(b) parallel, reticulate<br>(c) perpendicular, parallel<br>(d) parallel, parallel',
+        q: '“Leaves of dicotyledonous plants possess ________ venation, while ________ venation is the characteristic of most monocotyledons.”<br>(a) reticulate, parallel<br>(b) parallel, reticulate<br>(c) perpendicular, parallel<br>(d) parallel, parallel',
         steps: [
           '<b>Trap:</b> (b) reverses the pair. (c) “perpendicular” is not a venation type, and (d) ignores the contrast between the two groups. The key is never letting the sentence structure pull you into reversal.',
         ],
@@ -744,7 +744,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 4: Statement Sets (“Which of the following is/are correct?”)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b><br>Statement-set items: evaluate each of the numbered statements independently.<br><b>The approach:</b> Evaluate each statement <b>on its own terms</b> before looking at the options. Do not let a true statement influence your judgment of a separate false one. Watch for specific traps:<br>• Confusing “accessory” with “non-essential” or “non-reproductive” (calyx/corolla)<br>• Mixing placentation with ovary position<br>• Treating “non-essential” as “useless”<br>• Mixing leaf origin (shoot apical meristem, not root)',
+        html: '<b>What it looks like:</b><br>Statement-set items: evaluate each of the numbered statements independently.<br><b>The approach:</b> Evaluate each statement <b>on its own terms</b> before looking at the options. Do not let a true statement influence your judgment of a separate false one. Watch for specific traps:<br>• Calling the calyx or corolla essential or reproductive whorls (they are the accessory, non-essential whorls)<br>• Mixing placentation with ovary position<br>• Treating “non-essential” as “useless”<br>• Mixing leaf origin (shoot apical meristem, not root)',
       },
       {
         t: 'ex',
@@ -863,7 +863,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[Level 1: Direct Recall] A swollen underground organ has “eyes” (small depressions with buds) but no root hairs or taproot structure. Cutting it open shows it is not fleshy throughout but has a thin skin and starchy interior with no organized vascular structure branching through it. This organ is a:<br>(a) Storage tap root<br>(b) Tuber<br>(c) Rhizome<br>(d) Bulb',
+            q: '[Level 1: Direct Recall] A swollen underground organ has “eyes” (small depressions with buds) but no root hairs or taproot structure. Cutting it open shows a thin skin and a solid, starchy interior. This organ is a:<br>(a) Storage tap root<br>(b) Tuber<br>(c) Rhizome<br>(d) Bulb',
             a: '<b>Answer:</b> (b) Tuber. The “eyes” are axillary buds at nodes: the definitive feature of a stem. Potato is the textbook example. Rhizomes (ginger) have visible nodes with scale leaves; bulbs (onion) have fleshy leaf scales; tap roots (carrot) lack nodes and buds entirely.',
           },
           {
@@ -887,8 +887,8 @@ export const TOPICS: Topic[] = [
             a: '<b>Answer:</b> (b).<br>• <b>Two cotyledons</b> → dicot (a grass grain such as maize or wheat has one cotyledon, the scutellum).<br>• <b>No visible endosperm</b> → food stored in the cotyledons themselves → <b>non-endospermic/ex-albuminous</b>.<br>Examples: gram (<i>Cicer arietinum</i>), pea (<i>Pisum sativum</i>), bean (<i>Phaseolus vulgaris</i>).<br><b>Trap:</b> (a) confuses the presence of two cotyledons (dicot) with monocot grains (which have one cotyledon but large endosperm). (d) reverses both features.',
           },
           {
-            q: '[Level 3: Analysis & Synthesis] Consider the following statements about modifications:<br>(i) Ginger is a modified stem because it bears nodes, internodes, and scale leaves.<br>(ii) Sweet potato is a modified root because it lacks nodes and buds.<br>(iii) Onion bulb is an underground modified shoot because it has a condensed stem (basal disc) bearing fleshy leaves.<br>(iv) <i>Euphorbia</i> is a modified leaf that stores water.<br>Which option lists ALL correct statements?<br>(a) (i), (ii), and (iii)<br>(b) (ii), (iii), and (iv)<br>(c) (i) and (ii) only<br>(d) (i), (ii), and (iv)',
-            a: '<b>Answer:</b> (a).<br>• (i) TRUE: ginger (<i>Zingiber officinale</i>) is a rhizome with nodes, internodes, and scaly leaves.<br>• (ii) TRUE: sweet potato (<i>Ipomoea batatas</i>) is a storage adventitious root with no buds.<br>• (iii) TRUE: the onion (<i>Allium cepa</i>) bulb is a shoot: a compressed underground stem (basal disc) bearing concentric fleshy leaf scales.<br>• (iv) FALSE: <i>Euphorbia</i> has <b>phylloclades</b> (green, fleshy, flattened or cylindrical stems), not modified leaves.<br><b>Trap:</b> (iv) exploits the stem-vs-leaf modification confusion common in cactus-like plants.',
+            q: '[Level 3: Analysis & Synthesis] Consider the following statements about modifications:<br>(i) Ginger is a modified stem because it bears nodes, internodes, and scale leaves.<br>(ii) Sweet potato is a modified root because it lacks nodes and axillary buds.<br>(iii) Onion bulb is an underground modified shoot because it has a condensed stem (basal disc) bearing fleshy leaves.<br>(iv) <i>Euphorbia</i> is a modified leaf that stores water.<br>Which option lists ALL correct statements?<br>(a) (i), (ii), and (iii)<br>(b) (ii), (iii), and (iv)<br>(c) (i) and (ii) only<br>(d) (i), (ii), and (iv)',
+            a: '<b>Answer:</b> (a).<br>• (i) TRUE: ginger (<i>Zingiber officinale</i>) is a rhizome with nodes, internodes, and scaly leaves.<br>• (ii) TRUE: sweet potato (<i>Ipomoea batatas</i>) is a storage adventitious root with no nodes or axillary buds.<br>• (iii) TRUE: the onion (<i>Allium cepa</i>) bulb is a shoot: a compressed underground stem (basal disc) bearing concentric fleshy leaf scales.<br>• (iv) FALSE: <i>Euphorbia</i> has <b>phylloclades</b> (green, fleshy, flattened or cylindrical stems), not modified leaves.<br><b>Trap:</b> (iv) exploits the stem-vs-leaf modification confusion common in cactus-like plants.',
           },
           {
             q: '[Level 4: Multi-Statement Evaluation] Which of the following statements are <b>INCORRECT</b>?<br>(i) Epiphyllous stamens are found in Solanaceae.<br>(ii) Sweet potato is a modified stem.<br>(iii) Maize has prop roots.<br>(iv) Free central placentation is found in <i>Dianthus</i>.<br>(v) Perisperm is the persistent nucellus in seeds like black pepper.<br>(a) (i), (ii), and (iii)<br>(b) (ii), (iii), and (v)<br>(c) (i), (ii), (iii), and (iv)<br>(d) (i), (ii), (iii), and (v)',
@@ -904,7 +904,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 5: Family Identification] Which of the following is NOT a characteristic of family Liliaceae?<br>(a) Perianth of 6 petaloid tepals (3+3)<br>(b) Androecium of 6 epiphyllous stamens<br>(c) Tricarpellary, syncarpous, inferior ovary<br>(d) Capsular fruit with endospermous seeds',
-            a: '<b>Answer:</b> (c).<br>• (a) CORRECT: Liliaceae has tepals (P<sub>(3+3)</sub>), not distinct K and C.<br>• (b) CORRECT: stamens are attached to the perianth = epiphyllous (A<sub>3+3</sub>).<br>• (c) <b>INCORRECT</b>: Liliaceae has a <b>superior</b> ovary, not inferior. (Inferior ovary = epigynous = e.g., Guava, Asteraceae ray florets.)<br>• (d) CORRECT: capsule fruit and endospermous seeds are characteristic.<br><b>Trap:</b> (c) inserts “inferior” to exploit confusion between Liliaceae (superior) and Solanaceae (also superior, but bicarpellary). The inferior ovary belongs to families like Asteraceae (sunflower) and Myrtaceae (guava).',
+            a: '<b>Answer:</b> (c).<br>• (a) CORRECT: Liliaceae has tepals (P<sub>(3+3)</sub>), not distinct K and C.<br>• (b) CORRECT: stamens are attached to the perianth = epiphyllous (A<sub>3+3</sub>).<br>• (c) <b>INCORRECT</b>: Liliaceae has a <b>superior</b> ovary, not inferior. (Inferior ovary = epigynous = e.g., Guava, Asteraceae ray florets.)<br>• (d) CORRECT: capsule fruit and endospermous seeds are characteristic.<br><b>Trap:</b> (c) inserts “inferior” to catch students who mix Liliaceae up with families whose ovary is inferior, such as Asteraceae (sunflower) and Myrtaceae (guava).',
           },
           {
             q: '[Level 6: Integrated Distractor Analysis] A student encounters the following statements in a NEET mock test and is asked to identify the <b>incorrect</b> one:<br>(i) <i>Solanum nigrum</i> (makoi) belongs to Solanaceae and has axile placentation.<br>(ii) <i>Allium sativum</i> (garlic) is a bulb: a modified underground shoot (a short stem disc with fleshy leaf scales).<br>(iii) <i>Musa paradisiaca</i> (banana) is a false fruit because it develops from the thalamus.<br>(iv) <i>Pisum sativum</i> (garden pea) has a papilionaceous corolla and diadelphous stamens.<br>(a) Only (iii)<br>(b) (ii) and (iv)<br>(c) Only (iv)<br>(d) (iii) and (iv)',

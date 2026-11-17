@@ -24,7 +24,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This is foundational, dependable territory. <b>CBSE Boards</b> ask 1–2 mark definitions (growth, differentiation, dedifferentiation, redifferentiation) and short numericals on growth rate. <b>CUET</b> picks up direct fact-recall MCQs (efficiency index, plasticity examples). <b>NEET</b> almost every year (the book’s estimate from past papers, not official figures) hides one trap here, usually the absolute-vs-relative growth rate comparison, the developmental sequence order, or matching de-/re-differentiation to the right tissue. The toughest <b>NEET assertion-reason</b> items exploit the “open differentiation” idea.',
+        html: '<b>Exam Relevance:</b> This is foundational, dependable territory. <b>CBSE Boards</b> ask 1–2 mark definitions (growth, differentiation, dedifferentiation, redifferentiation) and short numericals on growth rate. <b>CUET</b> picks up direct fact-recall MCQs (efficiency index, plasticity examples). <b>NEET</b> often hides one trap here (the book’s estimate from past papers, not official figures), usually the absolute-vs-relative growth rate comparison, the developmental sequence order, or matching de-/re-differentiation to the right tissue. Hard <b>NEET assertion-reason</b> items exploit the “open differentiation” idea.',
       },
       {
         t: 'p',
@@ -401,7 +401,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Two features make PGRs remarkable. First, they work in astonishingly small amounts: a few molecules can swing the fate of a whole organ. Second, they are <b>chemically diverse</b>: there is no single “hormone formula.” Auxins are indole compounds, gibberellins are terpenes, cytokinins are adenine (purine) derivatives, abscisic acid is a carotenoid derivative, and ethylene is a simple gas. Despite this chemical zoo, biologists sort them into two camps by what they do.',
+        html: 'Two features make PGRs remarkable. First, they work in astonishingly small amounts: a tiny amount can swing the fate of a whole organ. Second, they are <b>chemically diverse</b>: there is no single “hormone formula.” Natural auxins are indole compounds, gibberellins are terpenes, cytokinins are adenine (purine) derivatives, abscisic acid is a carotenoid derivative, and ethylene is a simple gas. Despite this chemical zoo, biologists sort them into two camps by what they do.',
       },
       {
         t: 'p',
@@ -433,11 +433,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>1. Auxins</b> (indole compounds).<br>• <b>Natural:</b> indole-3-acetic acid (IAA), indole-3-butyric acid (IBA). <b>Synthetic:</b> naphthalene acetic acid (NAA), 2,4-dichlorophenoxyacetic acid (2,4-D), 2,4,5-T. Auxins are transported in a characteristic <b>polar</b> (one-way, shoot-tip towards base) manner.<br>• <b>Effects:</b> cell elongation; <b>apical dominance</b> (suppresses lateral buds); root initiation in stem cuttings; prevents abscission of young leaves and fruits (but promotes the fall of older ones); induces <b>parthenocarpy</b> (seedless fruits, e.g. tomato, using dilute IAA/IBA); promotes xylem differentiation; mediates phototropism. <b>Application:</b> 2,4-D is a selective weedicide against broad-leaved (dicot) weeds.',
+        html: '<b>1. Auxins</b> (natural ones are indole compounds).<br>• <b>Natural:</b> indole-3-acetic acid (IAA), indole-3-butyric acid (IBA). <b>Synthetic:</b> naphthalene acetic acid (NAA), 2,4-dichlorophenoxyacetic acid (2,4-D), 2,4,5-T. Auxins are transported in a characteristic <b>polar</b> (one-way, shoot-tip towards base) manner.<br>• <b>Effects:</b> cell elongation; <b>apical dominance</b> (suppresses lateral buds); root initiation in stem cuttings; prevents abscission of young leaves and fruits (but promotes the fall of older ones); induces <b>parthenocarpy</b> (seedless fruits, e.g. tomato, using dilute IAA/IBA); promotes xylem differentiation; mediates phototropism. <b>Application:</b> 2,4-D is a selective weedicide against broad-leaved (dicot) weeds.',
       },
       {
         t: 'p',
-        html: '<b>2. Gibberellins</b> (terpene-based; the most studied is <b>GA<sub>3</sub></b>).<br>• <b>Nature:</b> acidic.<br>• <b>Effects:</b> internode elongation, causes <b>bolting</b> (rapid stem elongation before flowering) in rosette plants; converts genetic dwarfs to tall; breaks seed and bud dormancy; promotes seed germination; speeds early seed production in conifers; induces α-amylase synthesis in germinating cereal grains. <b>Application:</b> increases the length of grape stalks, enlarges fruit (e.g. apple), and increases sugarcane yield.',
+        html: '<b>2. Gibberellins</b> (terpene-based; the most studied is <b>GA<sub>3</sub></b>).<br>• <b>Nature:</b> acidic.<br>• <b>Effects:</b> internode elongation, causes <b>bolting</b> (rapid stem elongation before flowering) in rosette plants; converts genetic dwarfs to tall; breaks seed and bud dormancy; promotes seed germination; speeds early seed production in conifers; induces α-amylase synthesis in germinating cereal grains. <b>Application:</b> increases the length of grape stalks, makes fruits such as apple elongate and improves their shape, and increases sugarcane yield.',
       },
       {
         t: 'p',
@@ -459,7 +459,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>B. The other discoveries in one breath.</b><br>• <b>Gibberellin:</b> traced to the fungus <b><i>Gibberella fujikuroi</i></b>, which causes the “foolish seedling” (bakanae) disease of rice: infected plants grow abnormally tall, revealing a growth-promoting chemical.<br>• <b>Cytokinin:</b> <b>kinetin</b> was isolated from autoclaved (degraded) <b>herring-sperm DNA</b> by Miller and Skoog, who were hunting for a cell-division factor; the natural counterpart <b>zeatin</b> was later found in maize.<br>• <b>Ethylene:</b> the observation (Cousins) that ripe oranges hastened the ripening of bananas stored nearby pointed to a volatile ripening signal: a gas.<br>• <b>ABA:</b> found independently as a growth-inhibitor (“abscisin II”) and a dormancy-inducer (“dormin”); the two names were merged into abscisic acid.',
+        html: '<b>B. The other discoveries in one breath.</b><br>• <b>Gibberellin:</b> traced to the fungus <b><i>Gibberella fujikuroi</i></b>, which causes the “foolish seedling” (bakanae) disease of rice: infected plants grow abnormally tall, revealing a growth-promoting chemical.<br>• <b>Cytokinin:</b> <b>kinetin</b> was isolated from autoclaved (degraded) <b>herring-sperm DNA</b> by Miller and Skoog, who were hunting for a cell-division factor; the natural counterpart <b>zeatin</b> was later found in maize.<br>• <b>Ethylene:</b> the observation (Cousins) that ripe oranges hastened the ripening of bananas stored nearby pointed to a volatile ripening signal: a gas.<br>• <b>ABA:</b> found independently as three inhibitors, inhibitor-B, abscission II (abscisin II) and dormin; all three proved to be the same chemical, named abscisic acid.',
       },
       {
         t: 'p',

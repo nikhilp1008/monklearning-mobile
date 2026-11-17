@@ -471,14 +471,14 @@ function draw57(k: 'A' | 'B'): Sketch {
     ell(s, 122, 147, 7, 4, -30); ell(s, 138, 147, 7, 4, 30);
     path(s, [[125, 192], [135, 192], [130, 234]], { close: true });
     ell(s, 69, 165, 4, 7, 0, { fill: true });
-    const mic: P = [130 + 62 * Math.cos(155 * D), 170 + 84 * Math.sin(155 * D)];
+    const mic: P = [130 + 62 * Math.cos(205 * D), 170 + 84 * Math.sin(205 * D)];
     spot(s, mic[0], mic[1], 3);
     ptag(s, 214, 36, ['Seed coat', '(testa + tegmen)'], [130 + 62 * Math.cos(-40 * D), 170 + 84 * Math.sin(-40 * D)]);
     ptag(s, 214, 90, ['Plumule'], [138, 146]);
     ptag(s, 214, 128, ['Cotyledon', '(two, thick)'], [160, 190], { hi: true });
     ptag(s, 214, 190, ['Radicle'], [131, 218]);
-    ptagR(s, 62, 138, ['Hilum'], [69, 165]);
-    ptagR(s, 90, 250, ['Micropyle'], mic);
+    ptagR(s, 90, 250, ['Hilum'], [69, 165]);
+    ptagR(s, 90, 66, ['Micropyle'], mic);
     note(s, W / 2, 298, ['No endosperm: food is stored in the cotyledons'], { bold: true, color: C.amber });
   } else {
     lab(s, W / 2, 22, '(B) Monocot seed (maize)', { size: 14, bold: true });
@@ -520,10 +520,12 @@ const CAP58 = 'Longitudinal section of an anatropous ovule: funicle, hilum, raph
 const OV = { cx: 170, cy: 128, rings: [[44, 60], [37, 53], [29, 45], [15, 28]] };
 function draw58(): Sketch {
   const s = new Sketch(W, 336);
-  OV.rings.forEach(([a, b], i) => ell(s, OV.cx, OV.cy, a, b, 0, i === 3 ? { color: C.mari, w: 2.2 } : {}));
+  OV.rings.forEach(([a, b], i) => {
+    if (i < 2) path(s, Array.from({ length: 61 }, (_, j): P => { const t = (84 + (j * 344) / 60) * D; return [OV.cx + a * Math.cos(t), OV.cy + b * Math.sin(t)]; }));
+    else ell(s, OV.cx, OV.cy, a, b, 0, i === 3 ? { color: C.mari, w: 2.2 } : {});
+  });
   [112, 128, 144].forEach((y) => spot(s, OV.cx, y, 2.4));
   path(s, [[150, 64], [190, 64]], { w: 3 });
-  path(s, [[176, 184], [186, 189]], { w: 4 });
   const hil: P = [OV.cx + 44 * Math.cos(117 * D), OV.cy + 60 * Math.sin(117 * D)];
   spot(s, hil[0], hil[1], 4.5);
   path(s, Array.from({ length: 12 }, (_, i): P => { const t = (117 + (i * 88) / 11) * D; return [OV.cx + 49 * Math.cos(t), OV.cy + 65 * Math.sin(t)]; }), { w: 3 });
@@ -534,7 +536,7 @@ function draw58(): Sketch {
   ptag(s, 224, 106, ['Inner integument'], [OV.cx + 37 * Math.cos(-15 * D), OV.cy + 53 * Math.sin(-15 * D)]);
   ptag(s, 224, 138, ['Nucellus'], [OV.cx + 29 * Math.cos(15 * D), OV.cy + 45 * Math.sin(15 * D)]);
   ptag(s, 224, 170, ['Embryo sac'], [OV.cx + 8, 148], { hi: true });
-  ptag(s, 224, 202, ['Micropyle'], [183, 187]);
+  ptag(s, 224, 202, ['Micropyle'], [OV.cx + 40 * Math.cos(76 * D), OV.cy + 56 * Math.sin(76 * D)]);
   const rp: P = [OV.cx + 49 * Math.cos(170 * D), OV.cy + 65 * Math.sin(170 * D)];
   ptagR(s, 82, 66, ['Raphe', '(fused', 'funicle)'], rp);
   ptagR(s, 62, 168, ['Hilum'], [hil[0] - 4, hil[1]]);
@@ -589,9 +591,13 @@ const polar = (r: number, a: number): P => [180 + r * Math.cos(a * D), CY + r * 
 const TP = (p: P): P => [180 + (p[0] - 180) * K, CY + (p[1] - CY) * K];
 const SEP5 = [-90, -18, 54, 126, 198];
 const PET5 = [-54, 18, 90, 162, 234];
-function frame(s: Sketch, R: number, sepals: number[]) {
+/** Solanaceae: the five epipetalous stamens alternate with the corolla lobes (they sit between two petals' midlines). */
+const STA5 = SEP5;
+/** Fabaceae: the odd sepal is anterior (towards the bract); the posterior standard lies between two sepals. */
+const SEP11 = PET5;
+function frame(s: Sketch, R: number, sepals: number[], half = 13) {
   circ(s, 180, CY, R, { color: C.grey, w: 1.3, dash: true });
-  sepals.forEach((a) => sector(s, 180, CY, R + 4, R + 9, a - 13, a + 13, { w: 1.7 }));
+  sepals.forEach((a) => sector(s, 180, CY, R + 4, R + 9, a - half, a + half, { w: 1.7 }));
 }
 function mother(s: Sketch) {
   const y = CY - 83;
@@ -609,9 +615,9 @@ function draw510(): Sketch {
   const s = new Sketch(W, 304);
   withView(() => {
     view(180, CY, CY, K);
-    frame(s, 45, SEP5);
-    PET5.forEach((a) => {
-      sector(s, 180, CY, 32, 41, a - 29, a + 29, { w: 1.7 });
+    frame(s, 45, SEP5, 35);
+    PET5.forEach((a) => sector(s, 180, CY, 32, 41, a - 35, a + 35, { w: 1.7 }));
+    STA5.forEach((a) => {
       const q = polar(28.5, a);
       path(s, [polar(31.8, a), polar(32.8, a)], { w: 1.2 }); anther(s, q[0], q[1]);
     });
@@ -625,7 +631,7 @@ function draw510(): Sketch {
   lab(s, W / 2, 276, `Actinomorphic, bisexual:  K<sub>(5)</sub> C<sub>(5)</sub> A<sub>5</sub> ${GU}<sub>(2)</sub>`, { size: 13, bold: true, color: C.amber });
   ptag(s, 246, 62, ['Calyx: 5', 'fused sepals'], TP(polar(47.5, -18)));
   ptag(s, 246, 108, ['Corolla: 5', 'fused petals', '(valvate', 'aestivation)'], TP(polar(37, 18)));
-  ptagR(s, 109, 140, ['5 epipetalous', 'stamens', '(borne on the', 'petals)'], TP(polar(28.5, 162)));
+  ptagR(s, 109, 140, ['5 epipetalous', 'stamens', '(borne on the', 'petals)'], TP(polar(28.5, 126)));
   ptagR(s, 109, 62, ['Two carpels,', 'oblique to', 'the mother', 'axis'], TP([176, CY + 4]));
   ptag(s, 100, 212, ['Bicarpellary superior ovary:', 'two locules, swollen axile placenta'], TP([186, CY + 5]), { hi: true });
   return s;
@@ -635,7 +641,7 @@ function check510(): Check[] {
   const gap = (a: number, b: number) => Math.abs((((a - b + 540) % 360) - 180));
   return finish(s, ['Calyx: 5 fused sepals', 'Corolla: 5 fused petals (valvate aestivation)', '5 epipetalous stamens (borne on the petals)', 'Two carpels, oblique to the mother axis', 'Bicarpellary superior ovary: two locules, swollen axile placenta', 'Mother axis'], [
     ['Five sepals and five petals, 72 degrees apart, with each petal midway between two sepals (alternate whorls)', SEP5.length === 5 && PET5.length === 5 && PET5.every((q) => SEP5.every((r) => gap(q, r) >= 35.9))],
-    ['Five stamens, one on each petal (epipetalous), at the petals\' angles', PET5.length === 5],
+    ['Five stamens, each between two petals (alternating with the corolla lobes), borne on the corolla', STA5.length === 5 && STA5.every((q) => PET5.every((r) => gap(q, r) >= 35.9))],
     ['The ovary is oblique to the mother axis: its septum is neither along nor across it (35 degrees, not 0 or 90)', Math.abs(OV510.rot) !== 0 && Math.abs(OV510.rot) !== 90],
     ['The formula under the diagram reads K(5) C(5) A5 G(2): the counts it gives (5 sepals, 5 petals, 5 stamens) are the ones drawn', SEP5.length === 5 && PET5.length === 5],
   ]);
@@ -650,7 +656,7 @@ function draw511(): Sketch {
   const sh = SHEATH.map((a): P => [180 + 20 * Math.cos(a * D), CY - 2 + 20 * Math.sin(a * D)]);
   withView(() => {
     view(180, CY, CY, K);
-    frame(s, 45, SEP5);
+    frame(s, 45, SEP11, 35);
     ell(s, 180, CY - 34, 22, 9, 0);
     [-1, 1].forEach((sd) => { ell(s, 180 + sd * 32, CY - 2, 8, 15, sd * -10); ell(s, 180 + sd * 8.5, CY + 34, 9, 13, 0); });
     path(s, sh, { color: C.slate, w: 1.3 });
@@ -665,7 +671,7 @@ function draw511(): Sketch {
   lab(s, bt[0] + 6, bt[1] + 4, 'Bract', { size: 11, anchor: 'start' });
   lab(s, W / 2, 272, 'Zygomorphic, bisexual:', { size: 13, bold: true, color: C.amber });
   lab(s, W / 2, 292, `K<sub>(5)</sub> C<sub>1+2+(2)</sub> A<sub>(9)+1</sub> ${GU}<sub>1</sub>`, { size: 13, bold: true, color: C.amber });
-  ptagR(s, 109, 62, ['Calyx: 5', 'fused sepals'], TP(polar(51, 198)));
+  ptagR(s, 109, 62, ['Calyx: 5', 'fused sepals'], TP(polar(51, 234)));
   ptagR(s, 109, 108, ['9 stamens', 'fused in', 'a sheath,', '1 free', '(diadelphous)'], TP(sh[0]));
   ptagR(s, 109, 190, ['Single', 'carpel,', 'marginal', 'placentation'], TP([178, CY + 2]), { hi: true });
   ptag(s, 246, 62, ['Standard', '(vexillum),', 'outermost'], TP([192, CY - 34]));
@@ -676,7 +682,7 @@ function draw511(): Sketch {
 function check511(): Check[] {
   const s = draw511();
   return finish(s, ['Calyx: 5 fused sepals', '9 stamens fused in a sheath, 1 free (diadelphous)', 'Single carpel, marginal placentation', 'Standard (vexillum), outermost', 'Wings (2)', 'Keel (2 petals, fused)', 'Bract', 'Zygomorphic, bisexual:', 'Mother axis'], [
-    ['Five sepals; the corolla is 1 standard + 2 wings + 2 keel petals = 5 petals, as the formula C 1+2+(2) says', SEP5.length === 5 && 1 + 2 + 2 === 5],
+    ['Five sepals, the odd one anterior (at the bottom, towards the bract) so that the standard lies between two sepals; the corolla is 1 standard + 2 wings + 2 keel petals = 5 petals, as the formula C 1+2+(2) says', SEP11.length === 5 && SEP11.includes(90) && !SEP11.includes(-90) && 1 + 2 + 2 === 5],
     ['Ten stamens: nine in one curved sheath (diadelphous) and one free above, as A (9)+1', SHEATH.length === 9 && SHEATH.length + 1 === 10],
     ['One carpel, with its ovules along one margin (marginal placentation), shown as G 1', true],
     ['The standard is outermost (top, nearest the mother axis) and the keel innermost (bottom, nearest the bract)', CY - 34 < CY - 2 && CY + 34 > CY - 2],

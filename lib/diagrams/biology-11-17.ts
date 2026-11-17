@@ -121,6 +121,15 @@ const NUC: [number, number, number] = [110, 182, 14];
 const MICROBE: [number, number, number, number] = [288, 150, 13, 8];
 const CILIA = Array.from({ length: 8 }, (_, i) => 62 + i * 34);
 const J171: P = [150, 226], T171: P = [112, 108], E171: P = [300, 206];
+// the muscle: a spindle bowed to one side, from the upper bone (origin) across the joint to the lever (insertion)
+const MUSC171 = (() => {
+  const a: P = [T171[0] + 0.4 * (J171[0] - T171[0]), T171[1] + 0.4 * (J171[1] - T171[1])], b: P = [J171[0] + 0.3 * (E171[0] - J171[0]), J171[1] + 0.3 * (E171[1] - J171[1])];
+  const dx = J171[0] - T171[0], dy = J171[1] - T171[1], L = Math.hypot(dx, dy), nx = dy / L, ny = -dx / L, c: P = [J171[0] + 26 * nx, J171[1] + 26 * ny];
+  const at = (t: number): P => [(1 - t) * (1 - t) * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0], (1 - t) * (1 - t) * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]];
+  const side = (k: number) => Array.from({ length: 25 }, (_, i): P => { const t = i / 24, p = at(t), w = k * 10 * Math.sin(Math.PI * t); return [p[0] + w * nx, p[1] + w * ny]; });
+  return { a, b, mid: at(0.5), pts: [...side(1), ...side(-1).reverse()] as P[] };
+})();
+const muscle171 = (): P[] => MUSC171.pts;
 function draw171(c: { kind: Kind171 }): Sketch {
   const pn = PANELS[c.kind], h = c.kind === 'ciliary' ? 384 : 336, s = new Sketch(W, h);
   head(s, pn.title, pn.sub);
@@ -144,10 +153,10 @@ function draw171(c: { kind: Kind171 }): Sketch {
   } else {
     path(s, capsule(T171, J171, 7), { close: true });
     path(s, capsule(J171, E171, 7), { close: true });
-    const d: P = [(J171[0] - T171[0]) / Math.hypot(J171[0] - T171[0], J171[1] - T171[1]), (J171[1] - T171[1]) / Math.hypot(J171[0] - T171[0], J171[1] - T171[1])], n: P = [d[1], -d[0]], m: P = [(T171[0] + J171[0]) / 2, (T171[1] + J171[1]) / 2];
-    path(s, Array.from({ length: 49 }, (_, i): P => { const a = (i / 48) * 2 * Math.PI; return [m[0] + 11 * Math.cos(a) * n[0] + 28 * Math.sin(a) * d[0], m[1] + 11 * Math.cos(a) * n[1] + 28 * Math.sin(a) * d[1]]; }), { color: C.mari, w: 2.4, close: true });
+    const n: P = [(J171[1] - T171[1]) / Math.hypot(J171[0] - T171[0], J171[1] - T171[1]), -(J171[0] - T171[0]) / Math.hypot(J171[0] - T171[0], J171[1] - T171[1])];
+    path(s, muscle171(), { color: C.mari, w: 2.4, close: true });
     ell(s, J171[0], J171[1], 4.5, 4.5, { w: 1.9 });
-    s.tag(14, 152, 'muscle', m[0] - 11 * n[0] - 1, m[1] - 11 * n[1] + 5, { hi: true });
+    s.tag(14, 152, 'muscle', MUSC171.mid[0] - 11 * n[0] - 1, MUSC171.mid[1] - 11 * n[1] + 5, { hi: true });
     s.tag(206, 150, 'bone (lever)', 240, 207);
     s.tag(70, 268, 'joint (pivot)', J171[0], J171[1] + 6);
   }
@@ -163,7 +172,7 @@ function check171(c: { kind: Kind171 }): Check[] {
   } else if (c.kind === 'ciliary') {
     cx.push(['Eight cilia stand evenly spaced on the ciliated row and the ovum lies above the row, with the arrow pointing along it (the ovum is moved, not the cell)', CILIA.length === 8 && CILIA.every((x, i) => i === 0 || x - CILIA[i - 1] === 34) && CILIA[0] > 46 && CILIA[7] + 12 < 314 && 156 + 17 < 217]);
   } else {
-    cx.push(['The muscle lies on the upper bone, the joint is the shared end of both bones, and the lower bone is the lever swinging from it', Math.hypot(J171[0] - T171[0], J171[1] - T171[1]) > 100 && Math.hypot(E171[0] - J171[0], E171[1] - J171[1]) > 100]);
+    cx.push(['The muscle runs from the upper bone across the joint to the lever (it spans the joint), the joint is the shared end of both bones, and the lower bone is the lever swinging from it', Math.hypot(MUSC171.a[0] - J171[0], MUSC171.a[1] - J171[1]) > 20 && Math.hypot(MUSC171.b[0] - J171[0], MUSC171.b[1] - J171[1]) > 20 && Math.hypot(J171[0] - T171[0], J171[1] - T171[1]) > 100 && Math.hypot(E171[0] - J171[0], E171[1] - J171[1]) > 100]);
   }
   cx.push([c.kind === 'amoeboid' ? 'The pseudopodium is the one marigold highlight' : c.kind === 'ciliary' ? 'The cilia are the marigold highlight' : 'The muscle is the one marigold highlight', gold(s) >= 1]);
   return [...cx, ...layout(s), clean(s)];
@@ -221,9 +230,7 @@ function draw172(c: { kind: Kind172 }): Sketch {
   s.line(SZ.zl, 84, SZ.zl, 192, { color: C.ink, w: 4.2 });
   s.line(SZ.zr, 84, SZ.zr, 192, { color: C.ink, w: 4.2 });
   lab(s, sx(UI(0)), 212, 'I-band', { size: 11, bold: true, color: C.slate });
-  lab(s, sx((AB[0] + HZ[0]) / 2), 212, 'A-band', { size: 11, bold: true, color: C.amber });
   lab(s, sx(500), 212, 'M', { size: 10, color: C.slate });
-  lab(s, sx((HZ[1] + AB[1]) / 2), 212, 'A-band', { size: 11, bold: true, color: C.amber });
   lab(s, sx(UI(1)), 212, 'I-band', { size: 11, bold: true, color: C.slate });
   s.line(30, 242, 58, 242, { color: C.ink, w: 1.7 });
   lab(s, 66, 246, 'thin filament = actin', { size: 10.5, anchor: 'start' });
@@ -231,7 +238,7 @@ function draw172(c: { kind: Kind172 }): Sketch {
   lab(s, 66, 266, 'thick filament = myosin (heads = cross-bridges)', { size: 10.5, anchor: 'start' });
   const bk = (x1: number, x2: number, y: number) => { s.line(x1, y, x2, y, { color: C.slate, w: 1.2 }); s.line(x1, y - 5, x1, y + 5, { color: C.slate, w: 1.2 }); s.line(x2, y - 5, x2, y + 5, { color: C.slate, w: 1.2 }); };
   bk(sx(AB[0]), sx(AB[1]), 284);
-  lab(s, 180, 302, 'thick-filament span (length fixed)', { size: 10, color: C.slate });
+  lab(s, 180, 302, 'A-band = thick-filament span (length fixed)', { size: 10, color: C.slate });
   bk(SZ.zl, SZ.zr, 318);
   lab(s, 180, 336, 'Sarcomere (Z-line to Z-line)', { size: 11, bold: true });
   return s;
@@ -252,7 +259,7 @@ function check172(c: { kind: Kind172 }): Check[] {
   }
   const zz = SZ.L, aLen = AB[1] - AB[0], hLen = HZ[1] - HZ[0], iLeft = AB[0], iRight = zz - AB[1];
   return [
-    ['The book\'s labels are all there: Z (twice), I-band (twice), A-band (twice), H-zone, M, the two legend lines, "thick-filament span (length fixed)", "Sarcomere (Z-line to Z-line)" and the heading', ['Z', 'I-band', 'A-band', 'H-zone', 'M', 'thin filament = actin', 'thick filament = myosin (heads = cross-bridges)', 'thick-filament span (length fixed)', 'Sarcomere (Z-line to Z-line)', 'One sarcomere (the unit of contraction)'].every((t) => has(s, t)) && s.labels.filter((l) => l.text === 'Z').length === 2 && s.labels.filter((l) => l.text === 'A-band').length === 2 && s.labels.filter((l) => l.text === 'I-band').length === 2],
+    ['The book\'s labels are all there: Z (twice), I-band (twice), H-zone, M, the two legend lines, "A-band = thick-filament span (length fixed)" (the one A-band label, on the bracket, as the A-band is one band), "Sarcomere (Z-line to Z-line)" and the heading', ['Z', 'I-band', 'A-band = thick-filament span (length fixed)', 'H-zone', 'M', 'thin filament = actin', 'thick filament = myosin (heads = cross-bridges)', 'Sarcomere (Z-line to Z-line)', 'One sarcomere (the unit of contraction)'].every((t) => has(s, t)) && s.labels.filter((l) => l.text === 'Z').length === 2 && s.labels.filter((l) => l.text === 'A-band').length === 0 && s.labels.filter((l) => l.text === 'I-band').length === 2],
     [`The A-band is ${aLen} of ${zz} units, the H-zone ${hLen}, and the two I-bands ${iLeft} and ${iRight}: A-band + two I-bands = Z to Z`, Math.abs(aLen + iLeft + iRight - zz) < 1e-9 && aLen === 433 && hLen === 100],
     ['The H-zone lies inside the A-band, centred on the M-line, and the M-line is the middle of the sarcomere', HZ[0] > AB[0] && HZ[1] < AB[1] && (HZ[0] + HZ[1]) / 2 === zz / 2 && Math.abs(sx(500) - (SZ.zl + SZ.zr) / 2) < 1e-9],
     ['The thick filaments (three) span exactly the A-band, in the marigold highlight; the thin filaments (four) run from each Z-line to the H-zone and leave it clear', (s.svg().match(/stroke="#EEA31F" stroke-width="3.6"/g) ?? []).length === 4 && (s.svg().match(/stroke="#2E2A24" stroke-width="1.7"/g) ?? []).length === 9],

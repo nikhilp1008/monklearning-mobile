@@ -79,7 +79,7 @@
  * - superlatives ("the single most repeated error", "the exam's favourite
  *   fact", "relentlessly") are dropped or worded "a classic trap"; exam shares
  *   are the book's estimate from past papers, not official figures (the four
- *   ranges do not add to 100%, so no point adds them), with no years.
+ *   ranges are approximate, so no point adds them), with no years.
  *
  * Notes kept where a point uses the name: voodoo lily <i>Sauromatum guttatum</i>
  * (also written <i>S. venosum</i>). A book title is plain text. Scientific
@@ -228,7 +228,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 2,
     kind: 'shortcut',
     q: 'What two anchors answer most Krebs and ETS questions?',
-    a: 'Per turn, “two CO<sub>2</sub> out, three NADH out, one FADH<sub>2</sub> out, one ATP out”, doubled per glucose; and for the ETS, NADH = 3 and FADH<sub>2</sub> = 2, because FADH<sub>2</sub> enters one pump later. Worked check: if Complex IV is blocked, O<sub>2</sub> consumption stops, the proton gradient collapses and ATP synthesis ceases, and NADH and FADH<sub>2</sub> cannot be reoxidised, so the Krebs cycle stalls',
+    a: 'Per turn, “two CO<sub>2</sub> out, three NADH out, one FADH<sub>2</sub> out, one ATP out”, doubled per glucose; and for the ETS, NADH = 3 and FADH<sub>2</sub> = 2, because FADH<sub>2</sub> enters one pump later. Worked check: if Complex IV is blocked, O<sub>2</sub> consumption through the standard chain stops, the proton gradient collapses and ATP synthesis ceases, and NADH and FADH<sub>2</sub> cannot be reoxidised, so the Krebs cycle stalls',
     why: 'Cyanide is the Complex IV poison that does exactly this.',
     say: null,
   },
@@ -239,7 +239,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'remember',
     q: 'What is the respiratory quotient, and what are its values for the main substrates?',
-    a: 'RQ = <frac><num>volume of CO<sub>2</sub> evolved</num><den>volume of O<sub>2</sub> consumed</den></frac>, a pure ratio with no unit. Carbohydrate (glucose) = 1. Protein about 0.8–0.9. Fat about 0.7 (tripalmitin). Organic acids above 1 (malic 1.33, oxalic 4). Anaerobic respiration or fermentation: ∞, since CO<sub>2</sub> is released and no O<sub>2</sub> is consumed. These are values for one pure fuel; a living tissue burns a mixture, so a measured RQ is evidence of the dominant substrate, not proof of a single one',
+    a: 'RQ = <frac><num>volume of CO<sub>2</sub> evolved</num><den>volume of O<sub>2</sub> consumed</den></frac>, a pure ratio with no unit. Carbohydrate (glucose) = 1. Protein about 0.8–0.9 (NCERT quotes about 0.9). Fat about 0.7 (tripalmitin). Organic acids above 1 (malic 1.33, oxalic 4). Anaerobic respiration or fermentation: ∞, since CO<sub>2</sub> is released and no O<sub>2</sub> is consumed. These are values for one pure fuel; a living tissue burns a mixture, so a measured RQ is evidence of the dominant substrate, not proof of a single one',
     why: 'An oilseed can show an RQ that drifts upward over days as it turns fat into sugars and respires those.',
     say: 'Fat is Lean on oxygen → RQ Low (0.7); Acids are rich → RQ High (> 1).',
   },
@@ -386,7 +386,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 9,
     kind: 'remember',
     q: 'How does the book weight the four zones of this chapter in NEET, and how reliable is that?',
-    a: 'The book’s estimate from past papers, not official figures: glycolysis and fermentation about 30–35%, the TCA cycle and ETS about 30–35%, RQ and the amphibolic pathway about 15–20%, gaseous exchange in plants about 10–15%. Glycolysis and the Krebs cycle with the ETS together are roughly 60–70% of the questions on the chapter, so they deserve the most revision time (the ranges do not add to 100%), while gaseous exchange is mostly asked as assertion-reason',
+    a: 'The book’s estimate from past papers, not official figures: glycolysis and fermentation about 30–35%, the TCA cycle and ETS about 30–35%, RQ and the amphibolic pathway about 15–20%, gaseous exchange in plants about 10–15%. Glycolysis and the Krebs cycle with the ETS together are roughly 60–70% of the questions on the chapter, so they deserve the most revision time, while gaseous exchange is mostly asked as assertion-reason',
     why: 'Indicative only: the ranges are the book’s reading of recent papers.',
     say: null,
   },
@@ -395,7 +395,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 9,
     kind: 'mistake',
     q: 'Which distractors does the book list as classic traps, and which three habits win marks?',
-    a: 'Traps: glycolysis requires oxygen (it runs with or without it); 4 ATP net (4 is gross, 2 is net); CO<sub>2</sub> released in lactic fermentation (only the alcoholic route releases it); the ETS in the matrix (it is on the inner membrane); O<sub>2</sub> as the final electron donor (it is the terminal acceptor); all seeds RQ = 1 (the substrate sets it); amphibolic as occurring in plants and animals (it means catabolic and anabolic); hexokinase as the pacemaker (PFK is). Habits: always subtract the 2 ATP invested; place succinate dehydrogenase on the inner membrane as Complex II; and keep fermentation apart from anaerobic respiration, which in some bacteria runs an ETS with an inorganic acceptor such as nitrate or sulphate',
+    a: 'Traps: glycolysis requires oxygen (it runs with or without it); 4 ATP net (4 is gross, 2 is net); CO<sub>2</sub> released in lactic fermentation (only the alcoholic route releases it); the ETS in the matrix (it is on the inner membrane); O<sub>2</sub> as the final electron donor (it is the terminal acceptor); all seeds RQ = 1 (the substrate sets it); amphibolic as occurring in plants and animals (it means catabolic and anabolic); hexokinase as the pacemaker (PFK is). Habits: always subtract the 2 ATP invested; place succinate dehydrogenase on the inner membrane as Complex II; and keep fermentation apart from anaerobic respiration, which in some bacteria runs an ETS with an inorganic acceptor such as nitrate or sulphate, so it makes ATP by oxidative phosphorylation; at NCERT level anaerobic respiration in plants and muscle usually means fermentation',
     why: 'Read every option: one wrong pairing disqualifies a whole match-the-column choice.',
     say: null,
   },

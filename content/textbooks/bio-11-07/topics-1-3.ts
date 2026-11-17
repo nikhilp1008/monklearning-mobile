@@ -121,7 +121,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>1. Why epithelium always sits on a basement membrane.</b> Epithelium is a boundary tissue: it must stay anchored while presenting one free surface to the outside (or to a lumen). So its cells are bound tightly to one another by <b>cell junctions</b> and bound below to a thin non-cellular <b>basement membrane</b> that separates them from the underlying connective tissue. This single feature, a basement membrane plus a free surface, is the cleanest way to tell epithelium apart from the other three tissues, which do not form a sheet with a free surface. (Muscle fibres and nerve cells have only a thin basal lamina round each cell.) The junctions come in functional flavours: <b>tight junctions</b> (seal the gap, stop leakage), <b>adhering junctions</b> (cement neighbours mechanically), and <b>gap junctions</b> (cytoplasmic channels for rapid communication).',
+        html: '<b>1. Why epithelium always sits on a basement membrane.</b> Epithelium is a boundary tissue: it must stay anchored while presenting one free surface to the outside (or to a lumen). So its cells are bound tightly to one another by <b>cell junctions</b> and bound below to a thin non-cellular <b>basement membrane</b> that separates them from the underlying connective tissue. This single feature, a basement membrane plus a free surface, is the cleanest way to tell epithelium apart from the other three tissues, which do not form a sheet with a free surface. (Each muscle fibre does have a thin basal lamina round it, but muscle fibres and nerve cells do not form a sheet with a free surface.) The junctions come in functional flavours: <b>tight junctions</b> (seal the gap, stop leakage), <b>adhering junctions</b> (cement neighbours mechanically), and <b>gap junctions</b> (cytoplasmic channels for rapid communication).',
       },
       {
         t: 'p',
@@ -370,7 +370,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '• <b>Digestive system: complete vs incomplete.</b> A <b>complete</b> gut has two openings (a separate mouth and anus), so food moves one way and can be processed in stages. All three animals here (earthworm, cockroach, frog) have complete digestive systems. An <b>incomplete</b> gut (a single opening serving as both mouth and anus) is seen in simpler animals like cnidarians: a useful contrast point.<br>• <b>Circulatory system: open vs closed.</b> In a <b>closed</b> system, blood stays inside vessels throughout (earthworm and frog). In an <b>open</b> system blood (haemolymph) leaves the vessels and bathes the organs directly in body-cavity spaces (the cockroach’s haemocoel). In insects the air is carried by tracheae, not by blood, so insect haemolymph has no respiratory pigment, while earthworm and frog blood, which carry oxygen, do.',
+        html: '• <b>Digestive system: complete vs incomplete.</b> A <b>complete</b> gut has two openings (a separate mouth and anus), so food moves one way and can be processed in stages. All three animals here (earthworm, cockroach, frog) have complete digestive systems. An <b>incomplete</b> gut (a single opening serving as both mouth and anus) is seen in simpler animals like cnidarians: a useful contrast point.<br>• <b>Circulatory system: open vs closed.</b> In a <b>closed</b> system, blood stays inside vessels throughout (earthworm and frog). In an <b>open</b> system blood (haemolymph) leaves the vessels and bathes the organs directly in body-cavity spaces (the cockroach’s haemocoel). In insects the air is carried by tracheae, not by blood, so the cockroach’s haemolymph has no respiratory pigment, while earthworm and frog blood, which carry oxygen, do.',
       },
       {
         t: 'p',
@@ -467,7 +467,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Two finer points complete the picture. The <b>stomach</b> (segments 9–14) is not just a holding tank: the <b>calciferous glands</b> of the oesophagus and stomach region secrete calcium carbonate that neutralises the <b>humic acid</b> of the decaying matter the worm swallows, protecting the gut from the acidic soil. And the <b>typhlosole</b>, by folding the intestinal lining into a long internal shelf, lets a narrow tube behave like a much wider one for absorption, the same surface-area trick the human intestine achieves with villi. Together these mean a slow-moving soil-eater can extract enough nutrition from a low-energy diet of dead leaves and organic debris.',
+        html: 'Two finer points complete the picture. The <b>stomach</b> (segments 9–14) is not just a holding tank: the <b>calciferous glands</b> in the stomach wall secrete calcium carbonate that neutralises the <b>humic acid</b> of the decaying matter the worm swallows, protecting the gut from the acidic soil. And the <b>typhlosole</b>, by folding the intestinal lining into a long internal shelf, lets a narrow tube behave like a much wider one for absorption, the same surface-area trick the human intestine achieves with villi. Together these mean a slow-moving soil-eater can extract enough nutrition from a low-energy diet of dead leaves and organic debris.',
       },
       {
         t: 'p',
@@ -589,7 +589,7 @@ export const TOPICS: Topic[] = [
         q: 'Which nephridia of the earthworm open into the intestine?',
         opts: [
           { label: 'Integumentary', nudge: '<b>(a)</b> integumentary nephridia open on the skin surface.' },
-          { label: 'Pharyngeal', nudge: '<b>(b)</b> pharyngeal nephridia are tufts in segments 4–6 that open into the pharynx, not the intestine.' },
+          { label: 'Pharyngeal', nudge: '<b>(b)</b> pharyngeal nephridia are tufts in segments 4–6 that open into the buccal cavity and pharynx, not the intestine.' },
           { label: 'Septal', nudge: null },
           { label: 'None', nudge: '<b>(d)</b> is wrong since septal nephridia clearly do.' },
         ],

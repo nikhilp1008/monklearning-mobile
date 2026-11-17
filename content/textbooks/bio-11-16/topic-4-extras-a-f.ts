@@ -93,7 +93,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>A short procedure: how dialysis stands in for a failed kidney.</b> When the kidneys fail, nitrogenous wastes are no longer cleared and <b>urea builds up in the blood (uremia)</b>, the same accumulation that, left unchecked, becomes life-threatening. This is where artificial support takes over. Blood is drawn from the patient, mixed with an anticoagulant, and passed through a coil bathed in <b>dialysing fluid that matches plasma except that it lacks nitrogenous wastes</b>. Because urea is high in blood but absent in the fluid, urea <b>diffuses out</b> down its concentration gradient; meanwhile glucose, ions and amino acids, present in the fluid at plasma levels, sit at equal concentrations on both sides and so do not leak away. Before being returned to the patient, an anticoagulant is countered so the blood can clot normally again. It is the same selective exchange as in the nephron, diffusion down gradients, borrowed and run outside the body. For permanent failure, a <b>kidney transplant</b> remains the definitive remedy, though it depends on a compatible donor and lifelong care.',
+        html: '<b>A short procedure: how dialysis stands in for a failed kidney.</b> When the kidneys fail, nitrogenous wastes are no longer cleared and <b>urea builds up in the blood (uremia)</b>, the same accumulation that, left unchecked, becomes life-threatening. This is where artificial support takes over. Blood is drawn from the patient, mixed with an anticoagulant, and passed through a coil bathed in <b>dialysing fluid that matches plasma except that it lacks nitrogenous wastes</b>. Because urea is high in blood but absent in the fluid, urea <b>diffuses out</b> down its concentration gradient; meanwhile glucose, ions and amino acids, present in the fluid at plasma levels, sit at equal concentrations on both sides and so do not leak away. Before being returned to the patient, an anticoagulant is countered so the blood can clot normally again. It is selective diffusion down concentration gradients across a membrane, run outside the body. For permanent failure, a <b>kidney transplant</b> remains the definitive remedy, though it depends on a compatible donor and lifelong care.',
       },
       {
         t: 'p',
@@ -266,7 +266,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The chapter states that the loop of Henle and vasa recta together build a medullary osmolarity gradient of roughly 300 mOsm/L at the cortex rising to about 1200 mOsm/L at the inner medulla. It already names the loop of Henle as the <b>counter-current multiplier</b> and the vasa recta as the <b>counter-current exchanger</b>, and says that urea recycling from the collecting duct adds to the gradient. It does not set out what each does (active pumping creates the gradient, passive exchange preserves it) or how urea recycling works, which passively reinforces the gradient. All three are tested in NEET High-Difficulty items (the book’s estimate from past papers, not official figures).',
+        html: 'The chapter states that the loop of Henle and vasa recta together build a medullary osmolarity gradient of roughly 300 mOsm/L at the cortex rising to about 1200 mOsm/L at the inner medulla. It already names the loop of Henle as the <b>counter-current multiplier</b> and the vasa recta as the <b>counter-current exchanger</b>, and says that urea recycling from the collecting duct adds to the gradient. It says in outline that the loop’s salt pumping builds the gradient and the vasa recta preserves it, but it does not set out how each one works step by step, or how urea recycling, which passively reinforces the gradient, works. All three are tested in NEET High-Difficulty items (the book’s estimate from past papers, not official figures).',
       },
 
       { t: 'part', title: 'Method' },
@@ -353,7 +353,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives the RAAS as a chain: the JGA releases renin, renin converts angiotensinogen to angiotensin-I and then angiotensin-II, which raises pressure and stimulates aldosterone (Figure 16.6 labels the converting enzyme, ACE, in the lungs). It does not give the nature of each peptide, the three targets of angiotensin-II, the channels aldosterone acts on, or <b>tubuloglomerular feedback (TGF)</b>, the mechanism by which the JGA simultaneously senses distal NaCl and regulates renin release. Both appear in higher-difficulty NEET questions (the book’s estimate from past papers, not official figures).',
+        html: 'The chapter gives the RAAS as a chain: the JGA releases renin, renin converts angiotensinogen to angiotensin-I and then angiotensin-II, which raises pressure and stimulates aldosterone (Figure 16.6 labels the converting enzyme, ACE, in the lungs). It does not give the nature of each peptide, the three targets of angiotensin-II, the channels aldosterone acts on, or <b>tubuloglomerular feedback (TGF)</b>, the mechanism by which the JGA simultaneously senses distal NaCl and regulates renin release. These appear in higher-difficulty NEET questions (the book’s estimate from past papers, not official figures).',
       },
 
       { t: 'part', title: 'Method' },
@@ -397,9 +397,9 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: '<b>Tubuloglomerular Feedback.</b> A drug blocks the NaCl transporters in the thick ascending limb of the loop of Henle. Predict the effect on renin release and on GFR. (2 marks)',
         steps: [
-          '<b>Solution.</b> The macula densa senses the NaCl delivered by the thick ascending limb through the same NKCC2 transporter. Blocking the transporter means the macula densa no longer detects the NaCl load → the TGF sensor reads “low” → the afferent arteriole dilates and the JGA releases renin → RAAS activates → angiotensin-II constricts the efferent arteriole and aldosterone increases Na<sup>+</sup> reabsorption → GFR is maintained or raised toward normal. However, the loop blocker also reduces the multiplier’s gradient → reduced concentrating ability (long-term consequence). The immediate regulatory response is <b>increased renin release</b> attempting to restore GFR.',
+          '<b>Solution.</b> The macula densa senses the NaCl delivered by the thick ascending limb through the same NKCC2 transporter. Blocking the transporter means the macula densa no longer detects the NaCl load → the TGF sensor reads “low” → the afferent arteriole dilates and the JGA releases renin → RAAS activates → angiotensin-II constricts the efferent arteriole and aldosterone increases Na<sup>+</sup> reabsorption → GFR is kept up (the feedback can no longer lower it). However, the loop blocker also reduces the multiplier’s gradient → reduced concentrating ability (long-term consequence). The immediate regulatory response is <b>increased renin release</b> attempting to restore GFR.',
         ],
-        ans: 'Renin release increases; GFR is partially restored by compensatory mechanisms, but the sustained effect is reduced medullary concentrating ability.',
+        ans: 'Renin release increases and the afferent arteriole dilates, so GFR is kept up rather than lowered; the sustained effect is reduced medullary concentrating ability.',
       },
 
       { t: 'part', title: 'Practice' },
@@ -440,7 +440,7 @@ export const TOPICS: Topic[] = [
     n: 'C',
     title: 'ADH Mechanism and Aquaporins',
     extra: true,
-    kalam: 'The chapter states that ADH makes the collecting duct permeable to water, producing concentrated urine.',
+    kalam: 'ADH puts aquaporin-2 into the apical membrane; no AQP2, no water reabsorption.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -621,7 +621,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter mentions that the kidney secretes erythropoietin and renin and “activates vitamin D” (each in passing), but it does not develop the kidney’s full endocrine portfolio. For CBSE Boards a 3-mark question on “other functions of the kidney” is routine, and for NEET the <b>renin-erythropoietin-calcitriol axis</b> is increasingly tested as integrated physiology (the book’s estimate from past papers, not official figures).',
+        html: 'The chapter develops renin’s part in the RAAS (Topic 04), but it mentions erythropoietin and the kidney’s activation of vitamin D only in passing, and it does not develop the kidney’s full endocrine portfolio. For CBSE Boards a 3-mark question on “other functions of the kidney” is routine, and for NEET the <b>renin-erythropoietin-calcitriol axis</b> is increasingly tested as integrated physiology (the book’s estimate from past papers, not official figures).',
       },
 
       { t: 'part', title: 'Method' },
@@ -629,7 +629,7 @@ export const TOPICS: Topic[] = [
         t: 'proc',
         title: 'The kidney’s four endocrine roles',
         steps: [
-          '<b>Renin</b> (from juxtaglomerular cells): initiates the RAAS cascade (covered in Additional topic B). Renin, erythropoietin and the activation of vitamin D are mentioned in the chapter, each in a clause; the 1α-hydroxylase step, calcitriol’s actions and prostaglandins are additions.',
+          '<b>Renin</b> (from juxtaglomerular cells): initiates the RAAS cascade (covered in Additional topic B).',
           '<b>Erythropoietin (EPO):</b> synthesised and secreted by <b>peritubular fibroblast cells</b> (especially in the renal cortex). Stimulus: hypoxia (low renal O<sub>2</sub> tension) or anaemia. Action: EPO acts on bone marrow erythroid progenitor cells → increased RBC production → increased O<sub>2</sub>-carrying capacity. Used therapeutically (e.g., epoetin alfa) for anaemia of chronic kidney disease.',
           '<b>Calcitriol (active vitamin D, 1,25-dihydroxycholecalciferol):</b> the kidney hydroxylates 25-hydroxyvitamin D (produced in liver) to <b>1,25-(OH)<sub>2</sub>D<sub>3</sub></b> (calcitriol) via the enzyme <b>1α-hydroxylase</b>. Action: ↑intestinal Ca<sup>2+</sup> absorption, ↑bone mineralisation, ↑renal Ca<sup>2+</sup> reabsorption. In kidney failure, this step is lost → hypocalcaemia → secondary hyperparathyroidism.',
           '<b>Prostaglandins:</b> kidney synthesises prostaglandins (especially PGE<sub>2</sub> and PGI<sub>2</sub>) that: (a) cause vasodilation of afferent arteriole → ↑GFR; (b) inhibit Na<sup>+</sup> reabsorption in the collecting duct; (c) modulate ADH action. NSAIDs (like ibuprofen) inhibit prostaglandin synthesis → can reduce GFR.',
@@ -637,7 +637,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The integrated renin-erythropoietin-calcitriol axis:</b> Low renal perfusion → renin → angiotensin-II, which constricts the efferent arteriole (maintaining GFR) and stimulates aldosterone (Na<sup>+</sup>/water retention). Hypoxia → EPO → RBCs up. Low plasma Ca<sup>2+</sup> → ↑PTH → ↑renal 1α-hydroxylase → ↑calcitriol → ↑intestinal Ca<sup>2+</sup> absorption. All three work together to maintain oxygen delivery and mineral homeostasis.',
+        html: '<b>The integrated renin-erythropoietin-calcitriol axis:</b> Low renal perfusion → renin → angiotensin-II, which constricts the efferent arteriole (maintaining GFR) and stimulates aldosterone (Na<sup>+</sup>/water retention). Hypoxia → EPO → RBCs up. Low plasma Ca<sup>2+</sup> → ↑PTH → ↑renal 1α-hydroxylase → ↑calcitriol → ↑intestinal Ca<sup>2+</sup> absorption. Together they maintain blood pressure and GFR, oxygen delivery and mineral homeostasis.',
       },
 
       { t: 'part', title: 'Worked examples' },

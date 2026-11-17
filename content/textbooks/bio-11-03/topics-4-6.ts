@@ -43,11 +43,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Who are they? About <b>900 living species</b>: the <b>conifers</b> (pines, cedars, cypresses) are by far the largest group, the familiar cone-bearing evergreens of cold mountains; <b>cycads</b> (<i>Cycas</i>) look like stout palms; <b><i>Ginkgo</i></b> is a single surviving “living fossil” species from China; and <i>Gnetum</i> is an oddball. They are typically woody trees and shrubs with a <b>tap root system</b>, and they dominate the vegetation of <b>cold, high-altitude and temperate regions</b>: the dark-green forests of the Himalayas are largely gymnosperm.',
+        html: 'Who are they? About <b>900 living species</b> (the book’s figure; current counts run nearer 1,000): the <b>conifers</b> (pines, cedars, cypresses) are by far the largest group, the familiar cone-bearing evergreens of cold mountains; <b>cycads</b> (<i>Cycas</i>) look like stout palms; <b><i>Ginkgo</i></b> is a single surviving “living fossil” species from China; and <i>Gnetum</i> is an oddball. They are typically woody trees and shrubs with a <b>tap root system</b>, and they dominate the vegetation of <b>cold, high-altitude and temperate regions</b>: the dark-green forests of the Himalayas are largely gymnosperm.',
       },
       {
         t: 'p',
-        html: 'A second deep idea: gymnosperms continue the <b>takeover by the sporophyte</b> we tracked in the ferns. The big pine tree is the sporophyte (2n); its gametophytes have shrunk so far that they are no longer free-living at all: they stay tucked inside the parent plant. The male gametophyte is reduced to a <b>pollen grain</b> of just a few cells; the female gametophyte never leaves the <b>ovule</b>. The trend across the chapter (sporophyte up, gametophyte down) reaches near-completion here.',
+        html: 'A second deep idea: gymnosperms continue the <b>takeover by the sporophyte</b> we tracked in the ferns. The big pine tree is the sporophyte (2<i>n</i>); its gametophytes have shrunk so far that they are no longer free-living at all: they stay tucked inside the parent plant. The male gametophyte is reduced to a <b>pollen grain</b> of just a few cells; the female gametophyte never leaves the <b>ovule</b>. The trend across the chapter (sporophyte up, gametophyte down) reaches near-completion here.',
       },
       { t: 'p', html: '<b>Limiting conditions & where intuition misleads.</b>' },
       {
@@ -69,7 +69,7 @@ export const TOPICS: Topic[] = [
           ['Reproductive structure', '<b>Cones</b> (strobili); no flowers', 'Flowers'],
           ['Fruit', '<b>Absent</b> (no ovary)', 'Present'],
           ['Fertilisation', 'Single; <b>no double fertilisation</b>', '<b>Double fertilisation</b>'],
-          ['Endosperm', '<b>Haploid</b> (n), formed before fertilisation', 'Triploid (3n), formed after fertilisation'],
+          ['Endosperm', '<b>Haploid</b> (<i>n</i>), formed before fertilisation', 'Triploid (3<i>n</i>), formed after fertilisation'],
           ['Female gametophyte', 'Retained in ovule; bears <b>archegonia</b>', 'Embryo sac; <b>no archegonia</b>'],
           ['Xylem', '<b>Tracheids</b> only (vessels absent, except in Gnetales)', 'Vessels usually present'],
           ['Examples', '<i>Cycas</i>, <i>Pinus</i>, <i>Ginkgo</i>, <i>Cedrus</i>, <i>Sequoia</i>', 'Mango, Wheat, Sunflower'],
@@ -117,7 +117,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Comparative characteristics and life cycles' },
       {
         t: 'p',
-        html: '<b>3.1 The gymnosperm life cycle (diplontic, seed-forming)</b><br>The dominant body is the <b>sporophyte (2n)</b>: the tree. Trace the cycle:',
+        html: '<b>3.1 The gymnosperm life cycle (diplontic, seed-forming)</b><br>The dominant body is the <b>sporophyte (2<i>n</i>)</b>: the tree. Trace the cycle:',
       },
       {
         t: 'proc',
@@ -126,13 +126,13 @@ export const TOPICS: Topic[] = [
           'The sporophyte bears two kinds of cones. <b>Microsporophylls</b> in the male cone carry <b>microsporangia</b>; meiosis there produces <b>microspores</b>, each maturing into a <b>pollen grain</b>: the highly reduced male gametophyte (just a few cells).',
           '<b>Megasporophylls</b> in the female cone bear <b>ovules</b> (megasporangia). Inside the ovule’s <b>nucellus</b>, a <b>megaspore mother cell</b> undergoes <b>meiosis</b> to give megaspores; the functional one develops into the <b>female gametophyte</b>, which is <b>retained inside the ovule</b> and bears <b>archegonia</b> (usually two or more), each with an egg.',
           '<b>Pollination is by wind.</b> Pollen is carried to the <b>micropyle end of the ovule</b> directly: there is no stigma and no ovary to pass through. A <b>pollen tube</b> then grows and delivers the male gamete to the egg.',
-          '<b>Fertilisation</b> gives a zygote, which develops into the embryo. Crucially, the <b>food-storing endosperm is the haploid (n) female gametophyte tissue, and it forms before fertilisation</b>: unlike the triploid, post-fertilisation endosperm of angiosperms.',
+          '<b>Fertilisation</b> gives a zygote, which develops into the embryo. Crucially, the <b>food-storing endosperm is the haploid (<i>n</i>) female gametophyte tissue, and it forms before fertilisation</b>: unlike the triploid, post-fertilisation endosperm of angiosperms.',
           'The ovule matures into a <b>naked seed</b> (in <i>Pinus</i>, a <b>winged seed</b>, the wing derived from the <b>ovuliferous scale</b>), which disperses and germinates into a new sporophyte.',
         ],
       },
       {
         t: 'p',
-        html: '<b>sporophyte</b> (2n) →<sup>meiosis in cones</sup> spores (n) → reduced gametophytes (n, retained) →<sup>wind pollination + pollen tube</sup> zygote (2n) → naked seed',
+        html: '<b>sporophyte</b> (2<i>n</i>) →<sup>meiosis in cones</sup> spores (<i>n</i>) → reduced gametophytes (<i>n</i>, retained) →<sup>wind pollination + pollen tube</sup> zygote (2<i>n</i>) → naked seed',
       },
       { t: 'fig', id: 'b11-03-fig-3.4' },
       {
@@ -179,7 +179,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET level · multi-fact integration',
         q: 'A tall woody plant of cold-region forests bears two kinds of cones, its xylem contains only tracheids, and its seeds lie exposed on the scales of a woody cone. Name the group and state whether double fertilisation occurs in it. Also state the ploidy of its endosperm.',
         steps: [
-          '<b>Reasoning:</b> Two cone types (heterosporous, strobili) + tracheid-only xylem + <b>naked seeds on cone scales</b> all converge on <b>gymnosperms</b>. Gymnosperms show <b>no double fertilisation</b> for NEET (only angiosperms make triploid endosperm by triple fusion; the small group Gnetales shows a double-fertilisation-like event). Their endosperm is <b>haploid (n)</b>, being the female gametophyte tissue formed before fertilisation.',
+          '<b>Reasoning:</b> Two cone types (heterosporous, strobili) + tracheid-only xylem + <b>naked seeds on cone scales</b> all converge on <b>gymnosperms</b>. Gymnosperms show <b>no double fertilisation</b> for NEET (only angiosperms make triploid endosperm by triple fusion; the small group Gnetales shows a double-fertilisation-like event). Their endosperm is <b>haploid (<i>n</i>)</b>, being the female gametophyte tissue formed before fertilisation.',
           '<b>Why NEET likes it:</b> it bundles habitat + anatomy + reproduction, and the two follow-up facts (no double fertilisation; haploid endosperm) are the exact pair students most often invert with angiosperms.',
         ],
         ans: '',
@@ -209,7 +209,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] State the ploidy of the endosperm in (i) a gymnosperm and (ii) an angiosperm.',
-            a: '(i) haploid (n); (ii) triploid (3n).',
+            a: '(i) haploid (<i>n</i>); (ii) triploid (3<i>n</i>).',
           },
           {
             q: '[NEET] Which is monoecious and which is dioecious: <i>Pinus</i>, <i>Cycas</i>?',
@@ -238,7 +238,7 @@ export const TOPICS: Topic[] = [
           },
           {
             label: 'have triploid endosperm',
-            nudge: '<b>(d)</b> is the <b>angiosperm</b> trait (3n endosperm); gymnosperm endosperm is haploid.',
+            nudge: '<b>(d)</b> is the <b>angiosperm</b> trait (3<i>n</i> endosperm); gymnosperm endosperm is haploid.',
           },
         ],
         correct: 1,
@@ -305,7 +305,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed):</b> Whenever a question pits gymnosperm against angiosperm, run the four-fact checklist in order: <b>seed (naked/covered) → fertilisation (single/double) → endosperm (n / 3n) → archegonia (present/absent).</b> Almost every gymnosperm-vs-angiosperm question is answered by one of these four; find which one the stem is testing and ignore the rest.',
+        html: '<b>Pro-Tip (speed):</b> Whenever a question pits gymnosperm against angiosperm, run the four-fact checklist in order: <b>seed (naked/covered) → fertilisation (single/double) → endosperm (<i>n</i> / 3<i>n</i>) → archegonia (present/absent).</b> Almost every gymnosperm-vs-angiosperm question is answered by one of these four; find which one the stem is testing and ignore the rest.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -313,7 +313,7 @@ export const TOPICS: Topic[] = [
         t: 'snapshot',
         rows: [
           {
-            f: '<b>Definition:</b> seed-bearing <b>vascular</b> plants with <b>naked seeds</b> (no ovary, no fruit); “phanerogams without ovary.” <b>~900 species</b>.',
+            f: '<b>Definition:</b> seed-bearing <b>vascular</b> plants with <b>naked seeds</b> (no ovary, no fruit); “phanerogams without ovary.” <b>~900 species</b> (current counts nearer 1,000).',
             note: '',
           },
           {
@@ -369,7 +369,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Think about it this way…</b> the whole chapter has been a story of the <b>sporophyte taking over and the gametophyte shrinking.</b> In angiosperms that trend reaches its endpoint. The visible plant is entirely the <b>sporophyte (2n)</b>. The male gametophyte has shrunk to a <b>pollen grain of just a few cells</b>; the female gametophyte is a microscopic <b>embryo sac of seven cells</b> hidden inside the ovule. Neither is ever free-living. Compared with the big green moss gametophyte of bryophytes, this is total reduction.',
+        html: '<b>Think about it this way…</b> the whole chapter has been a story of the <b>sporophyte taking over and the gametophyte shrinking.</b> In angiosperms that trend reaches its endpoint. The visible plant is entirely the <b>sporophyte (2<i>n</i>)</b>. The male gametophyte has shrunk to a <b>pollen grain of just a few cells</b>; the female gametophyte is a microscopic <b>embryo sac of seven cells</b> hidden inside the ovule. Neither is ever free-living. Compared with the big green moss gametophyte of bryophytes, this is total reduction.',
       },
       {
         t: 'p',
@@ -440,7 +440,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'Endosperm',
-        html: 'the nutritive tissue formed after triple fusion; in angiosperms it is <b>triploid (3n)</b>.',
+        html: 'the nutritive tissue formed after triple fusion; in angiosperms it is <b>triploid (3<i>n</i>)</b>.',
       },
 
       { t: 'part', title: 'Comparative characteristics and life cycle' },
@@ -459,11 +459,11 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-03-fig-3.5' },
       {
         t: 'p',
-        html: '<b>3.2 Double fertilisation and triple fusion: the angiosperm signature</b><br>A pollen grain landing on the stigma germinates a <b>pollen tube</b> that grows down and delivers <b>two male gametes</b> into the embryo sac. Then two fusions happen, hence double fertilisation:<br>1. <b>Syngamy:</b> one male gamete fuses with the <b>egg</b> → a <b>diploid (2n) zygote</b> → embryo.<br>2. <b>Triple fusion:</b> the other male gamete fuses with the <b>two polar nuclei</b> of the central cell → a <b>triploid (3n) primary endosperm nucleus</b> → the <b>endosperm</b> (the embryo’s food supply).',
+        html: '<b>3.2 Double fertilisation and triple fusion: the angiosperm signature</b><br>A pollen grain landing on the stigma germinates a <b>pollen tube</b> that grows down and delivers <b>two male gametes</b> into the embryo sac. Then two fusions happen, hence double fertilisation:<br>1. <b>Syngamy:</b> one male gamete fuses with the <b>egg</b> → a <b>diploid (2<i>n</i>) zygote</b> → embryo.<br>2. <b>Triple fusion:</b> the other male gamete fuses with the <b>two polar nuclei</b> of the central cell → a <b>triploid (3<i>n</i>) primary endosperm nucleus</b> → the <b>endosperm</b> (the embryo’s food supply).',
       },
       {
         t: 'p',
-        html: 'male gamete + egg → zygote (2n);<br>male gamete + 2 polar nuclei → endosperm (3n)',
+        html: 'male gamete + egg → zygote (2<i>n</i>);<br>male gamete + 2 polar nuclei → endosperm (3<i>n</i>)',
       },
       {
         t: 'p',
@@ -471,11 +471,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>3.3 Life cycle and the end of the gametophyte-reduction trend</b><br>Angiosperms are <b>diplontic</b>: the dominant, independent body is the <b>sporophyte (2n)</b>, and both gametophytes are microscopic and dependent.',
+        html: '<b>3.3 Life cycle and the end of the gametophyte-reduction trend</b><br>Angiosperms are <b>diplontic</b>: the dominant, independent body is the <b>sporophyte (2<i>n</i>)</b>, and both gametophytes are microscopic and dependent.',
       },
       {
         t: 'p',
-        html: '<b>sporophyte</b> (2n) →<sup>meiosis</sup> spores (n) → tiny gametophytes (n) →<sup>double fertilisation</sup> zygote (2n) + endosperm (3n) → seed in fruit',
+        html: '<b>sporophyte</b> (2<i>n</i>) →<sup>meiosis</sup> spores (<i>n</i>) → tiny gametophytes (<i>n</i>) →<sup>double fertilisation</sup> zygote (2<i>n</i>) + endosperm (3<i>n</i>) → seed in fruit',
       },
       {
         t: 'p',
@@ -528,7 +528,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET level · multi-fact integration',
         q: 'In an angiosperm, a male gamete fuses with the two polar nuclei. Name this event, state the ploidy of the product, and name the tissue it forms. Is this event found in gymnosperms?',
         steps: [
-          '<b>Reasoning:</b> Fusion of a male gamete with the <b>two polar nuclei</b> is <b>triple fusion</b> (part of double fertilisation). The product is the <b>triploid (3n) primary endosperm nucleus</b>, which forms the <b>endosperm</b>. No other group makes triploid endosperm by triple fusion: gymnosperms show no double fertilisation (their endosperm is haploid and pre-fertilisation).',
+          '<b>Reasoning:</b> Fusion of a male gamete with the <b>two polar nuclei</b> is <b>triple fusion</b> (part of double fertilisation). The product is the <b>triploid (3<i>n</i>) primary endosperm nucleus</b>, which forms the <b>endosperm</b>. No other group makes triploid endosperm by triple fusion: gymnosperms show no double fertilisation (their endosperm is haploid and pre-fertilisation).',
         ],
         ans: '',
       },
@@ -552,7 +552,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] State the ploidy of (i) the zygote and (ii) the endosperm in an angiosperm.',
-            a: '(i) diploid (2n); (ii) triploid (3n).',
+            a: '(i) diploid (2<i>n</i>); (ii) triploid (3<i>n</i>).',
           },
           {
             q: '[NEET] How many cotyledons, and what venation, characterise a monocotyledon?',
@@ -598,7 +598,7 @@ export const TOPICS: Topic[] = [
           { label: 'tetraploid', nudge: '<b>(d)</b> over-counts.' },
         ],
         correct: 2,
-        solution: 'One male gamete (n) + two polar nuclei (n + n) = 3n.',
+        solution: 'One male gamete (<i>n</i>) + two polar nuclei (<i>n</i> + <i>n</i>) = 3<i>n</i>.',
       },
       {
         t: 'mcq',
@@ -645,7 +645,7 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>“7 cells, 8 nuclei” inversion.</b> The central cell is <b>binucleate</b>: that is the whole reason cells and nuclei differ. Never write “8 cells.”',
-          '<b>Confusing syngamy and triple fusion. Syngamy → 2n zygote (egg + 1 male gamete); triple fusion → 3n endosperm (2 polar nuclei + 1 male gamete).</b> Keep the products straight.',
+          '<b>Confusing syngamy and triple fusion. Syngamy → 2<i>n</i> zygote (egg + 1 male gamete); triple fusion → 3<i>n</i> endosperm (2 polar nuclei + 1 male gamete).</b> Keep the products straight.',
           '<b>Carrying the gymnosperm endosperm rule over.</b> Angiosperm endosperm is <b>3n, after fertilisation</b>; gymnosperm is <b>n, before fertilisation</b>: exact opposites.',
           '<b>Memorising dicot/monocot features singly.</b> Learn each as a set of five (cotyledon, venation, root, floral merosity, vascular bundles) so a mismatched-hybrid distractor can’t catch you.',
         ],
@@ -679,13 +679,13 @@ export const TOPICS: Topic[] = [
             f: '<b>Double fertilisation (the NEET answer for angiosperms only; no other group makes triploid endosperm by triple fusion): syngamy</b> (male gamete + egg → <b>2n zygote</b>) + <b>triple fusion</b> (male gamete + 2 polar nuclei → <b>3n endosperm</b>).',
             note: '',
           },
-          { f: '<b>Endosperm: triploid (3n), after fertilisation</b> (vs gymnosperm n, before).', note: '' },
+          { f: '<b>Endosperm: triploid (3<i>n</i>), after fertilisation</b> (vs gymnosperm <i>n</i>, before).', note: '' },
           { f: '<b>Life cycle: diplontic</b> (sporophyte dominant; gametophytes maximally reduced).', note: '' },
         ],
         aids: [
           '“<b>Angio = covered</b> seed (in fruit).”',
           'Embryo sac: “<b>3 + 3 + 1 = 7 cells, but 8 nuclei</b> (centre has 2).”',
-          '“<b>Syngamy → 2n, Triple fusion → 3n.</b>”',
+          '“<b>Syngamy → 2<i>n</i>, Triple fusion → 3<i>n</i>.</b>”',
         ],
       },
     ],
@@ -705,7 +705,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Across this whole chapter, one idea kept returning: from the algae, through mosses and ferns, to gymnosperms and angiosperms. Now we name it properly. Every plant lives a <b>double life</b>, alternating between two distinct multicellular (or reduced) phases:<br>• a <b>haploid gametophyte (n)</b>: the phase that produces <b>gametes</b>, and<br>• a <b>diploid sporophyte (2n)</b>: the phase that produces <b>spores</b>.',
+        html: 'Across this whole chapter, one idea kept returning: from the algae, through mosses and ferns, to gymnosperms and angiosperms. Now we name it properly. Every plant lives a <b>double life</b>, alternating between two distinct multicellular (or reduced) phases:<br>• a <b>haploid gametophyte (<i>n</i>)</b>: the phase that produces <b>gametes</b>, and<br>• a <b>diploid sporophyte (2<i>n</i>)</b>: the phase that produces <b>spores</b>.',
       },
       {
         t: 'p',
@@ -722,7 +722,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Limiting conditions & caveats.</b>' },
       {
         t: 'p',
-        html: '• “Alternation of generations” does not mean the two phases look alike or are equally sized: usually one is dominant and the other is greatly reduced.<br>• The phases are defined by <b>ploidy and function</b> (n/gametes vs 2n/spores), not by size: a reduced gametophyte is still a gametophyte.<br>• Meiosis happens <b>once per cycle</b>, but where it happens (in the zygote, in the gamete-mother cells, or in spore mother cells) is exactly what distinguishes the three patterns.',
+        html: '• “Alternation of generations” does not mean the two phases look alike or are equally sized: usually one is dominant and the other is greatly reduced.<br>• The phases are defined by <b>ploidy and function</b> (<i>n</i>/gametes vs 2<i>n</i>/spores), not by size: a reduced gametophyte is still a gametophyte.<br>• Meiosis happens <b>once per cycle</b>, and where it happens (in the zygote, at gamete formation, or at spore formation) separates the patterns in the algae, bryophytes and pteridophytes. Seed plants are the exception: NCERT calls them diplontic, though their meiosis forms spores.',
       },
 
       { t: 'part', title: 'Classification framework and diagnostic features' },
@@ -733,16 +733,16 @@ export const TOPICS: Topic[] = [
         rows: [
           [
             '<b>Haplontic</b>',
-            '<b>Gametophyte (n)</b>',
+            '<b>Gametophyte (<i>n</i>)</b>',
             'Sporophyte = single-celled <b>zygote</b>',
             '<b>Zygotic</b> (zygote divides by meiosis)',
-            'Many green algae: <i>Volvox</i>, <i>Spirogyra</i>, <i>Chlamydomonas</i>',
+            'Many green algae: <i>Volvox</i>, <i>Spirogyra</i>, some <i>Chlamydomonas</i>',
           ],
           [
             '<b>Diplontic</b>',
-            '<b>Sporophyte (2n)</b>',
-            'Gametophyte reduced to a few cells (pollen grain, embryo sac in seed plants) or to the gametes alone (<i>Fucus</i>)',
-            '<b>Gametic</b> in <i>Fucus</i> (meiosis forms gametes); in seed plants meiosis forms spores, which grow into the few-celled gametophytes',
+            '<b>Sporophyte (2<i>n</i>)</b>',
+            'Gametophyte much reduced and never free-living (the pollen grain, and the female gametophyte inside the ovule, which in angiosperms is the embryo sac) or reduced to the gametes alone (<i>Fucus</i>)',
+            '<b>Gametic</b> in <i>Fucus</i> (meiosis forms gametes); in seed plants meiosis forms spores, which grow into much-reduced gametophytes',
             'Seed plants (gymnosperms, angiosperms); <i>Fucus</i> (brown alga)',
           ],
           [
@@ -755,8 +755,8 @@ export const TOPICS: Topic[] = [
         ],
       },
       { t: 'p', html: '<b>2.2 Key terms</b>' },
-      { t: 'def', term: 'Gametophyte (n)', html: 'the haploid, gamete-producing phase.' },
-      { t: 'def', term: 'Sporophyte (2n)', html: 'the diploid, spore-producing phase.' },
+      { t: 'def', term: 'Gametophyte (<i>n</i>)', html: 'the haploid, gamete-producing phase.' },
+      { t: 'def', term: 'Sporophyte (2<i>n</i>)', html: 'the diploid, spore-producing phase.' },
       {
         t: 'def',
         term: 'Alternation of generations',
@@ -785,7 +785,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '• <b>Zygotic meiosis (haplontic):</b> the zygote (2n) is the only diploid cell and it immediately divides by meiosis. The diploid phase therefore never builds a body, so the <b>gametophyte dominates</b>. (Many green algae.)<br>• <b>Gametic meiosis (diplontic algae such as <i>Fucus</i>):</b> meiosis happens only when gametes are made, so the haploid phase is just the gametes, never a body. Hence the <b>sporophyte dominates</b>. (<i>Fucus</i>.) Seed plants are also called diplontic (sporophyte dominant), though meiosis there forms spores.<br>• <b>Sporic meiosis (haplo-diplontic):</b> meiosis produces spores, and both the spore-grown gametophyte and the zygote-grown sporophyte develop into multicellular bodies, so <b>both phases are visible</b>, with one or the other larger depending on the group. (Bryophytes: gametophyte larger; pteridophytes: sporophyte larger.)',
+        html: '• <b>Zygotic meiosis (haplontic):</b> the zygote (2<i>n</i>) is the only diploid cell and it immediately divides by meiosis. The diploid phase therefore never builds a body, so the <b>gametophyte dominates</b>. (Many green algae.)<br>• <b>Gametic meiosis (diplontic algae such as <i>Fucus</i>):</b> meiosis happens only when gametes are made, so the haploid phase is just the gametes, never a body. Hence the <b>sporophyte dominates</b>. (<i>Fucus</i>.) Seed plants are also called diplontic (sporophyte dominant), though meiosis there forms spores.<br>• <b>Sporic meiosis (haplo-diplontic):</b> meiosis produces spores, and both the spore-grown gametophyte and the zygote-grown sporophyte develop into multicellular bodies, so <b>both phases are visible</b>, with one or the other larger depending on the group. (Bryophytes: gametophyte larger; pteridophytes: sporophyte larger.)',
       },
       {
         t: 'p',
@@ -793,7 +793,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '• <b>Algae:</b> gametophyte (haploid) phase commonly dominant (haplontic in many).<br>• <b>Bryophytes:</b> haplo-diplontic, but the <b>gametophyte still dominates</b>; the sporophyte is small and dependent.<br>• <b>Pteridophytes:</b> haplo-diplontic, but now the <b>sporophyte dominates</b>; the gametophyte is a small free-living prothallus.<br>• <b>Gymnosperms & Angiosperms: diplontic</b>: the sporophyte is everything; the gametophytes are microscopic and never free-living (pollen grain; embryo sac).',
+        html: '• <b>Algae:</b> gametophyte (haploid) phase commonly dominant (haplontic in many).<br>• <b>Bryophytes:</b> haplo-diplontic, but the <b>gametophyte still dominates</b>; the sporophyte is small and dependent.<br>• <b>Pteridophytes:</b> haplo-diplontic, but now the <b>sporophyte dominates</b>; the gametophyte is a small free-living prothallus.<br>• <b>Gymnosperms & Angiosperms: diplontic</b>: the sporophyte is everything; the gametophytes are much reduced and never free-living (the pollen grain; the female gametophyte inside the ovule, the embryo sac in angiosperms).',
       },
       {
         t: 'p',
@@ -810,7 +810,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board level · 3 marks',
         q: 'Define alternation of generations. Name the two events that link the two generations.',
         steps: [
-          '<b>Model answer:</b> <b>Alternation of generations</b> is the regular cycling, in a plant’s life cycle, between a haploid <b>gametophyte (n)</b> that produces gametes and a diploid <b>sporophyte (2n)</b> that produces spores. The two linking events are <b>fertilisation</b> (gametes fuse: n → 2n) and <b>meiosis</b> (2n → n).',
+          '<b>Model answer:</b> <b>Alternation of generations</b> is the regular cycling, in a plant’s life cycle, between a haploid <b>gametophyte (<i>n</i>)</b> that produces gametes and a diploid <b>sporophyte (2<i>n</i>)</b> that produces spores. The two linking events are <b>fertilisation</b> (gametes fuse: <i>n</i> → 2<i>n</i>) and <b>meiosis</b> (2<i>n</i> → <i>n</i>).',
         ],
         ans: '',
       },
@@ -848,7 +848,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[CBSE] Which two processes connect the haploid and diploid phases of a plant life cycle? (2 marks)',
-            a: 'Fertilisation (n → 2n) and meiosis (2n → n).',
+            a: 'Fertilisation (<i>n</i> → 2<i>n</i>) and meiosis (2<i>n</i> → <i>n</i>).',
           },
           {
             q: '[CUET] In which life-cycle pattern is the sporophyte reduced to a single-celled zygote?',
@@ -932,7 +932,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Forgetting where meiosis happens.</b> It is the cleanest discriminator: <b>zygotic = haplontic, gametic = diplontic, sporic = haplo-diplontic.</b>',
+          '<b>Forgetting where meiosis happens.</b> In the algae, bryophytes and pteridophytes it is the cleanest discriminator: <b>zygotic = haplontic, gametic = diplontic, sporic = haplo-diplontic.</b> Seed plants are the exception: diplontic by NCERT’s convention, though their meiosis forms spores, because their gametophytes are never free-living.',
           '<b>Assuming “haplo-diplontic” tells you the dominant phase.</b> It does <b>not</b>: bryophytes (gametophyte-dominant) and pteridophytes (sporophyte-dominant) are both haplo-diplontic.',
           '<b>Calling ferns “diplontic.”</b> Ferns are sporophyte-dominant but have a <b>free-living gametophyte (prothallus)</b>, so they are <b>haplo-diplontic</b>, not diplontic. The diplontic examples to remember are the seed plants and, among algae, <i>Fucus</i>.',
           '<b>Mixing dominance with size of body.</b> Dominance is about which phase is the <b>free-living, independent, longer-lived</b> body, not merely which looks bigger in a single drawing.',
@@ -940,7 +940,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip:</b> Answer life-cycle questions in two steps: (1) where is meiosis? fixes the pattern; (2) the pattern fixes the dominant phase (haplontic→gametophyte, diplontic→sporophyte, haplo-diplontic→check the group). This two-step beats rote-memorising every example.',
+        html: '<b>Pro-Tip:</b> Answer life-cycle questions in two steps: (1) where is meiosis? fixes the pattern (a seed plant is diplontic whatever its meiosis, since its gametophytes are never free-living); (2) the pattern fixes the dominant phase (haplontic→gametophyte, diplontic→sporophyte, haplo-diplontic→check the group). This two-step beats rote-memorising every example.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -948,11 +948,11 @@ export const TOPICS: Topic[] = [
         t: 'snapshot',
         rows: [
           {
-            f: '<b>Core:</b> every plant alternates <b>gametophyte (n, makes gametes)</b> ⇄ <b>sporophyte (2n, makes spores)</b>; linked by <b>fertilisation</b> (n → 2n) and <b>meiosis</b> (2n → n).',
+            f: '<b>Core:</b> every plant alternates <b>gametophyte (<i>n</i>, makes gametes)</b> ⇄ <b>sporophyte (2<i>n</i>, makes spores)</b>; linked by <b>fertilisation</b> (<i>n</i> → 2<i>n</i>) and <b>meiosis</b> (2<i>n</i> → <i>n</i>).',
             note: '',
           },
           {
-            f: '<b>Haplontic:</b> gametophyte dominant; zygote = only 2n cell; <b>zygotic</b> meiosis. <i>Volvox</i>, <i>Spirogyra</i>.',
+            f: '<b>Haplontic:</b> gametophyte dominant; zygote = only 2<i>n</i> cell; <b>zygotic</b> meiosis. <i>Volvox</i>, <i>Spirogyra</i>.',
             note: '',
           },
           {

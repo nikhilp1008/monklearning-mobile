@@ -22,7 +22,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This is one of the highest-yield vegetative-morphology topics for <b>NEET</b>, which reliably asks 2–4 questions per year (the book’s estimate from past papers, not official figures), usually plant-to-modification matching (Which plant shows stilt roots? Which is an underground stem?) and assertion–reason items. <b>CUET (Biology)</b> draws single-correct MCQs from exactly this material, and <b>CBSE Boards</b> favour 1–3 mark definition, diagram-labelling, and “distinguish between” questions. There is <b>no Biology in JEE</b>, so this topic does not appear there.',
+        html: '<b>Exam Relevance:</b> This is one of the highest-yield vegetative-morphology topics for <b>NEET</b>, which regularly asks questions from it (the book’s estimate from past papers, not official figures), usually plant-to-modification matching (Which plant shows stilt roots? Which is an underground stem?) and assertion–reason items. <b>CUET (Biology)</b> draws single-correct MCQs from exactly this material, and <b>CBSE Boards</b> favour 1–3 mark definition, diagram-labelling, and “distinguish between” questions. There is <b>no Biology in JEE</b>, so this topic does not appear there.',
       },
       {
         t: 'p',
@@ -30,7 +30,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The single most useful idea in this whole topic is the difference between a <b>root</b> and a <b>stem</b>, because many trick questions are built on confusing the two. A root is the <b>descending</b>, usually non-green part. It grows down into the soil, it absorbs water and minerals, it anchors the plant, and it can store food and even make plant-growth regulators. Crucially, a root has <b>no nodes, no internodes and no leaves</b> (so no regular axillary buds; some roots can form adventitious buds), and its hairs are <b>unicellular</b>. A stem is the opposite in almost every respect: it grows up, it’s usually green when young (turning woody and brown later), it bears <b>nodes and internodes</b>, and it carries <b>buds</b>: terminal at the tip and axillary in the angle where a leaf meets the stem.',
+        html: 'The single most useful idea in this whole topic is the difference between a <b>root</b> and a <b>stem</b>, because many trick questions are built on confusing the two. A root is the <b>descending</b>, usually non-green part. It grows down into the soil, it absorbs water and minerals, it anchors the plant, and it can store food and even make plant-growth regulators. Crucially, a root has <b>no nodes, no internodes and no leaves</b> (so no axillary buds; some roots can form adventitious buds), and its hairs are <b>unicellular</b>. A stem is the opposite in almost every respect: it grows up, it’s usually green when young (turning woody and brown later), it bears <b>nodes and internodes</b>, and it carries <b>buds</b>: terminal at the tip and axillary in the angle where a leaf meets the stem.',
       },
       {
         t: 'p',
@@ -50,7 +50,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'Root system',
-        html: 'the descending, typically non-green part of the plant axis; develops from the <b>radicle</b>; lacks nodes, internodes and leaves (so no regular axillary buds; some roots can form adventitious buds); bears <b>unicellular</b> root hairs.',
+        html: 'the descending, typically non-green part of the plant axis; develops from the <b>radicle</b>; lacks nodes, internodes and leaves (so no axillary buds; some roots can form adventitious buds); bears <b>unicellular</b> root hairs.',
       },
       {
         t: 'def',
@@ -118,7 +118,7 @@ export const TOPICS: Topic[] = [
             'ginger (rhizome), potato (tuber), turmeric, zaminkand, <i>Colocasia</i>',
           ],
           [
-            'Subaerial: stolon (the runner type)',
+            'Subaerial: stolon',
             'a slender lateral branch arises from the base of the main axis, grows aerially, then arches down to root at the tip',
             'vegetative spread',
             'mint, jasmine',
@@ -161,7 +161,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-05-fig-5.3' },
       {
         t: 'p',
-        html: '<b>Procedure: identifying an underground organ as stem or root.</b> Hand-test any swollen underground part with three checks, in order. <b>Check 1 (nodes and internodes):</b> scrape the surface and look for repeating points from which scale-leaves or buds arise. A horizontal ginger “hand” shows clear nodes carrying scaly leaves and buds in their axils: that alone marks it a <b>stem (rhizome)</b>. <b>Check 2 (buds):</b> a potato’s “eyes” are axillary buds at nodes; roots have no buds, so eyes settle it as a <b>stem (tuber)</b>. <b>Check 3 (root hairs and direction):</b> a true storage root (carrot, turnip, sweet potato) is smooth, has no nodes or scale-leaves in a regular pattern, and its hairs are unicellular; the carrot is the tap root itself, the sweet potato an adventitious root. The rule of thumb: if it carries nodes, scale-leaves, or buds, it is a stem no matter how deep it sits.',
+        html: '<b>Procedure: identifying an underground organ as stem or root.</b> Hand-test any swollen underground part with three checks, in order. <b>Check 1 (nodes and internodes):</b> scrape the surface and look for repeating points from which scale-leaves or buds arise. A horizontal ginger “hand” shows clear nodes carrying scaly leaves and buds in their axils: that alone marks it a <b>stem (rhizome)</b>. <b>Check 2 (buds):</b> a potato’s “eyes” are axillary buds at nodes; roots have no nodes, so no axillary buds at nodes, and eyes settle it as a <b>stem (tuber)</b>. <b>Check 3 (no nodes):</b> a true storage root (carrot, turnip, sweet potato) is smooth, with no nodes or scale-leaves in a regular pattern; any hairs on it are unicellular root hairs. The carrot is the tap root itself, the sweet potato an adventitious root. The rule of thumb: if it carries nodes, scale-leaves, or buds, it is a stem no matter how deep it sits.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -170,7 +170,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board level',
         q: '“Give one defining difference between a root and a stem, and use it to explain why a potato is classified as a stem while a sweet potato is classified as a root.”',
         steps: [
-          '<b>Reasoning.</b> State the defining feature cleanly: a <b>stem bears nodes, internodes, and buds</b>, whereas a <b>root has none of these</b>. Now apply it. A potato, though it grows underground, has small depressions (“eyes”), and each eye is a <b>node bearing an axillary bud</b>, a feature only a stem can have. A sweet potato is a swollen organ with <b>no nodes and no buds</b>; it is an adventitious <b>root</b> modified for storage.',
+          '<b>Reasoning.</b> State the defining feature cleanly: a <b>stem bears nodes, internodes, and buds</b>, whereas a <b>root has no nodes or internodes, and so no axillary buds</b>. Now apply it. A potato, though it grows underground, has small depressions (“eyes”), and each eye is a <b>node bearing an axillary bud</b>, a feature only a stem can have. A sweet potato is a swollen organ with <b>no nodes and no axillary buds</b>; it is an adventitious <b>root</b> modified for storage.',
         ],
         ans: 'Presence of nodes/internodes/buds is the defining feature of a stem; the potato has buds (eyes) at nodes → <b>stem (tuber)</b>; the sweet potato has none → <b>root (storage adventitious root)</b>.',
       },
@@ -316,8 +316,8 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>“Underground means root.”</b> Ginger, turmeric, potato, zaminkand, and <i>Colocasia</i> are underground <b>stems</b>. Always check for nodes/buds, not depth in the soil.',
-          '<b>Potato ↔ sweet potato swap.</b> Potato = stem tuber (has eyes/buds at nodes); sweet potato = storage root (no buds).',
-          '<b>Venation reversal.</b> Anchor it once: <b>net = dicot, parallel = monocot.</b> Half the venation questions are deliberately worded to tempt the reversal (the book’s estimate from past papers, not official figures).',
+          '<b>Potato ↔ sweet potato swap.</b> Potato = stem tuber (has eyes/buds at nodes); sweet potato = storage root (no nodes or axillary buds).',
+          '<b>Venation reversal.</b> Anchor it once: <b>net = dicot, parallel = monocot.</b> Venation questions are often worded to tempt the reversal.',
           '<b>Compound leaf called a branch.</b> The bud test settles it: a bud sits in the axil of a whole leaf, never between leaflets.',
         ],
       },
@@ -332,7 +332,7 @@ export const TOPICS: Topic[] = [
         rows: [
           {
             f: 'Root vs Stem',
-            note: 'Root = descending, non-green, <b>no</b> nodes/internodes/leaves (so no regular axillary buds; some roots can form adventitious buds), <b>unicellular</b> hairs, from radicle. Stem = ascending, green when young, <b>has</b> nodes/internodes/buds, from plumule.',
+            note: 'Root = descending, non-green, <b>no</b> nodes/internodes/leaves (so no axillary buds; some roots can form adventitious buds), <b>unicellular</b> hairs, from radicle. Stem = ascending, green when young, <b>has</b> nodes/internodes/buds, from plumule.',
           },
           { f: 'Root systems', note: 'tap (dicot, mustard) · fibrous (monocot, wheat) · adventitious (banyan, grass, maize).' },
           {
@@ -341,7 +341,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Root modifications',
-            note: 'storage (carrot, sweet potato) · prop (banyan) · stilt (sugarcane, maize) · pneumatophore (mangroves: <i>Rhizophora</i>).',
+            note: 'storage (carrot, sweet potato) · prop (banyan) · stilt (sugarcane, maize) · pneumatophore (mangroves: <i>Rhizophora</i>, <i>Avicennia</i>).',
           },
           {
             f: 'Stem modifications',
@@ -371,7 +371,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This is among the densest scoring zones of the whole syllabus for <b>NEET</b>, which mines it for 2–4 questions a year (the book’s estimate from past papers, not official figures), especially symmetry, aestivation, ovary position, placentation, and “how-many-of-these” counting items. <b>CUET (Biology)</b> lifts single-correct MCQs straight from this material, and <b>CBSE Boards</b> ask 2–3 mark labelled-diagram and “define/distinguish” questions, plus the occasional floral-formula construction. There is <b>no Biology in JEE</b>, so it does not appear there. The terminology is the topic: learn each term with its standard plant example.',
+        html: '<b>Exam Relevance:</b> This is among the densest scoring zones of the whole syllabus for <b>NEET</b>, which regularly mines it (the book’s estimate from past papers, not official figures), especially symmetry, aestivation, ovary position, placentation, and “how-many-of-these” counting items. <b>CUET (Biology)</b> lifts single-correct MCQs straight from this material, and <b>CBSE Boards</b> ask 2–3 mark labelled-diagram and “define/distinguish” questions, plus the occasional floral-formula construction. There is <b>no Biology in JEE</b>, so it does not appear there. The terminology is the topic: learn each term with its standard plant example.',
       },
       {
         t: 'p',
@@ -458,7 +458,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Androecium: stamen structure & fusion</b><br>• A stamen = <b>filament + anther</b> (joined by a <b>connective</b>); pollen forms in the anther. A sterile stamen is a <b>staminode</b>.<br>• Fusion of stamens: <b>monadelphous</b> (one bundle, China rose), <b>diadelphous</b> (two bundles 9+1, pea), <b>polyadelphous</b> (many bundles, <i>Citrus</i>).<br>• Special length conditions: <b>didynamous</b> (2 long + 2 short, <i>Salvia</i>/<i>Ocimum</i>), <b>tetradynamous</b> (4 long + 2 short, mustard/Brassicaceae).<br><b>NEET note:</b> NCERT’s example of didynamous stamens is <i>Salvia</i>.',
+        html: '<b>Androecium: stamen structure & fusion</b><br>• A stamen = <b>filament + anther</b> (joined by a <b>connective</b>); pollen forms in the anther. A sterile stamen is a <b>staminode</b>.<br>• Fusion of stamens: <b>monadelphous</b> (one bundle, China rose), <b>diadelphous</b> (two bundles 9+1, pea), <b>polyadelphous</b> (many bundles, <i>Citrus</i>).<br>• Special length conditions: <b>didynamous</b> (2 long + 2 short, <i>Ocimum</i>), <b>tetradynamous</b> (4 long + 2 short, mustard/Brassicaceae).<br><b>NEET note:</b> NCERT gives <i>Salvia</i> and mustard as its examples of filaments of different lengths within one flower; it does not use the word didynamous.',
       },
       {
         t: 'p',

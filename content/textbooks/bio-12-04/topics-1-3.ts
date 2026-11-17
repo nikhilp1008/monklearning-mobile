@@ -237,7 +237,7 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'The inheritance of the human ABO blood group is an example of:',
         opts: [
-          { label: 'incomplete dominance only', nudge: '<b>(a)</b> confuses codominance (both alleles fully expressed) with incomplete dominance (a blended intermediate).' },
+          { label: 'incomplete dominance only', nudge: '<b>(a)</b> confuses codominance (both alleles fully expressed) with incomplete dominance (a new intermediate).' },
           { label: 'multiple allelism and codominance', nudge: null },
           { label: 'codominance and linkage', nudge: '<b>(c)</b> wrongly imports “linkage”: a single gene cannot show linkage.' },
           { label: 'polygenic inheritance', nudge: '<b>(d)</b> polygenic means many genes for one trait, the reverse situation.' },
@@ -275,8 +275,8 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Mixing up genotypic and phenotypic ratios.</b> Monohybrid F<sub>2</sub> is 3 ∶ 1 by phenotype but 1 ∶ 2 ∶ 1 by genotype. Read the question’s wording before answering.',
-          '<b>Confusing incomplete dominance with codominance.</b> Both give a 1 ∶ 2 ∶ 1 phenotypic ratio, so students treat them as identical. The difference is the heterozygote: incomplete dominance shows a blended intermediate (pink), codominance shows both parental traits fully and separately (AB blood, or both red and white patches). Intermediate = incomplete; both-at-once = co.',
-          '<b>Forgetting the test cross needs a homozygous recessive partner.</b> Crossing with any recessive-looking or any parental plant is a back cross, not necessarily a test cross. Only the homozygous recessive cleanly reveals the unknown genotype.',
+          '<b>Confusing incomplete dominance with codominance.</b> Both give a 1 ∶ 2 ∶ 1 phenotypic ratio, so students treat them as identical. The difference is the heterozygote: incomplete dominance shows a new intermediate (pink), codominance shows both parental traits fully and separately (AB blood, or both red and white patches). Intermediate = incomplete; both-at-once = co.',
+          '<b>Forgetting the test cross needs a homozygous recessive partner.</b> Crossing an F<sub>1</sub> with either parent is a back cross; it is a test cross only when that parent is the homozygous recessive. Only the homozygous recessive cleanly reveals the unknown genotype.',
           `<b>Treating blood group O as “dominant” or counting ${g('BB')}-type homozygotes as variable.</b> ${g('i')} is recessive; and homozygous gene pairs contribute zero gamete variety.`,
         ],
       },
@@ -770,10 +770,10 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'Turner syndrome (45, XO) arises due to:',
         opts: [
-          { label: 'a point mutation', nudge: '<b>(a)</b> and <b>(d)</b> are gene-level (single base) changes, not changes in chromosome number.' },
+          { label: 'a point mutation', nudge: '<b>(a)</b> and <b>(d)</b> are gene-level changes in the DNA sequence, not changes in chromosome number.' },
           { label: 'non-disjunction of sex chromosomes', nudge: null },
           { label: 'polyploidy', nudge: '<b>(c)</b> polyploidy means whole extra sets, not the loss of a single chromosome.' },
-          { label: 'a frameshift mutation', nudge: '<b>(a)</b> and <b>(d)</b> are gene-level (single base) changes, not changes in chromosome number.' },
+          { label: 'a frameshift mutation', nudge: '<b>(a)</b> and <b>(d)</b> are gene-level changes in the DNA sequence, not changes in chromosome number.' },
         ],
         correct: 1,
         solution: 'The loss of one sex chromosome (giving a single X) results from non-disjunction during gamete formation.',
@@ -812,7 +812,7 @@ export const TOPICS: Topic[] = [
         rows: [
           { f: 'Two families of disorders', note: 'Mendelian (single gene, follows Mendelian ratios) and chromosomal (wrong chromosome number, from non-disjunction).' },
           { f: 'Mendelian: autosomal recessive', note: 'sickle-cell anaemia, phenylketonuria, thalassaemia. <b>X-linked recessive:</b> haemophilia, colour blindness.' },
-          { f: 'Sickle-cell', note: `point mutation, codon GAG → GUG in the mRNA (GAG → GTG on the coding strand of the DNA), <b>glutamic acid → valine</b> at 6th position of β-globin; ${Hb('S')}${Hb('S')} = affected, ${Hb('A')}${Hb('S')} = carrier (malaria-resistant).` },
+          { f: 'Sickle-cell', note: `point mutation, codon GAG → GUG in the mRNA (GAG → GTG on the coding strand of the DNA), <b>glutamic acid → valine</b> at 6th position of β-globin; ${Hb('S')}${Hb('S')} = affected, ${Hb('A')}${Hb('S')} = carrier (some resistance to malaria).` },
           { f: 'Chromosomal (non-disjunction)', note: 'Down = <b>trisomy 21</b> (47) • Klinefelter = <b>47, XXY</b> (male) • Turner = <b>45, XO</b> (female).' },
           { f: 'Autosomal recessive carrier × carrier', note: `→ ${qtr} affected, ${half} carrier, ${qtr} normal.` },
           { f: 'X-linked recessive', note: 'affected sons need only a carrier mother; affected daughters need an <b>affected father</b> (and a carrier or affected mother).' },
