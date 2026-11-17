@@ -49,13 +49,29 @@ const iap = (): Iap => require('expo-iap') as Iap;
  */
 export const razorpayChoiceOn = (): boolean => process.env.EXPO_PUBLIC_RAZORPAY_CHOICE === '1';
 
-/** Play Console product ids, one per pass on sale. Legacy kinds are not sold. */
+/**
+ * Play Console product ids, one per pass on sale. Legacy kinds are not sold.
+ *
+ * The day and 7-day passes are ONE-TIME products (bought, then consumed). Pro and Max are
+ * MONTHLY SUBSCRIPTIONS (base plan "monthly", auto-renewing, India): one purchase token that
+ * renews itself, never consumed, acknowledged instead. See billing/PLAY_SUBSCRIPTIONS_SCOPE.md.
+ */
 export const PLAY_PRODUCT_IDS: Partial<Record<PassKind, string>> = {
   day: 'pass_day',
   week: 'pass_week',
-  pro_1m: 'pass_pro_1m',
-  max_1m: 'pass_max_1m',
+  pro_1m: 'pro_monthly',
+  max_1m: 'max_monthly',
 };
+
+/** The Play subscriptions (a renewing token), as opposed to the one-time products. */
+export const PLAY_SUBSCRIPTION_IDS: string[] = ['pro_monthly', 'max_monthly'];
+export const isPlaySubscription = (productId: string): boolean => PLAY_SUBSCRIPTION_IDS.includes(productId);
+/** The base plan every subscription here is sold on. */
+export const PLAY_BASE_PLAN = 'monthly';
+
+/** Google Play's own page for managing or cancelling one subscription of this app. */
+export const manageSubscriptionUrl = (productId: string): string =>
+  `https://play.google.com/store/account/subscriptions?package=com.monklearning.app${productId ? `&sku=${encodeURIComponent(productId)}` : ''}`;
 
 export const PLAY_SKUS: string[] = Object.values(PLAY_PRODUCT_IDS) as string[];
 
@@ -121,16 +137,42 @@ function resetConnection() {
   productsRead = null;
 }
 
-/** The four products, read once per connection. Missing ones are simply absent. */
-export function loadPlayProducts(): Promise<Map<string, { price: number | null }>> {
+/** What the app knows about one Play product: its price, and for a subscription the offer to buy. */
+export type PlayProduct = { price: number | null; offerToken?: string };
+
+/**
+ * The four products, read once per connection: the one-time passes as in-app products and Pro and
+ * Max as subscriptions (each read on its own, so one kind failing never hides the other). Missing
+ * ones are simply absent. A subscription is present only with an offer token on its monthly base
+ * plan: without it there is nothing to buy.
+ */
+export function loadPlayProducts(): Promise<Map<string, PlayProduct>> {
   if (!productsRead) {
     productsRead = (async () => {
       await connectPlayBilling();
-      const found = (await iap().fetchProducts({ skus: PLAY_SKUS, type: 'in-app' })) ?? [];
-      const map = new Map<string, { price: number | null }>();
-      for (const p of found as { id: string; price?: number | null; productStatusAndroid?: string | null }[]) {
+      const map = new Map<string, PlayProduct>();
+      const oneTime = PLAY_SKUS.filter((s) => !isPlaySubscription(s));
+      const subs = PLAY_SKUS.filter(isPlaySubscription);
+      type Found = { id: string; price?: number | null; productStatusAndroid?: string | null };
+      const inApp = (await iap().fetchProducts({ skus: oneTime, type: 'in-app' })) ?? [];
+      for (const p of inApp as Found[]) {
         if (p.productStatusAndroid && p.productStatusAndroid !== 'ok') continue;
         map.set(p.id, { price: typeof p.price === 'number' ? p.price : null });
+      }
+      let subscriptions: unknown[] = [];
+      try {
+        subscriptions = (await iap().fetchProducts({ skus: subs, type: 'subs' })) ?? [];
+      } catch {
+        // Subscriptions unavailable: the one-time passes still work.
+      }
+      type Offer = { basePlanIdAndroid?: string | null; offerTokenAndroid?: string | null; price?: number | null };
+      for (const p of subscriptions as (Found & { subscriptionOffers?: Offer[] | null })[]) {
+        if (p.productStatusAndroid && p.productStatusAndroid !== 'ok') continue;
+        const offers = p.subscriptionOffers ?? [];
+        const offer = offers.find((o) => o.basePlanIdAndroid === PLAY_BASE_PLAN && o.offerTokenAndroid) ?? offers.find((o) => o.offerTokenAndroid);
+        if (!offer?.offerTokenAndroid) continue;
+        const price = typeof offer.price === 'number' ? offer.price : typeof p.price === 'number' ? p.price : null;
+        map.set(p.id, { price, offerToken: offer.offerTokenAndroid });
       }
       return map;
     })().catch((err) => {
@@ -209,8 +251,13 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
   if (!sku) throw new PlayBillingUnavailableError('This pass cannot be bought through Google Play.');
 
   const products = await loadPlayProducts();
-  if (!products.has(sku)) {
+  const product = products.get(sku);
+  if (!product) {
     throw new PlayBillingUnavailableError('This pass is not available on Google Play yet. Nothing was charged.');
+  }
+  const offerToken = product.offerToken;
+  if (isPlaySubscription(sku) && !offerToken) {
+    throw new PlayBillingUnavailableError('This plan is not available on Google Play yet. Nothing was charged.');
   }
 
   const api = iap();
@@ -221,11 +268,17 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
   const subs: { remove: () => void }[] = [];
   let timer: ReturnType<typeof setTimeout> | null = null;
 
+  // A subscription is bought with its offer token (the monthly base plan); a one-time pass without.
   const request = () =>
-    api.requestPurchase({
-      type: 'in-app',
-      request: { google: { skus: [sku], obfuscatedAccountId: accountId } },
-    });
+    isPlaySubscription(sku) && offerToken
+      ? api.requestPurchase({
+          type: 'subs',
+          request: { google: { skus: [sku], subscriptionOffers: [{ sku, offerToken }], obfuscatedAccountId: accountId } },
+        })
+      : api.requestPurchase({
+          type: 'in-app',
+          request: { google: { skus: [sku], obfuscatedAccountId: accountId } },
+        });
 
   try {
     cancelCurrent = () => done({ type: 'cancelled' });
@@ -359,7 +412,8 @@ export async function confirmPlayPurchase(
  */
 export async function finishPlayPurchase(purchase: Purchase): Promise<void> {
   try {
-    await iap().finishTransaction({ purchase, isConsumable: true });
+    // A subscription is ACKNOWLEDGED, never consumed (consuming would end it); a one-time pass is consumed.
+    await iap().finishTransaction({ purchase, isConsumable: !isPlaySubscription(purchase.productId) });
   } catch {
     // Already consumed by the server, or Play is briefly away: the server's sweep
     // (and the next recovery pass) covers it. The pass is already granted.
@@ -417,7 +471,12 @@ export function recoverPlayPurchases(): Promise<string[]> {
           const res = await confirmPlayPurchase(p, 1);
           if (res.outcome === 'refused') refusedTokens.add(p.purchaseToken);
           if (res.outcome === 'granted') {
-            granted.push(p.productId);
+            // A SUBSCRIPTION never leaves Google's list (it is not consumed), so it comes back here on
+            // every open. The call above is what finds a renewal; that is NOT news to the student, so an
+            // already-acknowledged subscription is not reported as a recovered purchase. One the phone never
+            // got to acknowledge (the app was killed after paying) IS news. Acknowledging again is harmless.
+            const acknowledged = 'isAcknowledgedAndroid' in p && p.isAcknowledgedAndroid === true;
+            if (!isPlaySubscription(p.productId) || !acknowledged) granted.push(p.productId);
             await finishPlayPurchase(p);
           }
         }

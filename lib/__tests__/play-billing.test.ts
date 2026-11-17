@@ -37,7 +37,19 @@ const mockIap = {
 };
 jest.mock('expo-iap', () => mockIap);
 
-const ALL_FOUR = ['pass_day', 'pass_week', 'pass_pro_1m', 'pass_max_1m'].map((id) => ({ id, price: 499, productStatusAndroid: 'ok' }));
+const ONE_TIME = ['pass_day', 'pass_week'].map((id) => ({ id, price: 7, productStatusAndroid: 'ok' }));
+const SUBSCRIPTIONS = ['pro_monthly', 'max_monthly'].map((id) => ({
+  id,
+  price: null,
+  productStatusAndroid: 'ok',
+  subscriptionOffers: [{ basePlanIdAndroid: 'monthly', offerTokenAndroid: `offer_${id}`, price: id === 'pro_monthly' ? 499 : 899 }],
+}));
+const ALL_FOUR = [...ONE_TIME, ...SUBSCRIPTIONS];
+/** What Google returns per call: the one-time passes for 'in-app', Pro and Max for 'subs'. */
+const stockProducts = (list: unknown[] = ALL_FOUR) =>
+  mockIap.fetchProducts.mockImplementation(async ({ type }: { type: string }) =>
+    (list as { subscriptionOffers?: unknown }[]).filter((p) => (type === 'subs') === ('subscriptionOffers' in p))
+  );
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 type Billing = typeof import('@/lib/play-billing');
@@ -54,7 +66,7 @@ beforeEach(() => {
   // These tests are about Razorpay beside Google Play; "Google Play only" has its own block below.
   process.env.EXPO_PUBLIC_RAZORPAY_CHOICE = '1';
   mockIap.initConnection.mockResolvedValue(true);
-  mockIap.fetchProducts.mockResolvedValue(ALL_FOUR);
+  stockProducts();
   mockIap.finishTransaction.mockResolvedValue(undefined);
   mockIap.getAvailablePurchases.mockResolvedValue([]);
   mockIap.purchaseUpdatedListener.mockImplementation((cb) => ((handlers.purchase = cb), { remove: removed }));
@@ -71,13 +83,17 @@ afterAll(() => {
 
 /** Google's screen answers shortly after it opens. */
 const answerWith = (fn: () => void) => mockIap.requestPurchase.mockImplementation(async () => void setTimeout(fn, 0));
-const PURCHASE = { productId: 'pass_pro_1m', purchaseToken: 'tok_1', purchaseState: 'purchased' };
+const PURCHASE = { productId: 'pro_monthly', purchaseToken: 'tok_1', purchaseState: 'purchased' };
 
 describe('products and accounts', () => {
   test('one Play product per pass on sale, and none for the legacy kinds', () => {
-    expect(b.PLAY_PRODUCT_IDS).toEqual({ day: 'pass_day', week: 'pass_week', pro_1m: 'pass_pro_1m', max_1m: 'pass_max_1m' });
+    expect(b.PLAY_PRODUCT_IDS).toEqual({ day: 'pass_day', week: 'pass_week', pro_1m: 'pro_monthly', max_1m: 'max_monthly' });
     expect(b.playProductId('3m')).toBeNull();
-    expect(b.PLAY_SKUS.sort()).toEqual(['pass_day', 'pass_max_1m', 'pass_pro_1m', 'pass_week']);
+    expect([...b.PLAY_SKUS].sort()).toEqual(['max_monthly', 'pass_day', 'pass_week', 'pro_monthly']);
+    // Pro and Max are monthly subscriptions; the day and 7-day passes are one-time products.
+    expect(b.PLAY_SUBSCRIPTION_IDS).toEqual(['pro_monthly', 'max_monthly']);
+    expect(b.isPlaySubscription('pro_monthly')).toBe(true);
+    expect(b.isPlaySubscription('pass_day')).toBe(false);
   });
 
   test('the account id is the lowercase hex SHA-256 of the user id: stable, 64 characters', async () => {
@@ -92,8 +108,33 @@ describe('products and accounts', () => {
     await b.loadPlayProducts();
     expect(mockIap.initConnection).toHaveBeenCalledTimes(1);
     expect(mockIap.initConnection).toHaveBeenCalledWith({ enableBillingProgramAndroid: 'user-choice-billing' });
-    expect(mockIap.fetchProducts).toHaveBeenCalledTimes(1);
-    expect(mockIap.fetchProducts).toHaveBeenCalledWith({ skus: expect.arrayContaining(b.PLAY_SKUS), type: 'in-app' });
+    // Two reads, once each: the one-time passes as in-app products, Pro and Max as subscriptions.
+    expect(mockIap.fetchProducts).toHaveBeenCalledTimes(2);
+    expect(mockIap.fetchProducts).toHaveBeenCalledWith({ skus: ['pass_day', 'pass_week'], type: 'in-app' });
+    expect(mockIap.fetchProducts).toHaveBeenCalledWith({ skus: ['pro_monthly', 'max_monthly'], type: 'subs' });
+  });
+
+  test('a subscription is present only with an offer token on the monthly base plan, and carries its price', async () => {
+    const products = await b.loadPlayProducts();
+    expect(products.get('pro_monthly')).toEqual({ price: 499, offerToken: 'offer_pro_monthly' });
+    expect(products.get('max_monthly')).toEqual({ price: 899, offerToken: 'offer_max_monthly' });
+    expect(products.get('pass_day')).toEqual({ price: 7 });
+  });
+
+  test('a subscription with no offer token is absent: there is nothing to buy', async () => {
+    stockProducts([ONE_TIME[0], { id: 'pro_monthly', productStatusAndroid: 'ok', subscriptionOffers: [{ basePlanIdAndroid: 'monthly', price: 499 }] }]);
+    const products = await b.loadPlayProducts();
+    expect(products.has('pro_monthly')).toBe(false);
+    expect(products.has('pass_day')).toBe(true);
+  });
+
+  test('subscriptions failing to load never hides the one-time passes', async () => {
+    mockIap.fetchProducts.mockImplementation(async ({ type }: { type: string }) => {
+      if (type === 'subs') throw new Error('no subs');
+      return ONE_TIME;
+    });
+    const products = await b.loadPlayProducts();
+    expect([...products.keys()].sort()).toEqual(['pass_day', 'pass_week']);
   });
 
   test('a failed connection is forgotten, so the next tap tries again', async () => {
@@ -104,20 +145,37 @@ describe('products and accounts', () => {
   });
 
   test('the Play price, in paise', async () => {
-    mockIap.fetchProducts.mockResolvedValue([{ id: 'pass_day', price: 7, productStatusAndroid: 'ok' }]);
+    stockProducts([ONE_TIME[0]]);
     expect(await b.playPricePaise('day')).toBe(700);
     expect(await b.playPricePaise('week')).toBeNull();
   });
 });
 
 describe('chooseHowToPay: Google picks which way', () => {
-  test('asks Google for the one product, with the account id, in-app', async () => {
+  test('Pro is bought as a SUBSCRIPTION, with its offer token and the account id', async () => {
     answerWith(() => handlers.purchase?.(PURCHASE));
     await b.chooseHowToPay('pro_1m', 'hash64');
     expect(mockIap.requestPurchase).toHaveBeenCalledWith({
-      type: 'in-app',
-      request: { google: { skus: ['pass_pro_1m'], obfuscatedAccountId: 'hash64' } },
+      type: 'subs',
+      request: {
+        google: { skus: ['pro_monthly'], subscriptionOffers: [{ sku: 'pro_monthly', offerToken: 'offer_pro_monthly' }], obfuscatedAccountId: 'hash64' },
+      },
     });
+  });
+
+  test('the day pass is still a one-time in-app product, with no offer token', async () => {
+    answerWith(() => handlers.purchase?.({ ...PURCHASE, productId: 'pass_day' }));
+    await b.chooseHowToPay('day', 'hash64');
+    expect(mockIap.requestPurchase).toHaveBeenCalledWith({
+      type: 'in-app',
+      request: { google: { skus: ['pass_day'], obfuscatedAccountId: 'hash64' } },
+    });
+  });
+
+  test('a subscription with no offer token is refused before Google opens, with nothing charged', async () => {
+    stockProducts([ONE_TIME[0], { id: 'max_monthly', productStatusAndroid: 'ok', subscriptionOffers: [] }]);
+    await expect(b.chooseHowToPay('max_1m', 'h')).rejects.toBeInstanceOf(b.PlayBillingUnavailableError);
+    expect(mockIap.requestPurchase).not.toHaveBeenCalled();
   });
 
   test('Google Play: the purchase comes back, and the listeners are removed', async () => {
@@ -129,7 +187,7 @@ describe('chooseHowToPay: Google picks which way', () => {
   });
 
   test('the other option: the external transaction token comes back, and no purchase is verified', async () => {
-    answerWith(() => handlers.choice?.({ externalTransactionToken: 'ext_tok', products: ['pass_pro_1m'] }));
+    answerWith(() => handlers.choice?.({ externalTransactionToken: 'ext_tok', products: ['pro_monthly'] }));
     const r = await b.chooseHowToPay('pro_1m', 'h');
     expect(r).toEqual({ type: 'razorpay', externalTransactionToken: 'ext_tok' });
     expect(apiFetch).not.toHaveBeenCalled();
@@ -157,13 +215,13 @@ describe('chooseHowToPay: Google picks which way', () => {
   test('a purchase of some other product is not this one: it is ignored', async () => {
     answerWith(() => {
       handlers.purchase?.({ ...PURCHASE, productId: 'pass_day' });
-      handlers.choice?.({ externalTransactionToken: 'ext_tok', products: ['pass_pro_1m'] });
+      handlers.choice?.({ externalTransactionToken: 'ext_tok', products: ['pro_monthly'] });
     });
     expect((await b.chooseHowToPay('pro_1m', 'h')).type).toBe('razorpay');
   });
 
   test('a product Google does not have stops before any screen opens', async () => {
-    mockIap.fetchProducts.mockResolvedValue([{ id: 'pass_day', price: 7, productStatusAndroid: 'ok' }]);
+    stockProducts([ONE_TIME[0]]);
     await expect(b.chooseHowToPay('pro_1m', 'h')).rejects.toBeInstanceOf(b.PlayBillingUnavailableError);
     expect(mockIap.requestPurchase).not.toHaveBeenCalled();
   });
@@ -201,14 +259,20 @@ describe('verifying and finishing', () => {
     const [path, init] = apiFetch.mock.calls[0];
     expect(path).toBe('/payments/play/verify');
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body)).toEqual({ product_id: 'pass_pro_1m', purchase_token: 'tok_1' });
+    expect(JSON.parse(init.body)).toEqual({ product_id: 'pro_monthly', purchase_token: 'tok_1' });
   });
 
-  test('finishing consumes the purchase, and an "already consumed" error is swallowed', async () => {
-    await b.finishPlayPurchase(PURCHASE as never);
-    expect(mockIap.finishTransaction).toHaveBeenCalledWith({ purchase: PURCHASE, isConsumable: true });
+  test('finishing consumes a one-time purchase, and an "already consumed" error is swallowed', async () => {
+    const dayPass = { ...PURCHASE, productId: 'pass_day' };
+    await b.finishPlayPurchase(dayPass as never);
+    expect(mockIap.finishTransaction).toHaveBeenCalledWith({ purchase: dayPass, isConsumable: true });
     mockIap.finishTransaction.mockRejectedValue(new Error('item not owned'));
-    await expect(b.finishPlayPurchase(PURCHASE as never)).resolves.toBeUndefined();
+    await expect(b.finishPlayPurchase(dayPass as never)).resolves.toBeUndefined();
+  });
+
+  test('finishing a SUBSCRIPTION acknowledges it and never consumes it (consuming would end it)', async () => {
+    await b.finishPlayPurchase(PURCHASE as never);
+    expect(mockIap.finishTransaction).toHaveBeenCalledWith({ purchase: PURCHASE, isConsumable: false });
   });
 });
 
@@ -271,6 +335,22 @@ describe('recoverPlayPurchases: paid, then never confirmed', () => {
     expect(await b.recoverPlayPurchases()).toEqual(['pass_day']);
     expect(mockIap.finishTransaction).toHaveBeenCalledTimes(1);
     expect(mockIap.finishTransaction).toHaveBeenCalledWith({ purchase: a, isConsumable: true });
+  });
+
+  test('an already-acknowledged subscription is checked (that finds renewals) but not reported as recovered', async () => {
+    const sub = held({ productId: 'pro_monthly', purchaseToken: 'sub1', isAcknowledgedAndroid: true });
+    mockIap.getAvailablePurchases.mockResolvedValue([sub]);
+    apiFetch.mockResolvedValue({ ok: true, state: 'x' });
+    expect(await b.recoverPlayPurchases()).toEqual([]);
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(mockIap.finishTransaction).toHaveBeenCalledWith({ purchase: sub, isConsumable: false });
+  });
+
+  test('a subscription the phone never got to acknowledge IS reported as recovered', async () => {
+    const sub = held({ productId: 'max_monthly', purchaseToken: 'sub2', isAcknowledgedAndroid: false });
+    mockIap.getAvailablePurchases.mockResolvedValue([sub]);
+    apiFetch.mockResolvedValue({ ok: true, state: 'x' });
+    expect(await b.recoverPlayPurchases()).toEqual(['max_monthly']);
   });
 
   test('never finishes a purchase when the server could not be reached', async () => {
@@ -367,7 +447,7 @@ describe('recovery: one run at a time, spaced out, only our own account', () => 
   });
 
   test('product ids map back to pass kinds', () => {
-    expect(b.kindOfPlayProduct('pass_pro_1m')).toBe('pro_1m');
+    expect(b.kindOfPlayProduct('pro_monthly')).toBe('pro_1m');
     expect(b.kindOfPlayProduct('nope')).toBeNull();
   });
 });
@@ -434,7 +514,7 @@ describe('Google Play only (Razorpay choice off, the default until Google approv
   });
 
   test('a missing product is refused before Google opens, with nothing charged', async () => {
-    mockIap.fetchProducts.mockResolvedValue([]);
+    stockProducts([]);
     await expect(b.chooseHowToPay('pro_1m', 'h')).rejects.toThrow(/not available on Google Play yet.*Nothing was charged/);
     expect(mockIap.requestPurchase).not.toHaveBeenCalled();
   });

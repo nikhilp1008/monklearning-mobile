@@ -13,6 +13,7 @@ import { SKY_THEMES } from '@/constants/teachers';
 import { useFreeTier, usePlan } from '@/lib/free-tier';
 import { PASS_NAME, cachedPassStatus, isTeamAccess, passDays, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
+import { PLAY_PRODUCT_IDS, manageSubscriptionUrl } from '@/lib/play-billing';
 
 /**
  * YOUR PLAN — Profile → Manage plan (redesigned 2026-10-17).
@@ -106,6 +107,8 @@ export default function SubscriptionScreen() {
   /** Pro and Max print their daily numbers; a starter pass is not told its own (it gets what Pro gets). */
   const showNumbers = planTier === 'pro' || planTier === 'max';
   const free = (status?.state === 'none' || status?.state === 'expired') && status.free === true;
+  /** Pro or Max bought with Google Play is a monthly subscription that renews itself. */
+  const playSub = !!record && !team && record.source === 'play' && (record.kind === 'pro_1m' || record.kind === 'max_1m');
   /** More than one plan bought back to back: the server reports the running
    *  plan's start and the end of ALL the paid time, so the two do not describe
    *  one plan. Said, rather than left to look like a wrong date. */
@@ -171,8 +174,18 @@ export default function SubscriptionScreen() {
                   />
                 ) : null}
                 <Row scale={scale} label="How you got it" value={howGot(record)} last={free} />
-                {free ? null : <Row scale={scale} label="Renews" value="Never on its own" last />}
+                {free ? null : <Row scale={scale} label="Renews" value={playSub ? 'Monthly, until you cancel' : 'Never on its own'} last />}
               </View>
+              {playSub ? (
+                // Google requires a plain way to cancel a subscription, and the student has to be told where.
+                <Text style={styles.foot}>
+                  This plan renews every month through Google Play until you cancel it there.{' '}
+                  <Text style={styles.link} onPress={() => Linking.openURL(manageSubscriptionUrl(PLAY_PRODUCT_IDS[record.kind] ?? ''))}>
+                    Manage or cancel in Google Play
+                  </Text>
+                  .
+                </Text>
+              ) : null}
             </>
           ) : null}
 

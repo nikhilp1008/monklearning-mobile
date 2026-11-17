@@ -1,3 +1,4 @@
+import { payFootnote } from '@/components/paywall/subscription-note';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -242,7 +243,7 @@ function Paywall({
           />
           <Text style={styles.footNote}>
             {free || onPay
-              ? 'One payment. Nothing renews on its own.'
+              ? payFootnote()
               : 'Payments open soon. A promo code works today.'}
           </Text>
         </View>

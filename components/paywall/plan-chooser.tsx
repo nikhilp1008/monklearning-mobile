@@ -1,3 +1,4 @@
+import { payFootnote } from '@/components/paywall/subscription-note';
 import { useState } from 'react';
 import { Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -184,7 +185,7 @@ export function PlanChooser({
       {passesFirst ? null : passes}
 
       <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(12.5), lineHeight: scale(18), color: SLATE, textAlign: 'center', marginTop: scale(16) }}>
-        One payment. Nothing renews on its own.
+        {payFootnote()}
       </Text>
 
       {onPromo ? (

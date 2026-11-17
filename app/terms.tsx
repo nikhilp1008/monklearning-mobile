@@ -17,11 +17,11 @@ const SECTIONS = [
   },
   {
     title: 'Pricing & payment',
-    body: 'Payments are one-time, not subscriptions, and nothing auto-renews. You choose a Pro (₹499) or Max (₹899) plan for one month, or try the app with a ₹7 day pass or a ₹39 7-day pass (one of each per account). Each plan has its own daily limits, shown on the plans page before you pay. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST. On Android you can pay with Google Play or, where it is offered, with Razorpay (UPI or card); on iPhone, payment is through our checkout. Payments are handled by Google Play or by an RBI-regulated payment gateway, and the amount you see before you pay is the amount you are charged.',
+    body: 'You choose a Pro (₹499) or Max (₹899) plan, a month at a time, or try the app with a ₹7 day pass or a ₹39 7-day pass (one of each per account). On Android, when you pay with Google Play, Pro and Max are monthly subscriptions: they renew every month at the price shown until you cancel in Google Play (Payments & subscriptions), and you keep the time you have already paid for. Everything else is a one-time payment that never renews on its own: the day and 7-day passes, and any plan paid with Razorpay. Each plan has its own daily limits, shown on the plans page before you pay. You can switch exam tracks for free within 30 days of purchase, or upgrade to a combined plan for the difference. Prices include GST. On Android you can pay with Google Play or, where it is offered, with Razorpay (UPI or card); on iPhone, payment is through our checkout. Payments are handled by Google Play or by an RBI-regulated payment gateway, and the amount you see before you pay is the amount you are charged.',
   },
   {
     title: 'Refunds',
-    body: 'If you paid with Google Play, refunds follow Google Play’s refund policy and are handled by Google. If you paid with Razorpay, write to support@monklearning.com within 3 days of buying and we will refund 75% of what you paid, to the way you paid. After 3 days there is no refund. A refunded payment ends the pass it paid for.',
+    body: 'If you paid with Google Play, refunds follow Google Play’s refund policy and are handled by Google. Cancelling a Google Play subscription stops the next renewal; it does not refund a month you have already paid for. If you paid with Razorpay, write to support@monklearning.com within 3 days of buying and we will refund 75% of what you paid, to the way you paid. After 3 days there is no refund. A refunded payment ends the pass it paid for.',
   },
   {
     title: 'Acceptable use',
