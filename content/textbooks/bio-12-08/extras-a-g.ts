@@ -280,7 +280,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'BOD calculation formula',
         main: 'BOD = (DO<sub>i</sub> − DO<sub>f</sub>) × D',
-        legend: ['DO<sub>i</sub> = DO<sub>initial</sub>, the dissolved oxygen before incubation', 'DO<sub>f</sub> = DO<sub>final</sub>, the dissolved oxygen after incubation', '<i>D</i> = dilution factor'],
+        legend: ['DO<sub>i</sub> = dissolved oxygen before incubation (initial)', 'DO<sub>f</sub> = dissolved oxygen after incubation (final)', '<i>D</i> = dilution factor'],
         note: null,
       },
       {

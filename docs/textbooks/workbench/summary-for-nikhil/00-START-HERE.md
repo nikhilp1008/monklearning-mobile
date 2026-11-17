@@ -17,19 +17,19 @@ Nothing here is pushed beyond what is already on main (e9f191b). The reviewed, f
 - Formula cards (Biology 11 Ch 12, Biology 12 Ch 8): enzyme and organism names no longer sit as tiny raised text over the arrow; they are in the card's note line. Arrows and the minus in the BOD formula are kept on the same line as their neighbours. Enzyme and organism names now sit in each card's legend, and the BOD card is `BOD = (DOi − DOf) × D` with a legend. Re-shot on Android: all six cards pass.
 - Student-visible authoring notes ("[New wording]" etc.) removed from Ch 17 and Ch 18. These are still visible on main until this branch is pushed.
 
-## Left for your decision (all minor, none blocks release)
-- Biology 12 Ch 4 ABO table shows as stacked pairs on the phone, without column headings (shared table layout). Same cause: Hardy-Weinberg Punnett grid becomes a list.
-- Biology 12 Ch 5 Hershey-Chase chips show 32P and 35S without superscripts (chips cannot carry markup).
-- Biology 11 Ch 14 O2-Hb curve: dotted line runs through the "Lungs" label.
-- Several figures have very small labels (listed in item 10 of the Android report). Legible, nothing overlaps.
+## Fixed after the card re-shoot
+- Biology 12 Ch 5 Hershey-Chase chips now read "Track 1: labelled DNA" and "Track 2: labelled protein" (the isotopes are in the figure and the prose).
+- Biology 11 Ch 14 O2-Hb curve: the "Lungs (pO2 = 104 mmHg)" label moved above the curve plateau, clear of the dotted line.
+- BOD card legend no longer repeats itself.
+
+## Not changed (reader layout or taste; none blocks release)
+- Biology 12 Ch 4 ABO table and the Ch 6 Hardy-Weinberg grid show as stacked rows on the phone (shared table layout, affects every subject).
+- Very small labels in a few figures (Android report item 10): legible, nothing overlaps.
 - Shared reader polish that already existed: fraction line spacing, superscript-on-superscript size, serif sub/superscripts.
 
-## Still open from the earlier notes
-- Class 11 Ch 11 "NCERT values" bullet was written from memory.
-- Class 11 Ch 13 figure `b11-13-D-d1` was never drawn.
-- Class 12 retitled "Additional D"; "F" titles in Ch 2 and Ch 5.
-- Other NCERT facts recalled from memory are listed in the part files.
-- Maths 11 Ch 0: "integer" wording and the "Classes 8 and 9" claim.
+## Settled earlier, no action
+- Ch 11 "NCERT values" bullet: rewritten in the third review to NCERT's own wording.
+- Ch 13 phytochrome line: the book prints it as a typeset line, not a drawing, so text is faithful; no figure needed.
 
 ## Process note
 Maths 11 Ch 0 and the Biology chapters went to main before your sign-off and Android check. Going forward nothing is pushed until you sign off. If you want Ch 0 or the Biology chapters taken back off main until then, say so.

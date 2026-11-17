@@ -333,7 +333,7 @@ function check53(c: { track: 1 | 2 }): Check[] {
 }
 const fig53: Diagram = {
   id: 'b12-05-fig-5.3', topic: 1, name: 'The Hershey–Chase experiment',
-  cases: [{ chip: 'Track 1: 32P-DNA', track: 1, cap: CAP53_1 }, { chip: 'Track 2: 35S-protein', track: 2, cap: CAP53_2 }],
+  cases: [{ chip: 'Track 1: labelled DNA', track: 1, cap: CAP53_1 }, { chip: 'Track 2: labelled protein', track: 2, cap: CAP53_2 }],
   draw: draw53, check: check53,
 };
 

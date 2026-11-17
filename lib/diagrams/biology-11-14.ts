@@ -411,8 +411,8 @@ function draw145(): Sketch {
   leader(s, [66, 114], [X5(15.5), Y5(sat(15.5, P50_LEFT))]);
   ['Right shift:', 'high <i>p</i>CO<sub>2</sub>, low pH,', 'high temperature', '(Bohr effect:', 'favours unloading)'].forEach((t, i) => lab(s, 262, 262 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
   leader(s, [268, 246], [X5(70), Y5(sat(70, P50_RIGHT))]);
-  ['Lungs', `(<i>p</i>${sub2} = 104 mmHg)`].forEach((t, i) => lab(s, 262, 150 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
-  leader(s, [296, 140], [X5(P_LUNG), Y5(sat(P_LUNG, P50))]);
+  ['Lungs', `(<i>p</i>${sub2} = 104 mmHg)`].forEach((t, i) => lab(s, 312, 30 + i * 12.5, t, { size: 10, anchor: 'end', color: C.text }));
+  leader(s, [322, 54], [X5(P_LUNG), Y5(sat(P_LUNG, P50))]);
   ['Tissues', `(<i>p</i>${sub2} = 40 mmHg)`].forEach((t, i) => lab(s, 176, 246 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
   leader(s, [196, 234], [X5(P_TISSUE), Y5(sat(P_TISSUE, P50))]);
   return s;
