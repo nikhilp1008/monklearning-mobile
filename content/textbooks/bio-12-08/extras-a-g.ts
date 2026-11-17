@@ -52,7 +52,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Lactic acid fermentation',
         main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>  → 2 C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>',
-        legend: [],
+        legend: ['Organism: <i>Lactobacillus</i>'],
         note: 'Carried out by <i>Lactobacillus</i>.',
       },
       {
@@ -63,7 +63,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Alcoholic fermentation',
         main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>  → 2 C<sub>2</sub>H<sub>5</sub>OH + 2 CO<sub>2</sub>',
-        legend: [],
+        legend: ['Organism: <i>Saccharomyces</i> (yeast)'],
         note: 'Carried out by <i>Saccharomyces</i> (yeast).',
       },
       {
@@ -78,7 +78,7 @@ export const TOPICS: Topic[] = [
         t: 'formula',
         kicker: 'Acetic acid fermentation',
         main: 'C<sub>2</sub>H<sub>5</sub>OH + O<sub>2</sub> → CH<sub>3</sub>COOH + H<sub>2</sub>O',
-        legend: [],
+        legend: ['Organism: <i>Acetobacter aceti</i>'],
         note: 'Carried out by <i>Acetobacter aceti</i>.',
       },
       {
@@ -279,8 +279,8 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'BOD calculation formula',
-        main: 'BOD = (DO<sub>initial</sub> − DO<sub>final</sub>) × dilution factor',
-        legend: [],
+        main: 'BOD = (DO<sub>i</sub> − DO<sub>f</sub>) × D',
+        legend: ['DO<sub>i</sub> = DO<sub>initial</sub>, the dissolved oxygen before incubation', 'DO<sub>f</sub> = DO<sub>final</sub>, the dissolved oxygen after incubation', '<i>D</i> = dilution factor'],
         note: null,
       },
       {
