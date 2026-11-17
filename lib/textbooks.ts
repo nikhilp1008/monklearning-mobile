@@ -671,6 +671,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-12-limits'),
   'mathematics|11|statistics': () => import('@/content/textbooks/math-11-13-statistics'),
   'mathematics|11|probability': () => import('@/content/textbooks/math-11-14-probability'),
+  'mathematics|11|basic mathematics': () => import('@/content/textbooks/math-11-00-basic-mathematics'),
 
   // Physics. Keys are the CATALOGUE's titles, read from the chapters table on
   // 2026-09-02, not the book's: the book calls chapter 6 "System of Particles
@@ -805,6 +806,31 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'biology|11|respiration in plants': () => import('@/content/textbooks/bio-11-12-respiration-plants'),
   'biology|11|plant growth and development': () => import('@/content/textbooks/bio-11-13-plant-growth'),
   'biology|11|breathing and exchange of gases': () => import('@/content/textbooks/bio-11-14-breathing-gas-exchange'),
+  'biology|11|body fluids and circulation': () => import('@/content/textbooks/bio-11-15-body-fluids-circulation'),
+  'biology|11|excretory products and their elimination': () =>
+    import('@/content/textbooks/bio-11-16-excretory-products'),
+  'biology|11|locomotion and movement': () => import('@/content/textbooks/bio-11-17-locomotion-movement'),
+  'biology|11|neural control and coordination': () =>
+    import('@/content/textbooks/bio-11-18-neural-control-coordination'),
+  'biology|11|chemical coordination and integration': () =>
+    import('@/content/textbooks/bio-11-19-chemical-coordination'),
+  'biology|12|sexual reproduction in flowering plants': () =>
+    import('@/content/textbooks/bio-12-01-sexual-reproduction-flowering-plants'),
+  'biology|12|human reproduction': () => import('@/content/textbooks/bio-12-02-human-reproduction'),
+  'biology|12|reproductive health': () => import('@/content/textbooks/bio-12-03-reproductive-health'),
+  'biology|12|principles of inheritance and variation': () =>
+    import('@/content/textbooks/bio-12-04-inheritance-variation'),
+  'biology|12|molecular basis of inheritance': () =>
+    import('@/content/textbooks/bio-12-05-molecular-basis-inheritance'),
+  'biology|12|evolution': () => import('@/content/textbooks/bio-12-06-evolution'),
+  'biology|12|human health and disease': () => import('@/content/textbooks/bio-12-07-human-health-disease'),
+  'biology|12|microbes in human welfare': () => import('@/content/textbooks/bio-12-08-microbes-human-welfare'),
+  'biology|12|biotechnology principles and processes': () =>
+    import('@/content/textbooks/bio-12-09-biotech-principles-processes'),
+  'biology|12|biotechnology and its applications': () => import('@/content/textbooks/bio-12-10-biotech-applications'),
+  'biology|12|organisms and populations': () => import('@/content/textbooks/bio-12-11-organisms-populations'),
+  'biology|12|ecosystem': () => import('@/content/textbooks/bio-12-12-ecosystem'),
+  'biology|12|biodiversity and conservation': () => import('@/content/textbooks/bio-12-13-biodiversity-conservation'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

@@ -33,6 +33,25 @@ import { KEY_POINTS as B11_11 } from '@/lib/revise/keypoints-biology-11-11';
 import { KEY_POINTS as B11_12 } from '@/lib/revise/keypoints-biology-11-12';
 import { KEY_POINTS as B11_13 } from '@/lib/revise/keypoints-biology-11-13';
 import { KEY_POINTS as B11_14 } from '@/lib/revise/keypoints-biology-11-14';
+import { KEY_POINTS as B11_15 } from '@/lib/revise/keypoints-biology-11-15';
+import { KEY_POINTS as B11_16 } from '@/lib/revise/keypoints-biology-11-16';
+import { KEY_POINTS as B11_17 } from '@/lib/revise/keypoints-biology-11-17';
+import { KEY_POINTS as B11_18 } from '@/lib/revise/keypoints-biology-11-18';
+import { KEY_POINTS as B11_19 } from '@/lib/revise/keypoints-biology-11-19';
+import { KEY_POINTS as B12_01 } from '@/lib/revise/keypoints-biology-12-01';
+import { KEY_POINTS as B12_02 } from '@/lib/revise/keypoints-biology-12-02';
+import { KEY_POINTS as B12_03 } from '@/lib/revise/keypoints-biology-12-03';
+import { KEY_POINTS as B12_04 } from '@/lib/revise/keypoints-biology-12-04';
+import { KEY_POINTS as B12_05 } from '@/lib/revise/keypoints-biology-12-05';
+import { KEY_POINTS as B12_06 } from '@/lib/revise/keypoints-biology-12-06';
+import { KEY_POINTS as B12_07 } from '@/lib/revise/keypoints-biology-12-07';
+import { KEY_POINTS as B12_08 } from '@/lib/revise/keypoints-biology-12-08';
+import { KEY_POINTS as B12_09 } from '@/lib/revise/keypoints-biology-12-09';
+import { KEY_POINTS as B12_10 } from '@/lib/revise/keypoints-biology-12-10';
+import { KEY_POINTS as B12_11 } from '@/lib/revise/keypoints-biology-12-11';
+import { KEY_POINTS as B12_12 } from '@/lib/revise/keypoints-biology-12-12';
+import { KEY_POINTS as B12_13 } from '@/lib/revise/keypoints-biology-12-13';
+import { KEY_POINTS as M11_00 } from '@/lib/revise/keypoints-mathematics-11-00';
 import { KEY_POINTS as M11_01 } from '@/lib/revise/keypoints-mathematics-11-01';
 import { KEY_POINTS as M11_02 } from '@/lib/revise/keypoints-mathematics-11-02';
 import { KEY_POINTS as M11_03 } from '@/lib/revise/keypoints-mathematics-11-03';
@@ -173,6 +192,7 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'mathematics|11|12': M11_12,
   'mathematics|11|13': M11_13,
   'mathematics|11|14': M11_14,
+  'mathematics|11|0': M11_00,
   'mathematics|12|1': M12_01,
   'mathematics|12|2': M12_02,
   'mathematics|12|3': M12_03,
@@ -197,6 +217,24 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'biology|11|12': B11_12,
   'biology|11|13': B11_13,
   'biology|11|14': B11_14,
+  'biology|11|15': B11_15,
+  'biology|11|16': B11_16,
+  'biology|11|17': B11_17,
+  'biology|11|18': B11_18,
+  'biology|11|19': B11_19,
+  'biology|12|1': B12_01,
+  'biology|12|2': B12_02,
+  'biology|12|3': B12_03,
+  'biology|12|4': B12_04,
+  'biology|12|5': B12_05,
+  'biology|12|6': B12_06,
+  'biology|12|7': B12_07,
+  'biology|12|8': B12_08,
+  'biology|12|9': B12_09,
+  'biology|12|10': B12_10,
+  'biology|12|11': B12_11,
+  'biology|12|12': B12_12,
+  'biology|12|13': B12_13,
   'biology|11|4': B11_04,
   'biology|11|3': B11_03,
   'biology|11|2': B11_02,
