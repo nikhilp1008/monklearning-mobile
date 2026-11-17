@@ -8,11 +8,13 @@ import type { Topic } from '@/lib/textbooks';
  * the chapter on p. 24. One Additional topic, lettered A; the book's own run-in
  * headings (Chemistry, Physics, Mathematics settings) are its parts, after an
  * "Introduction" part. No drawings. Every fraction is stacked (<frac>); no em
- * dashes. Wording of ours is marked [NEW].
+ * dashes. Our notes that correct the book are marked “Correction:”; our other notes carry no mark.
  */
 const fr = (a: string, b: string) => `<frac><num>${a}</num><den>${b}</den></frac>`;
 /** A no-break space: keeps a short expression on one line. */
-const NB = ' ';
+const NB = '\u00a0';
+/** A word joiner: no line break at this point, and no space drawn. */
+const WJ = '\u2060';
 
 const E = '<i>E</i>';
 const Q = '<i>Q</i>';
@@ -40,7 +42,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>[NEW]</b> NEET has no Mathematics paper, so the two Mathematics settings at the end of this addendum (limits and derivatives, and AP/GP problems) are not tested as Mathematics in NEET. The pH, Nernst equation, decibel and half-life settings are chemistry and physics. Questions often supply the needed logarithm values (for example log 2 = 0.3010), so recognising where a logarithm is hidden matters more than memorising its values.',
+        html: 'NEET has no Mathematics paper, so the two Mathematics settings at the end of this addendum (limits and derivatives, and AP/GP problems) are not tested as Mathematics in NEET. The pH, Nernst equation, decibel and half-life settings are chemistry and physics. Questions often supply the needed logarithm values (for example log 2 = 0.3010), so recognising where a logarithm is hidden matters more than memorising its values.',
       },
 
       { t: 'part', title: 'Chemistry: pH' },
@@ -61,37 +63,37 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Chemistry: the Nernst equation' },
       {
         t: 'p',
-        html: `At 298 K, the Nernst equation is usually quoted as<br>${E} = ${E}° − ${fr('0.0591', '<i>n</i>')} ${log10}${NB}${Q},<br>where the constant 0.0591 comes from ${fr('<i>RT</i> ln 10', '<i>F</i>')} with <i>R</i> = 8.314 J mol<sup>−1</sup> K<sup>−1</sup>, <i>T</i> = 298 K, and <i>F</i> = 96485 C mol<sup>−1</sup>, a substitution worth doing once so the constant stops looking arbitrary:<br>${fr('8.314 × 298 × 2.303', '96485')} ≈ 0.0591.`,
+        html: `At 298 K, the Nernst equation is usually quoted as<br>${E} = ${E}° − ${fr('0.0591', '<i>n</i>')} ${log10}${NB}${Q},<br>where the constant 0.0591 comes from ${fr('<i>RT</i> ln 10', '<i>F</i>')} with <i>R</i> = 8.314 J mol<sup>−1</sup> K<sup>−1</sup>, <i>T</i> = 298 K, and <i>F</i> = 96485${NB}C${NB}mol<sup>−1</sup>, a substitution worth doing once so the constant stops looking arbitrary:<br>${fr('8.314 × 298 × 2.303', '96485')} ≈ 0.0591.`,
       },
       {
         t: 'ex',
         tag: 'Representative question',
         q: `For a cell with <i>n</i> = 2, ${E}° = 1.10 V, and reaction quotient ${Q} = 0.01, find the cell potential ${E}.`,
         steps: [
-          `${E} = 1.10 − ${fr('0.0591', '2')} ${log10}(0.01) = 1.10 − (0.02955)(−2) = 1.10 + 0.0591 = 1.1591 V. The negative log of the small quotient ${Q} <i>raises</i> the potential above the standard value: exactly the sign behaviour the Nernst equation is built to capture.`,
+          `${E} = 1.10 − ${fr('0.0591', '2')} ${log10}(0.01) = 1.10 − (0.02955)${WJ}(−2) = 1.10 + 0.0591 = 1.1591 V. The negative log of the small quotient ${Q} <i>raises</i> the potential above the standard value: exactly the sign behaviour the Nernst equation is built to capture.`,
         ],
         ans: '',
       },
       {
         t: 'p',
-        html: `<b>[NEW]</b> ${E} and ${E}° are cell potentials in volt, so the constant 0.0591 is in volt too, and <i>n</i> is the number of electrons transferred in the cell reaction. The data are given to two decimal places (1.10 V), so the result is better quoted as 1.16 V than as 1.1591 V.`,
+        html: `${E} and ${E}° are cell potentials in volt, so the constant 0.0591 is in volt too, and <i>n</i> is the number of electrons transferred in the cell reaction. The data are given to two decimal places (1.10 V), so the result is better quoted as 1.16 V than as 1.1591 V.`,
       },
 
       { t: 'part', title: 'Physics: sound intensity in decibels' },
       {
         t: 'p',
-        html: `Sound intensity level is <i>β</i> = 10 ${log10}(${fr('<i>I</i>', '<i>I</i><sub>0</sub>')}), where <i>I</i><sub>0</sub> = 10<sup>−12</sup> W/m<sup>2</sup> is the reference intensity at the threshold of human hearing. As with pH, the logarithm exists to compress an enormous physical range (audible intensities span about twelve orders of magnitude) into a scale a few tens of units wide.`,
+        html: `Sound intensity level is <i>β</i> = 10 ${log10}(${fr('<i>I</i>', '<i>I</i><sub>0</sub>')}), where <i>I</i><sub>0</sub> = 10<sup>−12</sup>${NB}W/m<sup>2</sup> is the reference intensity at the threshold of human hearing. As with pH, the logarithm exists to compress an enormous physical range (audible intensities span about twelve orders of magnitude) into a scale a few tens of units wide.`,
       },
       {
         t: 'p',
-        html: `<b>[NEW]</b> Twelve orders of magnitude is 10 × 12 = 120 units on this scale: it runs from 0 dB at <i>I</i> = <i>I</i><sub>0</sub> (because ${log10}${NB}1 = 0) to about 120 dB at <i>I</i> = 1 W/m<sup>2</sup>, so it is about 120 units wide, not “a few tens”.`,
+        html: `<b>Correction:</b> Twelve orders of magnitude is 10 × 12 = 120 units on this scale: it runs from 0 dB at <i>I</i> = <i>I</i><sub>0</sub> (because ${log10}${NB}1 = 0) to about 120 dB at <i>I</i> = 1 W/m<sup>2</sup>, so it is about 120 units wide, not “a few tens”.`,
       },
       {
         t: 'ex',
         tag: 'Representative question',
-        q: `Find the sound level in decibels for <i>I</i> = 10<sup>−2</sup> W/m<sup>2</sup> (roughly the intensity at a loud rock concert).`,
+        q: `Find the sound level in decibels for <i>I</i> = 10<sup>−2</sup>${NB}W/m<sup>2</sup> (roughly the intensity at a loud rock concert).`,
         steps: [
-          `<i>β</i> = 10 ${log10}(${fr('10<sup>−2</sup>', '10<sup>−12</sup>')}) = 10 ${log10}(10<sup>10</sup>) = 10 × 10 = 100 dB.`,
+          `<i>β</i> = 10 ${log10}(${fr('10<sup>−2</sup>', '10<sup>−12</sup>')}) = 10 ${log10}(10<sup>10</sup>) = 10 × 10${NB}=${NB}100${NB}dB.`,
         ],
         ans: '',
       },
@@ -103,7 +105,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>[NEW]</b> Here ${N} is the number of undecayed nuclei. The activity is proportional to ${N}, so it falls by the same factor in the same time, and ${fr(N, N0)} is also the ratio of the activity to its initial value.`,
+        html: `Here ${N} is the number of undecayed nuclei. The activity is proportional to ${N}, so it falls by the same factor in the same time, and ${fr(N, N0)} is also the ratio of the activity to its initial value.`,
       },
       {
         t: 'ex',
@@ -131,7 +133,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>[NEW]</b> Writing ${x}<sup>${x}</sup> = <i>e</i><sup>${x} ln ${x}</sup> and using the chain rule gives the same derivative, ${x}<sup>${x}</sup>(ln ${x} + 1), and that route also uses the logarithm. So the logarithm is needed either way; what is missing is a rule that handles a variable base and a variable exponent without rewriting the expression first. The same derivative also comes from treating the base and the exponent one at a time and adding: varying the base with the exponent held fixed gives ${x}·${x}<sup>${x}−1</sup> = ${x}<sup>${x}</sup>, varying the exponent with the base held fixed gives ${x}<sup>${x}</sup> ln ${x}, and the sum is ${x}<sup>${x}</sup>(1 + ln ${x}).`,
+        html: `<b>Correction:</b> Writing ${x}<sup>${x}</sup> = <i>e</i><sup>${x} ln ${x}</sup> and using the chain rule gives the same derivative, ${x}<sup>${x}</sup>(ln ${x} + 1), and that route also uses the logarithm. So the logarithm is needed either way; what is missing is a rule that handles a variable base and a variable exponent without rewriting the expression first. The same derivative also comes from treating the base and the exponent one at a time and adding: varying the base with the exponent held fixed gives ${x}·${x}<sup>${x}−1</sup> = ${x}<sup>${x}</sup>, varying the exponent with the base held fixed gives ${x}<sup>${x}</sup> ln ${x}, and the sum is ${x}<sup>${x}</sup>(1 + ln ${x}).`,
       },
 
       { t: 'part', title: 'Mathematics: AP/GP problems' },
@@ -144,13 +146,13 @@ export const TOPICS: Topic[] = [
         tag: 'Representative question',
         q: `The 3rd, 6th and 12th terms of an arithmetic progression are, in that order, three consecutive terms of a geometric progression. If the common difference of the AP is non-zero, show that the terms of the GP form an equation solvable using the laws of this chapter, and state which law is used.`,
         steps: [
-          `Let the AP have first term <i>A</i> and common difference <i>d</i> ≠ 0. Its 3rd, 6th, and 12th terms are <i>A</i>+2<i>d</i>, <i>A</i>+5<i>d</i>, <i>A</i>+11<i>d</i>. These form a GP exactly when (<i>A</i>${NB}+${NB}5<i>d</i>)<sup>2</sup> = (<i>A</i>${NB}+${NB}2<i>d</i>)(<i>A</i>${NB}+${NB}11<i>d</i>): an ordinary algebraic condition, not yet a logarithmic one. But the moment the question instead states the <i>values</i> of these three GP terms and asks, say, “after how many further terms does the GP first exceed <i>N</i>”, the condition becomes <i>ar</i><sup><i>n</i>−1</sup> > <i>N</i> for the GP’s first term <i>a</i> and common ratio <i>r</i>; taking ${log10} of both sides and using the product and power laws of Topic 01’s part on the laws of logarithms converts this directly into a linear inequality in <i>n</i>, which the base-direction rule of Topic 01’s part on logarithmic inequalities then solves. This is the standard route by which an AP/GP chapter question becomes, in its final step, a one-line logarithm problem.`,
+          `Let the AP have first term <i>A</i> and common difference <i>d</i> ≠ 0. Its 3rd, 6th, and 12th terms are <i>A</i>${NB}+${NB}2<i>d</i>, <i>A</i>${NB}+${NB}5<i>d</i>, <i>A</i>${NB}+${NB}11<i>d</i>. These form a GP exactly when (<i>A</i>${NB}+${NB}5<i>d</i>)<sup>2</sup> = (<i>A</i>${NB}+${NB}2<i>d</i>)(<i>A</i>${NB}+${NB}11<i>d</i>): an ordinary algebraic condition, not yet a logarithmic one. But the moment the question instead states the <i>values</i> of these three GP terms and asks, say, “after how many further terms does the GP first exceed <i>N</i>”, the condition becomes <i>ar</i><sup><i>n</i>−1</sup> > <i>N</i> for the GP’s first term <i>a</i> and common ratio <i>r</i>; taking ${log10} of both sides and using the product and power laws of Topic 01’s part on the laws of logarithms converts this directly into a linear inequality in <i>n</i>, which the base-direction rule of Topic 01’s part on logarithmic inequalities then solves. This is the standard route by which an AP/GP chapter question becomes, in its final step, a one-line logarithm problem.`,
         ],
         ans: '',
       },
       {
         t: 'p',
-        html: `<b>[NEW]</b> The algebraic condition can be finished: (<i>A</i>${NB}+${NB}5<i>d</i>)<sup>2</sup> = (<i>A</i>${NB}+${NB}2<i>d</i>)(<i>A</i>${NB}+${NB}11<i>d</i>) gives <i>A</i><sup>2</sup> + 10<i>Ad</i> + 25<i>d</i><sup>2</sup> = <i>A</i><sup>2</sup> + 13<i>Ad</i> + 22<i>d</i><sup>2</sup>, so 3<i>d</i>(<i>d</i> − <i>A</i>) = 0, and since <i>d</i> ≠ 0 we get <i>d</i> = <i>A</i>: the three terms are 3<i>A</i>, 6<i>A</i>, 12<i>A</i>, a GP of common ratio 2. As printed, the question asks for a logarithmic equation that its data do not produce; the answer above works a follow-up question instead. No logarithm is needed for the printed question itself, and the printed answer states no law for it; the product and power laws enter only in the further question about exceeding <i>N</i>. In that inequality, taking ${log10} keeps the direction because the base 10 is greater than 1, and dividing by ${log10}${NB}<i>r</i> keeps it only when <i>r</i> > 1 (here <i>r</i> = 2) and reverses it when 0 < <i>r</i> < 1; the logarithm also needs <i>a</i>, <i>r</i> and <i>N</i> positive, and <i>r</i> ≠ 1 is needed before dividing by ${log10}${NB}<i>r</i>.`,
+        html: `<b>Correction:</b> The algebraic condition can be finished: (<i>A</i>${NB}+${NB}5<i>d</i>)<sup>2</sup> = (<i>A</i>${NB}+${NB}2<i>d</i>)(<i>A</i>${NB}+${NB}11<i>d</i>) gives <i>A</i><sup>2</sup> + 10<i>Ad</i> + 25<i>d</i><sup>2</sup> = <i>A</i><sup>2</sup> + 13<i>Ad</i> + 22<i>d</i><sup>2</sup>, so 3<i>d</i>(<i>d</i> − <i>A</i>) = 0, and since <i>d</i> ≠ 0 we get <i>d</i> = <i>A</i>: the three terms are 3<i>A</i>, 6<i>A</i>, 12<i>A</i>, a GP of common ratio 2. As printed, the question asks for a logarithmic equation that its data do not produce; the answer above works a follow-up question instead. No logarithm is needed for the printed question itself, and the printed answer states no law for it; the product and power laws enter only in the further question about exceeding <i>N</i>. In that inequality, taking ${log10} keeps the direction because the base 10 is greater than 1, and dividing by ${log10}${NB}<i>r</i> keeps it only when <i>r</i> > 1 (here <i>r</i> = 2) and reverses it when 0 < <i>r</i> < 1; the logarithm also needs <i>a</i>, <i>r</i> and <i>N</i> positive, and <i>r</i> ≠ 1 is needed before dividing by ${log10}${NB}<i>r</i>.`,
       },
     ],
   },

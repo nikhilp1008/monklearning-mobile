@@ -158,7 +158,7 @@ export const TOPICS: Topic[] = [
         rows: [
           [rel(X, '=', `${x}<sub>1</sub>`), `${p}<sub>1</sub>`],
           [rel(X, '=', `${x}<sub>2</sub>`), `${p}<sub>2</sub>`],
-          ['⋯', '⋯'],
+          [rel(X, '=', '⋯'), '⋯'],
           [rel(X, '=', `${x}<sub>${n}</sub>`), `${p}<sub>${n}</sub>`],
         ],
       },
