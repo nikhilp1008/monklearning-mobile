@@ -34,3 +34,6 @@ listing each wording WE wrote (marked [NEW]), with file, topic, block and exact 
   Class 12 chapters 1 to 13: docs/textbooks/workbench/bio12/reports-01 .. reports-13 (briefs and DECISIONS-B12.md next to them; DECISIONS-B12 items 4 to 17 are coordinator layout calls awaiting the founder).
 - Wired into the shelf: lib/textbooks.ts keys 'biology|11|...' (19 chapters) and 'biology|12|...' (13 chapters); lib/chapter-essentials.ts OPENS_ON_CHOICE. The shelf keys come from the catalogue names copied into constants/onboarding-chapters.ts on 2026-10-15; re-check against the live chapters table before a store build.
 - Still not done: the Android emulator pass for the shared-reader change (components/textbook/markup.tsx routes U+2640, U+2642, U+26A5 and U+25A1 to STIX Two Math) and a phone look at one chapter per subject area; Nikhil's sign-off on all [NEW] wording and the founder decisions listed in the new-text files.
+
+## Added 2026-11-17: Maths 11 Chapter 0 (Basic Mathematics)
+Built on Raasikh's request (it had been skipped on 2026-11-10); decision 41 in docs/textbooks/workbench/math11/DECISIONS-M11.md, reports in math11/reports-00/. Wired to the shelf as 'mathematics|11|basic mathematics' (index 0). Same open items as the Biology chapters: Android/phone check and the founder's sign-off on the new wording.

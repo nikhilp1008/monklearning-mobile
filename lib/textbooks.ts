@@ -671,6 +671,7 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
     import('@/content/textbooks/math-11-12-limits'),
   'mathematics|11|statistics': () => import('@/content/textbooks/math-11-13-statistics'),
   'mathematics|11|probability': () => import('@/content/textbooks/math-11-14-probability'),
+  'mathematics|11|basic mathematics': () => import('@/content/textbooks/math-11-00-basic-mathematics'),
 
   // Physics. Keys are the CATALOGUE's titles, read from the chapters table on
   // 2026-09-02, not the book's: the book calls chapter 6 "System of Particles
