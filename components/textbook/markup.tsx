@@ -236,8 +236,8 @@ const isItalicFamily = (f?: string) => f === STIX.italic || f === STIX.semiboldI
  * ceiling brackets ⌊ ⌋ ⌈ ⌉ (Ch 2), which Onest lacks. And the primes ′ ″ ‴, which
  * Onest draws as straight ticks: S″ read as S" (Ch 10).
  */
-const PILOT_MATH = /[\u2032-\u2034\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3\u2308-\u230B]+/g;
-const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF]+/g;
+const PILOT_MATH = /[\u2032-\u2034\u2100-\u2121\u2123-\u214F\u2190-\u2191\u2193-\u21FF\u2200-\u2201\u2203-\u2210\u2213-\u2219\u221D\u221F-\u222A\u222C-\u2247\u2249-\u2263\u2266-\u22FF\u27C0-\u27E5\u27EA-\u27FF\u2900-\u297F\u2A00-\u2AFF\u25B3\u2308-\u230B\u25A1\u2640\u2642\u26A5]+/g;
+const STIX_MATH_ONLY = /[\u2190-\u21EA\u21F4-\u2211\u2213-\u2214\u2216-\u23FF\u27C0-\u27C9\u27CB-\u27CD\u27D0-\u27FF\u2900-\u2AFF\u25A0-\u25CB\u25CD-\u25FF\u2640\u2642\u26A5]+/g;
 /**
  * The reader's text with its maths symbols in STIX Two Math (see PILOT_MATH),
  * and an upright letter or digit carrying a vector arrow (the zero vector 0⃗)
@@ -652,7 +652,8 @@ export function readerBreaks(html: string): string {
     // space, and "|r| < 1" split at the bar (Android check of Mathematics 11 Ch 8).
     .replace(/\|(?=\u00a0)/g, `|${WJ}`)
     // A conditional bar, "P(A | B)", keeps both sides: "P(·" | "| F)" (Android check of Mathematics 12 Ch 13).
-    .replace(/[ \u00a0]\|[ \u00a0]/g, `\u00a0${WJ}|${WJ}\u00a0`)
+    // Only inside a bracket: a text table's "Shark | Frog | Lizard" column bars must still break (Biology 11).
+    .replace(/(\([^()|]{1,24})[ \u00a0]\|[ \u00a0](?=[^()|]{1,24}\))/g, `$1\u00a0${WJ}|${WJ}\u00a0`)
     // A sum or product stays with what it sums: "∑ʳ₌₁ⁿ" | "r²" left the Σ alone at a line's
     // end (Android check of Mathematics 11 Ch 7).
     .replace(/([∑∏](?:<su[bp]>(?:(?!<\/su[bp]>).)*<\/su[bp]>){0,2}) (?=\S)/g, '$1\u00a0')

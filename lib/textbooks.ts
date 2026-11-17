@@ -789,6 +789,22 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'chemistry|12|amines': () => import('@/content/textbooks/chem-12-09-amines'),
   'chemistry|12|biomolecules': () => import('@/content/textbooks/chem-12-10-biomolecules'),
   'chemistry|12|p block elements': () => import('@/content/textbooks/chem-12-11-p-block'),
+  'biology|11|the living world': () => import('@/content/textbooks/bio-11-01-living-world'),
+  'biology|11|biological classification': () => import('@/content/textbooks/bio-11-02-biological-classification'),
+  'biology|11|plant kingdom': () => import('@/content/textbooks/bio-11-03-plant-kingdom'),
+  'biology|11|animal kingdom': () => import('@/content/textbooks/bio-11-04-animal-kingdom'),
+  'biology|11|morphology of flowering plants': () =>
+    import('@/content/textbooks/bio-11-05-morphology-flowering-plants'),
+  'biology|11|anatomy of flowering plants': () => import('@/content/textbooks/bio-11-06-anatomy-flowering-plants'),
+  'biology|11|structural organisation in animals': () =>
+    import('@/content/textbooks/bio-11-07-structural-organisation-animals'),
+  'biology|11|cell the unit of life': () => import('@/content/textbooks/bio-11-08-cell-unit-of-life'),
+  'biology|11|biomolecules': () => import('@/content/textbooks/bio-11-09-biomolecules'),
+  'biology|11|cell cycle and cell division': () => import('@/content/textbooks/bio-11-10-cell-cycle-division'),
+  'biology|11|photosynthesis in higher plants': () => import('@/content/textbooks/bio-11-11-photosynthesis'),
+  'biology|11|respiration in plants': () => import('@/content/textbooks/bio-11-12-respiration-plants'),
+  'biology|11|plant growth and development': () => import('@/content/textbooks/bio-11-13-plant-growth'),
+  'biology|11|breathing and exchange of gases': () => import('@/content/textbooks/bio-11-14-breathing-gas-exchange'),
 };
 
 export function chapterKey(subject: string, classLevel: number, title: string): string {

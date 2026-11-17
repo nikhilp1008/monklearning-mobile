@@ -149,21 +149,30 @@ describe('the text of every book chapter', () => {
     ).toEqual([]);
   });
 
-  it('in Mathematics, sets no fraction on one line (1/2, π/4, (a + b)/2, ½)', () => {
+  // The subjects that follow the founder's later house rules: every fraction stacked, no em dashes.
+  // Biology joins Mathematics from its first chapter (Biology 11 Ch 1).
+  const HOUSE_STYLE = new Set(['Mathematics', 'Biology']);
+  const HOUSE_KEYS = ['mathematics|', 'biology|'];
+
+  it('in Mathematics and Biology, sets no fraction on one line (1/2, π/4, (a + b)/2, ½)', () => {
     // A slash with a number, a letter in italics, a bracket, π or a root on both sides,
     // outside a raised run. "and/or", "km/h" and "A/B testing" are words, not fractions.
     const SIDE = String.raw`(?:\d|<\/i>|\)|π|√\d)`;
     const AFTER = String.raw`(?:\d|<i>|\(|π|√)`;
     const SLASH = new RegExp(`${SIDE}\\s?\\/\\s?${AFTER}`);
+    // Biology slashes words, not only numbers: a pair of genus names (<i>Amoeba</i>/<i>Entamoeba</i>), option letters
+    // ("(c)/(d)") and "and/or" are not fractions. For Biology only a number over a number or over a bracket or root
+    // is a one-line fraction.
+    const BIO_SLASH = /\d\s?\/\s?(?:\d|\(|π|√)|(?:\d|π|√\d)\s?\/\s?<i>/;
     // Not fractions, written as the book writes them: a cricket score, runs for wickets
     // (Mathematics 11 Ch 2 Topic 01, "180/4").
     const NOT_FRACTIONS = /“180\/4”/g;
     expect(
       breaches(({ chapter, block }, say) => {
-        if (!block || chapter.subject !== 'Mathematics') return;
+        if (!block || !HOUSE_STYLE.has(chapter.subject)) return;
         for (const h of htmls(block)) {
           const outside = h.replace(/<su([bp])>(?:(?!<\/su\1>).)*<\/su\1>/g, '').replace(NOT_FRACTIONS, '');
-          if (SLASH.test(outside) || /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/.test(outside)) say(clip(plain(h)));
+          if ((chapter.subject === 'Biology' ? BIO_SLASH : SLASH).test(outside) || /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/.test(outside)) say(clip(plain(h)));
         }
       }),
     ).toEqual([]);
@@ -172,23 +181,23 @@ describe('the text of every book chapter', () => {
   // NO EM DASHES IN MATHEMATICS (the founder, 2026-11-10: they read as
   // machine-written). Each is rewritten as a colon, commas, brackets or a full
   // stop; ranges keep their en dash (–). Physics and Chemistry later.
-  it('in Mathematics, writes no em dash (—)', () => {
+  it('in Mathematics and Biology, writes no em dash (—)', () => {
     expect(
       breaches(({ chapter, topic, block }, say) => {
-        if (chapter.subject !== 'Mathematics') return;
+        if (!HOUSE_STYLE.has(chapter.subject)) return;
         const all = block ? htmls(block) : [topic.title, topic.kalam ?? ''];
         for (const h of all) if (h.includes('—')) say(clip(plain(h)));
       }),
     ).toEqual([]);
   });
 
-  it('in Mathematics, writes no em dash in key points or figure captions and labels either', () => {
+  it('in Mathematics and Biology, writes no em dash in key points or figure captions and labels either', () => {
     const bad: string[] = [];
     for (const [key, points] of Object.entries(KEY_POINTS))
-      if (key.startsWith('mathematics|'))
+      if (HOUSE_KEYS.some((k) => key.startsWith(k)))
         for (const p of points) for (const v of [p.q, p.a, p.why, p.say]) if (v?.includes('—')) bad.push(`${key} key point: ${clip(plain(v))}`);
     for (const [key, figs] of Object.entries(DIAGRAMS))
-      if (key.startsWith('mathematics|'))
+      if (HOUSE_KEYS.some((k) => key.startsWith(k)))
         for (const f of figs) {
           const texts = [f.name, ...f.cases.flatMap((c) => [c.chip, c.cap])];
           for (const c of f.cases) for (const t of f.draw(c).texts) texts.push(t.html);

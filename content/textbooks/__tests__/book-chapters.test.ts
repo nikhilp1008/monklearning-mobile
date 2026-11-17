@@ -46,6 +46,20 @@ import chem12ch6 from '@/content/textbooks/chem-12-06-haloalkanes-haloarenes';
 import chem12ch7 from '@/content/textbooks/chem-12-07-alcohols-phenols-ethers';
 import chem12ch8 from '@/content/textbooks/chem-12-08-aldehydes-ketones-carboxylic-acids';
 import chem12ch9 from '@/content/textbooks/chem-12-09-amines';
+import bio11ch1 from '@/content/textbooks/bio-11-01-living-world';
+import bio11ch14 from '@/content/textbooks/bio-11-14-breathing-gas-exchange';
+import bio11ch13 from '@/content/textbooks/bio-11-13-plant-growth';
+import bio11ch12 from '@/content/textbooks/bio-11-12-respiration-plants';
+import bio11ch11 from '@/content/textbooks/bio-11-11-photosynthesis';
+import bio11ch10 from '@/content/textbooks/bio-11-10-cell-cycle-division';
+import bio11ch9 from '@/content/textbooks/bio-11-09-biomolecules';
+import bio11ch8 from '@/content/textbooks/bio-11-08-cell-unit-of-life';
+import bio11ch7 from '@/content/textbooks/bio-11-07-structural-organisation-animals';
+import bio11ch6 from '@/content/textbooks/bio-11-06-anatomy-flowering-plants';
+import bio11ch5 from '@/content/textbooks/bio-11-05-morphology-flowering-plants';
+import bio11ch4 from '@/content/textbooks/bio-11-04-animal-kingdom';
+import bio11ch3 from '@/content/textbooks/bio-11-03-plant-kingdom';
+import bio11ch2 from '@/content/textbooks/bio-11-02-biological-classification';
 import chem12ch10 from '@/content/textbooks/chem-12-10-biomolecules';
 import chem12ch11 from '@/content/textbooks/chem-12-11-p-block';
 import math11ch1 from '@/content/textbooks/math-11-01-sets';
@@ -101,7 +115,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10, math11ch11, math11ch12, math11ch13, math11ch14, math12ch1, math12ch2, math12ch3, math12ch4, math12ch5, math12ch6, math12ch7, math12ch8, math12ch9, math12ch10, math12ch11, math12ch12] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10, math11ch11, math11ch12, math11ch13, math11ch14, math12ch1, math12ch2, math12ch3, math12ch4, math12ch5, math12ch6, math12ch7, math12ch8, math12ch9, math12ch10, math12ch11, math12ch12, bio11ch1, bio11ch2, bio11ch3, bio11ch4, bio11ch5, bio11ch6, bio11ch7, bio11ch8, bio11ch9, bio11ch10, bio11ch11, bio11ch12, bio11ch13, bio11ch14] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
@@ -138,7 +152,8 @@ for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, 
         // So is a chapter's opening that is only one box of the book's (Physics 12 Ch 14's syllabus scope).
         const oneBoxGuide = t.n === '00' && t.blocks.length === 2;
         // And the book's "Summary Checklist" printed with no lead-in of its own (Chemistry 12 Ch 9 E).
-        const checklistOnly = !!t.extra && t.title === 'Summary Checklist' && t.blocks.length === 2;
+        // The same for Biology 11 Ch 11 G, "Summary Cheat Sheet: Addendum": one heading and one cheat sheet.
+        const checklistOnly = !!t.extra && /^Summary /.test(t.title) && t.blocks.length === 2;
         expect(t.blocks.filter((b) => b.t === 'part').length).toBeGreaterThanOrEqual(practiceOnly || oneBoxGuide || checklistOnly ? 1 : 2);
       }
     });

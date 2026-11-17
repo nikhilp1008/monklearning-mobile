@@ -1,0 +1,18 @@
+# Biology 11 Ch9 Additional A-F expert review (condensed). Transcription faithful; numbers (MM/LB, urea cycle, tests, vitamin table) recompute.
+1. F Archetype 3 A: [NEW] "A coenzyme or other organic cofactor that is very tightly bound to an enzyme protein is called a prosthetic group." (Topic 04 keeps metal ions separate.) Answer (c) stands.
+2. F Archetype 6 (c): [NEW] "Starch and glycogen are primary storage carbohydrates, so the set is not all secondary (cellulose is listed among the secondary polymeric substances, but one primary member disqualifies the set)." Answer (b) stands. Topic 01 MCQ contradicts: check.
+3. D Ex D.1 stem [NEW] "Which amino acid is the central collection point for amino-group nitrogen?" reasoning "Many transaminases (for example ALT with alanine, AST with aspartate) pass the amino group to alpha-ketoglutarate, giving glutamate. Glutamate is then deaminated by glutamate dehydrogenase." Answer glutamate.
+4. D vitamin D3: [NEW] "formed by UV action on 7-dehydrocholesterol, a sterol of the cholesterol pathway, in skin." D.4 (c) loose but defensible; E checklist and KP 7a "parent" reword.
+5. D1/D.4 cholesterol "absent from plant membranes", "(NCERT-verifiable)": delete "(NCERT-verifiable)"; [NEW] "the characteristic sterol of animal membranes; plant membranes carry mainly phytosterols, with only traces of cholesterol." D.4 (b) answer change is a founder decision (keep NEET idiom or change).
+6. B vitamins B6 row: [NEW] "Convulsions (in infants), peripheral neuropathy, sideroblastic anaemia" (matches Chemistry 12 Ch10).
+7. Shared intro "four directions": [NEW] "...(A to D). Additional topic E is a revision checklist, and Additional topic F summarises how NEET has examined this chapter."
+8. Intro claims: A [NEW] "Topic 04 states the rise and plateau and the two kinds of inhibition in words; this additional topic gives the equation and the numbers."; B: fat-soluble vitamins "are not water-soluble, so in tissue analysis they travel with the lipids, not in the acid-soluble pool" (Topic01 should say water-soluble vitamins); C: 'The chapter's Procedure A ends "Analyse each fraction", but never says how.'; D: "The chapter follows amino acids into peptides and proteins, but never follows what happens to their nitrogen."
+9. E checklist: [NEW] "...you have the key results of these additional topics; the topic cheat sheets cover the rest."; non-competitive "(pure non-competitive: -1/Km is unchanged, so the lines meet on the x-axis)"; "B-complex: coenzyme precursors" (not vit C).
+10. "liver sole site of urea cycle" -> "main site" (Practice 6, intro).
+11. D1 methyls: [NEW] "Two angular methyl groups (C18 on C13 and C19 on C10) at the ring junctions; the side chain carries further methyl groups."
+12. Exam claims: C [NEW] "The board practicals and NEET sometimes ask for the result of these tests."; F "NEET has mostly used a small number of formats for this chapter, six of which recur."; "In the book's estimate this is a regularly asked chapter."; mark "dominate statements" as the book's estimate.
+13. F Archetype 2 (a): "Lipids are generally insoluble in water."
+14. F Practice 6: (a) "Holoenzyme = Apoenzyme + Cofactor", (c) "Holoenzyme = Coenzyme + Metal ion".
+15. B grid: add [NEW] "Folate: megaloblastic anaemia; neural-tube defects in pregnancy."; B12 "Megaloblastic (macrocytic) anaemia; pernicious anaemia when intrinsic factor is missing".
+16. A: "initial reaction velocity"; "A low Km usually means tight binding."; say once that inhibitor formulas are for pure competitive/non-competitive.
+Other: cholesterol "membrane fluidity buffer" quote -> [NEW] "A standard statement is that cholesterol acts as a membrane fluidity buffer." KP: 7a reword.

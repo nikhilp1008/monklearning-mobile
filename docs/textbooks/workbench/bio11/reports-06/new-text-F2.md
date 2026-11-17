@@ -1,0 +1,61 @@
+# New wording [NEW] by fixer F2 (extras.ts and keypoints-biology-11-06.ts), Biology 11 Ch6
+
+All flags are from review-R2-extras-A-G.md (R2) and the key-point consequences of review-R1-topics-1-4.md (R1). File names: E = content/textbooks/bio-11-06/extras.ts, K = lib/revise/keypoints-biology-11-06.ts.
+
+## extras.ts
+
+1. E, A, Introduction p 1: "This section extends Chapter 6 with six topics that NEET and CBSE questions often draw on (by the book’s estimate, not official figures):" (R2 8)
+2. E, A, Introduction p 2: "Standard plant-anatomy texts give this sequence, and the pairing has been tested in NEET." (R2 8)
+3. E, A, Introduction p 2: "It does not trace those components back to their embryological source; the one trace is its remark that the intrafascicular cambium is leftover procambium." (R2 5)
+4. E, A, Method, proc step 3: "...primary phloem (outward) in a conjoint stem bundle." (R2 2)
+5. E, A, Worked ex 1 (dicot root) reasoning: "...the procambium strands differentiate into primary xylem and primary phloem (on separate radii in a root, with protoxylem exarch)." (R2 2)
+6. E, A, Worked ex 2 (Match), Column II item iv: "iv. Not from a primary meristem (arises from mature permanent cells)" (R2 3)
+7. E, A, Worked ex 3 (Assertion-Reason): Reason "The endodermis cells of a dicot stem are rich in starch." Reasoning: "...its cells are rich in starch, which is why it is also called the “starch sheath”. R is true, and it is the reason for the name: the name follows from the starch the cells store. (The ground-meristem origin of the endodermis is a separate fact; it does not explain the name.)" Answer: "(a). The name follows from the starch stored in the endodermis cells." (R2 4)
+8. E, A, Practice 2 answer: "...primary phloem on its outer face (in a conjoint stem bundle)." (R2 2)
+9. E, B, Introduction: "(kidney in dicots, dumb-bell in grasses)" (R1 8 consequence)
+10. E, B, Grass stomata paragraph: "Grass stomata (e.g., wheat, barley) have dumbbell-shaped guard cells..." (R2 15)
+11. E, B, Worked ex 3: title "Subsidiary Cells in Grasses." and reasoning "Grass guard cells are dumbbell-shaped and are accompanied by subsidiary cells. The guard cells are flanked by..." (R2 15)
+12. E, B, Practice 4: question "In which plants are dumbbell-shaped guard cells found, ..." answer "Grasses (and sedges); two subsidiary cells, one on each side of the guard cells; paracytic (graminaceous) stomata." (R2 15)
+13. E, B, Practice 5: "If leaf A is a grass and leaf B is a dicot, ..." and answer "leaf A (a grass) has dumbbell-shaped guard cells ..." (R2 15)
+14. E, C, Introduction: "Two further geometries that NEET has tested are named in one line in Topic 03 but not developed:" (R2 5)
+15. E, C, table Bicollateral row, location: "<i>Cucurbita</i> (pumpkin) stem, other Cucurbitaceae, and some Solanaceae and Convolvulaceae" (R2 20)
+16. E, C, Practice 4 answer: "...or any other member of Cucurbitaceae (bicollateral bundles also occur in some Solanaceae and Convolvulaceae). Around the central xylem strand: ..." (R2 20)
+17. E, D, Introduction: "...is only mentioned there (<i>Dracaena</i> is named in Topic 04); it is still a frequent NEET question (the book’s estimate, not official)." (R2 5, 8)
+18. E, D, table, dicot "Vascular bundles" cell: "Secondary xylem and secondary phloem added by a continuous cambial cylinder" (R2 21)
+19. E, D, Note: "The NCERT rule is that monocots lack secondary growth. <i>Dracaena</i> is a rare exception beyond NCERT, described in standard plant-anatomy texts." (R2 22)
+20. E, E, Introduction: "NEET has asked about commercial fibre sources (the book’s estimate, not official), and" and "(timber, mostly from heartwood, cork from the phellem of <i>Quercus suber</i>)" (R2 8; R1 13 consequence)
+21. E, E, table title: "Commercial products and their anatomical sources (each traced to a tissue the chapter describes)"; column heading "Plant source" (R2 5, 23)
+22. E, E, table Cork row: tissue type "Phellem (part of the periderm)", cell type "Dead, suberised cells" (R2 23)
+23. E, E, table Timber row: source "Trees with secondary growth (dicots and gymnosperms)", cell type "Tracheids (and vessels in dicot wood), fibres, parenchyma" (R2 6). Hardboard row deleted (R2 7).
+24. E, F, Step 2: "(Five or six groups is uncommon; settle it by the pith.)" (R2 17)
+25. E, F, Universal check: "These two attributes resolve the three simple permanent tissues in nearly every exam question." (R2 18)
+26. E, F, Introduction: "NEET and CUET often combine these" (R2 8)
+27. E, F, Worked ex 1 reasoning: "...is the classic pattern of a monocot stem." (R2 19)
+28. E, F, Worked ex 3 reasoning: "(suberin bands on radial and transverse walls)" (R1 16 consequence)
+29. E, G, Distribution table row 1: "...the dedifferentiation/redifferentiation pair is a high-yield trap." Row 2: "...recur often; the “only living xylem cell / only anucleate living cell” uniqueness facts are single-mark facts." (R2 8)
+30. E, G, Distribution lower paragraph: "...usually requiring dicot/monocot discrimination or endarch/exarch placement. The radial-vs-conjoint bundle geometry and the bulliform-cell function are two often-tested facts from this zone. (All of these frequency statements are the book’s estimate, not official.)" (R2 8)
+31. E, G, Archetype 1: "Dead → sclerenchyma (among the three simple tissues)."; "Run the first two steps of Framework B (Topic 01):"; "That is the whole ladder for the three simple tissues." (R2 9)
+32. E, G, Archetype 3 approach: "Judge A and R separately. If A is true and R is false, the answer is (c); if A is false and R is true, it is (d). If both are true, check whether the causal link holds: (a) if R explains A, (b) if not." The sentence about Framework A supplying the causal chain is kept. (R2 1)
+33. E, G, Archetype 4: "each term has a feature the others do not share:"; "• Vessel → fused open tube (characteristic of angiosperms)"; "• Tracheid → tapering ends, pits (found in all vascular plants; in most gymnosperms the only conducting element)"; "(e.g. a sieve tube element and a companion cell are both living)"; "the descriptor the others do not share." (R2 10)
+34. E, G, Archetype 5 worked example: "Endodermis with Casparian strips → root (not stem)." (R2 12)
+35. E, G, Traps table: "The gritty-pulp clue is the surest identifier; without it, shape descriptions blur."; "the spatial distinction (out vs in) is the quickest way to separate them."; guard-cell row: "Dicots = kidney (bean); grasses (monocots such as wheat, maize) = dumb-bell" (R2 14; R1 8 consequence)
+36. E, G, Q7: option set printed: "(a) Both A and R true, R is the correct explanation of A / (b) Both A and R true, R is not the correct explanation of A / (c) A true, R false / (d) A false, R true" (R2 11)
+
+## keypoints-biology-11-06.ts
+
+37. K, topic 0, mixup (dedifferentiation): "...as the medullary-ray cells between the bundles do to form the interfascicular cambium, and cortical cells do to form the cork cambium." (R1 1)
+38. K, topic 1, remember #1: "phloem (bast) fibres (dead, support; generally absent from primary phloem, and phloem parenchyma is absent in most monocots)" (R1 22)
+39. K, topic 1, mixup (tracheid/vessel): "Tracheids occur in all vascular plants (in most gymnosperms they are the only water-conducting elements); vessels are characteristic of angiosperms." (R1 3)
+40. K, topic 2, remember #1: "radial (xylem and phloem on alternate radii, in roots; the primary bundle has no cambium)" (R1 6)
+41. K, topic 2, remember #2: "(cortex, endodermis or starch sheath, pericycle, pith; some books place the pericycle in the stele)" (R1 17)
+42. K, topic 2, mixup (guard cells): "Guard cells are kidney (bean) shaped in dicots and dumb-bell shaped in grasses (monocots such as wheat and maize)." (R1 8)
+43. K, topic 3, remember #1: "...for example the secondary phloem and the periderm, together with any primary phloem and cortex still present." (R1 5)
+44. K, topic 3, mixup (heartwood/sapwood): "It is a durable, decay-resistant support tissue, protected by tannins, resins and tyloses, which is why furniture, railway sleepers and beams are mostly cut from the dark heartwood. ... it contains living parenchyma, and its conducting elements are dead but functional." (R1 7, 13)
+45. K, topic 4, remember #1: "(... xylem inward and phloem outward; on separate radii in a root, with protoxylem exarch)"; "arising later from mature permanent cells" (R2 2, 3)
+46. K, topic 6, remember #1: "...and other Cucurbitaceae, and in some Solanaceae and Convolvulaceae." (R2 20)
+47. K, topic 7, remember #1: "...the NCERT rule is that monocots lack secondary growth. ... are rare exceptions beyond NCERT:" (R2 22)
+48. K, topic 8, remember #1: "..., from trees with secondary growth (dicots and gymnosperms)." (R2 6)
+49. K, topic 9, remember #2: "(suberin bands)" for the Casparian thickenings (R1 16)
+50. K, topic 10, remember #1: "assertion-reason (judge A and R, then the causal link)"; "match the column (find a feature the others do not share)" (R2 1, 10)
+51. K, topic 10, mistake: "grasses dumb-bell"; why: "In the worked and graded sets, “sclereids are typically long with tapering ends” (the which-is-not-true example) and “collenchyma walls are uniformly thickened with lignin” (Q5) are the false statements." (R2 13; R1 8)
+52. K, file header comment: the correction notes (gymnosperm tracheids, guard cells, cambia, radial bundles, timber/sapwood, pericycle, bark, D and E and G rows) were reworded to match the above.
