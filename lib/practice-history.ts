@@ -31,7 +31,7 @@ import type { DiagramFigure, QuestionType, StructuredSolution } from '@/lib/prac
  *        day ("2 of 9") and the previous / next answer ids.
  */
 
-export const HISTORY_SOURCE = 'sample' as 'sample' | 'server';
+export const HISTORY_SOURCE = 'server' as 'sample' | 'server';
 
 /** History is only offered when it can show something real — or in a dev
  *  build, where the sample data is the point. */
