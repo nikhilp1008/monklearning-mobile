@@ -250,13 +250,33 @@ export function getHistoryCalendar() {
   );
 }
 
+/** The server names the day's totals `counts` and keys `subjects` by name;
+ *  the screens read `all` and a list. Accepts either shape. */
+export function toHistoryDay(raw: unknown): HistoryDay {
+  const r = (raw ?? {}) as Record<string, any>;
+  const zero: HistoryCounts = { total: 0, correct: 0, wrong: 0, skipped: 0 };
+  const subjects = Array.isArray(r.subjects)
+    ? r.subjects
+    : Object.entries((r.subjects ?? {}) as Record<string, HistoryCounts>).map(([subject, counts]) => ({
+        subject,
+        counts,
+      }));
+  return {
+    date: r.date,
+    all: r.all ?? r.counts ?? zero,
+    subjects,
+    items: r.items ?? [],
+    next_cursor: r.next_cursor ?? null,
+  };
+}
+
 export function getHistoryDay(date: string, f: Filters & { cursor?: string | null } = {}) {
   const tz = timeZone();
   const key = `day:${date}:${f.subject ?? 'all'}:${f.result ?? 'all'}`;
   const load = () =>
     HISTORY_SOURCE === 'sample'
       ? sampleDay(date, f)
-      : apiFetch<HistoryDay>(
+      : apiFetch<unknown>(
           `/practice/history/day${query({
             date,
             tz,
@@ -264,7 +284,7 @@ export function getHistoryDay(date: string, f: Filters & { cursor?: string | nul
             result: f.result && f.result !== 'all' ? f.result : null,
             cursor: f.cursor ?? null,
           })}`
-        );
+        ).then(toHistoryDay);
   // Only the first page is kept for offline; "load more" needs a connection.
   return f.cursor ? load().then((data) => ({ data, savedAt: null })) : cached(key, load);
 }
@@ -281,6 +301,9 @@ export function getHistoryAttempt(attemptId: string, f: Filters = {}) {
             subject: f.subject ?? null,
             result: f.result && f.result !== 'all' ? f.result : null,
           })}`
+        ).then((a) =>
+          // The server counts from 0; the screen shows "Question 2 of 9".
+          a.position ? { ...a, position: { ...a.position, index: a.position.index + 1 } } : a
         )
   );
 }
