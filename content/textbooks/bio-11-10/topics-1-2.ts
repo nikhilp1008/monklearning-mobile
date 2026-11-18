@@ -102,7 +102,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Beyond the Class 11 syllabus (enrichment, optional):</b> The deeper molecular details of cycle control (specific cyclin–CDK complexes, the “restriction point” R, and tumour-suppressor proteins such as p53/Rb) go beyond the NCERT text (a little beyond what CBSE and NEET usually ask), but are worth knowing. The named G<sub>1</sub>/S and G<sub>2</sub>/M check points and the cyclin–CDK mechanism above are within scope.',
+        html: '<b>Beyond the Class 11 syllabus (enrichment, optional):</b> The deeper molecular details of cycle control (specific cyclin–CDK complexes, the “restriction point” R, and tumour-suppressor proteins such as p53/Rb) go beyond the NCERT text (a little beyond what CBSE and NEET usually ask), but are worth knowing. The named G<sub>1</sub>/S and G<sub>2</sub>/M check points and the cyclin–CDK mechanism above are not in the NCERT text either; treat them as enrichment too.',
       },
 
       { t: 'part', title: 'Phase-by-phase process walkthrough' },

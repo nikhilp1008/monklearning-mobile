@@ -804,7 +804,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>1. Pure-Recall Fact Questions (“Which tissue…?”, “The gizzard lies in segments…”)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A single-sentence stem asking for a number, a location, or a tissue name. No elaboration, no manipulation required: either you know it or you don’t.<br><b>The crack:</b> These test the exact numbers and facts from NCERT. Build a small flashcard deck of the key earthworm segment numbers, the cockroach spiracle/heart counts, and the tissue defining features. Speed here comes from pattern recognition, not reasoning.<br><b>Representative example:</b>',
+        html: '<b>What it looks like:</b> A single-sentence stem asking for a number, a location, or a tissue name. No elaboration, no manipulation required: either you know it or you don’t.<br><b>The crack:</b> These test the exact numbers and facts from NCERT. Build a small flashcard deck of the key earthworm segment numbers, the cockroach spiracle count, and the tissue defining features. Speed here comes from pattern recognition, not reasoning.<br><b>Representative example:</b>',
       },
       {
         t: 'ex',
@@ -934,7 +934,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Hard] Which of the following statements about cockroach is INCORRECT? <b>(a) Blood vascular system is of the open type. (b) They are monoecious. (c) Nymph grows by moulting about 13 times to reach the adult form. (d) Heart consists of 13 chambers.</b>',
-            a: '<b>(b).</b> Cockroaches are dioecious: sexes are separate (male and female individuals). They are not monoecious. Statements (a), (c), and (d) are all correct: open circulatory system, paurometabolous development with ~13 nymphal moults, and a 13-chambered dorsal heart are all NCERT facts.',
+            a: '<b>(b).</b> Cockroaches are dioecious: sexes are separate (male and female individuals). They are not monoecious. Statements (a), (c), and (d) are all correct: open circulatory system and paurometabolous development with ~13 nymphal moults are NCERT facts, and the 13-chambered dorsal heart is a standard zoology fact (NCERT says only that the heart has funnel-shaped chambers).',
           },
           {
             q: '[Hard] The spermathecae of <i>Pheretima</i> are located in segments: <b>(a) 14 to 18 (b) 10 to 13 (c) 6 to 10 (d) 6 to 9</b>',

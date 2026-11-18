@@ -129,7 +129,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Framework A: running a primary succession.</b> <b>Xerarch (on bare rock):</b> bare rock → <b>crustose lichens</b> (pioneers, e.g. <i>Rhizocarpon</i>, <i>Rinodina</i>; they secrete acids that weather the rock and begin soil formation) → <b>foliose lichens</b> (e.g. <i>Parmelia</i>, <i>Dermatocarpon</i>) → <b>mosses</b> (e.g. <i>Polytrichum</i>, <i>Grimmia</i>) → <b>herbs</b> → <b>shrubs</b> (e.g. <i>Rhus</i>) → <b>climax community</b> (a forest, where the climate allows). <b>Hydrarch (in open water):</b> phytoplankton (diatoms, green algae) → submerged rooted plants (e.g. <i>Hydrilla</i>, <i>Vallisneria</i>, <i>Potamogeton</i>) → free-floating and rooted floating plants (e.g. <i>Wolffia</i>, <i>Azolla</i>; <i>Nymphaea</i>, <i>Trapa</i>) → reeds and sedges (e.g. <i>Sagittaria</i>, <i>Juncus</i>, <i>Carex</i>) → mesic herb/shrub communities → <b>climax community</b> (a terrestrial forest, where the climate allows). (NCERT’s text gives the shorter order phytoplankton → free-floating plants → rooted hydrophytes → sedges and grasses → trees; its figure gives the stages above.) <b>Why the order?</b> Each seral stage <b>modifies its own habitat</b> (adding soil, organic matter, moisture or shade), making conditions better for the next community and often worse for itself. That is the engine that drives the sequence forward, and it is why both hydrarch and xerarch routes head toward the same balanced <b>mesic</b> endpoint.',
+        html: '<b>Framework A: running a primary succession.</b> <b>Xerarch (on bare rock):</b> bare rock → <b>crustose lichens</b> (pioneers, e.g. <i>Rhizocarpon</i>, <i>Rinodina</i>; they secrete acids that weather the rock and begin soil formation) → <b>foliose lichens</b> (e.g. <i>Parmelia</i>, <i>Dermatocarpon</i>) → <b>mosses</b> (e.g. <i>Polytrichum</i>, <i>Grimmia</i>) → <b>herbs</b> → <b>shrubs</b> (e.g. <i>Rhus</i>) → <b>climax community</b> (a forest, where the climate allows). <b>Hydrarch (in open water):</b> phytoplankton (diatoms, green algae) → submerged rooted plants (e.g. <i>Hydrilla</i>, <i>Vallisneria</i>, <i>Potamogeton</i>) → free-floating and rooted floating plants (e.g. <i>Wolffia</i>, <i>Azolla</i>; <i>Nymphaea</i>, <i>Trapa</i>) → reeds and sedges (e.g. <i>Sagittaria</i>, <i>Juncus</i>, <i>Carex</i>) → mesic herb/shrub communities → <b>climax community</b> (a terrestrial forest, where the climate allows). (NCERT’s text gives phytoplankton → rooted submerged plants → rooted floating angiosperms → free-floating plants → reed-swamp → marsh-meadow → scrub → trees, and its figure shows the same stages; the example genera are ours, not NCERT’s.) <b>Why the order?</b> Each seral stage <b>modifies its own habitat</b> (adding soil, organic matter, moisture or shade), making conditions better for the next community and often worse for itself. That is the engine that drives the sequence forward, and it is why both hydrarch and xerarch routes head toward the same balanced <b>mesic</b> endpoint.',
       },
       {
         t: 'p',
@@ -334,7 +334,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The key idea is that these services are not things we manufacture; they are by-products of an ecosystem simply functioning normally. Because they arrive without an invoice, we tend to take them for granted, which is exactly why economists eventually tried to put a price on them, to make their value visible. <b>Forests</b> are the usual example of an ecosystem that delivers many of these services at once, which is why NCERT names them as the major source of ecological services.',
+        html: 'The key idea is that these services are not things we manufacture; they are by-products of an ecosystem simply functioning normally. Because they arrive without an invoice, we tend to take them for granted, which is exactly why economists eventually tried to put a price on them, to make their value visible. <b>Forests</b> are the usual example of an ecosystem that delivers many of these services at once, which is why NCERT uses forests as its example of an ecosystem that provides these services.',
       },
       {
         t: 'p',
@@ -512,7 +512,7 @@ export const TOPICS: Topic[] = [
           '<b>$33 trillion vs $18 trillion.</b> US $33 trillion is the <b>value of the services</b>; US $18 trillion is the <b>global GNP</b> they are compared with. Swapping the two is the most common error (the book’s estimate from past papers, not official figures).',
           '<b>Soil formation is the biggest slice (~50%).</b> Not recreation, not climate regulation: those are minor (<10% and ~6%). (NCERT’s labelling; in Costanza et al.’s original table the half share is nutrient cycling.)',
           '<b>“Service” means nature’s free by-product.</b> Manufactured goods (fertiliser, electricity, plastic) are never ecosystem services, however useful: a frequent “which is NOT” trap.',
-          '<b>Forests are the named major source</b> of ecological services in NCERT: a common one-mark fill-in.',
+          '<b>Forests are NCERT’s example</b> of an ecosystem providing these services (purifying air and water, and so on).',
         ],
       },
       {

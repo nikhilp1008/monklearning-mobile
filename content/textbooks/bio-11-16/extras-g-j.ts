@@ -438,7 +438,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 4: Match-the-Column</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like.</b> Two columns (sometimes three) that must be paired by function, structure, or disorder. NEET has used this format for Topic 01 (organ → animal group), Topic 02 (structure → function), and Topic 04 (disorder → description) (the book’s estimate from past papers, not official figures).<br><br><b>The approach that cracks it.</b> Draw a quick mental table before looking at the options. For each item in Column I, recall its Column II partner from the NCERT table. Then compare your table to the given options.',
+        html: '<b>What it looks like.</b> Two columns (sometimes three) that must be paired by function, structure, or disorder. NEET has used this format for Topic 01 (organ → animal group), Topic 02 (structure → function), and Topic 04 (disorder → description) (the book’s estimate from past papers, not official figures).<br><br><b>The approach that cracks it.</b> Draw a quick mental table before looking at the options. For each item in Column I, recall its Column II partner from the NCERT text. Then compare your table to the given options.',
       },
       { t: 'p', html: '<b>Fully worked representative example:</b>' },
       {

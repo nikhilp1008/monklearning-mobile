@@ -1000,7 +1000,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Identifying an Animal from Features.</b> An animal has: (i) an open circulatory system, (ii) Malpighian tubules for excretion, (iii) a chitinous exoskeleton, and (iv) 10 pairs of spiracles. The animal is: <b>(a)</b> earthworm, <b>(b)</b> cockroach, <b>(c)</b> frog, <b>(d)</b> <i>Hydra</i>.',
         steps: [
           '<b>Speed reasoning.</b> Scan for the most restrictive unique marker. Malpighian tubules, spiracles, a chitinous exoskeleton and an open circulation together point to an insect. The earthworm and the frog both have closed circulation and no spiracles, and <i>Hydra</i> has none of these organs. Among the options only the cockroach is an insect.',
-          '<b>Note:</b> other insects also share the first three features; the NCERT-specific cockroach fact is its 10 pairs of spiracles (2 thoracic + 8 abdominal).',
+          '<b>Note:</b> other insects also share the first three features; the NCERT-specific cockroach fact is its 10 pairs of spiracles (the 2 thoracic + 8 abdominal split is from standard zoology texts, not NCERT).',
         ],
         ans: '(b) Cockroach.',
       },

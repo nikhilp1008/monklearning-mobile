@@ -405,7 +405,7 @@ export const TOPICS: Topic[] = [
         head: ['Group', 'Organism', 'Product / Use', 'Chapter reference'],
         rows: [
           ['<b>Chlorophyceae (Green Algae)</b>', '<i>Chlorella</i>', 'Protein-rich food supplement; single-cell protein', 'Topic 02, section 3.3'],
-          ['<b>Cyanobacteria</b> (listed with the algae in NCERT)', '<i>Spirulina</i>', 'Protein-rich food supplement; single-cell protein', 'Topic 02, section 3.3'],
+          ['<b>Cyanobacteria</b>', '<i>Spirulina</i>', 'Protein-rich food supplement; single-cell protein', 'Topic 02, section 3.3'],
           ['<b>Rhodophyceae (Red Algae)</b>', '<i>Gracilaria</i>', 'Agar (culture medium for microbes; food industry for jellies and ice creams)', 'Topic 02, section 3.3'],
           ['<b>Rhodophyceae</b>', '<i>Gelidium</i>', 'Agar (alternative source)', 'Topic 02, section 3.3'],
           ['<b>Rhodophyceae</b>', 'Various (e.g., <i>Chondrus</i>)', '<b>Carrageen</b>: hydrocolloid used in food, pharmaceuticals', 'Topic 02, section 3.3'],

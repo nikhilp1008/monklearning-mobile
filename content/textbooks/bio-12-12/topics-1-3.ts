@@ -233,7 +233,7 @@ export const TOPICS: Topic[] = [
           { label: 'decomposer activity alone', nudge: '<b>(d)</b> confuses a decomposition driver with a productivity driver.' },
         ],
         correct: 2,
-        solution: 'NCERT names both nutrient availability and the plants’ photosynthetic capacity, with temperature/water/light as further factors.',
+        solution: 'NCERT names both nutrient availability and the plants’ photosynthetic capacity, along with the plant species present and a variety of environmental factors.',
       },
 
       { t: 'part', title: 'Common student pitfalls and pro-tips' },

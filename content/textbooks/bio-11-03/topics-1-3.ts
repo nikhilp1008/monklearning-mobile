@@ -404,7 +404,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3.3 Economic importance (high-yield CBSE/CUET facts)</b>' },
       {
         t: 'p',
-        html: '• <b>Food:</b> <i>Chlorella</i> (a unicellular green alga) and <i>Spirulina</i> (a filamentous cyanobacterium, listed with the algae in NCERT) are protein-rich food supplements; <i>Porphyra</i>, <i>Laminaria</i>, and <i>Sargassum</i> are eaten in several countries.<br>• <b>Hydrocolloids: algin</b> (from brown algae) and <b>carrageen</b> (from red algae) are commercially important water-holding substances.<br>• <b>Agar:</b> obtained from <i>Gracilaria</i> and <i>Gelidium</i> (red algae); used to <b>culture microbes</b> and to make <b>ice creams and jellies</b>.<br>• <b>Reef building:</b> some calcareous red algae deposit calcium carbonate and contribute to <b>coral reefs and limestone</b>.',
+        html: '• <b>Food:</b> <i>Chlorella</i> (a unicellular green alga; NCERT’s example) and <i>Spirulina</i> (a filamentous cyanobacterium, not named in NCERT) are protein-rich food supplements; <i>Porphyra</i>, <i>Laminaria</i>, and <i>Sargassum</i> are eaten in several countries.<br>• <b>Hydrocolloids: algin</b> (from brown algae) and <b>carrageen</b> (from red algae) are commercially important water-holding substances.<br>• <b>Agar:</b> obtained from <i>Gracilaria</i> and <i>Gelidium</i> (red algae); used to <b>culture microbes</b> and to make <b>ice creams and jellies</b>.<br>• <b>Reef building:</b> some calcareous red algae deposit calcium carbonate and contribute to <b>coral reefs and limestone</b>.',
       },
 
       { t: 'part', title: 'Worked questions' },

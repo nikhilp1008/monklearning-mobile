@@ -157,7 +157,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Both are prokaryotic kingdoms. The five-kingdom system treats both as Monera; the six-kingdom system separates them. NCERT Class 11 teaches Whittaker’s five kingdoms and names Archaebacteria and Eubacteria within Monera; the six-kingdom label and Woese’s name are extra, but they appear in statement items.',
+        html: 'Both are prokaryotic kingdoms. The five-kingdom system treats both as Monera; the six-kingdom system separates them. NCERT Class 11 teaches Whittaker’s five kingdoms and names Archaebacteria and Eubacteria within Monera, and mentions in one sentence that the three-domain system gives a six-kingdom classification; Woese’s name is extra, but it appears in statement items.',
       },
       { t: 'p', html: '<b>Kingdom assignments for examinable organisms.</b>' },
       {

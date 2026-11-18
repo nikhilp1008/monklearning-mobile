@@ -282,7 +282,7 @@ export const TOPICS: Topic[] = [
           [
             '<b>Pigeon trap</b>',
             '“Pigeon” listed as a recent extinction → students may pick it',
-            'A question may offer “pigeon”. The passenger pigeon (<i>Ectopistes migratorius</i>, North America; the last bird died in 1914) is extinct, but pigeons in general (the rock pigeon <i>Columba livia</i>, for example) are not. It is not among NCERT’s named recent extinctions (Dodo, Quagga, Thylacine, Steller’s sea cow, three tiger subspecies).',
+            'A question may offer “pigeon”. The passenger pigeon (<i>Ectopistes migratorius</i>, North America; the last bird died in 1914) is extinct, but pigeons in general (the rock pigeon <i>Columba livia</i>, for example) are not. It is not in NCERT’s list of recent extinctions (Dodo, Quagga, Thylacine, Steller’s sea cow, three tiger subspecies), but NCERT does name it, with Steller’s sea cow, as an extinction caused by over-exploitation.',
           ],
           [
             '<b>°F vs °C in cryopreservation</b>',

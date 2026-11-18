@@ -53,7 +53,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'NCERT counts three phases. The four steps listed under Key processes and mechanisms split the cycle by the valves: steps 1 and 4 together are the “joint diastole” of the three-phase count (all chambers relaxed).',
+        html: 'The three-phase count (joint diastole, atrial systole, ventricular systole) follows NCERT’s narration of the cycle. The four steps listed under Key processes and mechanisms split the cycle by the valves: steps 1 and 4 together are the “joint diastole” of the three-phase count (all chambers relaxed).',
       },
       {
         t: 'table',

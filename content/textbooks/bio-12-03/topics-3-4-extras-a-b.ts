@@ -343,7 +343,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Safety window (the NCERT medical fact, high-yield):</b><br>• Relatively safe in the <b>FIRST TRIMESTER (up to ~12 weeks).</b><br>• <b>Riskier in the SECOND TRIMESTER</b>, because the foetus is by then intimately associated with maternal tissue.',
+        html: '<b>Safety window (the NCERT medical fact, high-yield):</b><br>• Relatively safe in the <b>FIRST TRIMESTER (up to ~12 weeks).</b><br>• <b>Riskier in the SECOND TRIMESTER</b> (NCERT); the usual explanation, beyond NCERT, is that the foetus is by then intimately associated with maternal tissue.',
       },
       {
         t: 'p',
@@ -359,7 +359,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Significance vs. drawbacks</b><br>• Significance: safely removes unwanted or harmful pregnancies and protects the health and life of the mother. <b>Note:</b> MTP is <b>not</b> intended as a tool of population control or contraception: its role in reducing population is insignificant; it exists for the health and welfare of the individual. NCERT adds that it does have a significant role in decreasing the population, though it is not meant for that purpose.<br>• Drawbacks/concerns: <b>misused for female foeticide</b> after illegal sex-determination; raises emotional, ethical, religious and social questions; unsafe if done late or by unqualified persons.',
+        html: '<b>Significance vs. drawbacks</b><br>• Significance: safely removes unwanted or harmful pregnancies and protects the health and life of the mother. <b>Note:</b> MTP is <b>not</b> intended as a tool of population control or contraception: its role in reducing population is insignificant; it exists for the health and welfare of the individual.<br>• Drawbacks/concerns: <b>misused for female foeticide</b> after illegal sex-determination; raises emotional, ethical, religious and social questions; unsafe if done late or by unqualified persons.',
       },
 
       { t: 'part', title: 'Mechanisms and procedures' },

@@ -99,7 +99,7 @@ export const TOPICS: Topic[] = [
         t: 'p',
         html: 'This is why, under the microscope, an apomictic embryo sac can look perfectly ordinary yet its cells are diploid, the give-away that meiosis was skipped. The NCERT Exemplar turns this into a reasoning question: an apomictic embryo sac appears normal but contains diploid cells: explain. The answer follows directly from the logic above: the megaspore mother cell bypassed the reductional (meiotic) division, so the embryo sac it produced retained the full diploid set even though its overall structure developed normally.',
       },
-      { t: 'p', html: '<b>3.2 Routes to apomictic seeds (beyond NCERT: NEET-advanced)</b>' },
+      { t: 'p', html: '<b>3.2 Routes to apomictic seeds (the names are beyond NCERT: NEET-advanced; NCERT describes the unreduced-egg and nucellar routes without naming them)</b>' },
       {
         t: 'p',
         html: 'Apomixis (in the broad sense) splits into <b>vegetative reproduction</b> and <b>agamospermy</b> (seed-forming apomixis). Winkler’s original, broad sense of the word also counted vegetative reproduction; in NCERT and in most exam answers apomixis means asexual seed formation (agamospermy). Within agamospermy:<br>• <b>Diplospory</b>: the megaspore mother cell itself becomes the (diploid) embryo sac.<br>• <b>Apospory</b>: a neighbouring somatic cell forms an extra (diploid) embryo sac.<br>• <b>Adventive embryony</b>: embryos bud directly from diploid nucellar/integumentary cells, with no embryo sac stage (the nucellar cells may protrude into the sac cavity but form no egg) (the <i>Citrus</i> route).',
@@ -317,7 +317,7 @@ export const TOPICS: Topic[] = [
             note: 'embryos from <b>diploid maternal nucellar tissue</b> → clones; nucellar seedlings tend to be <b>disease-free</b> (usually virus-free) and are often described as <b>superior to plants raised by vegetative propagation</b>, so they are valued as true-to-type planting stock and rootstocks.',
           },
           {
-            f: '<b>Apomixis routes (beyond NCERT)</b>',
+            f: '<b>Apomixis routes (names beyond NCERT)</b>',
             note: 'agamospermy → <b>diplospory</b> (MMC → 2<i>n</i> embryo sac), <b>apospory</b> (outside cell → embryo sac), <b>adventive embryony</b> (nucellar cell → embryo, bypasses sac).',
           },
           {
@@ -358,7 +358,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The ABA/GA biochemical switch at germination.</b> The standard teaching (NCERT Class 11, plant growth regulators) is that ABA enforces dormancy and GA breaks it; the mechanism is testable:<br>1. <b>Dry seed:</b> high ABA maintains dormancy, suppresses metabolic activity and prevents premature germination.<br>2. <b>Imbibition:</b> water uptake begins; ABA levels start to fall if conditions are favourable, and gibberellin synthesis begins in the embryo.<br>3. <b>GA synthesis:</b> the embryo produces GA which diffuses to the aleurone layer (in cereals).<br>4. <b>Aleurone response:</b> GA triggers transcription of genes encoding alpha-amylase and other hydrolytic enzymes.<br>5. <b>Starch hydrolysis:</b> alpha-amylase breaks stored starch into sugars in the endosperm.<br>6. <b>Nutrient supply:</b> sugars reach the embryo; the radicle protrudes: germination is complete.<br>7. <b>Meanwhile, ABA antagonism:</b> ABA blocks GA signalling at the aleurone layer, preventing alpha-amylase gene expression.',
+        html: '<b>The ABA/GA biochemical switch at germination.</b> The standard teaching (NCERT Class 11, plant growth regulators) is that ABA induces seed dormancy, inhibits germination and acts as an antagonist to GAs (that GA breaks dormancy goes beyond NCERT, which credits ethylene with breaking seed dormancy); the mechanism is testable:<br>1. <b>Dry seed:</b> high ABA maintains dormancy, suppresses metabolic activity and prevents premature germination.<br>2. <b>Imbibition:</b> water uptake begins; ABA levels start to fall if conditions are favourable, and gibberellin synthesis begins in the embryo.<br>3. <b>GA synthesis:</b> the embryo produces GA which diffuses to the aleurone layer (in cereals).<br>4. <b>Aleurone response:</b> GA triggers transcription of genes encoding alpha-amylase and other hydrolytic enzymes.<br>5. <b>Starch hydrolysis:</b> alpha-amylase breaks stored starch into sugars in the endosperm.<br>6. <b>Nutrient supply:</b> sugars reach the embryo; the radicle protrudes: germination is complete.<br>7. <b>Meanwhile, ABA antagonism:</b> ABA blocks GA signalling at the aleurone layer, preventing alpha-amylase gene expression.',
       },
       {
         t: 'p',

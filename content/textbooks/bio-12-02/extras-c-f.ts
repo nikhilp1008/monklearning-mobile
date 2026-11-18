@@ -52,7 +52,7 @@ export const TOPICS: Topic[] = [
           [
             'Mifepristone (RU-486)',
             'Blocks progesterone receptors, so the endometrium breaks down and cannot sustain an implanted embryo',
-            'Not a contraceptive in the NCERT context; used for medical termination of early pregnancy',
+            'Not covered in NCERT; used for medical termination of early pregnancy, not as a routine contraceptive',
           ],
           [
             'Copper-releasing IUD (Cu-T, Cu-7)',

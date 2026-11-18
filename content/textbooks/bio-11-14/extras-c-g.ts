@@ -46,7 +46,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'This exchange is rapid (completes in less than a second) and maintains the Gibbs-Donnan equilibrium across the RBC membrane. The Gibbs-Donnan wording goes beyond the NCERT text; the chapter itself needs only the exchange of bicarbonate for chloride.',
+        html: 'This exchange is rapid (completes in less than a second) and maintains the Gibbs-Donnan equilibrium across the RBC membrane. Both the chloride shift and the Gibbs-Donnan wording go beyond the NCERT text, which covers only the formation of bicarbonate by carbonic anhydrase.',
       },
 
       { t: 'part', title: 'Worked examples' },

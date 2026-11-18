@@ -44,11 +44,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'A crucial nuance: <b>most of these drugs have legitimate medicinal uses, and abuse is the misuse of that medicine.</b> <b>Morphine</b> is an excellent painkiller for post-surgery patients; <b>barbiturates and benzodiazepines</b> are genuine sedatives and tranquillisers (used, for example, for anxiety and insomnia), and <b>amphetamines</b> are stimulants with medical uses of their own; NCERT groups all three as medicines normally used to help patients cope with mental illnesses such as depression and insomnia. The molecule is not evil: the pattern of use is.',
+        html: 'A crucial nuance: <b>most of these drugs have legitimate medicinal uses, and abuse is the misuse of that medicine.</b> <b>Morphine</b> is an excellent painkiller for post-surgery patients; <b>barbiturates and benzodiazepines</b> are genuine sedatives and tranquillisers (used, for example, for anxiety and insomnia), and <b>amphetamines</b> are stimulants with medical uses of their own; NCERT groups barbiturates, amphetamines and benzodiazepines as medicines normally used to help patients cope with mental illnesses such as depression and insomnia, and describes morphine separately as a sedative and painkiller for surgery patients. The molecule is not evil: the pattern of use is.',
       },
       {
         t: 'p',
-        html: '<b>Why are adolescents especially drawn in?</b> The reasons are rarely chemical at first: they are emotional and social. NCERT highlights a cluster: natural <b>curiosity and the need for adventure, excitement and experimentation</b>; the desire to <b>escape from stress, frustration, anxiety or depression</b>, often arising from academic or personal pressure; and <b>peer pressure</b>, the wish to fit in or appear grown-up. Two background factors amplify all of these: <b>unstable or unsupportive family structures</b> and the <b>glamorisation of drugs and alcohol</b> in films, television and advertising, which makes experimentation seem normal. Recognising that the root is psychological and social explains why prevention focuses on counselling and support, not just on warning about the chemicals.',
+        html: '<b>Why are adolescents especially drawn in?</b> The reasons are rarely chemical at first: they are emotional and social. NCERT highlights a cluster: natural <b>curiosity and the need for adventure, excitement and experimentation</b>; the desire to <b>escape facing problems</b>, and stress from the pressure to excel in academics; and <b>peer pressure</b>, the wish to fit in or appear grown-up. Two background factors amplify all of these: <b>unstable or unsupportive family structures</b> and the <b>glamorisation of drugs and alcohol</b> in films, television and advertising, which makes experimentation seem normal. Recognising that the root is psychological and social explains why prevention focuses on counselling and support, not just on warning about the chemicals.',
       },
       {
         t: 'p',
@@ -303,7 +303,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>Alcohol</b>', note: 'ethanol; chronic → <b>cirrhosis</b> of liver.' },
           {
             f: '<b>Medicinal uses</b>',
-            note: 'morphine (post-surgery painkiller); barbiturates/benzodiazepines (sedatives and tranquillisers); amphetamines (stimulants); NCERT groups these as medicines for coping with depression and insomnia; abused when misused.',
+            note: 'morphine (post-surgery painkiller); barbiturates/benzodiazepines (sedatives and tranquillisers); amphetamines (stimulants); NCERT groups barbiturates, amphetamines and benzodiazepines as medicines for coping with depression and insomnia (morphine separately as a painkiller); abused when misused.',
           },
           {
             f: '<b>Prevention/de-addiction</b>',

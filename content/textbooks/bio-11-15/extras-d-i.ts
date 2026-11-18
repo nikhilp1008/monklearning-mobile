@@ -541,7 +541,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>1. Direct Fact / Definition (single best answer, no elaboration)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A clean declarative stem: “Which one engulfs pathogens rapidly?” or “The pacemaker of the human heart is”, with four factual distractors. No passage to read; the answer lives in one line of the NCERT table.<br><b>Approach:</b> These are pure recall. If you have the tables (WBC differential, clotting factors, blood-group antigens) locked in memory, you circle the answer in under 30 seconds. If a name feels unfamiliar, eliminate by what you do know: neutrophils are the phagocytes, SA node is the pacemaker, the spleen destroys RBCs.',
+        html: '<b>What it looks like:</b> A clean declarative stem: “Which one engulfs pathogens rapidly?” or “The pacemaker of the human heart is”, with four factual distractors. No passage to read; the answer lives in one line of the NCERT text (or Table 15.1 for blood groups).<br><b>Approach:</b> These are pure recall. If you have the facts (WBC differential, the clotting steps, blood-group antigens) locked in memory, you circle the answer in under 30 seconds. If a name feels unfamiliar, eliminate by what you do know: neutrophils are the phagocytes, SA node is the pacemaker, the spleen destroys RBCs.',
       },
       {
         t: 'ex',

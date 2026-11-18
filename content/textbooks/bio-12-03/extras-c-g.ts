@@ -43,7 +43,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The demographic transition model (beyond NCERT; the chapter describes only the imbalance between falling death rate and high birth rate).</b> The demographic transition model describes this imbalance in stages:',
+        html: '<b>The demographic transition model (beyond NCERT; the chapter gives only the causes: a rapid fall in death rate, MMR and IMR and more people of reproductive age).</b> The demographic transition model describes this imbalance in stages:',
       },
       {
         t: 'table',
@@ -249,7 +249,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Medical (pharmacological) MTP protocol.</b> First-trimester medical abortion uses two drugs in sequence:<br>1. <b>Mifepristone (RU-486):</b> An antiprogestogen. It blocks progesterone receptors at the uterine level, causing decidual breakdown, softening of the cervix, and detachment of the embryo from the uterine wall. It also sensitises the myometrium to prostaglandins.<br>2. <b>Misoprostol:</b> A prostaglandin E<sub>1</sub> analogue. Given 24–48 hours after mifepristone, it induces uterine contractions that expel the conceptus. Used up to 9 weeks of gestation (63 days) for medical abortion (the figure in current Indian rules; NCERT gives only the 12-week safety limit).<br>The combination is ~95% effective. Surgical methods (MVA: Manual Vacuum Aspiration, or D&C: Dilatation and Curettage) are used for later or more advanced pregnancies where medical abortion is less reliable.',
+        html: '<b>Medical (pharmacological) MTP protocol.</b> First-trimester medical abortion uses two drugs in sequence:<br>1. <b>Mifepristone (RU-486):</b> An antiprogestogen. It blocks progesterone receptors at the uterine level, causing decidual breakdown, softening of the cervix, and detachment of the embryo from the uterine wall. It also sensitises the myometrium to prostaglandins.<br>2. <b>Misoprostol:</b> A prostaglandin E<sub>1</sub> analogue. Given 24–48 hours after mifepristone, it induces uterine contractions that expel the conceptus. Used up to 9 weeks of gestation (63 days) for medical abortion (the limit approved in India; NCERT gives only the 12-week safety limit).<br>The combination is ~95% effective. Surgical methods (MVA: Manual Vacuum Aspiration, or D&C: Dilatation and Curettage) are used for later or more advanced pregnancies where medical abortion is less reliable.',
       },
       {
         t: 'p',
@@ -299,7 +299,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] Up to how many weeks of gestation is the mifepristone-misoprostol regimen approved for medical abortion in India?',
-            a: 'Up to 9 weeks (63 days), the figure in current Indian rules (NCERT gives only the 12-week safety limit). For more advanced pregnancies, surgical methods (MVA, D&C) are used.',
+            a: 'Up to 9 weeks (63 days), the limit approved in India (NCERT gives only the 12-week safety limit). For more advanced pregnancies, surgical methods (MVA, D&C) are used.',
           },
           {
             q: '[NEET] What is the primary mechanism by which progestogen-only pills (mini-pills) prevent pregnancy, even in women who continue to ovulate?',
@@ -327,7 +327,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[NEET] Emergency contraceptive pills should be taken within how many hours of unprotected coitus?',
-            a: '72 hours (3 days) at the outside (NCERT’s limit); the earlier the better.',
+            a: '72 hours (3 days) at the outside (NCERT’s limit); the earlier the better. (WHO guidance allows some emergency methods up to 5 days.)',
           },
           {
             q: '[CBSE] Name the ART technique in which a donor ovum and the husband’s sperm are placed in the wife’s fallopian tube.',
@@ -355,7 +355,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Why is the copper-IUD described as both an emergency contraceptive and a long-term contraceptive?',
-            a: 'When inserted within 72 hours of unprotected coitus it prevents pregnancy as emergency contraception (the copper ions suppress sperm motility and fertilising capacity). After the emergency use it remains in place as an ongoing contraceptive for 5–10 years, depending on the device.',
+            a: 'When inserted within 72 hours of unprotected coitus (NCERT’s limit; WHO allows up to 5 days) it prevents pregnancy as emergency contraception (the copper ions suppress sperm motility and fertilising capacity). After the emergency use it remains in place as an ongoing contraceptive for 5–10 years, depending on the device.',
           },
           {
             q: '[NEET] A couple presents with male-factor infertility: very few sperm and none can penetrate the ovum. Which ART technique is indicated?',

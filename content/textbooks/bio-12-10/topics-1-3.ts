@@ -460,7 +460,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Because the product is structurally identical to human insulin, it does not carry the foreign-protein allergy risk of animal insulin, and because bacteria multiply endlessly in a tank, supply is no longer limited by slaughtering animals. (For scale, NCERT’s figures: around 30 recombinant therapeutics are approved for human use worldwide, of which about 12 are marketed in India, humulin being the flagship example; the numbers have grown since.)',
+        html: 'Because the product is structurally identical to human insulin, it does not carry the foreign-protein allergy risk of animal insulin, and because bacteria multiply endlessly in a tank, supply is no longer limited by slaughtering animals. (For scale, NCERT’s figures: around 30 recombinant therapeutics are approved for human use worldwide, of which about 12 are marketed in India; the numbers have grown since. Humulin, the brand name of this insulin, is the best-known example.)',
       },
       { t: 'fig', id: 'b12-10-fig-10.3' },
       { t: 'p', html: '<b>C. Insulin’s wider family: other recombinant therapeutics</b>' },

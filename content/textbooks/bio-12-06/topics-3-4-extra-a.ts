@@ -150,9 +150,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'CUET · single best option',
-        q: 'Which hominin is traditionally credited, in NCERT, with making and using tools?<br><b>(a)</b> <i>Australopithecus</i><br><b>(b)</b> <i>Homo habilis</i><br><b>(c)</b> <i>Homo erectus</i><br><b>(d)</b> Neanderthal man',
+        q: 'Which hominin is traditionally credited with making and using tools?<br><b>(a)</b> <i>Australopithecus</i><br><b>(b)</b> <i>Homo habilis</i><br><b>(c)</b> <i>Homo erectus</i><br><b>(d)</b> Neanderthal man',
         steps: [
-          '<b>Fast reasoning:</b> the name <i>Homo habilis</i> means “handy/skilful man,” a direct tag for tool use. <i>Australopithecus</i> (a) was bipedal but pre-tool; <i>Homo erectus</i> (c) is associated with <b>fire and meat-eating</b>, a later step; Neanderthal (d) used hides and buried its dead, later still. The “tool-maker” slot in NCERT belongs to <i>H. habilis</i>.',
+          '<b>Fast reasoning:</b> the name <i>Homo habilis</i> means “handy/skilful man,” a direct tag for tool use. <i>Australopithecus</i> (a) is described in NCERT as hunting with stone weapons, but the “handy man” tool-maker label belongs to <i>H. habilis</i>; <i>Homo erectus</i> (c) is associated with <b>fire and meat-eating</b>, a later step; Neanderthal (d) used hides and buried its dead, later still. The “tool-maker” label belongs to <i>H. habilis</i> in standard accounts; NCERT itself does not mention its tools.',
         ],
         ans: '(b)',
       },

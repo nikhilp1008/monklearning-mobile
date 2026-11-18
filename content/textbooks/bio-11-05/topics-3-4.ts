@@ -380,7 +380,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The pay-off is <b>classification</b>. Plants that share a pattern of floral characters are grouped into a <b>family</b>. NCERT studies three: <b>Fabaceae</b> (the pea/legume family), <b>Solanaceae</b> (the potato/tomato family, detailed in Topic 03), and <b>Liliaceae</b> (the lily family). Learn each as a single recognisable “signature,” and family questions answer themselves: the moment you see a papilionaceous corolla with diadelphous stamens, it is Fabaceae; five epipetalous stamens (free from one another, borne on the corolla) on a berry-forming plant, it is Solanaceae; six petaloid tepals with stamens on the perianth, it is Liliaceae.',
+        html: 'The pay-off is <b>classification</b>. Plants that share a pattern of floral characters are grouped into a <b>family</b>. NCERT describes Solanaceae in full; older editions also described Fabaceae and Liliaceae, and NEET still asks about all three: <b>Fabaceae</b> (the pea/legume family), <b>Solanaceae</b> (the potato/tomato family, detailed in Topic 03), and <b>Liliaceae</b> (the lily family). Learn each as a single recognisable “signature,” and family questions answer themselves: the moment you see a papilionaceous corolla with diadelphous stamens, it is Fabaceae; five epipetalous stamens (free from one another, borne on the corolla) on a berry-forming plant, it is Solanaceae; six petaloid tepals with stamens on the perianth, it is Liliaceae.',
       },
       {
         t: 'p',
