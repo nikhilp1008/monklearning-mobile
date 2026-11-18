@@ -51,14 +51,16 @@ describe('shadow', () => {
 });
 
 describe('insetLine', () => {
-  test('Android 7 to 9, which cannot draw inset shadows, gets a border', () => {
+  test('every Android gets a border: the inset shadow was not drawn even on Android 17', () => {
     on('android', 28);
+    expect(insetLine(1.5, 'gold')).toEqual({ borderWidth: 1.5, borderColor: 'gold' });
+    on('android', 29);
+    expect(insetLine(1, 'gold')).toEqual({ borderWidth: 1, borderColor: 'gold' });
+    on('android', 37);
     expect(insetLine(1.5, 'gold')).toEqual({ borderWidth: 1.5, borderColor: 'gold' });
   });
 
-  test('everywhere else the inset shadow stays, taking no room', () => {
-    on('android', 29);
-    expect(insetLine(1, 'gold')).toHaveProperty('boxShadow');
+  test('iOS keeps the inset shadow, taking no room', () => {
     on('ios', '17.0');
     expect(insetLine(1, 'gold')).toHaveProperty('boxShadow');
   });

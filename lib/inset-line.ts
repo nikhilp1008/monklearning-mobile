@@ -3,15 +3,21 @@ import { Platform, type ViewStyle } from 'react-native';
 /**
  * A HAIRLINE DRAWN JUST INSIDE A SHAPE'S EDGE, on every phone.
  *
- * The app draws these as an inset boxShadow, which sits inside the shape and
- * so takes no room. Android only draws inset shadows from Android 10; on 7 to
- * 9 they vanish, which turned the white outline button into an invisible
- * white box and took away the ring that shows which teacher is chosen. There,
- * and only there, the line is a plain border instead. Android 10 and up and
- * iOS keep the inset shadow, so nothing changes where it already draws.
+ * iOS draws it as an inset boxShadow, which sits inside the shape and takes
+ * no room.
+ *
+ * Android gets a plain border instead, on EVERY version. This used to switch
+ * to a border only on Android 7–9, on the belief that Android 10 and up draw
+ * inset shadows. They don't here: on the Android 17 emulator (17 Nov 2026)
+ * the white outline button (ObButton variant="outline") came out as a white
+ * box with no edge at all, so "Previous" on Practice history read as bare
+ * text. A border is drawn by every Android, and React Native counts it inside
+ * a shape's width and height, so a sized shape (every user of this today:
+ * ObButton's face, the teacher picker's close button and chips) keeps its
+ * size and only gives the line's width up from the inside.
  */
 export function insetLine(width: number, color: string): ViewStyle {
-  if (Platform.OS === 'android' && Number(Platform.Version) < 29) {
+  if (Platform.OS === 'android') {
     return { borderWidth: width, borderColor: color };
   }
   return {

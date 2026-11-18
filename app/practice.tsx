@@ -61,6 +61,8 @@ import { DEFAULT_PRACTICE_FOCUS, usePracticeFocus } from '@/lib/practice-focus-c
 import { sampleWeakChapterId } from '@/lib/weak-focus';
 import { hapticSoft, hapticSwitched, hapticTicked, hapticWarning } from '@/lib/haptics';
 import { lastFollowUpContext } from '@/lib/last-followup';
+import { HistoryIcon } from '@/components/practice-history/parts';
+import { HISTORY_ENABLED } from '@/lib/practice-history';
 import { openReportSheet } from '@/lib/reports';
 
 /**
@@ -719,9 +721,23 @@ export default function PracticeScreen() {
               a disc beside Ask follow-up, where it cost the bottom row width it
               needed for Next. Only while a question is on screen: there is
               nothing to report on a loading card or an empty pool. */}
-          {question ? (
+          {/* HISTORY, the last 90 days (app/practice-history.tsx). Beside the
+              flag rather than above the question (Nikhil, 17 Nov: a line over
+              the question distracted). Always here, flag or not, so a student
+              who has hit the day's limit can still look back at today. */}
+          {HISTORY_ENABLED && (
             <Pressable
               style={styles.reportButton}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Practice history"
+              onPress={() => router.push('/practice-history')}>
+              <HistoryIcon size={scale(16)} />
+            </Pressable>
+          )}
+          {question ? (
+            <Pressable
+              style={[styles.reportButton, HISTORY_ENABLED && styles.reportButtonAfterHistory]}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Report a mistake in this question"
@@ -1405,6 +1421,10 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.hairline,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    /** The history button takes the `auto` push, so the flag sits beside it. */
+    reportButtonAfterHistory: {
+      marginLeft: 0,
     },
     headerRow: {
       flexDirection: 'row',
