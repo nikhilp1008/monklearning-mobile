@@ -296,7 +296,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'Worked representative',
-        q: `In the logistic growth equation, the factor (1 − ${NK}) represents:<br><b>(a)</b> carrying capacity<br><b>(b)</b> intrinsic rate of natural increase<br><b>(c)</b> the fraction of carrying capacity not yet used (it falls towards 0 as environmental resistance rises)<br><b>(d)</b> biotic potential`,
+        q: `In the logistic growth equation, the factor (1 − ${NK}) represents:<br><b>(a)</b> carrying capacity<br><b>(b)</b> intrinsic rate of natural increase<br><b>(c)</b> environmental resistance (the fraction of carrying capacity not yet used)<br><b>(d)</b> biotic potential`,
         steps: [
           `${KNK} = 1 − ${NK} is the fraction of ${K} still unused. As ${N} approaches ${K} it falls to 0, which is the effect of rising environmental resistance (the limiting factors).`,
         ],

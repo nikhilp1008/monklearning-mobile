@@ -715,7 +715,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Arrange in decreasing order of number of described species: plants, insects, all (non-insect) animals.',
-            a: 'Insects (about 49%) come first. Plants (about 22%) and all other animals (about 21%) are nearly equal on the chapter’s rounded figures, so only the first place is certain: insects > plants ≈ other animals. (Animals are about 70%, insects about 70% of animals.)',
+            a: 'Insects (about 49%) > plants (about 22%) > all other animals (about 21%). (Animals are about 70% of species and insects about 70% of animals. The last two figures are close and rounded, so only insects first is firm.)',
           },
           {
             q: '[NEET] State the two main conclusions of David Tilman’s long-term ecosystem experiments.',
