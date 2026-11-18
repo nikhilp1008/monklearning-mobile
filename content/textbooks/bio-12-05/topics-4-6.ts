@@ -544,7 +544,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The HGP, launched in <b>1990</b>, was a mega-project to determine the sequence of all ~3 billion base pairs of human DNA and to identify all its genes. A surprising headline result: humans have only about <b>30,000 genes</b>, far fewer than the 80,000–140,000 once guessed, and not many more than a worm. Much of our genome doesn’t code for protein at all.',
+        html: 'The HGP, launched in <b>1990</b>, was a mega-project to determine the sequence of all ~3 billion base pairs of human DNA and to identify all its genes. A surprising headline result: humans have only about <b>30,000 or 20,000–25,000 genes</b> (the book’s figure or NCERT’s goal figure), far fewer than the 80,000–140,000 once guessed, and not many more than a worm. Much of our genome doesn’t code for protein at all.',
       },
       {
         t: 'p',
@@ -558,7 +558,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key definitions, structures and diagnostic features' },
       {
         t: 'p',
-        html: '<b>Human Genome Project: salient features</b> (high-frequency exam facts; the book’s estimate from past papers, not official figures):<br>• Launched in <b>1990</b>; aimed to sequence the entire human genome (~<b>3 billion</b> or <b>3164.7 million base pairs</b>).<br>• Estimated <b>~30,000 genes</b>: far fewer than earlier guesses of 80,000–140,000.<br>• <b>Chromosome 1</b> has the <b>most</b> genes (2968); the <b>Y chromosome</b> has the <b>fewest</b> (231).<br>• <b>99.9%</b> of nucleotide bases are exactly the same in all people.<br>• About <b>1.4 million</b> locations of single-base DNA differences (<b>SNPs</b>) were identified.<br>• Sequencing used the method developed by <b>Frederick Sanger</b>; closely tied to the new field of <b>bioinformatics</b>.<br>• Also sequenced <b>model organisms</b>: <i>E. coli</i>, yeast (<i>Saccharomyces cerevisiae</i>), roundworm, mouse.<br>• The project was completed in <b>2003</b>.<br>(NCERT gives about 30,000 genes among the salient features and approximately 20,000–25,000 in the list of HGP goals; the current estimate of protein-coding genes is about 20,000. In an MCQ, choose whichever of these figures the options offer.)',
+        html: '<b>Human Genome Project: salient features</b> (high-frequency exam facts; the book’s estimate from past papers, not official figures):<br>• Launched in <b>1990</b>; aimed to sequence the entire human genome (~<b>3 billion</b> or <b>3164.7 million base pairs</b>).<br>• Estimated <b>~30,000 or 20,000–25,000 genes</b>: far fewer than earlier guesses of 80,000–140,000.<br>• <b>Chromosome 1</b> has the <b>most</b> genes (2968); the <b>Y chromosome</b> has the <b>fewest</b> (231).<br>• <b>99.9%</b> of nucleotide bases are exactly the same in all people.<br>• About <b>1.4 million</b> locations of single-base DNA differences (<b>SNPs</b>) were identified.<br>• Sequencing used the method developed by <b>Frederick Sanger</b>; closely tied to the new field of <b>bioinformatics</b>.<br>• Also sequenced <b>model organisms</b>: <i>E. coli</i>, yeast (<i>Saccharomyces cerevisiae</i>), roundworm, mouse.<br>• The project was completed in <b>2003</b>.<br>(NCERT gives about 30,000 genes among the salient features and approximately 20,000–25,000 in the list of HGP goals; the current estimate of protein-coding genes is about 20,000. In an MCQ, choose whichever of these figures the options offer.)',
       },
       {
         t: 'p',
@@ -622,7 +622,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board · 5 marks',
         q: 'List any five salient features of the Human Genome Project.',
         steps: [
-          '<b>Model answer.</b> (i) The human genome contains about <b>3 billion (3164.7 million) base pairs</b>. (ii) It has an estimated <b>~30,000 genes</b>, far fewer than the earlier estimate of 80,000–140,000. (iii) <b>Chromosome 1 has the most genes (2968)</b> and the <b>Y chromosome the fewest (231)</b>. (iv) <b>99.9%</b> of nucleotide bases are identical in all humans. (v) About <b>1.4 million SNP</b> locations (single-base variations) were identified, useful for finding disease-associated sequences and tracing human history.',
+          '<b>Model answer.</b> (i) The human genome contains about <b>3 billion (3164.7 million) base pairs</b>. (ii) It has an estimated <b>~30,000 or 20,000–25,000 genes</b>, far fewer than the earlier estimate of 80,000–140,000. (iii) <b>Chromosome 1 has the most genes (2968)</b> and the <b>Y chromosome the fewest (231)</b>. (iv) <b>99.9%</b> of nucleotide bases are identical in all humans. (v) About <b>1.4 million SNP</b> locations (single-base variations) were identified, useful for finding disease-associated sequences and tracing human history.',
         ],
         ans: '',
       },
@@ -719,7 +719,7 @@ export const TOPICS: Topic[] = [
           { label: '80,000–140,000', nudge: '<b>(d)</b> was the earlier (incorrect) estimate that HGP overturned.' },
         ],
         correct: 2,
-        solution: '~30,000.',
+        solution: '~30,000 (NCERT also gives approximately 20,000–25,000 in its list of HGP goals).',
       },
       {
         t: 'mcq',

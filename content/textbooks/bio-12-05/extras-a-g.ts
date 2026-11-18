@@ -310,7 +310,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `Topic 06 gives the headline HGP numbers (3 billion bp, ~30,000 genes), lists ELSI among the six goals and quotes the gene counts of chromosome 1 and the Y chromosome, but does not turn those counts into gene density, compare them with chromosome size, work out how much of the genome codes for protein, or explain how ESTs helped find genes. These are distinct, testable analysis skills.`,
+        html: `Topic 06 gives the headline HGP numbers (3 billion bp, ~30,000 or 20,000–25,000 genes), lists ELSI among the six goals and quotes the gene counts of chromosome 1 and the Y chromosome, but does not turn those counts into gene density, compare them with chromosome size, work out how much of the genome codes for protein, or explain how ESTs helped find genes. These are distinct, testable analysis skills.`,
       },
 
       { t: 'part', title: 'Method' },
@@ -662,7 +662,7 @@ export const TOPICS: Topic[] = [
           [
             '<b>3 billion = 30,000</b>',
             'Uses “3 billion” for gene count or “30,000” for base pairs',
-            'Human genome ≈ 3 billion base pairs (3164.7 million) but ≈ 30,000 genes by the older estimate used in NCERT.',
+            'Human genome ≈ 3 billion base pairs (3164.7 million) but ≈ 30,000 or 20,000–25,000 genes (NCERT gives both: 30,000 among the salient features, 20,000–25,000 in the goals).',
           ],
           [
             '<b>Permease codes for β-galactosidase</b>',

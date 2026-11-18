@@ -346,8 +346,8 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 5,
     kind: 'remember',
     q: 'What are the book’s main figures and goals for the Human Genome Project?',
-    a: 'It began in 1990 to sequence the whole human genome and find its genes. The book’s figures: about 3 billion base pairs (3164.7 million); about 30,000 genes (earlier guesses were 80,000 to 140,000, and current counts of protein-coding genes are nearer 20,000); 99.9 per cent of bases identical between people; about 1.4 million SNPs; chromosome 1 has the most genes (2968) and the Y chromosome the fewest (231). Sequencing used Sanger’s method together with bioinformatics. The six goals: identify the genes, sequence the 3 billion bp, store the data in databases, improve analysis tools, transfer the technologies, and address the ethical, legal and social issues (ELSI)',
-    why: 'Base pairs, genes and SNPs are three different counts: about 3 billion, about 30,000, about 1.4 million.',
+    a: 'It began in 1990 to sequence the whole human genome and find its genes. The book’s figures: about 3 billion base pairs (3164.7 million); about 30,000 or 20,000–25,000 genes (the book’s figure and NCERT’s goal figure; earlier guesses were 80,000 to 140,000, and current counts of protein-coding genes are nearer 20,000); 99.9 per cent of bases identical between people; about 1.4 million SNPs; chromosome 1 has the most genes (2968) and the Y chromosome the fewest (231). Sequencing used Sanger’s method together with bioinformatics. The six goals: identify the genes, sequence the 3 billion bp, store the data in databases, improve analysis tools, transfer the technologies, and address the ethical, legal and social issues (ELSI)',
+    why: 'Base pairs, genes and SNPs are three different counts: about 3 billion, about 30,000 or 20,000–25,000, about 1.4 million.',
     say: 'HGP trio → 3 – 30 – 99.9: 3 billion bp, ~30,000 genes, 99.9% identical.',
   },
   // pp. 266–268
