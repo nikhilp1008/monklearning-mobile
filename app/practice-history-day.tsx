@@ -48,6 +48,15 @@ const FILTERS: HistoryFilter[] = ['all', 'correct', 'wrong', 'skipped'];
 
 const countFor = (c: HistoryCounts, f: HistoryFilter) => (f === 'all' ? c.total : c[f]);
 
+/** The server cuts a preview at ~140 characters, which can leave a "$" that
+ *  opens maths never closed. Drop that one so it does not show as a symbol. */
+function closeCutMaths(text: string): string {
+  const dollars = (text.match(/\$/g)?.length ?? 0) - (text.match(/\\\$/g)?.length ?? 0);
+  if (dollars % 2 === 0) return text;
+  const at = text.lastIndexOf('$');
+  return text.slice(0, at) + text.slice(at + 1);
+}
+
 export default function PracticeHistoryDayScreen() {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -323,7 +332,7 @@ function Row({
       </View>
       <View style={styles.rowBody}>
         <Text style={[styles.rowText, item.removed && styles.rowTextGone]} numberOfLines={2}>
-          {item.removed ? 'This question has been taken down' : latexToText(item.preview ?? '')}
+          {item.removed ? 'This question has been taken down' : latexToText(closeCutMaths(item.preview ?? ''))}
         </Text>
         <Text style={styles.rowMeta} numberOfLines={1}>
           {meta}

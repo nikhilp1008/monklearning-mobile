@@ -144,9 +144,13 @@ export default function PracticeHistoryQuestionScreen() {
             ))}
 
             {a.gave_up && <Text style={styles.chose}>You chose “I don&apos;t know”</Text>}
+            {/* Answers from before the pick was stored only know right or wrong. */}
+            {!a.gave_up && (numeric ? a.chosen_value == null : !a.chosen_option) && (
+              <Text style={styles.chose}>What you picked wasn&apos;t saved for this one.</Text>
+            )}
 
             {numeric ? (
-              a.gave_up ? null : (
+              a.gave_up || a.chosen_value == null ? null : (
                 <View style={[styles.numBox, a.result === 'correct' ? styles.numBoxCorrect : styles.numBoxWrong]}>
                   <Text style={styles.numValue}>{a.chosen_value ?? ''}</Text>
                   <Text style={a.result === 'correct' ? styles.tagCorrect : styles.tagWrong}>YOUR ANSWER</Text>
