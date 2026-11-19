@@ -1,14 +1,16 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useTeacherId } from '@/components/states';
 import { colors } from '@/constants/brand';
 import { CONTROL_LABEL_MAX_SCALE } from '@/constants/font-scale';
 import { useScale } from '@/constants/scale';
+import { START_ARROW } from '@/constants/teachers';
 
 /**
  * THE BUTTON INSIDE HOME'S UP NEXT CARD.
  *
- * A boxy white key with an ink label and a clear edge, no arrow (Home had too
+ * A boxy white key with an ink label and a faint coloured shadow, no arrow (Home had too
  * many): the same make as the Start key in the class card above (14 corners,
  * not a pill).
  *
@@ -25,9 +27,17 @@ import { useScale } from '@/constants/scale';
 export function CardButton({ label }: { label: string }) {
   const { scale } = useScale();
   const styles = useMemo(() => createStyles(scale), [scale]);
+  const teacher = useTeacherId();
 
   return (
-    <View style={styles.button}>
+    <View
+      style={[
+        styles.button,
+        // THE ONE TOUCH OF COLOUR ("W3", Nikhil, 19 Nov 2026): the key stays
+        // white and throws a faint shadow in the teacher's colour. Plain white
+        // read as unfinished; a coloured word or edge was more than it needed.
+        { boxShadow: [{ offsetX: 0, offsetY: scale(8), blurRadius: scale(18), spreadDistance: scale(-8), color: START_ARROW[teacher] + '59' }] },
+      ]}>
       <Text style={styles.label} maxFontSizeMultiplier={CONTROL_LABEL_MAX_SCALE}>
         {label}
       </Text>
@@ -43,8 +53,8 @@ function createStyles(scale: (n: number) => number) {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#fff',
-      borderWidth: 1.5,
-      borderColor: 'rgba(28,26,22,.18)',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.10)',
     },
     label: {
       fontFamily: 'Onest_600SemiBold',

@@ -121,12 +121,14 @@ export function HomeHeader({
       </View>
 
       <View style={styles.content}>
-        <View style={styles.greetingBlock}>
-          <Text style={styles.date}>{todayLabel()}</Text>
-          <Text style={styles.greeting} numberOfLines={1}>
-            {greeting(firstName)}
-          </Text>
-        </View>
+        {/* ONE QUIET LINE ("P4", Nikhil, 19 Nov 2026). The date in small capitals
+            and a bold greeting sat here, and with the logo bar above that was
+            three things stacked before the card. The phone already shows the
+            date; the greeting stays, small and grey, so the class card is the
+            first strong thing on the page. */}
+        <Text style={styles.greeting} numberOfLines={1}>
+          {greeting(firstName)}
+        </Text>
 
         <View
           style={styles.card}
@@ -227,11 +229,6 @@ function greeting(name: string) {
   return name ? `${part}, ${name}.` : `${part}.`;
 }
 
-/** "Monday, 9 November". */
-function todayLabel() {
-  return new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
 /** The arrow on the Start key: 2.2 in a 24 box, the weight it was drawn to. */
 function StartArrow({ scale, color }: { scale: (n: number) => number; color: string }) {
   return (
@@ -290,26 +287,16 @@ function createStyles(scale: (n: number) => number) {
 
     // --- date, greeting and card ---
     content: {
-      paddingTop: scale(24),
+      paddingTop: scale(20),
       paddingHorizontal: scale(24),
       paddingBottom: scale(8),
       gap: scale(18),
     },
-    greetingBlock: { gap: scale(4) },
-    date: {
-      fontFamily: 'Onest_700Bold',
-      fontSize: scale(11),
-      lineHeight: scale(14),
-      letterSpacing: scale(1.1),
-      textTransform: 'uppercase',
-      color: colors.slate,
-    },
     greeting: {
-      fontFamily: 'Onest_600SemiBold',
-      fontSize: scale(20),
-      lineHeight: scale(25),
-      letterSpacing: scale(-0.4),
-      color: colors.ink,
+      fontFamily: 'Onest_400Regular',
+      fontSize: scale(15),
+      lineHeight: scale(21),
+      color: colors.slate,
     },
 
     card: {
