@@ -687,6 +687,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'physics|12|ray optics and optical instruments': () =>
     import('@/content/textbooks/phy-12-09-ray-optics'),
   'physics|12|wave optics': () => import('@/content/textbooks/phy-12-10-wave-optics'),
+  'physics|12|experimental skills': () =>
+    import('@/content/textbooks/phy-12-15-experimental-skills'),
   'physics|12|dual nature of radiation and matter': () =>
     import('@/content/textbooks/phy-12-11-dual-nature'),
   'physics|12|electromagnetic induction': () =>
