@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { apiFetch } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import type { DiagramFigure, QuestionType, StructuredSolution } from '@/lib/practice';
 
 /**
@@ -208,15 +209,51 @@ export function shadeLevel(total: number, t: [number, number, number]): 0 | 1 | 
 
 /* --------------------------------------------------------------- cache */
 
-const CACHE = 'practice-history:v1:';
+/**
+ * The phone keeps the last copy of each screen so history still opens offline.
+ * ONE STUDENT'S KEYS, NEVER A SHARED ONE: the copy used to sit under keys with
+ * no student in them, so signing in as someone else, or a build that showed
+ * sample data, left that data to appear as the next account's history when the
+ * network failed. With no signed-in student there is no copy to read or write,
+ * and sample data is never saved.
+ */
+const CACHE = 'practice-history:v2:';
+const OLD_CACHE = 'practice-history:v1:';
+
+async function currentUserId(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+let sweptOld = false;
+/** The first version's shared copies belong to no account: drop them, once. */
+async function sweepOldCache() {
+  if (sweptOld) return;
+  sweptOld = true;
+  try {
+    const old = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(OLD_CACHE));
+    if (old.length) await AsyncStorage.multiRemove(old);
+  } catch {
+    // Leftover keys are harmless; nothing reads them.
+  }
+}
 
 async function cached<T>(key: string, load: () => Promise<T>): Promise<{ data: T; savedAt: number | null }> {
+  void sweepOldCache();
+  const uid = await currentUserId();
+  const k = uid ? `${CACHE}${uid}:${key}` : null;
   try {
     const data = await load();
-    AsyncStorage.setItem(CACHE + key, JSON.stringify({ at: Date.now(), data })).catch(() => {});
+    if (k && HISTORY_SOURCE !== 'sample') {
+      AsyncStorage.setItem(k, JSON.stringify({ at: Date.now(), data })).catch(() => {});
+    }
     return { data, savedAt: null };
   } catch (err) {
-    const raw = await AsyncStorage.getItem(CACHE + key).catch(() => null);
+    const raw = k ? await AsyncStorage.getItem(k).catch(() => null) : null;
     if (raw) {
       try {
         const saved = JSON.parse(raw) as { at: number; data: T };
