@@ -62,8 +62,10 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     /* Home's Up next, as the Calmer Home design drew it (Nikhil, 9 Nov
        2026): an even marigold line all the way round, not the fading ring. */
     ring: {
-      borderWidth: 1.5,
-      borderColor: 'rgba(238,163,31,.55)',
+      // A thin neutral edge since 19 Nov 2026 (was a marigold line): Home's
+      // colour is the class card's alone.
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.14)',
       borderRadius: scale(18),
       backgroundColor: '#FFFFFF',
       marginTop: verticalScale(24),
@@ -80,7 +82,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       lineHeight: scale(14),
       letterSpacing: scale(1.1),
       textTransform: 'uppercase',
-      color: colors.amberText,
+      color: colors.slate,
     },
     title: {
       fontFamily: 'Onest_600SemiBold',

@@ -157,11 +157,29 @@ export const SKY_THEMES: Record<TeacherId, SkyTheme> = {
     gold: '#FFBD47',
     mari: '#FFAE28',
     pale: '#FFDE9E',
-    ember: '#FFB12F',
-    rust: '#DF7A01',
+    // The line where her light meets the dark (Nikhil, 18 Nov 2026, "C" on
+    // the Vedha's Home Colours page): a warm amber, not her honey. The brown
+    // top is the same for both teachers, and honey mixed into it went khaki
+    // just above the Start key, where Drona's orange makes rust. Was ember
+    // #FFB12F, rust #DF7A01.
+    ember: '#F28A1C',
+    rust: '#D8650C',
     bronze: '#974A00',
   },
 };
 
 /** The Start arrow's colour, the teacher's own marigold. */
 export const START_ARROW: Record<TeacherId, string> = { drona: '#F3651B', vedha: '#FFAE28' };
+
+/**
+ * HOME'S ACTION COLOUR ON PAPER: the words "Snap a question" and "Start
+ * practising", their arrows, and the arrow on the cream Start key (Nikhil,
+ * 18 Nov 2026, "A" on the Vedha's Home Colours page).
+ *
+ * Vedha's honey is a colour for light on a dark sky; on white it measured
+ * 1.85:1 and the words read as highlighter. This is her honey taken deep
+ * enough to read as small text: #AD5F00 is 4.8:1 on white. Drona keeps his
+ * orange, unchanged. Home only: START_ARROW above still colours Profile,
+ * exam scope and the entering card.
+ */
+export const HOME_ACTION: Record<TeacherId, string> = { drona: START_ARROW.drona, vedha: '#AD5F00' };

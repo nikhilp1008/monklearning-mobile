@@ -10,7 +10,7 @@ import { PressableScale } from '@/components/pressable-scale';
 import { TeacherOrbPoster } from '@/components/teacher-orb-poster';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
-import { SKY_THEMES, START_ARROW, TEACHERS, titleCaseTrait } from '@/constants/teachers';
+import { HOME_ACTION, SKY_THEMES, TEACHERS, titleCaseTrait } from '@/constants/teachers';
 import { teacherName } from '@/lib/preferences';
 import type { TeacherId } from '@/lib/preferences';
 import { hapticKey } from '@/lib/haptics';
@@ -80,7 +80,7 @@ export function HomeHeader({
   const { scale } = useScale();
   const trait = TEACHERS.find((t) => t.id === teacher)?.trait ?? '';
   const styles = useMemo(() => createStyles(scale), [scale]);
-  const accent = START_ARROW[teacher];
+  const accent = HOME_ACTION[teacher];
   const initial = firstName.trim()[0]?.toUpperCase() ?? '';
 
   /** The card's width, and where its sky half ends (under the Start key). */
@@ -189,18 +189,16 @@ export function HomeHeader({
                   accessibilityRole="button"
                   accessibilityLabel={`${t.name}. ${t.line}`}
                   onPress={t.go}>
+                  {/* A white tile, an ink drawing, and the teacher's colour only as
+                      the dot inside it (Nikhil, 19 Nov 2026). These were squares of
+                      the sky: with the class card, and the Up next button, that
+                      made four pieces of the same fade on one screen, and it read
+                      as a texture. The sky is the class card's alone now. */}
                   <View style={styles.chip}>
-                    <ThemedSky
-                      width={scale(44)}
-                      height={scale(44)}
-                      themes={TEACHER_SKIES}
-                      mix={skyMix}
-                      style={StyleSheet.absoluteFillObject}
-                    />
                     {t.key === 'snap' ? (
-                      <SnapADoubtIcon size={scale(23)} color={colors.paper} accent={colors.paper} />
+                      <SnapADoubtIcon size={scale(23)} color={colors.ink} accent={accent} />
                     ) : (
-                      <PracticeIcon size={scale(23)} color={colors.paper} accent={colors.paper} />
+                      <PracticeIcon size={scale(23)} color={colors.ink} accent={accent} />
                     )}
                   </View>
                   <View style={styles.toolText}>
@@ -208,7 +206,8 @@ export function HomeHeader({
                     <Text style={styles.toolLine}>{t.line}</Text>
                   </View>
                   <View style={styles.toolAction}>
-                    <Text style={[styles.toolActionLabel, { color: accent }]}>{t.action}</Text>
+                    {/* Ink words, the teacher's colour on the arrow alone. */}
+                    <Text style={styles.toolActionLabel}>{t.action}</Text>
                     <SmallArrow scale={scale} color={accent} />
                   </View>
                 </PressableScale>
@@ -303,7 +302,7 @@ function createStyles(scale: (n: number) => number) {
       lineHeight: scale(14),
       letterSpacing: scale(1.1),
       textTransform: 'uppercase',
-      color: colors.amberText,
+      color: colors.slate,
     },
     greeting: {
       fontFamily: 'Onest_600SemiBold',
@@ -394,9 +393,11 @@ function createStyles(scale: (n: number) => number) {
       width: scale(44),
       height: scale(44),
       borderRadius: scale(13),
-      overflow: 'hidden',
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: 'rgba(28,26,22,.12)',
     },
     toolText: { flexGrow: 1, gap: scale(4) },
     toolName: {
@@ -412,6 +413,6 @@ function createStyles(scale: (n: number) => number) {
       color: colors.slate,
     },
     toolAction: { flexDirection: 'row', alignItems: 'center', gap: scale(4) },
-    toolActionLabel: { fontFamily: 'Onest_600SemiBold', fontSize: scale(13), lineHeight: scale(18) },
+    toolActionLabel: { fontFamily: 'Onest_600SemiBold', fontSize: scale(13), lineHeight: scale(18), color: colors.ink },
   });
 }
