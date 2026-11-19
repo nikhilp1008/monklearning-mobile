@@ -81,6 +81,7 @@ import bio11ch3 from '@/content/textbooks/bio-11-03-plant-kingdom';
 import bio11ch2 from '@/content/textbooks/bio-11-02-biological-classification';
 import chem12ch10 from '@/content/textbooks/chem-12-10-biomolecules';
 import chem12ch11 from '@/content/textbooks/chem-12-11-p-block';
+import chem12ch12 from '@/content/textbooks/chem-12-12-practical-chemistry';
 import math11ch1 from '@/content/textbooks/math-11-01-sets';
 import math11ch2 from '@/content/textbooks/math-11-02-relations';
 import math11ch3 from '@/content/textbooks/math-11-03-trigonometry';
@@ -136,7 +137,7 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, c12ch15, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10, math11ch11, math11ch12, math11ch13, math11ch0, math11ch14, math12ch1, math12ch2, math12ch3, math12ch4, math12ch5, math12ch6, math12ch7, math12ch8, math12ch9, math12ch10, math12ch11, math12ch12, math12ch13, bio11ch1, bio11ch2, bio11ch3, bio11ch4, bio11ch5, bio11ch6, bio11ch7, bio11ch8, bio11ch9, bio11ch10, bio11ch11, bio11ch12, bio11ch13, bio11ch14, bio11ch15, bio11ch16, bio11ch17, bio11ch18, bio11ch19, bio12ch1, bio12ch2, bio12ch3, bio12ch4, bio12ch5, bio12ch6, bio12ch7, bio12ch8, bio12ch9, bio12ch10, bio12ch11, bio12ch12, bio12ch13] as Chapter[]) {
+for (const chapter of [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, c12ch1, c12ch2, c12ch3, c12ch4, c12ch5, c12ch6, c12ch7, c12ch8, c12ch9, c12ch10, c12ch11, c12ch12, c12ch13, c12ch14, c12ch15, chem11ch1, chem11ch2, chem11ch3, chem11ch4, chem11ch5, chem11ch6, chem11ch7, chem11ch8, chem11ch9, chem12ch1, chem12ch2, chem12ch3, chem12ch4, chem12ch5, chem12ch6, chem12ch7, chem12ch8, chem12ch9, chem12ch10, chem12ch11, chem12ch12, math11ch1, math11ch2, math11ch3, math11ch4, math11ch5, math11ch6, math11ch7, math11ch8, math11ch9, math11ch10, math11ch11, math11ch12, math11ch13, math11ch0, math11ch14, math12ch1, math12ch2, math12ch3, math12ch4, math12ch5, math12ch6, math12ch7, math12ch8, math12ch9, math12ch10, math12ch11, math12ch12, math12ch13, bio11ch1, bio11ch2, bio11ch3, bio11ch4, bio11ch5, bio11ch6, bio11ch7, bio11ch8, bio11ch9, bio11ch10, bio11ch11, bio11ch12, bio11ch13, bio11ch14, bio11ch15, bio11ch16, bio11ch17, bio11ch18, bio11ch19, bio12ch1, bio12ch2, bio12ch3, bio12ch4, bio12ch5, bio12ch6, bio12ch7, bio12ch8, bio12ch9, bio12ch10, bio12ch11, bio12ch12, bio12ch13] as Chapter[]) {
   const klass = (/\d+/.exec(chapter.klass) ?? [''])[0];
   describe(`${chapter.subject} ${klass} Chapter ${Number(chapter.chapter)}, from the book`, () => {
     // A chapter may open with the book's own guide (n "00"), before Topic 01.
