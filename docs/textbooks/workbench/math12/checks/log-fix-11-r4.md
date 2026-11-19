@@ -1,0 +1,53 @@
+# Fix log, Ch 11 round 4
+- p040-02: topics-04-05.ts new const APxbG = md(`${vAP}${NB}×${NB}${vb}`) used in card 2/4 step 2 ("${APxbG} = √(9 + 16 + 4) = √29").
+- p044-01: topics-04-05.ts cheat sheet row "…${LAM0}${vb};<br><br>Distance = ${DLINE}…".
+- p047-02: topics-04-05.ts formula "Line meeting a plane": "${C}${c}${NB}≠${NB}0".
+- p047-04/05: topics-04-05.ts bisector formula: "${NB}=${NB}±<br>${fr(" (was "=<br><br>±").
+- p048-01: topics-04-05.ts proc 05a step 3 "for${NB}${la}.".
+- p048-02: topics-04-05.ts Thm 1 proof "parametric point${NB}gives<br>" and "+ ${D} = 0, i.e.<br>(" (i.e. now ends the formula line).
+- p048-05/07: lib/diagrams/mathematics-12-11.ts CAP116 "${vb} × (${vP} − ${va})".
+- p048-08: topics-04-05.ts Thm 3 proof "${md(fr(P2, md(vn2)))}, i.e.<br>${BIS}".
+- p050-02: topics-04-05.ts practice 1 answer: bracket commas glued "(1 + 2λ,${NB}2 − λ,${NB}−1 + λ)".
+- p050-04: topics-04-05.ts practice 2 answer "= 3${NB}≠${NB}2)".
+- p052-01: topics-04-05.ts watch-out 1 title: "Reading ${rel(bn, '=', '0')} as<br>“lies in the plane.”" (the title filled the line exactly; Android measured 2 lines and drew 1, leaving a blank line; a set break makes it 2 lines both ways). Unverified on device.
+- p061-06: extras-a-e.ts B practice 3 answer: "…abs(vb))}${NB}instead." (was <br>instead.).
+- p067-04/05: extras-a-e.ts D3: "+ ${sq(zB)} = ${MBp}<sup>2</sup>." (dropped the <br> before "="; the line now breaks at a "+").
+- p071-01: extras-a-e.ts E1: "+ ${sq(abs(va))} = −2…${sq(abs(vb))},<br>so${NB}${BISECT}." (no <br> before "="; "so" now opens the BISECT line).
+- p074-04/05/06: extra-p.ts distribution table row title "<b>Line–Plane &<br>Plane–Plane Configurations</b>" (same exact-fit blank line). Unverified on device.
+- p075-02: extra-p.ts archetype 1: "• Coplanarity ⟺<br>${COPL}." so the whole condition "(a2 − a1) · (b1 × b2) = 0." sits on its own line.
+- p077-13/14: extra-p.ts practice 4/8: options set as two lines, "(b) …<br>(c) …" (the options line filled the width exactly; Android measured more lines than it drew). Unverified on device.
+- p077-23: extra-p.ts practice 7/8: "${g('Distance = √((−10)² +')} ${g('(−10)² + (−10)²)')} = ${TEN_RT3}." (radicand breaks after a "+", the <br> before "= 10√3" dropped).
+- p077-28/29: extra-p.ts practice 8/8 answer: "(a) cos ∠(OQ, OS)<br>= ${fr(dot(…" so "(a)" stays with cos ∠(OQ, OS) and the long fraction starts the next line (house style "<br>= …").
+- p045-01 (minor): topics-04-05.ts exam relevance: ladder arrows now plain spaces " → " (the renderer already keeps "→" with the word before it), "JEE${NB}Advanced" kept.
+
+## First half
+- card016, card017, card026: NOT changed. The arrows are in the source (B1XB2 = `${vb1} × ${vb2}`, SIN_LP den `${abs(vb)}${abs(vn)}` in topics-02-03.ts); a crop of card016 shows the arrow's tail over each b in the denominator, its head cut off. The renderer clips an arrow over a tall letter (b) at the top of a fraction's denominator (n's lower arrow survives). Renderer fix needed (components/textbook/markup.tsx fracRun, outside my files).
+- dg02: lib/diagrams/mathematics-12-11.ts frac(): numerator with a descender (y, g, p, q, β, γ …) set size × 0.2 higher, so y in "cos β = y/r" clears the rule.
+- p012-01/02 (same drawing, 11.2): y-axis drawn on to 6 units (was 4.6) so its tip crosses the dashed drop P→Px; label "y" set just right of the tip (ye + (6, 4), anchor start), clear of both drop lines.
+- p002-06/07: topics-00-01.ts "with vertices ${A}, ${B},${NB}${C}:" (the same string also sat in "Area of a triangle", glued there too).
+- p003-01/02/03: lib/diagrams/mathematics-12-11.ts new capEdge() for CAP111 only: "|⁠x₂ − x₁|" with a word joiner after "|" and no-break spaces round "−" (edgeName on the drawing labels unchanged).
+- p004-04..07: topics-00-01.ts tetrahedron step 3 "(2)${WJ}(11) + (1)${WJ}(−4) + (0)${WJ}(1)".
+- p008-01: topics-00-01.ts cheat sheet "Internal${NB}${mn}: …; External${NB}${mn}: (".
+- p010-09/10: no stray <br>; the paragraph before had an exact-fit line ("station and the exact bearing of the track." filled the width). Glued "the track." so that line breaks earlier. Unverified on device.
+- p013-07/08: NOT changed: the step is written "…<br>= (2 − 2 + 1)/6 = 1/6.", a set break before "=" (house style for written steps).
+- p020-03: topics-02-03.ts box main "Perpendicular:<br>${DR_DOT}${NB}=${NB}0<br>Parallel: …" (the whole condition on its own line).
+- p030-08/09: topics-02-03.ts Theorem 3 proof "may be reversed.${NB}■ Two corollaries".
+- p031-04/05: topics-02-03.ts worked example step 2 "means ${dot(vN, …)}${NB}=${NB}0:<br>".
+- p038-02/03: NOT changed: both boxes ("Point to a line", "Point to a plane", topics-04-05.ts) have a deliberate "<br><br>" between the first fraction line and "Distance:", the brief's own fix for stacked fractions on neighbouring rows touching (|b|² over |AP × b|; the t fraction over the distance fraction). A single <br> would bring the touching back.
+
+## Final
+- p020-01/02: topics-02-03.ts "Angle between two lines" box main: "${COS} = ${COS_LINES}<br><br>= ${DR_COS}" (blank line between the two stacked fractions).
+- p047-04/05: topics-04-05.ts "Angle-bisector planes" box main: "${NB}=${NB}±<br><br>${fr(`${a2}…" .
+- p048-09: topics-04-05.ts Thm 3 proof: "${md(fr(P2, md(vn2)))}, i.e.<br><br>${BIS}".
+- p048-02/03: topics-04-05.ts Thm 1 proof: "point${NB}gives${NB}A(x₁${NB}+${NB}aλ)${NB}+<br>B(y₁ + bλ) + C(z₁ + cλ) + D = 0,${NB}i.e.<br>(…" so the first formula is split after a "+" and "i.e." ends the shorter second line.
+- p003-08/09: topics-00-01.ts "the distance to${NB}it${NB}is<br>${rt(…" ("is" no longer alone).
+- p038-05/06: topics-04-05.ts symmetric-notation line: "= −${t}${NB}(foot),<br>= −2${t}${NB}(image)." (no lone "(image).").
+- p039-01: topics-04-05.ts Theorem 1: "${L0} = ${LAM0},${NB}and${NB}${PF} = ${DLINE}." (both short fractions on one line, "and" between).
+- p039-02: topics-04-05.ts Thm 1 proof: "line is ${va}${NB}+${NB}${la}${vb},${NB}so<br>" (a + λb, so moves down together).
+- p039-06: topics-04-05.ts Thm 2 proof: "b(y₁ − sb)${NB}+<br>c(z₁ − sc) + d = 0,${NB}i.e.<br>(…) = 0,<br>giving${NB}s = t = …" (i.e. ends the shorter split line; "giving" opens the s = t line).
+- p077-13/14: extra-p.ts practice 4/8: "passes through which${NB}point?<br>(a) …". The real exact-fit line was the question's last text line "angles passes through which point?" (it filled the width), not the options; "which point?" now wraps together onto a shorter line. Unverified on device.
+- p010-07: topics-00-01.ts: "the exact bearing of the track." The line "station and the exact bearing of the track." still filled the width after last round's single glue; the longer glued run breaks it earlier. Unverified on device.
+- p037-01: topics-04-05.ts Concept intuition: first bullet "• the foot F: where the perpendicular lands," moved out of the intro paragraph into its own 'p' block, like bullets 2 and 3.
+- p050-01/02: topics-04-05.ts practice 1/5: "Find the point of intersection of the line<br>${fr(…" (the text wraps normally, the three-fraction equation starts its own line).
+- p045-01: NOT changed. "scope, so" then "the ladder runs…" is not an early break: the renderer keeps "the" with "ladder" and "the ladder" does not fit after "so" on that line. No layout-only change helps without making the line breaks worse.
+- display-fit test (scratch copy): PASS, 9/9.

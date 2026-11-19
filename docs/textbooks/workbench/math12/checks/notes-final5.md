@@ -1,0 +1,114 @@
+# notes-final5 (Ch 11/12/13 final5 shots check)
+
+Started; folders empty at start.
+
+## Ch 11
+- p002-01..11 read: clean. Old minor p002-07 "Collinearity... either" FIXED (now "either the").
+- p003-01..17 read: old minor p003-08/09 yz-plane early break FIXED. 
+  - NEW minor p003-10/11: "the distance" / "to it is" short line before the long √ expression line.
+  - NEW minor p003-15/16: final "=" touches the fraction bar of (A+B+C)/3 (no space after "=").
+- p010-01..17 read: clean. Old p010-08/09 gap before "It is worth pausing" FIXED (normal gap).
+- p020-01/02 Angle between two lines box: blank line GONE, but now the first fraction's denominator |b1||b2| TOUCHES the second fraction's numerator |a1a2 + b1b2 + c1c2| (the "=" row below). NEW touching fault.
+- p020-03..12 read: clean (Cartesian-form fractions and Δ tight but not touching).
+- p020-01 zoom confirms: |b1||b2| denominator OVERLAPS the top of |a1a2 + b1b2 + c1c2| (fractions touching). STILL/NEW.
+- p038-01/02 Point-to-a-line: blank line gone; |b|² and |AP×b| close but separate. FIXED.
+- p038-03 Point-to-a-plane: blank gone; t denominator and Distance numerator separate (tight). FIXED.
+- p038-04: now "= −t (foot), =" / "−2t (image)." (break after "="). FIXED.
+- p038-05/06 table clean.
+- p047-02/03: "Cc ≠ 0" now on one line "b·n = Aa + Bb + Cc ≠ 0" (after "Intersects:" label). FIXED.
+- p047-04/05 Angle-bisector box: blank line gone, but denominator √(a1²+b1²+c1²) of the 1st fraction OVERLAPS numerator a2x+b2y+c2z+d2 of the 2nd (subscripts collide); with "= ±" off to the right, the two fractions read like one tall stack. NEW touching fault.
+- p047-06/07 table clean.
+- p048-01..07 clean. p048-09: "if and only if" now ends the line with the fraction (FIXED); "equal:" short-line issue now "equal: |P1/|n1|| = |P2/|n2||, i.e." (FIXED).
+  - NEW touching p048-09: Theorem 3 proof, the row "equal: |P1/|n1|| = |P2/|n2||, i.e." sits directly on the next row "P1/|n1| = ± P2/|n2|": the |n2| denominator touches the P2 numerator below (|n1| and P1 almost touch too).
+- p048-10..13 clean.
+- p077-01..20: card 3/8 question now wraps normally (FIXED); card 6/8 "The plane" / "bisecting the angle between" (FIXED).
+  - card 4/8 (p077-13/14): no blank gap above Check answer / answer box any more (FIXED); answer "Normal = direction of segment =" now flows (FIXED as far as visible; rest of answer below fold).
+  - NEW minor p077-13/14 card 4/8 question: "[JEE Main – Medium] The" / "plane bisecting the segment": "plane" would fit on the first line (6/8 fits "The plane"); early break.
+- p077-22/23 card 7/8: "Distance =" / "√((−10)² + (−10)² + (−10)²) = 10√3." radicand whole. FIXED.
+- p077-25..32 card 8/8: clean; maths checked (9√5/2, 3√6/2, √30/2 correct).
+
+## Ch 12
+- p014-01/02 card 1/5: "₹25 per pastry" on one line. FIXED. p014-03..07 clean so far.
+- p014-09/10 card 5/5: "₹2000/trip." whole (FIXED). Minor: lines "mini-trucks and large trucks." / "A mini-truck carries 2 tonnes" / "and costs ₹1000/trip; a large" break a little early (short lines, no tear). Not a real fault.
+- p029-01..09: coordinate pair "P = (λq_x + (1 − λ)r_x, λq_y + (1 − λ)r_y), so" now on one line (p029-02). FIXED.
+  - NEW minor p029-01: Definition line "…points P₁, …," / "Pₙ if": list P₁, …, Pₙ torn across lines (same kind as Ch13 "E₁, E₂, …, Eₙ" fault).
+- p032-01/02 step 2: "The maximum occurs at Vk" / "if and only if Z(Vk) ≥ Z(Vj) for every j." (set break before "if"). FIXED.
+- p032-03 step 4 / proof: "rearranges to −p/q = (By − Ay)/(Bx − Ax)." on one line. FIXED.
+  - minor p032-01: "corners V₁, …," / "Vₙ and objective…" list torn (same as p029-01).
+- p032-04/05 clean.
+
+## Ch 13
+- card001..009 clean ("sample space" kept together on card 3).
+- card010..014 clean.
+- card015..026 clean (card026 turn-taking rows evenly spaced).
+- p002-01..07: "sample space" glued in all four boxes (no lone "space"). r3-a #1 FIXED.
+- p003-01..09: Theorem 3 proof now "(using independence" / "of A, B)" (glued). r3-a #2 FIXED. p003-08 is a half-drawn frame (bottom of page blank while scrolling); p003-09 shows the same content complete, so a capture artifact, not a fault.
+- p004 card 3/4 step 1 (p004-04/05): now "P(3rd is boy | first two" / "are girls) = 7/10." Bracket STILL split (just at a different word). Also step text breaks early ("(i) After two girls are" / "removed, 10 people remain," / "of whom 7 are boys. By the"). r3-a #3 STILL.
+- p004 card 4/4 step 4 (p004-08/09): "“Exactly one occurs” =" whole. r3-a #4 FIXED.
+- p004 card 4/4 step 5 (p004-09/10): "P(both) +" / "P(exactly one) + P(neither)" / "= 1/8 + 1/2 + 3/8 = 1,": "P(neither)" no longer alone, but now "P(both) +" sits alone on a short line although "P(both) + P(exactly one) +" would fit. r3-a #5 STILL (moved).
+- p005-01..10: practice 5/5 answer "(iii) 3·1/4·(3/4)² = 27/64" on one line. r3-a #6 FIXED. (Rows of fractions close but not touching.)
+- p011-01..10: "E₁, E₂, …, Eₙ partition the sample space S" whole list on one line. r3-a #7 FIXED. Rest clean.
+- p013-02 ex 2/4 options: now "(a) 95% (b) ≈ 16% (c) ≈" / "50% (d) 85%": "(c) ≈" torn from "50%". r3-a #8 STILL (moved to option c).
+- p013-06 ex 4/4 step 2: still "P(D) = 0.012 + 0.010 +" / "0.012 = 0.034." with room left on line 1 (break after + is legal, but sum is short). r3-a #9 STILL (minor).
+- p013 posteriors rows: fractions tight, not touching. Answer ok; maths ok.
+- p019-01..12: balance-point caption now "…μ = E(X) =" / "∑ x p(x) = 1.5." (∑ x p(x) glued). r3-a #10 FIXED. Diagram fine. Rest clean.
+- p020-01/02 NEW distribution table: does NOT render as a two-column table. It shows as stacked row-cards: "X = x1" / "p1", "X = x2" / "p2", "X      …" / "…", "X = xn" / "pn". The P(X) header appears nowhere (p-values have no label); row 3 is broken (lone "X" at left with "…" floating mid-right, instead of "X = …"). r3-a #11 STILL (different form), plus NEW layout fault.
+- p022-01..05: card 2/4 now "Var(X) = 4.9 − (2.1)² =" / "4.9 − 4.41 = 0.49." r3-a #12 FIXED. Card 3/4 step 2 big blank gap gone, r3-a #13 FIXED; rows of stacked fractions very tight (221 denominator ~2px above ⁴C₁ of next row) but not touching. Card 4/4 step 2 fractions separate.
+- p022-07/08 card 4/4 clean; answer ok.
+- p031-01..10: card 2/4 step 3 now "variance = npq =" / "10(0.05)(0.95) = 0.475." r3-a #14 FIXED. Card 4/4 step 2 now "= 6 (0.32768)(0.2) =" / "0.393216 ≈ 0.393." r3-a #15 FIXED. Diagram B(6,0.8) fine.
+- p035-01..03: cheat sheet "Mean = np • Variance = npq •" / "SD = √(npq) • always" / "variance < mean.": no line starts with "•". r3-b #1 FIXED.
+- p037-01..05: "1 − ∏(1 − P(Ai))" whole on one line. r3-b #2 FIXED. Bayes row "= prior × likelihood / P(evidence)" starts with "=" on its own line (set break; treat as accepted pattern). "At least one: P(A∪B) = P(A) + P(B) −" / "P(A ∩ B)" break after operator (accepted).
+- p043-01..06 (worked ex, reading page). Card 1/2 only shown to step 2 (shoot doesn't scroll card 1; r13 card set needed for #25).
+  - Card 2/2 step 6 (p043-05/06): "exactly one = 13/12 − 3/4" / "+ 1/8 = (26 − 18 + 3)/24 = 11/24;": line STARTS with "+". r3-b #3 STILL.
+  - Card 2/2 step 4: "⟹" now ends the line ("… = 11/24 ⟹" / "1/2 − S₃ = 11/24 ⟹ S₃ = 1/24."). r3-b #4 FIXED.
+  - Minor label still torn: "formulas: at least" / "one = …" (r3-b minor "at least"/"one" STILL).
+  - Maths checked OK (S₃=1/24, S₂=3/8, S₁=13/12).
+- p047-01..09: card 2/2 step 4 "125p² − 225p + 80, so" ("so" not alone). r3-b #5 FIXED. Step 7 labels still torn "exactly" / "one =" and "exactly" / "two =" (r3-b minor STILL). Fraction rows separate. Maths OK.
+- p048-01..11 practice set:
+  - 5/5 rebuilt answer (p048-10/11): computation now on its own rows "1/2·1/3·3/4 +" / "1/2·2/3·1/4" / "= 1/8 + 1/12 = 5/24;", nothing drawn over text, "+" and "=" present. r3-b #6 FIXED. Maths OK (5/24 ÷ 1/4 = 5/6).
+    - NEW minor: "conditional" alone on a line, then "probability = 5/24 · 4 = 5/6." (glue "conditional probability").
+  - 5/5 gap question→answer box still ~100px vs ~50px on cards 3/5, 4/5 (about one extra blank line). r3-b #7 STILL (smaller).
+  - 2/5 answer: "S₂ = …, S₃ = 0; exactly" / "one = 1 − 2/3 = 1/3; at least" / "one = 1 − 1/3 + 0 = 2/3.": labels "exactly"/"one", "at least"/"one" torn (same as r3-b minor).
+  - NEW minor 3/5 answer (p048-06): blank-line gap inside the answer box between "p²(1 − p) = 4/125." and "Expand: …". Card 3/5's answer runs under the dock; rest of it ("Factorising gives (5p − 1)…") not captured in any shot.
+- p050-01..06: proof ends "Bayes. ■" (■ not alone). r3-b minor FIXED. Clean.
+- p052-01..10 practice:
+  - 4/4 rebuilt answer: 1/99 no longer drawn over "prior" ("…from a" / "1/99 prior in two readings"). r3-b #8 FIXED. Maths OK (324/423 = 36/47 ≈ 0.766).
+  - 4/4: "i.e. P(D | +" / "+) = 324/423 = 36/47 ≈ 0.766 < 0.99." bracket STILL split. r3-b #9 STILL.
+  - 4/4 gap question→answer ~85px vs ~45px on 3/4. r3-b #10 STILL (reduced).
+  - NEW minor: answers 2/4, 3/4, 4/4 have a blank line between paragraphs inside the answer box (e.g. 3/4 "…= 3/5." / [blank] / "Total = …"; 4/4 "= 18." / [blank] / "After two positives…" / [blank] / "Reaching 0.99…"). Looks like deliberate paragraph breaks; flag only if answer boxes elsewhere don't do this.
+  - 1/4, 2/4, 3/4 maths checked OK (4/213, 4/5, 6/7).
+- p058-01..08: Turn-taking formula card: P(A wins) and P(B wins) rows now evenly spaced (tight, not touching). r3-b #11 FIXED.
+  - NEW minor p058-03/04: "E(X²) = p[2q/(1−q)³ + 1/(1−q)²]" / "= p[2q/p³ + 1/p²] = …": the (1−q)³ denominator nearly touches the "2q" numerator on the next row (≈1px). Square brackets stay text-height around the fractions (cosmetic).
+- p059-01..08: card 2 step 4 "P(A wins) = 1/6 + 5/6(1 − P(A wins))," whole. r3-b #12 FIXED. Card 1 steps 2–3 "(i) P(X = 4) = …", "(ii) E(X) = 1/p = 6 rolls." labels glued. r3-b #25 (p059 card1) FIXED. Card 2 no answer panel (accepted #24). Maths OK (6/11, 5/11, E(T) = 6).
+- p064-01..06: "Var = E(X²) − E(X) instead of" / "E(X²) − [E(X)]²." r3-b #13 FIXED. Clean. Minor: "Ignoring the given condition" / "and computing…" breaks early (cosmetic).
+- p065-01..24 graded set:
+  - card 3/10 (p065-07): only the top of the answer is in shot ("Primes in 1 … 30: 10 →" / "non-primes 20." / "Primes in 31 … 50: 5 →" faded); "20." no longer alone; "15." line not captured. r3-b #14: partly FIXED, rest not visible.
+  - card 4/10 (p065-09): "= (1 + 16 + 120)/65536 = 137/65536." together. r3-b #15 FIXED. Maths OK.
+  - card 6/10 (p065-14): "∑ cx² = c(1 + 4 + 9 + 16 + 25)" whole; "= 16/55 + 25/55 = 41/55." r3-b #16 FIXED. Maths OK.
+  - card 10/10 (p065-23/24): WORSE: "P(square is 9 | square before prim" / "e)": the WORD "prime" is now broken mid-word (forced break in an over-long glued run). r3-b #17 STILL (worse).
+  - card 7/10 answer: "P(even trial) = qp + q³p + q⁵p +" / "… = qp/(1 − q²)" fine. Card 8/10 answer not in any shot (only question).
+  - card 5/10 answer: "Identical to Archetype 4 worked" / "example." (fine).
+- r13-p004 card1/card2: clean; maths OK (1/6; independent only).
+- r13-p004 card3: confirms "P(3rd is boy | first two" / "are girls) = 7/10." (r3-a #3 STILL); step 1 lines break early (short lines). Maths OK (1/22).
+- r13-p004 card4: step 4 OK; step 5 "P(both) +" alone (r3-a #5 STILL). Maths OK.
+- r13-p013 card1: clean, maths OK (4/11).
+- r13-p013 card2: options "(a) 95% (b) ≈ 16% (c) ≈" / "50% (d) 85%" (r3-a #8 STILL). Maths OK.
+- r13-p013 card3 step 1 (card3-02..04): NEW gap fault: a blank line between each of the three likelihood rows P(W|A)=…, P(W|B)=…, P(W|C)=… (gaps about twice the gap elsewhere in the step). Maths OK (2/3).
+- r13-p013 card4: step 2 "P(D) = 0.012 + 0.010 +" / "0.012 = 0.034." (r3-a #9 STILL). Posteriors rows tight (0.034 over 0.010 ~2px) but not touching; small blank gap after "Posteriors:". Maths OK.
+- r13-p022 card1..4: clean; fractions tight but separate (card3 1128/1326 vs P(X=1) rows ok); maths OK (3/2, 3/4; 0.49; 2/13; k=1/10, E=3, Var=1, E(Y)=5, Var(Y)=4).
+- r13-p031 card1: clean, maths OK (625/3888, 0.804). Diagram fine.
+- r13-p031 card2/card3: clean, maths OK (0.401, 0.5, 0.475; n=8, p=1/2, 7/64). Card 3 step 1 wraps a little early (cosmetic).
+- r13-p031 card4: step 2 fixed form; clean; maths OK.
+- r13-p043 card1: (i)/(ii)/(iii) glued to text in steps 3–5. r3-b #25 (p043) FIXED. No answer panel (accepted #24). Maths OK.
+- r13-p043 card2: step 6 line starts with "+" ("+ 1/8 = (26 − 18 + 3)/24 = 11/24;"). r3-b #3 STILL. Step 4 "⟹" at line ends: #4 FIXED. "formulas: at least" / "one =" STILL (minor). Card 2/2 also has no answer panel (not in #24 list; observation).
+- r13-p047 card1: clean; minor "C =" / "{HT, TH}," (break after =, accepted); step 2 line starting "⟹ P(A∩B∩C) = 0" (set break, book arrow; accepted). Maths OK.
+- r13-p047 card2: step 4 "125p² − 225p + 80, so" (#5 FIXED). Maths OK so far (p=1/5 and (45−√425)/50).
+- r13-p047 card2 step 7 check: clean; maths OK.
+- r13-p059 card1: "(i) P(X = 4) = …", "(ii) E(X) = 1/p = 6 rolls." glued. r3-b #25 (p059) FIXED. Maths OK (125/1296, 6, 125/216).
+- r13-p059 card2: clean; #12 FIXED confirmed; maths OK (6/11, 5/11, E(T)=6). No answer panel (accepted #24).
+- r13-p063 card1: clean, answer 26/31 OK.
+- r13-p063 card2: complement rule "… = P(A)" / "(1 − P(B)))." product still torn at P(A)|(1 − …). r3-b #26 STILL (part); "⇒ B odd."/"⇒ A odd." now "odd ⇒ B odd." (fixed part). NEW minor: step 5 "But" alone on a line.
+- r13-p063 card3 shots (card3-01..03): show CARD 2's content again at a smaller text size; card 3/6 (Archetype 3) never captured; text stays smaller for cards 4–6. Shoot artifact (likely text-size tap instead of next) — re-shoot card 3.
+- r13-p063 card4, card5: clean, maths OK (32/49, 23/36).
+- r13-p063 card6: NEW "Geometric (r = 1): P(first success on trial" / "n) = qⁿ⁻¹p." and "P(r-th success on" / "trial n) = …": brackets split. Maths OK (5/11).
+CHAIN-DONE seen; all files read.

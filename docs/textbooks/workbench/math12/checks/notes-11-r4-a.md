@@ -1,0 +1,81 @@
+# Notes ch11 r4 set a (card, dg, p000-p039)
+Skipped byte-identical consecutive dups (20).
+
+- c12-c11-card001: second line starts with "+" ("+ (z2 − z1)²)") inside the sqrt; line starts with operator.
+- card002-004 OK
+- card014: lines 2 and 3 of the cos θ chain start with "=" (looks like a deliberate display chain, flag only)
+- card016: denominator "|b1 × b2|" has no vector arrows on b1, b2 (numerator has them)
+- card017: "|b1×b2|" in d = |Δ|/... no arrows; third formula wraps with second line starting "+ (c1a2 − c2a1)² ..." inside sqrt: line starts with operator
+- card018: second line starts with "⟺" before determinant (display chain, flag only)
+- card005-013,015,019-022 OK
+- card026: denominator "|b||n⃗|": b has no arrow (minor notation)
+- card023-025, 027-044 OK (card033 RHS line starts with "±" after "=" at end: sign of the RHS, not reported)
+- dg02: cos β = y/r: "y" descender touches the fraction bar (minor crowding)
+- dg01, dg03-06 OK
+- p000 OK; p001 OK
+- p002-01/02/03: "Distance between two points" formula box: line 2 starts with "+ (z2 − z1)²)" (operator at line start)
+- p002-06/07: lead-in "Centroid of a triangle with vertices A, B, / C:" leaves "C:" alone on a line (minor, outside box)
+- p002 rest OK
+- p003-01/02/03: diagram "distance formula as a box" caption: "|z2" / "− z1|" split inside absolute value bars, next line starts with "−" (same caption on dg01 card fits on one line)
+- p003-08/09 OK
+- p004-01 (ex 1/4) OK (long sqrt breaks after "+")
+- p004-04/05/06/07 (ex 4/4) step 3: "... + (0)" / "(1)" product (0)(1) torn apart, "(1)" alone on a line
+- p005 practice 1-7 OK (maths checked). Question-only views of practice/MCQ skipped where the answer view repeats the same question text.
+- p006 MCQ 1-4 OK (maths checked)
+- p007-01/02 pitfall "Summing magnitudes": "never |Δx| + |Δy|" / "+ |Δz|." line starts with "+"
+- p007-03..07 OK
+- p008-01 cheat sheet: "...; External" / "m : n: (...)" label separated from its ratio (minor). Cheat sheet "÷3 triangle" fine (no stacked fraction). Rest OK.
+- p009 OK
+- p010-09/10: extra-large gap between paragraph ending "any distance in the fixed direction." and "It is worth pausing..." (about 1.6x the other paragraph gaps)
+- p010 rest OK
+- p011 OK
+- p012-01/02 diagram "Direction angles of OP": the y-axis label "y" sits on the dotted line from P (label touching a line, minor)
+- p012-11/12: Theorem 3 "where PQ = √((x2 − x1)² + (y2 − y1)²" / "+ (z2 − z1)²)." line starts with "+" and the sqrt bracket is split
+- p012 rest OK
+- p013-07/08 (ex 4/4 step 5): "cos θ = (1)(2)+.../√6·√6" then next line starts with "= (2 − 2 + 1)/6 = 1/6." (line starts with "=")
+- p013 rest OK; p014-01/02 OK
+- p014 practice 1-5 OK (maths checked); p015 MCQ 1-4 OK; p016-01/03 OK
+- p016-05/06, p017, p018, p019-01..09 OK
+- p019-10/11 OK
+- p020-01/02 Angle formula box: lines 2 and 3 start with "=" (display chain, same as card014)
+- p020-03 Perp/parallel formula box: "Perpendicular: a1a2 + b1b2 + c1c2" / "= 0" -> "= 0" alone on a line starting with "=" (FAULT)
+- p020-06/07 Cartesian determinant box: "|b1×b2| = √((b1c2 − b2c1)²" / "+ (c1a2 − c2a1)² + (a1b2 − a2b1)²)" line starts with "+" inside the sqrt bracket (FAULT, same as card017)
+- p020-08 coplanarity box: "⟺" starts line 2 (display chain like card018)
+- p020-04/05 OK
+- p020-09..13 OK
+- p021-05 Theorem 2 proof: "d = |(a2 − a1)·n̂|" / "= |...|/|b1×b2|." second line starts with "=" (display chain)
+- p021-01..04 OK (diagram OK)
+- p021-08/09: "The denominator |b1×b2| expands to √((b1c2 − b2c1)² + (c1a2 − c2a1)²" / "+ (a1b2 − a2b1)²)." line starts with "+" (FAULT)
+- p021-06/07/10 OK
+- p021-11/12 OK
+- p022-01/02 ex 1/4: step 2 second line "= 2 − 2 + 4 = 4." starts with "=" (display chain).
+- p023 practice 1-5 OK (maths checked)
+- p024-05 MCQ 3/4 solved: "b1×b2 = (0,3,3), so |b1×b2|" / "= √18 = 3√2." line starts with "=" (FAULT)
+- p024 rest OK (maths checked MCQ1-4)
+- p025-01..05 OK
+- p025-06, p026 OK
+- p027 OK; p028-01..04 OK
+- p028-05..09 OK
+- p028-10, p029-01..04 OK
+- p029-05..09 OK
+- p029-10/11, p030-01/03/04 OK
+- p030-05/06 Theorem 2 proof: lines start with "=" (display chain of stacked fractions, same category as card014)
+- p030-08/09 Theorem 3 proof end: "■" wraps to the start of a line ("■ Two corollaries fall out immediately:"), proof mark detached from "...may be reversed." (minor)
+- p030-07 OK
+- p030-10/11, p031-01..03 OK (lines starting "⇒" in worked steps look like deliberate new display lines)
+- p031-04/05 ex 4/4 step 2: "3x + 2y + z = 0 means N·(3, 2, 1) =" / "0:" -> "0:" alone on a line, short equation torn apart (FAULT)
+- p031-06, p032-01/02 OK
+- p032 practice 2-5 OK (maths checked); p033-02 MCQ1 OK
+- p033 MCQ 2,4 OK. MCQ 3/4 (distance of (3,-2,1)) answer/solved view never captured: p033-05 shows it unanswered, p033-06 jumps to 4/4 (shot gap, not checked)
+- p034-01..04 OK
+- p034-05, p035, p036-01 OK
+- p037-03/04: "since |AP × b|" / "= |AP||b| sin θ already isolates..." line starts with "=" (FAULT)
+- p036-02, p037-01/02 OK
+- p037-05..10 OK
+- p038-02/03 formula boxes "Point to a line" and "Point to a plane": blank gap between first formula line (Foot λ0 = ... / t = ...) and "Distance:" line, about double the other line gaps (uneven gap inside box)
+- p037-11, p038-01/04 OK
+- p038-05, p039-01..05 OK
+- p039-06..09 OK
+- p039-11/12: "the perpendicular distance is |AP⊥|" / "= |AP| sin θ, and since..." line starts with "=" (FAULT)
+- p039-10, 13 OK
+DONE. Nothing runs off the right edge or is cut off anywhere in the set.
