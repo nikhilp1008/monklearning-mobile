@@ -21,7 +21,7 @@ Registry key (add by the coordinator only): `'physics|12|experimental skills'`. 
 ## 3. Defaults I assumed (pending Nikhil)
 
 1. Original text, with the new-text list covering the whole chapter.
-2. Written for JEE and NEET alike for now. The live tags say both. The NEET (UG) 2026 syllabus lists no experimental unit, so the recommendation is JEE only, as a **separate data change**. Do not write anything that depends on either answer.
+2. Written for JEE and NEET. The NEET (UG) 2026 syllabus has Unit 20 Experimental Skills with 15 experiments, 13 of them in this chapter (Topics 01 to 03 and the glass slab); Topic 04's three semiconductor experiments are in JEE Main's list only (corrected 2026-11-19: the first version of this brief wrongly said NEET has no experimental unit). Do not write anything that depends on the exam.
 3. All 16 experiments, no more. Vernier and screw gauge by reference only ("see Chapter 1 of Class 11").
 4. Per experiment: aim, principle, apparatus, procedure, observation table, calculation, result, precautions and sources of error, plus the exam traps. One short safety line at most.
 5. One chapter at a time, at most 3 writers.
