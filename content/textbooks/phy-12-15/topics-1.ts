@@ -5,7 +5,7 @@ import type { Topic } from '@/lib/textbooks';
  * properties of matter, heat and sound. ORIGINAL text (no source book): every
  * formula is derived in the text, every worked example and answer was
  * recomputed by a second route. Drawings p12-15-01-d1 to d9 are redrawn in
- * lib/diagrams/physics-12-15.ts.
+ * lib/diagrams/physics-12-15b.ts.
  */
 export const TOPICS: Topic[] = [
   {
