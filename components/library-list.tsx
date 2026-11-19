@@ -23,7 +23,7 @@ import { shadow } from '@/lib/shadow';
 import { SnapADoubtIcon } from '@/components/monk-icons';
 import { ERASE, EraseModeLine, EraseTool, Erasable, UndoRow } from '@/components/erase';
 import { EmptyState } from '@/components/library-empty';
-import { OfflineBanner, QuietLink, StateCard, StateLine, StatePlate } from '@/components/states';
+import { OfflineBanner, QuietLink, StateCard, StateLine, useTeacherId } from '@/components/states';
 import { PressableScale } from '@/components/pressable-scale';
 import { QuestionPeek } from '@/components/question-peek';
 import { Skeleton, stagger } from '@/components/skeleton';
@@ -31,6 +31,7 @@ import { ApiError, friendlyError, friendlyLoadError } from '@/lib/api';
 import { hapticSoft } from '@/lib/haptics';
 import { latexToText } from '@/lib/latex-text';
 import { colors } from '@/constants/brand';
+import { HOME_ACTION } from '@/constants/teachers';
 import { pageTitle } from '@/constants/page-title';
 import { BackArrowIcon } from '@/components/settings-page';
 import { useScale } from '@/constants/scale';
@@ -84,6 +85,26 @@ const DOUBT_HINTS = NOTE_HINTS.map((h) => h.replace('your notes', 'your doubts')
  * copies of five hundred lines would have drifted apart the first time either
  * was touched.
  */
+/** Home's Snap and Solve tile (components/home-header.tsx), at this row's size. */
+function SnapTile({ size }: { size: number }) {
+  const teacher = useTeacherId();
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.3),
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: 'rgba(28,26,22,.12)',
+      }}>
+      <SnapADoubtIcon size={Math.round(size * 0.52)} color={colors.ink} accent={HOME_ACTION[teacher]} />
+    </View>
+  );
+}
+
 export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
   const { scale, verticalScale } = useScale();
   const styles = useMemo(() => createStyles(scale, verticalScale), [scale, verticalScale]);
@@ -791,14 +812,11 @@ export function LibraryList({ kind }: { kind: 'notes' | 'doubts' }) {
                   onPress={() => router.push('/snap-capture')}
                   accessibilityRole="button"
                   accessibilityLabel="Snap and Solve">
-                  {/* The same sky chip as Snap and Solve on Home (Nikhil, 9 Nov
-                      2026): it was a bare ink outline here and read as a
-                      different button from the one on Home. */}
-                  <StatePlate
-                    glyph="search"
-                    size={scale(34)}
-                    icon={(size, color) => <SnapADoubtIcon size={size} color={color} accent={color} />}
-                  />
+                  {/* The same tile as Snap and Solve on Home, so the two read as
+                      one button. Since 19 Nov 2026 that is a white tile with an
+                      ink camera and the teacher's colour as its dot; it was a
+                      square of the sky while Home's was. */}
+                  <SnapTile size={scale(34)} />
                 </PressableScale>
               </View>
 
