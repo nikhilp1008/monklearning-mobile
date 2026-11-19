@@ -41,6 +41,6 @@ Everything described here is on main (7f842ed). It was pushed on 2026-11-18 afte
 - Ch 13 phytochrome line: the book prints it as a typeset line, not a drawing, so text is faithful; no figure needed.
 
 ## Still open
-- **Android re-shot** of Biology 11 fig 14.5, Biology 12 fig 5.3 and the ABO table after the 2026-11-18 fixes: the iOS simulator shows them right (fig 14.5 keeps one thin leader crossing the right-shift curve), but no Android shot has been taken yet.
+- **Android re-shot** (done 2026-11-18, emulator pixel_play, Pixel 8, Android 16): Biology 11 fig 14.5, Biology 12 fig 5.3 (Track 1) and the Biology 12 Ch 4 ABO table were shot after the fixes and look right. Fig 14.5: Lungs label clear of the dotted line, Left shift above the plot, Normal on a short tick; one thin Tissues leader still crosses the right-shift curve. Fig 5.3 reads "P-32 DNA"; the caption keeps the real superscript. ABO table: each row reads "Blood group A", "B", "AB", "O". Shots are in `android-check-bio/shots/after-2026-11-18/` (outside the repo). Fig 5.3 Track 2 was not shot.
 - **Shelf names vs live catalogue**: re-check once more just before a store build.
 - **Process**: Maths 11 Ch 0 and the Biology chapters first reached main before your sign-off and the Android check. Every push since (c20b816 onwards) was on your "push to main". Nothing is pushed without it.
