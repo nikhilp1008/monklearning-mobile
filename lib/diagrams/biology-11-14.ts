@@ -413,8 +413,8 @@ function draw145(): Sketch {
   leader(s, [262, 261], [X5(80), Y5(sat(80, P50_RIGHT))]);
   ['Lungs', `(<i>p</i>${sub2} = 104 mmHg)`].forEach((t, i) => lab(s, 214, 24 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
   leader(s, [320, 44], [X5(P_LUNG), Y5(sat(P_LUNG, P50))]);
-  ['Tissues', `(<i>p</i>${sub2} = 40 mmHg)`].forEach((t, i) => lab(s, 164, 246 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
-  leader(s, [196, 234], [X5(P_TISSUE), Y5(sat(P_TISSUE, P50))]);
+  ['Tissues', `(<i>p</i>${sub2} = 40 mmHg)`].forEach((t, i) => lab(s, 174, 226 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
+  leader(s, [166, 223], [X5(P_TISSUE) + 1, 223]);
   return s;
 }
 function check145(): Check[] {
