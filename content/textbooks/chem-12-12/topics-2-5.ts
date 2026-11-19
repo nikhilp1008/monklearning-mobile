@@ -322,7 +322,7 @@ export const TOPICS: Topic[] = [
           '<b>The ortho isomer is removed by recrystallisation from alcohol:</b> it is yellow and stays in the mother liquor, while p-nitroacetanilide crystallises colourless.',
           '<b>Two temperatures to remember:</b> 0–5 °C for the ice bath and never above 10 °C while the nitrating mixture is added.',
           '<b>The mixture is poured on crushed ice</b> to throw the product out of the strongly acidic solution as a solid.',
-          '<b>Amine first, nitro second.</b> Nitration comes after acetylation, not before, because free aniline would be oxidised by the nitric acid.',
+          '<b>Acetylate first, nitrate second.</b> Nitration comes after acetylation, not before, because free aniline would be oxidised by the nitric acid.',
         ],
       },
 
@@ -415,7 +415,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Aniline yellow is p-aminoazobenzene,</b> C<sub>6</sub>H<sub>5</sub>–N=N–C<sub>6</sub>H<sub>4</sub>–NH<sub>2</sub>. The orange-red dye from β-naphthol is phenyl-azo-β-naphthol, a different compound.',
+          '<b>Aniline yellow is p-aminoazobenzene,</b> C<sub>6</sub>H<sub>5</sub>–N=N–C<sub>6</sub>H<sub>4</sub>–NH<sub>2</sub>. The orange-red dye from β-naphthol is phenyl-azo-β-naphthol, a different compound. (Orange-red is the manual’s word in its preparation of this dye; its amino-group test in Topic 01 calls the same dye scarlet red.)',
           '<b>Diazotisation is at 0–5 °C,</b> with NaNO<sub>2</sub> and HCl making nitrous acid in the flask.',
           '<b>Medium decides the coupling partner.</b> An amine couples in a weakly acidic medium; the β-naphthol solution is alkaline.',
           '<b>The rearrangement is an isomerisation,</b> so the theoretical yield, in grams, equals the mass of diazoaminobenzene taken.',
@@ -478,7 +478,7 @@ export const TOPICS: Topic[] = [
           ['propan-2-ol', 'CH<sub>3</sub>–CH(OH)–R', 'yes'],
           ['acetone', 'CH<sub>3</sub>CO–', 'yes'],
           ['propan-1-ol', 'no CH<sub>3</sub>–CH(OH)– and no CH<sub>3</sub>CO–', 'no'],
-          ['methanol', 'no CH<sub>3</sub> group', 'no'],
+          ['methanol', 'only one carbon: no CH<sub>3</sub>–CH(OH)– unit', 'no'],
         ],
         note: 'The product in every positive case is the yellow solid iodoform.',
       },
@@ -510,7 +510,7 @@ export const TOPICS: Topic[] = [
           '<b>The reagent is hypoiodite.</b> It is made from I<sub>2</sub> and NaOH, or from KI and NaOCl.',
           '<b>The second product differs with the compound:</b> sodium acetate from acetone, sodium formate from ethanol.',
           '<b>Only one carbon of the compound reaches iodoform.</b> That is why one mole of CHI<sub>3</sub> forms per mole of ethanol or acetone.',
-          '<b>Iodoform needs several moles of iodine per mole of compound</b> (three for acetone, four for ethanol), so the iodine is in excess and its colour persists.',
+          '<b>Iodoform needs several moles of iodine per mole of compound</b> (three for acetone, four for ethanol), so the reagent is added until the iodine colour persists, which shows it is in excess.',
         ],
       },
 
@@ -537,7 +537,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Iodoform] Which of the following give a positive iodoform test: ethanol, propan-1-ol, propan-2-ol, acetophenone (C<sub>6</sub>H<sub>5</sub>COCH<sub>3</sub>), methanol?',
-            a: 'Ethanol (CH<sub>3</sub>–CH(OH)–), propan-2-ol (CH<sub>3</sub>–CH(OH)–CH<sub>3</sub>) and acetophenone (a CH<sub>3</sub>CO– group). Propan-1-ol has neither group, and methanol has no CH<sub>3</sub> group.',
+            a: 'Ethanol (CH<sub>3</sub>–CH(OH)–), propan-2-ol (CH<sub>3</sub>–CH(OH)–CH<sub>3</sub>) and acetophenone (a CH<sub>3</sub>CO– group). Propan-1-ol has neither group, and methanol has only one carbon, so it has no CH<sub>3</sub>–CH(OH)– unit.',
           },
           {
             q: '[Acetanilide] 4.65 g of aniline reacts with 4.00 g of acetic anhydride. Find the limiting reactant, the theoretical yield of acetanilide and the percentage yield if 4.10 g is collected. (Molar masses: aniline 93.13, acetic anhydride 102.09, acetanilide 135.17 g mol<sup>−1</sup>.)',
@@ -586,7 +586,7 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'Which pair of compounds will both give the yellow precipitate of iodoform with iodine and sodium hydroxide?',
         opts: [
-          { label: 'methanol and ethanol', nudge: 'Ethanol gives iodoform but methanol has no CH<sub>3</sub> group, so it does not.' },
+          { label: 'methanol and ethanol', nudge: 'Ethanol gives iodoform, but methanol has only one carbon and so no CH<sub>3</sub>–CH(OH)– unit; it does not.' },
           { label: 'propan-1-ol and butan-1-ol', nudge: 'Neither contains CH<sub>3</sub>–CH(OH)– or CH<sub>3</sub>CO–; both are primary alcohols other than ethanol.' },
           { label: 'benzaldehyde and benzyl alcohol', nudge: 'Neither has a CH<sub>3</sub>CO– or CH<sub>3</sub>–CH(OH)– group, so neither reacts.' },
           { label: 'ethanol and propan-2-ol', nudge: null },
@@ -601,7 +601,7 @@ export const TOPICS: Topic[] = [
           { label: '41.4 %', nudge: 'This comes from using the molar mass of aniline, 93.13, for the starting material instead of 135.17.' },
           { label: '60.0 %', nudge: null },
           { label: '80.0 %', nudge: 'This is 4.00/5.00, which compares the masses directly and ignores the change in molar mass.' },
-          { label: '106.7 %', nudge: 'This inverts the ratio of molar masses; a yield above 100 % could not be a correct answer here.' },
+          { label: '106.6 %', nudge: 'This inverts the ratio of molar masses; a yield above 100 % could not be a correct answer here.' },
         ],
         correct: 1,
         solution: 'Moles of acetanilide = 5.00/135.17 = 0.03699 mol; theoretical mass = 0.03699 × 180.16 = 6.665 g; yield = (4.00/6.665) × 100 = 60.0 %.',
@@ -631,7 +631,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Measuring heat: the calorimeter and its constant' },
       {
         t: 'p',
-        html: 'Most reactions in the laboratory run at atmospheric pressure, so the heat change is an enthalpy change: Δ<i>H</i> = <i>q</i><sub>p</sub> = <i>m</i><i>c</i>Δ<i>T</i>, where <i>m</i> is the mass of the solution, <i>c</i> its specific heat and Δ<i>T</i> the temperature change. For dilute aqueous solutions the manual takes the product of density and heat capacity as 4.184 J mL<sup>−1</sup> K<sup>−1</sup>, the value for water. (Dilute solutions are denser than water and have a lower heat capacity; the two differences almost cancel.)<br><br>The vessel, the thermometer and the stirrer also absorb heat. The amount needed to warm all of them by 1 K is the <b>calorimeter constant</b> <i>W</i>, in J K<sup>−1</sup>. In the beaker calorimeter of the manual, a beaker stands on a wooden block inside a larger beaker, the gap is packed with cotton wool, and a cardboard cover carries the thermometer and the stirrer. A thermometer graduated to 0.1 °C is used.',
+        html: 'Most reactions in the laboratory run at atmospheric pressure, so the heat change of the reaction is an enthalpy change. The heat taken in by the solution is <i>q</i> = <i>m</i><i>c</i>Δ<i>T</i>, where <i>m</i> is the mass of the solution, <i>c</i> its specific heat and Δ<i>T</i> the temperature change (final minus initial). That heat comes from the reaction, so Δ<i>H</i> = −<i>q</i>. For dilute aqueous solutions the manual takes the product of density and heat capacity as 4.184 J mL<sup>−1</sup> K<sup>−1</sup>, the value for water. (Dilute solutions are denser than water and have a lower heat capacity; the two differences almost cancel.)<br><br>The vessel, the thermometer and the stirrer also absorb heat. The amount needed to warm all of them by 1 K is the <b>calorimeter constant</b> <i>W</i>, in J K<sup>−1</sup>. In the beaker calorimeter of the manual, a beaker stands on a wooden block inside a larger beaker, the gap is packed with cotton wool, and a cardboard cover carries the thermometer and the stirrer. A thermometer graduated to 0.1 °C is used.',
       },
       { t: 'fig', id: 'c12-12-05-d1' },
       {
@@ -690,7 +690,7 @@ export const TOPICS: Topic[] = [
         kicker: 'Enthalpy of solution',
         main: 'Δ<sub>sol</sub><i>H</i> = −[<i>W</i> + (100 + <i>w</i>) × 4.184] × Δ<i>T</i> × 249.5/<i>w</i>',
         legend: ['Δ<sub>sol</sub><i>H</i> = enthalpy of solution, in J mol<sup>−1</sup>', '<i>W</i> = calorimeter constant, in J K<sup>−1</sup>', '<i>w</i> = mass of CuSO<sub>4</sub>·5H<sub>2</sub>O dissolved, in g', 'Δ<i>T</i> = final minus initial temperature', '249.5 = molar mass of CuSO<sub>4</sub>·5H<sub>2</sub>O, in g mol<sup>−1</sup>'],
-        note: 'The 100 is the mass in g of the 100 mL of water used.',
+        note: 'The 100 is the mass in g of the 100 mL of water used. The manual’s printed expression multiplies <i>W</i> by 4.184 as well; since <i>W</i> is already in J K<sup>−1</sup>, it is added after multiplying the mass by 4.184, as here.',
       },
 
       { t: 'part', title: 'Enthalpy of solution of CuSO₄: apparatus and procedure' },
@@ -730,13 +730,13 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Temperature change.</b> Δ<i>T</i> = 26.5 − 27.0 = −0.5 K. The solution cooled.',
           '<b>Heat capacity of the contents.</b> The solution weighs 100 + 5.00 = 105 g, so it has 105 × 4.184 = 439.3 J K<sup>−1</sup>. With the calorimeter: 439.3 + 64.4 = 503.7 J K<sup>−1</sup>.',
-          '<b>Heat gained by the contents.</b> <i>q</i> = 503.7 × (−0.5) = −251.8 J. The contents lost 251.8 J; it was absorbed by the dissolving salt, so the dissolution takes in heat.',
+          '<b>Heat gained by the contents.</b> <i>q</i> = 503.7 × (−0.5) = −251.9 J. The contents lost 251.9 J; it was absorbed by the dissolving salt, so the dissolution takes in heat.',
           '<b>Moles.</b> <i>n</i> = 5.00/249.5 = 0.02004 mol.',
-          '<b>Enthalpy of solution.</b> Δ<sub>sol</sub><i>H</i> = +251.8/0.02004 = 12 570 J mol<sup>−1</sup>.',
-          '<b>Second route, as the manual does.</b> Heat for 1 g: 251.8/5.00 = 50.4 J. For 1 mol (249.5 g): 50.4 × 249.5 = 12 570 J mol<sup>−1</sup>. The routes agree.',
-          '<b>How firm is it?</b> A change of 0.5 K read on a thermometer marked to 0.1 K is uncertain by about 0.1 K, that is by 20 %. This is why the value is quoted to three figures at most.',
+          '<b>Enthalpy of solution.</b> Δ<sub>sol</sub><i>H</i> = +251.9/0.02004 = 12 570 J mol<sup>−1</sup>.',
+          '<b>Second route, as the manual does.</b> Heat for 1 g: 251.9/5.00 = 50.4 J. For 1 mol (249.5 g): 50.4 × 249.5 = 12 570 J mol<sup>−1</sup>. The routes agree.',
+          '<b>How firm is it?</b> A change of 0.5 K read on a thermometer marked to 0.1 K is uncertain by about 0.1 K, that is by 20 %. So the value is good to about two figures, about +13 kJ mol<sup>−1</sup>; 12 570 J mol<sup>−1</sup> is only the arithmetic.',
         ],
-        ans: 'Δ<sub>sol</sub><i>H</i> = +12.6 kJ mol<sup>−1</sup> (endothermic)',
+        ans: 'Δ<sub>sol</sub><i>H</i> ≈ +13 kJ mol<sup>−1</sup> (endothermic; the arithmetic gives 12 570 J mol<sup>−1</sup>)',
       },
 
       { t: 'part', title: 'Enthalpy of solution of CuSO₄: result, precautions and errors' },
@@ -859,8 +859,8 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Chemistry of the lyophobic sols',
-        main: 'Ferric hydroxide:<br>FeCl<sub>3</sub> + 3H<sub>2</sub>O → Fe(OH)<sub>3</sub> + 3HCl<br>Arsenious sulphide:<br>As<sub>2</sub>O<sub>3</sub> + 3H<sub>2</sub>S → As<sub>2</sub>S<sub>3</sub> + 3H<sub>2</sub>O',
-        legend: ['Fe(OH)<sub>3</sub> = hydrated ferric oxide, brown sol', 'Al(OH)<sub>3</sub> = formed in the same way from AlCl<sub>3</sub>, white sol', 'As<sub>2</sub>S<sub>3</sub> = arsenious sulphide, negative sol'],
+        main: 'Ferric hydroxide:<br>FeCl<sub>3</sub> + 3H<sub>2</sub>O → Fe(OH)<sub>3</sub> + 3HCl<br>Aluminium hydroxide:<br>AlCl<sub>3</sub> + 3H<sub>2</sub>O → Al(OH)<sub>3</sub> + 3HCl<br>Arsenious sulphide:<br>As<sub>2</sub>O<sub>3</sub> + 3H<sub>2</sub>S → As<sub>2</sub>S<sub>3</sub> + 3H<sub>2</sub>O',
+        legend: ['Fe(OH)<sub>3</sub> = hydrated ferric oxide, brown sol', 'Al(OH)<sub>3</sub> = white sol', 'As<sub>2</sub>S<sub>3</sub> = arsenious sulphide, negative sol'],
         note: 'Hot water makes the hydrolysis of FeCl<sub>3</sub> go forward; the Fe(OH)<sub>3</sub> stays as a sol, not a precipitate.',
       },
       { t: 'fig', id: 'c12-12-05-d3' },
@@ -996,7 +996,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Iodide and hydrogen peroxide: result, precautions and errors' },
       {
         t: 'p',
-        html: '<b>Result.</b> The time for the blue colour to appear falls as the concentration of iodide ions rises, so the rate of the reaction increases with iodide concentration.<br><br><b>Precautions.</b> Keep the concentration of sodium thiosulphate lower than that of potassium iodide. Always use freshly prepared starch solution. Use fresh samples of hydrogen peroxide and potassium iodide. Use the same measuring cylinders for the same solutions in the different sets, and clean a cylinder before using it for another solution. Record the time immediately when the blue colour appears.<br><br><b>Sources of error.</b> Starting the stopwatch at a different point of the mixing changes every time by the same amount. A bath that is not at constant temperature changes the rate, which rises with temperature. Old hydrogen peroxide or old starch gives wrong times.',
+        html: '<b>Result.</b> The time for the blue colour to appear falls as the concentration of iodide ions rises, so the rate of the reaction increases with iodide concentration.<br><br><b>Precautions.</b> Keep the concentration of sodium thiosulphate lower than that of potassium iodide. Always use freshly prepared starch solution. Use fresh samples of hydrogen peroxide and potassium iodide. Use the same measuring cylinders for the same solutions in the different sets, and clean a cylinder before using it for another solution. Record the time immediately when the blue colour appears.<br><br><b>Sources of error.</b> Starting the stopwatch at a different point of the mixing in different runs makes the times inconsistent; start it when half of the solution from B has been added, every time. A bath that is not at constant temperature changes the rate, which rises with temperature. Old hydrogen peroxide or old starch gives wrong times.',
       },
 
       { t: 'part', title: 'Iodide and hydrogen peroxide: exam traps' },

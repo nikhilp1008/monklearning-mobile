@@ -409,6 +409,7 @@ export const TOPICS: Topic[] = [
             'PbCrO<sub>4</sub> = yellow precipitate',
             'PbSO<sub>4</sub> = white precipitate',
             '[Pb(OH)<sub>4</sub>]<sup>2−</sup> = tetrahydroxoplumbate(II)',
+            '[Pb(CH<sub>3</sub>COO)<sub>4</sub>]<sup>2−</sup> = soluble acetate complex',
           ],
           note: null,
         },
@@ -477,7 +478,7 @@ export const TOPICS: Topic[] = [
             '[Fe(SCN)]<sup>2+</sup> = blood-red complex',
             'SCN<sup>−</sup> = thiocyanate ion',
           ],
-          note: null,
+          note: 'Both forms are written for the blood-red thiocyanate complex: [Fe(SCN)]<sup>2+</sup> here, and Fe(SCN)<sub>3</sub> in the Lassaigne test of Topic 01.',
         },
         {
           t: 'p',
@@ -539,7 +540,7 @@ export const TOPICS: Topic[] = [
         },
         {
           t: 'p',
-          html: '<b>Group V and Group VI: barium, calcium, magnesium.</b> The white Group V precipitate is dissolved by boiling with dilute acetic acid; the solution is divided for the individual tests, and a little of the precipitate is kept for the flame test. Barium is tested first.',
+          html: '<b>Group V and Group VI: barium, calcium, magnesium.</b> The white Group V precipitate is dissolved by boiling with dilute acetic acid; the solution is divided for the individual tests, and a little of the precipitate is kept for the flame test. Barium is tested first, because Ba<sup>2+</sup> also gives a white precipitate with ammonium oxalate and could be taken for calcium. Calcium chromate is soluble, so a yellow precipitate with potassium chromate can only be barium.',
         },
         {
           t: 'table',
@@ -658,7 +659,7 @@ export const TOPICS: Topic[] = [
         },
         {
           t: 'p',
-          html: 'If dilute acid gives nothing, take about 0.1 g of salt in a dry tube, add 3 to 4 drops of concentrated H<sub>2</sub>SO<sub>4</sub>, watch in the cold and then warm. Concentrated acid is a stronger, oxidising acid, so it frees the volatile acids of the halides and nitrate, and in the case of bromide and iodide it oxidises them further to the halogen.',
+          html: 'If dilute acid gives nothing, take about 0.1 g of salt in a dry tube, add 3 to 4 drops of concentrated H<sub>2</sub>SO<sub>4</sub>, watch in the cold and then warm. Concentrated sulphuric acid is non-volatile and an oxidising agent: it drives out the more volatile HCl and HNO<sub>3</sub> from chlorides and nitrates, and oxidises bromide and iodide further to the halogen.',
         },
         {
           t: 'table',
@@ -847,12 +848,12 @@ export const TOPICS: Topic[] = [
               'AgI',
             ],
           ],
-          note: 'If neither dilute nor concentrated sulphuric acid gives a result, test for sulphate (and the manual adds phosphate, outside this list).',
+          note: 'If neither dilute nor concentrated sulphuric acid gives a result, test for sulphate (and the manual adds phosphate, outside this list). The silver halide colours here are the manual\'s salt-analysis wording; its Lassaigne section (Topic 01) words the same precipitates differently, AgBr yellow and partially soluble, AgI dark yellow and insoluble. Learn pale yellow AgBr and yellow AgI.',
         },
         {
           t: 'formula',
           kicker: 'Carbonate: the lime water test',
-          main: 'CO<sub>3</sub><sup>2−</sup> + 2H<sup>+</sup> → H<sub>2</sub>O + CO<sub>2</sub>↑<br>Ca(OH)<sub>2</sub> + CO<sub>2</sub> → CaCO<sub>3</sub>↓ + H<sub>2</sub>O<br>CaCO<sub>3</sub> + CO<sub>2</sub> + H<sub>2</sub>O → Ca<sup>2+</sup> + 2HCO<sub>3</sub><sup>−</sup>',
+          main: 'CO<sub>3</sub><sup>2−</sup> + 2H<sup>+</sup> → H<sub>2</sub>O + CO<sub>2</sub>↑<br>Ca(OH)<sub>2</sub> + CO<sub>2</sub> → CaCO<sub>3</sub>↓ + H<sub>2</sub>O<br>CaCO<sub>3</sub> + CO<sub>2</sub> + H<sub>2</sub>O → Ca(HCO<sub>3</sub>)<sub>2</sub>',
           legend: [
             'CaCO<sub>3</sub> = white, makes lime water milky',
             'Ca(HCO<sub>3</sub>)<sub>2</sub> = soluble, milkiness clears',
@@ -902,7 +903,7 @@ export const TOPICS: Topic[] = [
         },
         {
           t: 'p',
-          html: '<b>Chromyl chloride test (chloride only).</b> Mix a little salt with an equal amount of solid potassium dichromate, add concentrated sulphuric acid and heat. Pass the gas through sodium hydroxide solution, which turns yellow. Divide the solution. Acidify one part with acetic acid and add lead acetate: a yellow precipitate. Acidify the other with dilute sulphuric acid, add a little amyl alcohol and 1 mL of 10% hydrogen peroxide, and shake gently: the organic layer turns blue. Use as little salt as possible, to avoid polluting the laboratory with chromium(III).',
+          html: '<b>Chromyl chloride test (chloride only).</b> Mix a little salt with an equal amount of solid potassium dichromate, add concentrated sulphuric acid and heat. Pass the gas through sodium hydroxide solution, which turns yellow. Divide the solution. Acidify one part with acetic acid and add lead acetate: a yellow precipitate. Acidify the other with dilute sulphuric acid, add a little amyl alcohol and 1 mL of 10% hydrogen peroxide, and shake gently: the organic layer turns blue. Use as little salt as possible, to avoid polluting the laboratory with chromium compounds.',
         },
         {
           t: 'formula',
@@ -971,7 +972,7 @@ export const TOPICS: Topic[] = [
             '<b>Lead or copper?</b> Dissolve in dilute HNO<sub>3</sub>: 3CuS + 8HNO<sub>3</sub> → 3Cu(NO<sub>3</sub>)<sub>2</sub> + 2NO + 3S + 4H<sub>2</sub>O. Lead would now give white PbSO<sub>4</sub> with dilute H<sub>2</sub>SO<sub>4</sub> and alcohol; none forms, so Pb<sup>2+</sup> is absent. Excess NH<sub>4</sub>OH gives the deep blue complex, Cu<sup>2+</sup> + 4NH<sub>3</sub> → [Cu(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup>. Acidify with acetic acid and add potassium ferrocyanide: a chocolate-brown precipitate, 2Cu<sup>2+</sup> + [Fe(CN)<sub>6</sub>]<sup>4−</sup> → Cu<sub>2</sub>[Fe(CN)<sub>6</sub>]↓. Cation: Cu<sup>2+</sup>.',
             '<b>Anion.</b> No gas with dilute acid removes carbonate, sulphide and nitrite; no gas with concentrated acid removes chloride, bromide, iodide and nitrate. That leaves sulphate, tested last: Ba<sup>2+</sup> + SO<sub>4</sub><sup>2−</sup> → BaSO<sub>4</sub>↓, white and insoluble in concentrated HCl.',
           ],
-          ans: 'Y is copper(II) sulphate, CuSO<sub>4</sub>',
+          ans: 'Y is copper(II) sulphate; the blue crystals are the pentahydrate, CuSO<sub>4</sub>·5H<sub>2</sub>O',
         },
         {
           t: 'ex',
@@ -990,7 +991,7 @@ export const TOPICS: Topic[] = [
           tag: 'CBSE / NEET Level',
           q: 'A white salt <b>W</b> dissolves in water. A paste in concentrated HCl colours the flame apple green. Dilute H<sub>2</sub>SO<sub>4</sub> gives a white precipitate and no gas. Concentrated H<sub>2</sub>SO<sub>4</sub> gives reddish-brown vapours that darken when MnO<sub>2</sub> is added. Groups I to IV give no precipitate; NH<sub>4</sub>Cl, NH<sub>4</sub>OH and (NH<sub>4</sub>)<sub>2</sub>CO<sub>3</sub> give a white precipitate that dissolves in hot dilute acetic acid, and this solution gives a yellow precipitate with potassium chromate. Identify W.',
           steps: [
-            '<b>Cation.</b> The apple-green flame points to Ba<sup>2+</sup> (copper gives a green flame with a blue centre that looks the same through blue glass). Group V fits the white carbonate: BaCO<sub>3</sub> + 2CH<sub>3</sub>COOH → Ba<sup>2+</sup> + 2CH<sub>3</sub>COO<sup>−</sup> + H<sub>2</sub>O + CO<sub>2</sub>↑. Potassium chromate gives the yellow BaCrO<sub>4</sub>: Ba<sup>2+</sup> + CrO<sub>4</sub><sup>2−</sup> → BaCrO<sub>4</sub>↓. Barium is tested before calcium, so this settles it.',
+            '<b>Cation.</b> The apple-green flame points to Ba<sup>2+</sup> (copper gives a green flame with a blue centre that looks the same through blue glass). Group V fits the white carbonate: BaCO<sub>3</sub> + 2CH<sub>3</sub>COOH → Ba<sup>2+</sup> + 2CH<sub>3</sub>COO<sup>−</sup> + H<sub>2</sub>O + CO<sub>2</sub>↑. Potassium chromate gives the yellow BaCrO<sub>4</sub>: Ba<sup>2+</sup> + CrO<sub>4</sub><sup>2−</sup> → BaCrO<sub>4</sub>↓. Calcium chromate is soluble, so a yellow chromate precipitate can only be barium.',
             '<b>The white precipitate with dilute H<sub>2</sub>SO<sub>4</sub></b> is BaSO<sub>4</sub>, the cation again. It is not a gas, so it gives no information about the anion.',
             '<b>Anion.</b> Reddish-brown vapour with concentrated acid is bromine: 2Br<sup>−</sup> + SO<sub>4</sub><sup>2−</sup> + 4H<sup>+</sup> → Br<sub>2</sub> + SO<sub>2</sub> + 2H<sub>2</sub>O; with MnO<sub>2</sub>, 2Br<sup>−</sup> + MnO<sub>2</sub> + 4H<sup>+</sup> → Mn<sup>2+</sup> + Br<sub>2</sub> + 2H<sub>2</sub>O.',
             '<b>Anion, confirmed.</b> Excess chlorine water and CCl<sub>4</sub> give an orange-brown organic layer, Cl<sub>2</sub> + 2Br<sup>−</sup> → 2Cl<sup>−</sup> + Br<sub>2</sub>. AgNO<sub>3</sub> in dilute HNO<sub>3</sub> gives a pale yellow precipitate, Ag<sup>+</sup> + Br<sup>−</sup> → AgBr↓, which dissolves in NH<sub>4</sub>OH only with difficulty. That separates it from white AgCl and from yellow AgI.',
@@ -1034,12 +1035,12 @@ export const TOPICS: Topic[] = [
             '<b>Magnesium has no group reagent.</b> It stays in solution through Group V because ammonium ions hold the carbonate concentration down, and is found last with Na<sub>2</sub>HPO<sub>4</sub>: a white crystalline precipitate when the inside of the tube is scratched.',
             '<b>CO<sub>2</sub> and SO<sub>2</sub> both turn lime water milky.</b> CO<sub>2</sub> is odourless, SO<sub>2</sub> smells of burning sulphur. Milkiness that clears when more gas is passed in is the carbonate sign (soluble Ca(HCO<sub>3</sub>)<sub>2</sub>).',
             '<b>Brown fumes have three sources.</b> Brown fumes with dilute acid point to nitrite. Brown fumes with concentrated acid that thicken with copper and leave a blue solution point to nitrate. Brown vapour that thickens with MnO<sub>2</sub>, turns starch paper yellow and gives an orange-brown CCl<sub>4</sub> layer is bromine. Separate them by the follow-up test, never by the colour alone.',
-            '<b>Silver halides in ammonia.</b> AgCl is white and dissolves readily, AgBr is pale yellow and dissolves with difficulty, AgI is yellow and does not dissolve. Acidify a sodium carbonate extract with dilute HNO<sub>3</sub> before adding AgNO<sub>3</sub>, or silver carbonate precipitates too.',
+            '<b>Silver halides in ammonia.</b> AgCl is white and dissolves readily, AgBr is pale yellow and dissolves with difficulty, AgI is yellow and does not dissolve. The Lassaigne section of Topic 01 words the same precipitates differently (AgBr yellow, partially soluble; AgI dark yellow), as the manual does; they are the same compounds. Acidify a sodium carbonate extract with dilute HNO<sub>3</sub> before adding AgNO<sub>3</sub>, or silver carbonate precipitates too.',
             '<b>Brown ring technique.</b> Cool the acid mixture, use freshly prepared ferrous sulphate, run it down the side of the tube and do not shake. A ring needs two separate layers.',
             '<b>Flame test.</b> Clean the loop in concentrated HCl until the flame stays uncoloured, and use a paste in concentrated HCl. Calcium is brick red, barium apple green, copper green with a blue centre.',
             '<b>Excess NaOH is not a way to tell aluminium from zinc.</b> Both white hydroxides dissolve in it. Tell them apart by the group (III against IV), the lake test for aluminium and the ferrocyanide test for zinc.',
             '<b>The extract is not the salt.</b> Carbonate is confirmed on the solid salt or its solution, never on the sodium carbonate extract, which already holds carbonate.',
-            '<b>Chromyl chloride test.</b> It is a test for chloride. Use a minimum of salt, because chromium(III) pollutes. The blue colour in amyl alcohol is CrO<sub>5</sub>, made from the yellow chromate by hydrogen peroxide.',
+            '<b>Chromyl chloride test.</b> It is a test for chloride. Use a minimum of salt, because chromium compounds pollute. The blue colour in amyl alcohol is CrO<sub>5</sub>, made from the yellow chromate by hydrogen peroxide.',
           ],
         },
         {
@@ -1141,7 +1142,7 @@ export const TOPICS: Topic[] = [
             },
             {
               label: 'FeCl<sub>3</sub> solution and dilute HCl',
-              nudge: '<b>(b)</b> Iron(III) cannot give the ring: the test needs Fe<sup>2+</sup> to reduce nitrate to NO and then bind it. Neutral FeCl<sub>3</sub> is the acetate test, a deep red colour.',
+              nudge: '<b>(b)</b> Iron(III) cannot give the ring: the test needs Fe<sup>2+</sup> to reduce nitrate to NO and then bind it. In salt analysis iron(III) is a cation to be found, by Prussian blue with ferrocyanide and a blood-red colour with thiocyanate.',
             },
             {
               label: 'potassium ferrocyanide and acetic acid',
