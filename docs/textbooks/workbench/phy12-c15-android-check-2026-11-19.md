@@ -27,6 +27,10 @@ No blocking problem. Every card, figure and page opens and draws; no symbol is a
 - **Dev-build artefacts:** the "didn't open" state seen once was caused by a mis-quoted link of the shoot script (the part screen keeps its "missing" flag once set, until the app restarts); the thin dark line across some screenshots is the Android gesture bar.
 - **Resonance, pendulum, calorimeter figures** are schematic by design (captions say so). The calorimeter's steam-heater thermometer is cut close to the right edge of the figure; legible.
 
+## Key points screen (added later the same day)
+
+Shot: the list top (Remember, 20 points), the first five answers opened ("Tap to check", marigold answer line, "I knew it / I didn't") and eight scroll screens through Remember and the start of Don't mix up (5), in `shots/phy12-c15/keypoints/`. Sections, counts, pinned headings, italics and subscripts, and the corrected lens answer (slope +1 with Cartesian signs, -1 with magnitudes) all render correctly. The answers of the first few points run four to five lines, within the other chapters' norm. The Common mistakes and Exam shortcuts sections and the memory lines at the foot were not scrolled to.
+
 ## Not checked
 
-Not a real phone (emulator fonts). Not every reading screen of every part was read at full size. The 35 key points screen (`textbook-keypoints`) was not shot. Parts were not shot for the other 77 reading parts.
+Not a real phone (emulator fonts). Not every reading screen of every part was read at full size. Reading parts were not shot for the other 77 parts. The last key-point sections and memory lines were not shot.
