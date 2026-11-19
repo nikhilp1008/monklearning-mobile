@@ -282,8 +282,8 @@ const CAP53_1 = 'The Hershey–Chase experiment. Track 1: phage with <sup>32</su
 const CAP53_2 = 'The Hershey–Chase experiment. Track 2: phage with <sup>35</sup>S-labelled protein coats infects <i>E. coli</i>; most of the radioactivity stays in the supernatant (empty coats) and the bacteria carry very little of it. Conclusion: DNA is the genetic material.';
 type Track = { n: 1 | 2; title: string; phage: string[]; inside: string[]; pellet: string[]; super: string[]; hot: 'pellet' | 'supernatant'; label: string };
 const TRACKS: Track[] = [
-  { n: 1, title: 'Track 1: <sup>32</sup>P-labelled DNA', phage: ['<sup>32</sup>P-DNA', 'phage'], inside: ['Radioactivity inside the cells', '(DNA enters)'], pellet: ['PELLET', '(radioactive)'], super: ['Supernatant', '(empty coats)'], hot: 'pellet', label: '32P' },
-  { n: 2, title: 'Track 2: <sup>35</sup>S-labelled protein', phage: ['<sup>35</sup>S-protein', 'phage'], inside: ['Little radioactivity in the cells', '(protein stays outside)'], pellet: ['PELLET', '(barely radioactive)'], super: ['Supernatant', '(<sup>35</sup>S coats,', 'radioactive)'], hot: 'supernatant', label: '35S' },
+  { n: 1, title: 'Track 1: P-32 DNA', phage: ['P-32 DNA', 'phage'], inside: ['Radioactivity inside the cells', '(DNA enters)'], pellet: ['PELLET', '(radioactive)'], super: ['Supernatant', '(empty coats)'], hot: 'pellet', label: '32P' },
+  { n: 2, title: 'Track 2: S-35 protein', phage: ['S-35 protein', 'phage'], inside: ['Little radioactivity in the cells', '(protein stays outside)'], pellet: ['PELLET', '(barely radioactive)'], super: ['Supernatant', '(S-35 coats,', 'radioactive)'], hot: 'supernatant', label: '35S' },
 ];
 function lines(s: Sketch, cx: number, y0: number, ts: string[], name: string, o: { color?: string; bold?: boolean; size?: number; gap?: number } = {}) {
   const gap = o.gap ?? 14;

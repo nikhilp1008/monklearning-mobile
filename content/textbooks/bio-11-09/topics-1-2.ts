@@ -69,7 +69,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'Micromolecule vs macromolecule',
-        html: 'the book’s working dividing line is a molecular weight of about <b>1000 Da</b> (a convenience; NCERT puts macromolecules at generally 10,000 Da and above): below it, micromolecule (small biomolecule); in the acid-insoluble pool and above it, macromolecule/biomacromolecule.',
+        html: 'a working dividing line is a molecular weight of about <b>1000 Da</b> (this book’s own convenience, not a figure from NCERT): below it, micromolecule (small biomolecule); in the acid-insoluble pool and above it, macromolecule/biomacromolecule.',
       },
       {
         t: 'def',

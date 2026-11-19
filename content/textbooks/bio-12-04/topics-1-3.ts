@@ -136,10 +136,10 @@ export const TOPICS: Topic[] = [
         title: null,
         head: ['Genotype', 'Blood group (phenotype)'],
         rows: [
-          [`${IA}${IA}, ${IA}${g('i')}`, 'A'],
-          [`${IB}${IB}, ${IB}${g('i')}`, 'B'],
-          [`${IA}${IB}`, 'AB'],
-          [g('ii'), 'O'],
+          [`${IA}${IA}, ${IA}${g('i')}`, 'Blood group A'],
+          [`${IB}${IB}, ${IB}${g('i')}`, 'Blood group B'],
+          [`${IA}${IB}`, 'Blood group AB'],
+          [g('ii'), 'Blood group O'],
         ],
       },
       {

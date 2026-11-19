@@ -83,7 +83,7 @@ export const TOPICS: Topic[] = [
         t: 'p',
         html: 'Oxygen, by contrast, plays only a <b>minor role</b> in the normal moment-to-moment regulation of breathing.',
       },
-      { t: 'p', html: '<b>The major respiratory disorders (core NCERT)</b>' },
+      { t: 'p', html: '<b>The major respiratory disorders</b>' },
       {
         t: 'def',
         term: 'Asthma',

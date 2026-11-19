@@ -85,7 +85,7 @@ export default function PracticeHistoryQuestionScreen() {
 
   const a = attempt && attempt.attempt_id === params.attemptId ? attempt : null;
   const title = a
-    ? `${filter === 'all' ? 'Question' : FILTER_LABEL[filter]} ${a.position.index} of ${a.position.total}`
+    ? `${filter === 'all' ? 'Question' : FILTER_LABEL[filter]} ${a.position?.index ?? 1} of ${a.position?.total ?? 1}`
     : '';
 
   const steps = useMemo(() => (a ? parseAnswerSolution(a.solution) : []), [a]);

@@ -405,15 +405,15 @@ function draw145(): Sketch {
   s.dot(X5(P50), Y5(50), 3.4); s.dot(X5(P_TISSUE), Y5(sat(P_TISSUE, P50)), 3.4); s.dot(X5(P_LUNG), Y5(sat(P_LUNG, P50)), 3.4);
   // names
   lab(s, X5(P50) , Y5(0) + 38, 'P<sub>50</sub> = 26.6 mmHg', { size: 11, bold: true, color: C.amber });
-  lab(s, 226, 214, 'Normal', { size: 11.5, bold: true, color: C.amber });
-  leader(s, [226, 196], [X5(60), Y5(sat(60, P50))], true);
-  ['Left shift:', 'low <i>p</i>CO<sub>2</sub>, high pH,', 'low temperature', '(favours loading)'].forEach((t, i) => lab(s, 50, 70 + i * 11.5, t, { size: 9.5, anchor: 'start', color: C.text }));
-  leader(s, [66, 114], [X5(15.5), Y5(sat(15.5, P50_LEFT))]);
-  ['Right shift:', 'high <i>p</i>CO<sub>2</sub>, low pH,', 'high temperature', '(Bohr effect:', 'favours unloading)'].forEach((t, i) => lab(s, 262, 262 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
-  leader(s, [268, 246], [X5(70), Y5(sat(70, P50_RIGHT))]);
-  ['Lungs', `(<i>p</i>${sub2} = 104 mmHg)`].forEach((t, i) => lab(s, 312, 30 + i * 12.5, t, { size: 10, anchor: 'end', color: C.text }));
-  leader(s, [322, 54], [X5(P_LUNG), Y5(sat(P_LUNG, P50))]);
-  ['Tissues', `(<i>p</i>${sub2} = 40 mmHg)`].forEach((t, i) => lab(s, 176, 246 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
+  lab(s, 168, 131, 'Normal', { size: 9.5, bold: true, anchor: 'start', color: C.amber });
+  leader(s, [179, 118], [179, Y5(sat((179 - 46) / 2.7, P50))], true);
+  ['Left shift:', 'low <i>p</i>CO<sub>2</sub>, high pH,', 'low temperature', '(favours loading)'].forEach((t, i) => lab(s, 62, 35 + i * 11.5, t, { size: 9.5, anchor: 'start', color: C.text }));
+  leader(s, [88, 80], [X5(15.5), Y5(sat(15.5, P50_LEFT))]);
+  ['Right shift:', 'high <i>p</i>CO<sub>2</sub>, low pH,', 'high temperature', '(Bohr effect:', 'favours unloading)'].forEach((t, i) => lab(s, 214, 276 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
+  leader(s, [262, 261], [X5(80), Y5(sat(80, P50_RIGHT))]);
+  ['Lungs', `(<i>p</i>${sub2} = 104 mmHg)`].forEach((t, i) => lab(s, 214, 24 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
+  leader(s, [320, 44], [X5(P_LUNG), Y5(sat(P_LUNG, P50))]);
+  ['Tissues', `(<i>p</i>${sub2} = 40 mmHg)`].forEach((t, i) => lab(s, 164, 246 + i * 12.5, t, { size: 10, anchor: 'start', color: C.text }));
   leader(s, [196, 234], [X5(P_TISSUE), Y5(sat(P_TISSUE, P50))]);
   return s;
 }
