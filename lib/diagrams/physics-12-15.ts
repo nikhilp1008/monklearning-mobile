@@ -337,7 +337,7 @@ const figSg: Diagram = {
       [`The zero mark below the line (not yet reached it) means a positive error, above the line (passed it) a negative one: e = ${e > 0 ? '+' : '−'}${Math.abs(e)} divisions`, (eDiv > 0) === (e > 0) && (n < 50) === (e > 0)],
       [`The drawn rule agrees with the text: n ≤ 50 gives e = +n, otherwise e = −(100 − n): ${e} divisions`, e === (n <= 50 ? n : -(100 - n))],
       [`The caption's figure matches the drawing: e = ${e > 0 ? '+' : '−'}${Math.abs(e)} × LC = ${e > 0 ? '+' : '−'}${fmt(Math.abs(e) * LC_SG, 2)} mm`, !!label && label[1] === `${e > 0 ? '+' : '−'}${Math.abs(e)}` && label[2] === `${e > 0 ? '+' : '−'}${fmt(Math.abs(e) * LC_SG, 2)}`],
-      [`Corrected reading = observed − e: the worked example's mean ${fmt(corr.reduce((a, b) => a + b, 0) / 5, 3)} mm for e = −0.06 mm (1.588 mm), or the same rule for e = +0.04 mm`, e !== -6 || close(corr.reduce((a, b) => a + b, 0) / 5, 1.588, 1e-9)],
+      [`Corrected reading = observed − e: the worked example's observed mean 1.528 mm gives ${fmt(corr.reduce((a, b) => a + b, 0) / 5, 3)} mm for e = ${e > 0 ? '+0.04 mm (1.488 mm)' : '−0.06 mm (1.588 mm)'}`, e === 4 ? close(corr.reduce((a, b) => a + b, 0) / 5, 1.488, 1e-9) : close(corr.reduce((a, b) => a + b, 0) / 5, 1.588, 1e-9)],
       ...layout(s),
     ];
   },
@@ -630,7 +630,7 @@ const figIV: Diagram = {
     resultBlock(s, ['Silicon: knee at about 0.7 V'], { size: 14 });
     placeAll(s, [
       { t: 'Knee', p: kp, hi: true, bare: true, dirs: 'lUWrd', ds: [14, 28, 46, 70, 90] },
-      { t: 'Forward (mA)', p: [fx(0.745), fy(f(0.745))], dirs: 'lWUd', ds: [10, 24, 44], at: [[xo + 4, fy(27), 'start']] },
+      { t: 'Forward (mA)', p: [fx(0.745), fy(f(0.745))], bare: true, dirs: 'lWUd', ds: [10, 24, 44], at: [[xo + 4, fy(27), 'start']] },
       { t: 'Reverse (μA)', p: [xo - 6 * kva, yo - kia * revI(-6)], dirs: 'dXWu', ds: [20, 34], at: [[xo - 6 * kva - 20, yo + 22, 'end'], [xo - 6 * kva - 40, yo + 22, 'end']] },
     ]);
     return s;
@@ -846,7 +846,7 @@ const figZr: Diagram = {
     resultBlock(s, ['<i>r</i><sub>z</sub> = Δ<i>V</i>/Δ<i>I</i> = 6.25 Ω'], { size: 15, subRoom: 6 });
     placeAll(s, [
       { t: 'Knee', p: kp, hi: true, bare: true, dirs: 'lUWdr', ds: [12, 26, 44], at: [[205, 200, 'end'], [196, 200, 'end']] },
-      { t: 'Breakdown region', p: P2(5.12, f(5.12)), dirs: 'lUWd', ds: [14, 30, 50] },
+      { t: 'Breakdown region', p: P2(5.12, f(5.12)), bare: true, dirs: 'lUWd', ds: [14, 30, 50] },
       { t: 'Current ≈ 0', p: P2(3.9, 0), dirs: 'uUVd', ds: [18, 32], at: [[102, 206, 'middle']] },
     ]);
     return s;
@@ -899,9 +899,9 @@ const FLOW: Node[] = [
   mk('r3', 214, 262, 330, ['Diode or LED']),
   mk('t3', 210, 322, 330, ['Diode-test range'], true),
   mk('si', 30, 380, 172, ['Silicon diode:', 'about 0.5 to 0.7 V']),
-  mk('led', 182, 380, 330, ['LED: about 1.7 to', '2.3 V, glows']),
+  mk('led', 182, 380, 330, ['LED: about 1.7 to', '2.3 V, may glow', 'faintly']),
   mk('c4', 30, 464, 182, ['Off-scale both ways,', 'no swing']),
-  mk('r4', 200, 464, 330, ['Very small', 'capacitor, open', 'part, or low-', 'battery range']),
+  mk('r4', 200, 464, 330, ['Very small', 'capacitor, open', 'part, or a diode', 'or LED on a low-', 'voltage range']),
 ];
 const byId = (id: string) => FLOW.find((n) => n.id === id) as Node;
 const left = (n: Node): P => [n.rect[0], (n.rect[1] + n.rect[3]) / 2];
@@ -924,9 +924,9 @@ const figFlow: Diagram = {
   id: 'p12-15-04-d6',
   topic: 4,
   name: 'Identifying the components',
-  cases: [{ chip: 'Flow chart', cap: 'Identifying a resistor, capacitor, diode and LED with a multimeter on its resistance range: read with the leads one way, then swapped. The same steady value both ways is a resistor; a reading that starts low and climbs to off-scale, repeating after discharge, is a capacitor; low one way and off-scale the other is a diode or LED, told apart on the diode-test range (silicon about 0.5 to 0.7 V, LED about 1.7 to 2.3 V and glowing); off-scale both ways with no swing is a very small capacitor, an open part, or a low-battery range.' }],
+  cases: [{ chip: 'Flow chart', cap: 'Identifying a resistor, capacitor, diode and LED with a multimeter on its resistance range: read with the leads one way, then swapped. The same steady value both ways is a resistor; a reading that starts low and climbs to off-scale, repeating after discharge, is a capacitor; low one way and off-scale the other is a diode or LED, told apart on the diode-test range (silicon about 0.5 to 0.7 V, LED about 1.7 to 2.3 V and possibly a faint glow); off-scale both ways with no swing is a very small capacitor, an open part, or a diode or LED on a low-voltage range.' }],
   draw() {
-    const s = new Sketch(W, 506);
+    const s = new Sketch(W, 524);
     FLOW.forEach((n) => nodeBox(s, n));
     // the trunk from the start box down the left edge
     path(s, [[TRUNK, byId('start').rect[1] + 20], [TRUNK, left(byId('c4'))[1]]], { color: C.slate, w: 1.4, free: true });
@@ -941,7 +941,7 @@ const figFlow: Diagram = {
     const hit = (a: Rect, b: Rect) => !(a[2] <= b[0] || b[2] <= a[0] || a[3] <= b[1] || b[3] <= a[1]);
     const overlaps = FLOW.flatMap((a, i) => FLOW.slice(i + 1).filter((b) => hit(a.rect, b.rect)).map((b) => `${a.id}/${b.id}`));
     // the decision rules as data, and the leaves each path reaches
-    const verdict = (shape: string, test?: string) => shape === 'steady' ? 'Resistor' : shape === 'climbs' ? 'Capacitor' : shape === 'one-way' ? (test === 'si' ? 'Silicon diode' : 'LED') : 'Very small capacitor, open part, or low-battery range';
+    const verdict = (shape: string, test?: string) => shape === 'steady' ? 'Resistor' : shape === 'climbs' ? 'Capacitor' : shape === 'one-way' ? (test === 'si' ? 'Silicon diode' : 'LED') : 'Very small capacitor, open part, or a diode or LED on a low-voltage range';
     const texts = FLOW.map((n) => n.lines.join(' '));
     const has = (t: string) => texts.some((x) => x.includes(t));
     const width = (n: Node) => Math.max(...n.lines.map((t) => t.length)) * FW + 12;
@@ -950,8 +950,8 @@ const figFlow: Diagram = {
     return [
       [`Every arrow starts on the box it leaves and ends on the box it enters${bad.length ? `; not so for ${bad.join(', ')}` : ''}`, bad.length === 0],
       [`No two boxes overlap${overlaps.length ? `: ${overlaps.join(', ')}` : ''}`, overlaps.length === 0],
-      ['Four readings lead from the start: steady → resistor, climbs → capacitor, low/off-scale → diode or LED, off-scale both → very small capacitor, open part or low-battery range', verdict('steady') === 'Resistor' && verdict('climbs') === 'Capacitor' && verdict('one-way', 'si') === 'Silicon diode' && verdict('one-way', 'led') === 'LED' && verdict('both').startsWith('Very small') && EDGES.filter((e) => e.from === 'trunk').length === 4],
-      ['The diode-test split uses the text’s ranges: silicon about 0.5 to 0.7 V, LED about 1.7 to 2.3 V and it glows', has('about 0.5 to 0.7 V') && has('about 1.7 to 2.3 V') && has('glows')],
+      ['Four readings lead from the start: steady → resistor, climbs → capacitor, low/off-scale → diode or LED, off-scale both → very small capacitor, open part, or a diode or LED on a low-voltage range', verdict('steady') === 'Resistor' && verdict('climbs') === 'Capacitor' && verdict('one-way', 'si') === 'Silicon diode' && verdict('one-way', 'led') === 'LED' && verdict('both').startsWith('Very small') && EDGES.filter((e) => e.from === 'trunk').length === 4],
+      ['The diode-test split uses the text’s ranges: silicon about 0.5 to 0.7 V, LED about 1.7 to 2.3 V and it may glow faintly', has('about 0.5 to 0.7 V') && has('about 1.7 to 2.3 V') && has('may glow faintly')],
       ['The diode or LED outcome leads down to the diode-test range and then to the two answers', arrowsDown && EDGES.some((e) => e.from === 'r3' && e.to === 't3') && EDGES.some((e) => e.from === 't3' && e.to === 'si') && EDGES.some((e) => e.from === 't3' && e.to === 'led')],
       [`Each box is wide enough for its longest line${tooNarrow.length ? `: too narrow ${tooNarrow.join(', ')}` : ''}`, tooNarrow.length === 0],
       ...layout(s),

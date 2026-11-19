@@ -54,10 +54,13 @@ export const TOPICS: Topic[] = [
         kicker: 'Pendulum energy loss',
         main: '<i>E</i> ∝ <i>A</i><sup>2</sup><br><i>A</i><sup>2</sup> = <i>A</i><sub>0</sub><sup>2</sup> e<sup>−<i>bt</i>/<i>m</i></sup><br>ln <i>A</i><sup>2</sup> = ln <i>A</i><sub>0</sub><sup>2</sup> − (<i>b</i>/<i>m</i>)<i>t</i>',
         legend: [
+          '<i>E</i> = energy of the pendulum',
           '<i>A</i> = amplitude at time <i>t</i>',
+          '<i>t</i> = time',
           '<i>A</i><sub>0</sub> = amplitude at <i>t</i> = 0',
           '<i>b</i> = drag constant, force per unit speed',
           '<i>m</i> = mass of the bob',
+          'e = base of natural logarithms, 2.718',
         ],
         note: 'Light damping, drag proportional to speed. The energy halves in 0.693 <i>m</i>/<i>b</i>; the slope of the ln <i>A</i><sup>2</sup> line is −<i>b</i>/<i>m</i>.',
       },
@@ -241,11 +244,13 @@ export const TOPICS: Topic[] = [
         kicker: 'Young’s modulus (Searle)',
         main: '<i>Y</i> = 4<i>mgL</i>/(π<i>d</i><sup>2</sup><i>ℓ</i>)<br>Δ<i>Y</i>/<i>Y</i> = Δ<i>m</i>/<i>m</i> + Δ<i>L</i>/<i>L</i> + 2Δ<i>d</i>/<i>d</i> + Δ<i>ℓ</i>/<i>ℓ</i>',
         legend: [
+          '<i>Y</i> = Young’s modulus of the wire',
           '<i>m</i> = load on the wire',
           '<i>g</i> = acceleration due to gravity',
           '<i>L</i> = length of the wire',
           '<i>d</i> = diameter of the wire',
           '<i>ℓ</i> = extension produced by the load',
+          'Δ = the uncertainty in the quantity that follows it',
         ],
         note: 'Valid below the elastic limit. A graph of load against extension is a straight line through the origin, with slope <i>m</i>/<i>ℓ</i>.',
       },
@@ -253,7 +258,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Young’s modulus by Searle’s method: apparatus and procedure' },
       {
         t: 'p',
-        html: '<b>Apparatus.</b> Two wires of the same material and length hang side by side from a rigid support: the experimental wire and a reference wire. Each carries a frame at its lower end. A spirit level lies across the two frames, with one end pivoted on one frame and the other end resting on the tip of a micrometer screw carried by the other frame. Both wires carry a constant dead load to keep them straight. Extra slotted loads go on the hanger of the experimental wire. You also need a screw gauge and a metre scale. The reference wire is not a second sample under test: a change of temperature or a sag of the support lengthens both wires alike, so the level does not respond to it.',
+        html: '<b>Apparatus.</b> Two wires of the same material and length hang side by side from a rigid support: the experimental wire and a reference wire. Each carries a frame at its lower end. A spirit level lies across the two frames, with one end hinged to the reference wire’s frame and the other end resting on the tip of a micrometer screw carried by the experimental wire’s frame. Both wires carry a constant dead load to keep them straight. Extra slotted loads go on the hanger of the experimental wire. You also need a screw gauge and a metre scale. The reference wire is not a second sample under test: a change of temperature or a sag of the support lengthens both wires alike, so the level does not respond to it.',
       },
       { t: 'fig', id: 'p12-15-01-d4' },
       {
@@ -483,7 +488,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Is Stokes’ law allowed?</b> It needs a small Reynolds number, 2<i>rσv</i><sub>t</sub>/<i>η</i> ≪ 1. A small steel ball in glycerine satisfies this easily (the worked example below gives about 0.04). The ball also reaches <i>v</i><sub>t</sub> within about 2 ms, so the upper mark need only be a few centimetres below the surface.',
+        html: '<b>Is Stokes’ law allowed?</b> It needs a small Reynolds number, 2<i>rσv</i><sub>t</sub>/<i>η</i> ≪ 1. A small steel ball in glycerine satisfies this easily (the worked example below gives about 0.04). The ball approaches <i>v</i><sub>t</sub> with a time constant 2<i>r</i><sup>2</sup><i>ρ</i>/(9<i>η</i>) ≈ 2 ms, so it is at terminal speed within about 10 ms, after falling less than a millimetre. The upper mark need only be a few centimetres below the surface.',
       },
       {
         t: 'formula',
@@ -615,6 +620,7 @@ export const TOPICS: Topic[] = [
           '<i>L</i><sub>1</sub> = length of the air column at the first resonance',
           '<i>L</i><sub>2</sub> = length of the air column at the second resonance',
           '<i>f</i> = frequency of the tuning fork',
+          '<i>v</i> = speed of sound in air at the room temperature',
           '<i>λ</i> = wavelength of the sound in air',
           '<i>e</i> = end correction',
         ],
@@ -768,7 +774,7 @@ export const TOPICS: Topic[] = [
           ['Mass of water or liquid (g)', '150.0', '120.0'],
           ['Mass of hot solid (g)', '120.0', '150.0'],
           ['Temperature of hot solid, T1 (°C)', '99.0', '99.0'],
-          ['Start temperature, T2 (°C)', '27.0', '27.0'],
+          ['Start temperature, T2 (°C)', '27.0', '24.0'],
           ['Final temperature, T (°C)', '37.2', '40.0'],
         ],
       },
@@ -781,7 +787,7 @@ export const TOPICS: Topic[] = [
           '<b>Temperature changes.</b> <i>T</i> − <i>T</i><sub>2</sub> = 37.2 − 27.0 = 10.2 K and <i>T</i><sub>1</sub> − <i>T</i> = 99.0 − 37.2 = 61.8 K.',
           '<b>Specific heat.</b> Heat gained = 651.0 × 10.2 = 6640 J. So <i>c</i><sub>s</sub> = 6640/(0.1200 × 61.8) = 6640/7.416 = 895 J kg<sup>−1</sup> K<sup>−1</sup>.',
           '<b>Check with the water equivalent.</b> <i>W</i> = 60.0 × 385/4186 = 5.52 g, so the effective mass of water is 155.52 g. Then <i>c</i><sub>s</sub> = 155.52 × 4.186 × 10.2/(120.0 × 61.8) = 0.8954 J g<sup>−1</sup> K<sup>−1</sup> = 895 J kg<sup>−1</sup> K<sup>−1</sup>.',
-          '<b>Error.</b> Δ(<i>T</i> − <i>T</i><sub>2</sub>)/(<i>T</i> − <i>T</i><sub>2</sub>) = 0.2/10.2 = 2.0%, because a difference of two readings is uncertain by 0.2 K. Δ(<i>T</i><sub>1</sub> − <i>T</i>)/(<i>T</i><sub>1</sub> − <i>T</i>) = 0.2/61.8 = 0.3%. The mass of the solid gives 0.1/120.0 = 0.1%, and the heat capacity of the water and calorimeter about 0.1%. The sum is 2.4%, which is ±22 J kg<sup>−1</sup> K<sup>−1</sup>.',
+          '<b>Error.</b> Δ(<i>T</i> − <i>T</i><sub>2</sub>)/(<i>T</i> − <i>T</i><sub>2</sub>) = 0.2/10.2 = 2.0%, because a difference of two readings is uncertain by 0.2 K. Δ(<i>T</i><sub>1</sub> − <i>T</i>)/(<i>T</i><sub>1</sub> − <i>T</i>) = 0.2/61.8 = 0.3%. The mass of the solid gives 0.1/120.0 = 0.1%, and the heat capacity of the water and calorimeter about 0.1%. The sum is 2.5%, which is ±22 J kg<sup>−1</sup> K<sup>−1</sup>.',
         ],
         ans: '<i>c</i><sub>s</sub> = (8.95 ± 0.22) × 10<sup>2</sup> J kg<sup>−1</sup> K<sup>−1</sup>, close to aluminium',
       },
@@ -791,17 +797,17 @@ export const TOPICS: Topic[] = [
         q: 'In the second run, 150.0 g of copper at 99.0 °C is dropped into 120.0 g of cooking oil in the same calorimeter. Find the specific heat of the oil.',
         steps: [
           '<b>Heat lost by the copper.</b> <i>m</i><sub>s</sub><i>c</i><sub>s</sub> = 0.1500 × 385 = 57.75 J K<sup>−1</sup>. The copper falls by 99.0 − 40.0 = 59.0 K, so it gives up 57.75 × 59.0 = 3407 J.',
-          '<b>Heat gained by the calorimeter.</b> 23.1 × (40.0 − 27.0) = 23.1 × 13.0 = 300 J.',
-          '<b>Heat gained by the oil.</b> 3407 − 300 = 3107 J, for a rise of 13.0 K in 0.1200 kg. So <i>c</i><sub>ℓ</sub> = 3107/(0.1200 × 13.0) = 3107/1.56 = 1.99 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>.',
-          '<b>Check by the formula.</b> <i>c</i><sub>ℓ</sub> = [57.75 × 59.0/13.0 − 23.1]/0.1200 = (262.1 − 23.1)/0.1200 = 1.99 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>.',
+          '<b>Heat gained by the calorimeter.</b> 23.1 × (40.0 − 24.0) = 23.1 × 16.0 = 370 J.',
+          '<b>Heat gained by the oil.</b> 3407 − 370 = 3037 J, for a rise of 16.0 K in 0.1200 kg. So <i>c</i><sub>ℓ</sub> = 3037/(0.1200 × 16.0) = 3037/1.92 = 1.58 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>.',
+          '<b>Check by the formula.</b> <i>c</i><sub>ℓ</sub> = [57.75 × 59.0/16.0 − 23.1]/0.1200 = (213.0 − 23.1)/0.1200 = 1.58 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>.',
         ],
-        ans: '<i>c</i><sub>ℓ</sub> ≈ 2.0 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>',
+        ans: '<i>c</i><sub>ℓ</sub> ≈ 1.6 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>',
       },
 
       { t: 'part', title: 'Specific heat by mixtures: result, precautions and errors' },
       {
         t: 'p',
-        html: '<b>Result.</b> The solid has a specific heat of about 8.95 × 10<sup>2</sup> J kg<sup>−1</sup> K<sup>−1</sup> and the cooking oil about 2.0 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>.',
+        html: '<b>Result.</b> The solid has a specific heat of about 8.95 × 10<sup>2</sup> J kg<sup>−1</sup> K<sup>−1</sup> and the cooking oil about 1.6 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>.',
       },
       {
         t: 'p',
@@ -842,11 +848,11 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[JEE Main] A glass bead of radius 1.50 mm and density 2500 kg m<sup>−3</sup> falls through an oil of density 900 kg m<sup>−3</sup> at a steady 1.30 cm s<sup>−1</sup>. Take <i>g</i> = 9.8 m s<sup>−2</sup>. (a) Find the viscosity of the oil and check that Stokes’ law is valid. (b) At what speed would the same bead fall through an oil of the same density but viscosity 0.30 Pa s?',
-            a: '(a) <i>η</i> = 2<i>r</i><sup>2</sup>(<i>ρ</i> − <i>σ</i>)<i>g</i>/(9<i>v</i><sub>t</sub>) = 2(1.5 × 10<sup>−3</sup>)<sup>2</sup>(1600)(9.8)/(9 × 0.013) = 0.07056/0.117 = 0.603 Pa s. Check by forces: the net weight is (4/3)π<i>r</i><sup>3</sup>(<i>ρ</i> − <i>σ</i>)<i>g</i> = 2.217 × 10<sup>−4</sup> N and 6π<i>rv</i><sub>t</sub> = 3.676 × 10<sup>−4</sup> N per Pa s, which gives 0.603 Pa s. The Reynolds number is 2(1.5 × 10<sup>−3</sup>)(900)(0.013)/0.603 = 0.058, far below 1, so Stokes’ law applies. (b) <i>v</i><sub>t</sub> ∝ 1/<i>η</i>, so <i>v</i><sub>t</sub> = 1.30 × (0.603/0.30) = 2.6 cm s<sup>−1</sup>. The Reynolds number rises to about 0.12, still small.',
+            a: '(a) <i>η</i> = 2<i>r</i><sup>2</sup>(<i>ρ</i> − <i>σ</i>)<i>g</i>/(9<i>v</i><sub>t</sub>) = 2(1.5 × 10<sup>−3</sup>)<sup>2</sup>(1600)(9.8)/(9 × 0.013) = 0.07056/0.117 = 0.603 Pa s. Check by forces: the net weight is (4/3)π<i>r</i><sup>3</sup>(<i>ρ</i> − <i>σ</i>)<i>g</i> = 2.217 × 10<sup>−4</sup> N and 6π<i>rv</i><sub>t</sub> = 3.676 × 10<sup>−4</sup> N per Pa s, which gives 0.603 Pa s. The Reynolds number is 2(1.5 × 10<sup>−3</sup>)(900)(0.013)/0.603 = 0.058, far below 1, so Stokes’ law applies. (b) <i>v</i><sub>t</sub> ∝ 1/<i>η</i>, so <i>v</i><sub>t</sub> = 1.30 × (0.603/0.30) = 2.6 cm s<sup>−1</sup>. The Reynolds number rises to about 0.23 (speed doubled and viscosity halved: four times 0.058), still well below 1.',
           },
           {
             q: '[JEE Main] A 480 Hz fork gives resonances in a closed tube when the air column is 17.0 cm and 53.0 cm long. Find the speed of sound, the end correction, and the length of the third resonance.',
-            a: '<i>λ</i> = 2(53.0 − 17.0) = 72.0 cm, so <i>v</i> = 480 × 0.720 = 346 m s<sup>−1</sup>. <i>e</i> = (<i>L</i><sub>2</sub> − 3<i>L</i><sub>1</sub>)/2 = (53.0 − 51.0)/2 = 1.0 cm. The third resonance is <i>λ</i>/2 further on: 53.0 + 36.0 = 89.0 cm, which is 5<i>λ</i>/4 − <i>e</i> = 90.0 − 1.0 cm. Check: 4<i>f</i>(<i>L</i><sub>1</sub> + <i>e</i>) = 4 × 480 × 0.180 = 346 m s<sup>−1</sup>. The speed corresponds to a temperature near 25 °C.',
+            a: '<i>λ</i> = 2(53.0 − 17.0) = 72.0 cm, so <i>v</i> = 480 × 0.720 = 346 m s<sup>−1</sup>. <i>e</i> = (<i>L</i><sub>2</sub> − 3<i>L</i><sub>1</sub>)/2 = (53.0 − 51.0)/2 = 1.0 cm. The third resonance is <i>λ</i>/2 further on: 53.0 + 36.0 = 89.0 cm, which is 5<i>λ</i>/4 − <i>e</i> = 90.0 − 1.0 cm. Check: 4<i>f</i>(<i>L</i><sub>1</sub> + <i>e</i>) = 4 × 480 × 0.180 = 346 m s<sup>−1</sup>. The speed corresponds to a temperature near 24 °C.',
           },
           {
             q: '[JEE Main] A copper calorimeter of mass 80.0 g (<i>c</i> = 385 J kg<sup>−1</sup> K<sup>−1</sup>) holds 100.0 g of water at 24.0 °C. A 150.0 g metal block at 99.0 °C is dropped in, and the temperature rises to 32.5 °C. Take the specific heat of water as 4186 J kg<sup>−1</sup> K<sup>−1</sup> and neglect heat losses. Find the specific heat of the metal and the water equivalent of the calorimeter.',

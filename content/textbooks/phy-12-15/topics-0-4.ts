@@ -29,7 +29,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Least count (LC)</b> is the smallest change an instrument can show. A reading is never more precise than its LC.<br><b>Vernier callipers and screw gauge.</b> LC of a vernier = 1 MSD − 1 VSD, which is the value of one main-scale division divided by the number of vernier divisions. LC of a screw gauge = pitch/(number of circular-scale divisions). Both are taught with worked readings in Physics 11, Chapter 1 (Units and Measurements). This chapter only uses them.',
+        html: '<b>Least count (LC)</b> is the smallest change an instrument can show. A reading is never more precise than its LC.<br><b>Vernier callipers and screw gauge.</b> LC of a vernier = 1 MSD − 1 VSD, which is the value of one main-scale division divided by the number of vernier divisions <i>N</i>, provided that <i>N</i> vernier divisions equal (<i>N</i> − 1) main-scale divisions. LC of a screw gauge = pitch/(number of circular-scale divisions). Both are taught with worked readings in Physics 11, Chapter 1 (Units and Measurements). This chapter only uses them.',
       },
       {
         t: 'table',
@@ -95,10 +95,10 @@ export const TOPICS: Topic[] = [
           'Readings in seconds: 1.95, 2.02, 1.98, 2.05, 2.00.',
           'Mean = (1.95 + 2.02 + 1.98 + 2.05 + 2.00)/5 = 10.00/5 = 2.00 s.',
           'Absolute errors: 0.05, 0.02, 0.02, 0.05, 0.00 s. Their sum is 0.14 s, so the mean absolute error = 0.14/5 = 0.028 s ≈ 0.03 s.',
-          'Relative error = 0.028/2.00 = 0.014, which is 1.4 %.',
+          'Relative error = 0.03/2.00 = 0.015, which is about 1.5 %.',
           '<b>Check.</b> The readings sum to 10.00 s whichever order they are added, so the mean is right. The five errors add to 0.14 s, which is 0.028 s each on average.',
         ],
-        ans: '<i>T</i> = 2.00 ± 0.03 s (1.4 %)',
+        ans: '<i>T</i> = 2.00 ± 0.03 s (about 1.5 %)',
       },
       {
         t: 'p',
@@ -327,13 +327,13 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Principle.</b> At the junction there is a potential barrier, about 0.7 V for silicon and about 0.3 V for germanium. In <b>forward bias</b> (p side to the positive terminal) the applied voltage works against the barrier. Almost no current flows until the voltage comes near the barrier, and then the current rises steeply. In <b>reverse bias</b> the barrier is raised. Only a small leakage current of minority carriers flows, nearly independent of the voltage: nanoamperes for silicon, microamperes for germanium.<br><br>For an ideal junction the current is <i>I</i> = <i>I</i><sub>s</sub> [exp(<i>V</i>/<i>ηV</i><sub>T</sub>) − 1], where <i>I</i><sub>s</sub> is the reverse saturation current, <i>V</i><sub>T</sub> = <i>kT</i>/<i>e</i> ≈ 26 mV at 300 K, and <i>η</i> is a constant between 1 and 2. It is used here only to explain the shape of the curve and the next result.',
+        html: '<b>Principle.</b> At the junction there is a potential barrier, about 0.7 V for silicon and about 0.3 V for germanium. In <b>forward bias</b> (p side to the positive terminal) the applied voltage works against the barrier. Almost no current flows until the voltage comes near the barrier, and then the current rises steeply. In <b>reverse bias</b> the barrier is raised. Only a small leakage current of minority carriers flows, nearly independent of the voltage: nanoamperes for silicon, microamperes for germanium.<br><br>For a junction diode the current is close to the ideal-diode form <i>I</i> = <i>I</i><sub>s</sub> [exp(<i>V</i>/<i>ηV</i><sub>T</sub>) − 1], where <i>I</i><sub>s</sub> is the reverse saturation current, <i>V</i><sub>T</sub> = <i>kT</i>/<i>e</i> ≈ 26 mV at 300 K, and <i>η</i> is 1 for an ideal junction and up to about 2 for a real silicon diode (our data give about 1.8). It is used here only to explain the shape of the curve and the next result.',
       },
       {
         t: 'deriv',
         kicker: 'Dynamic resistance of a forward-biased diode',
         steps: [
-          { eq: '<i>I</i> = <i>I</i><sub>s</sub> [exp(<i>V</i>/<i>ηV</i><sub>T</sub>) − 1]', why: 'The ideal junction relation (stated, not derived here).' },
+          { eq: '<i>I</i> = <i>I</i><sub>s</sub> [exp(<i>V</i>/<i>ηV</i><sub>T</sub>) − 1]', why: 'The diode relation, close to the ideal-diode form (stated, not derived here).' },
           { eq: 'd<i>I</i>/d<i>V</i> = (<i>I</i> + <i>I</i><sub>s</sub>)/(<i>ηV</i><sub>T</sub>)', why: 'Differentiate. The factor exp(<i>V</i>/<i>ηV</i><sub>T</sub>) is (<i>I</i> + <i>I</i><sub>s</sub>)/<i>I</i><sub>s</sub>.' },
           { eq: '<i>r</i> = d<i>V</i>/d<i>I</i> = <i>ηV</i><sub>T</sub>/<i>I</i>', why: 'Well into forward bias <i>I</i> is much larger than <i>I</i><sub>s</sub>. The dynamic resistance is the reciprocal of the slope, and it falls as 1/<i>I</i>.' },
           { eq: 'Δ<i>V</i> = <i>ηV</i><sub>T</sub> ln 10 ≈ 60<i>η</i> mV for <i>I</i> ten times larger', why: 'Divide the currents at two voltages. With <i>η</i> = 1 the voltage rises about 60 mV for each tenfold rise of current, so the curve climbs very steeply on a linear current scale.' },
@@ -351,10 +351,11 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Diode resistances',
-        main: 'Static: <i>R</i> = <i>V</i>/<i>I</i><br>Dynamic: <i>r</i> = Δ<i>V</i>/Δ<i>I</i><br>Forward, ideal: <i>r</i> = <i>ηV</i><sub>T</sub>/<i>I</i>',
+        main: 'Static: <i>R</i> = <i>V</i>/<i>I</i><br>Dynamic: <i>r</i> = Δ<i>V</i>/Δ<i>I</i><br>Forward: <i>r</i> = <i>ηV</i><sub>T</sub>/<i>I</i>',
         legend: [
           '<i>V</i><sub>T</sub> = thermal voltage, <i>kT</i>/<i>e</i> (about 26 mV at 300 K)',
-          '<i>η</i> = ideality constant, between 1 and 2',
+          '<i>η</i> = ideality constant: 1 for an ideal junction, up to about 2 for a real silicon diode',
+          '<i>I</i> = forward current of the diode',
         ],
         note: 'The dynamic resistance falls as the current rises.',
       },
@@ -386,7 +387,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'p12-15-04-d1' },
       {
         t: 'p',
-        html: '<b>Why the voltmeter goes where it does.</b> In forward bias the diode’s resistance is only a few ohms to a few hundred ohms, so the voltmeter (about 1 MΩ) takes a negligible current and may sit across the diode alone. In reverse bias the diode’s resistance is of the order of megaohms, comparable with the voltmeter’s own. A voltmeter across the diode alone would pass 5 V/1 MΩ = 5 μA through the microammeter, far more than the leakage being measured. Placed across the diode and the microammeter together, its current bypasses the microammeter. The microammeter’s own small voltage drop is then the only error.',
+        html: '<b>Why the voltmeter goes where it does.</b> In forward bias the diode’s resistance is only a few ohms to a few hundred ohms, so the voltmeter (about 1 MΩ) takes a negligible current and may sit across the diode alone. In reverse bias the diode’s resistance is hundreds of megaohms or more, far larger than the voltmeter’s own (tens of kilohms to a few megohms). A voltmeter across the diode alone would pass 5 V/1 MΩ = 5 μA through the microammeter, far more than the leakage being measured. Placed across the diode and the microammeter together, its current bypasses the microammeter. The microammeter’s own small voltage drop is then the only error.',
       },
 
       { t: 'part', title: 'p-n junction diode: observations and calculation' },
@@ -458,7 +459,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Principle.</b> A Zener diode is heavily doped, so its depletion layer is extremely thin. A modest reverse voltage then produces a very strong field in the layer. In reverse bias the current stays tiny until the voltage reaches <i>V</i><sub>z</sub>, and then it rises abruptly. In breakdown the voltage across the diode hardly changes however much the current changes: Δ<i>V</i> = <i>r</i><sub>z</sub> Δ<i>I</i>, where <i>r</i><sub>z</sub> is only a few ohms to tens of ohms. This is the property used to regulate a voltage. The breakdown is not damage: it is reversible while the power <i>V</i><sub>z</sub><i>I</i> stays within the diode’s rating. In forward bias a Zener diode behaves like an ordinary diode. Breakdown is by field emission in diodes of low <i>V</i><sub>z</sub> and by avalanche multiplication at higher <i>V</i><sub>z</sub>.',
+        html: '<b>Principle.</b> A Zener diode is heavily doped, so its depletion layer is extremely thin. A modest reverse voltage then produces a very strong field in the layer. In reverse bias the current stays tiny until the voltage reaches <i>V</i><sub>z</sub>, and then it rises abruptly. In breakdown the voltage across the diode hardly changes however much the current changes: Δ<i>V</i> = <i>r</i><sub>z</sub> Δ<i>I</i>, where <i>r</i><sub>z</sub> is only a few ohms to tens of ohms. This is the property used to regulate a voltage. The breakdown is not damage: it is reversible while the power <i>V</i><sub>z</sub><i>I</i> stays within the diode’s rating. In forward bias a Zener diode behaves like an ordinary diode. Breakdown is by field emission (the Zener effect) in diodes of low <i>V</i><sub>z</sub> and by avalanche multiplication at higher <i>V</i><sub>z</sub>, a 5 V diode being near the crossover.',
       },
       {
         t: 'p',
@@ -483,8 +484,11 @@ export const TOPICS: Topic[] = [
           '<i>P</i><sub>max</sub> = power rating of the diode',
           '<i>R</i><sub>s</sub> = series resistor',
           '<i>I</i><sub>L</sub> = load current, <i>V</i><sub>z</sub>/<i>R</i><sub>L</sub>',
+          '<i>I</i><sub>z</sub> = current through the Zener diode',
+          '<i>I</i><sub>s</sub> = supply current through the series resistor',
+          '<i>V</i><sub>in</sub> = supply voltage',
         ],
-        note: 'Regulation needs <i>V</i><sub>in</sub> above <i>V</i><sub>z</sub> and a diode current that stays in the breakdown region.',
+        note: 'Regulation needs <i>V</i><sub>in</sub> <i>R</i><sub>L</sub>/(<i>R</i><sub>s</sub> + <i>R</i><sub>L</sub>) above <i>V</i><sub>z</sub>, so that the diode current stays in the breakdown region.',
       },
       { t: 'fig', id: 'p12-15-04-d3' },
 
@@ -566,7 +570,7 @@ export const TOPICS: Topic[] = [
           '<b>The wrong connection.</b> A Zener diode works in reverse bias, cathode to the positive terminal. In forward bias it is an ordinary diode and the voltage across it is about 0.7 V.',
           '<b>Breakdown is not damage.</b> It is reversible while the power stays within the rating. The series resistor, not the diode, limits the current.',
           '<b>Why it regulates.</b> A large change in current produces only a small change in voltage (<i>r</i><sub>z</sub> is small).',
-          '<b>Below <i>V</i><sub>z</sub> there is no regulation.</b> If the supply is lower than <i>V</i><sub>z</sub>, the diode is off and the load voltage is the divider voltage.',
+          '<b>Below <i>V</i><sub>z</sub> there is no regulation.</b> If the divider voltage <i>V</i><sub>in</sub> <i>R</i><sub>L</sub>/(<i>R</i><sub>s</sub> + <i>R</i><sub>L</sub>) is below <i>V</i><sub>z</sub>, the diode is off and the load voltage is that divider voltage.',
           '<b>Reading <i>V</i><sub>z</sub> from the wrong place.</b> It is read at the sharp upward turn of the reverse curve, not at the top of the plotted current range.',
         ],
       },
@@ -638,8 +642,8 @@ export const TOPICS: Topic[] = [
           '<b>Resistance range, leads one way, then reversed.</b> Touch the leads to the two terminals and note the reading. Reverse the leads and note it again.',
           '<b>Same steady value both ways:</b> a resistor. Compare it with the colour code.',
           '<b>A reading that starts low and climbs to off-scale:</b> a capacitor. Discharge it by touching its leads together, swap the leads and the same swing repeats.',
-          '<b>Low one way and off-scale the other:</b> a diode (or an LED). Use the diode-test range to tell them apart: a silicon diode reads about 0.5 to 0.7 V in forward bias and an LED a higher value, about 1.7 to 2.3 V for red to green, and may glow faintly.',
-          '<b>Off-scale both ways with no movement:</b> a very small capacitor, a broken component, or a diode or LED on a range whose battery is too weak.',
+          '<b>Low one way and off-scale the other:</b> a diode (or an LED). Use the diode-test range to tell them apart: a silicon diode reads about 0.5 to 0.7 V in forward bias and an LED a higher value, about 1.7 to 2.3 V for red to green, and may glow faintly. Blue and white LEDs need about 3 V and may read off-scale even on the diode-test range.',
+          '<b>Off-scale both ways with no movement:</b> a very small capacitor, a broken component, or a diode or LED on a low-voltage range.',
         ],
       },
       { t: 'fig', id: 'p12-15-04-d6' },
@@ -709,7 +713,7 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>A capacitor reads a transient, a resistor a steady value.</b> Only a diode or an LED is strongly different in the two directions.',
-          '<b>“Off-scale both ways” is not always a broken part.</b> A very small capacitor looks the same, as do an LED on a low-voltage range.',
+          '<b>“Off-scale both ways” is not always a broken part.</b> A very small capacitor looks the same, as does an LED on a low-voltage range.',
           '<b>Reversing lead polarity between meters.</b> Black is positive on an analogue ohm range, red is positive in the diode-test range of a digital meter.',
           '<b>The colour code.</b> The multiplier band is a power of ten and not the next digit. Red as the third band means ×10<sup>2</sup>, not 2.',
           '<b>The LED’s resistor.</b> The drop across the LED is taken off the supply before dividing by the current.',
@@ -758,7 +762,7 @@ export const TOPICS: Topic[] = [
           { label: 'in series with the diode', nudge: '<b>(D)</b> a voltmeter has a very high resistance and would block the current instead of measuring a voltage.' },
         ],
         correct: 1,
-        solution: 'The reverse resistance of the diode is comparable with the voltmeter’s. Across the diode and the microammeter together, the voltmeter’s current bypasses the microammeter, which then reads only the diode’s leakage.',
+        solution: 'The reverse resistance of the diode is far larger than the voltmeter’s, so the voltmeter’s own current would swamp the leakage. Across the diode and the microammeter together, the voltmeter’s current bypasses the microammeter, which then reads only the diode’s leakage.',
       },
       {
         t: 'mcq',

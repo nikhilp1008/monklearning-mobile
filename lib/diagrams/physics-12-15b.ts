@@ -160,7 +160,7 @@ const d1: Diagram = {
   id: 'p12-15-01-d1',
   topic: 0,
   name: 'Simple pendulum with an amplitude scale',
-  cases: [{ chip: 'Pendulum', cap: 'A pendulum with a heavy bob on a thread from a rigid clamp. A horizontal scale fixed just behind the bob has its zero at the rest position, and the bob is pulled aside to one end of its swing, an amplitude A from the rest position. A stop-watch times the swings. The thread is drawn shorter than the real 1 m, so the angle looks larger than 6°.' }],
+  cases: [{ chip: 'Pendulum', cap: 'A pendulum with a heavy bob on a thread from a rigid clamp. A horizontal scale fixed just behind the bob has its zero at the rest position, and the bob is pulled aside to one end of its swing, an amplitude A from the rest position. A stop-watch times the swings. Not to scale: the thread is drawn much shorter than the real 1 m, so the angle looks larger than the real 6°.' }],
   draw() {
     const s = new Sketch(W, 346);
     const { pivot, pxcm, bobR } = G1;
@@ -215,6 +215,7 @@ const d1: Diagram = {
       [`The bob stands ${fmt(dx / pxcm, 1)} cm from the scale's zero (8 px a cm): the amplitude A = 10.0 cm of the procedure`, close(dx / pxcm, A, 1e-9) && close(bob[0] - rest[0], dx, 1e-9)],
       ['The scale’s zero is directly below the clamp, on the rest position, and the bob’s own height is above the scale', close(rest[0], pivot[0], 1e-9) && bob[1] + bobR < ruleTop],
       [`For the real 1.00 m thread a 10 cm pull-aside is sin⁻¹(0.10) = ${fmt(Math.asin(0.1) / D2R, 1)}°, the "about 6°" of the procedure; the drawing is not to scale (the thread is drawn short), so its angle is ${fmt(ang, 0)}°`, Math.abs(Math.asin(0.1) / D2R - 6) < 0.5],
+      [`The caption’s “not to scale” holds: the thread is drawn ${fmt(L / pxcm, 0)} cm long against the real 100 cm, so the drawn angle ${fmt(ang, 0)}° exceeds the real 6°`, L / pxcm < 100 && ang > Math.asin(0.1) / D2R],
       ['The bob is level with or above its rest height (a swing raises it)', bob[1] <= rest[1]],
       ...layout(s),
     ];
@@ -394,15 +395,16 @@ const d3: Diagram = {
 /**
  * Two identical wires hang from one rigid support, 200 px apart. Each ends
  * in a frame at the same height, with a hanger and a dead load. The spirit
- * level lies across the frames: its left end is pivoted on a point of the
- * experimental frame, its right end rests on the tip of the micrometer
- * screw, which an arm carries from the reference frame.
+ * level lies across the frames: its right end is hinged on a point of the
+ * reference frame, its left end rests on the tip of the micrometer screw,
+ * which an arm carries from the experimental frame (the screw falls with
+ * the loaded wire).
  */
 const G4 = {
   support: { y0: 16, y1: 26, x0: 14, x1: 326 },
   xe: 70, xr: 270, top: 184, fh: 30, fw: 60,
-  level: { x0: 90, x1: 238, y0: 148, y1: 162 },
-  pivotX: 96, screwX: 232, hr: 38,
+  level: { x0: 96, x1: 290, y0: 148, y1: 162 },
+  pivotX: 284, screwX: 108, hr: 38,
   /** Slotted slabs on each hanger, and the dead load each carries (drawn the same size). */
   slots: { exp: 3, ref: 0 }, dead: { exp: 1, ref: 1 },
 };
@@ -412,7 +414,7 @@ const d4: Diagram = {
   id: 'p12-15-01-d4',
   topic: 0,
   name: 'Searle’s apparatus',
-  cases: [{ chip: 'Searle’s apparatus', cap: 'Searle’s apparatus: an experimental wire and a reference wire of the same material and length hang side by side from a rigid support, each ending in a frame with a hanger and a constant dead load. A spirit level lies across the frames, pivoted on one frame and resting on the tip of a micrometer screw carried by the other. Slotted loads go on the hanger of the experimental wire, and L is the length of the wire from the support to the frame.' }],
+  cases: [{ chip: 'Searle’s apparatus', cap: 'Searle’s apparatus: an experimental wire and a reference wire of the same material and length hang side by side from a rigid support, each ending in a frame with a hanger and a constant dead load. A spirit level lies across the frames, hinged on the reference wire’s frame and resting on the tip of a micrometer screw carried by the experimental wire’s frame. Slotted loads go on the hanger of the experimental wire, and L is the length of the wire from the support to the frame.' }],
   draw() {
     const s = new Sketch(W, 346);
     const { support, xe, xr, top, fh, fw, level, pivotX, screwX } = G4;
@@ -437,15 +439,15 @@ const d4: Diagram = {
     hanger(xr, G4.slots.ref);
     // the spirit level across the frames: bar, tube, centred bubble
     box(s, [level.x0, level.y0, level.x1, level.y1], { color: C.mari, w: 2.2 });
-    const tube: Rect = [138, level.y0 + 3, 196, level.y1 - 3];
+    const tube: Rect = [164, level.y0 + 3, 222, level.y1 - 3];
     box(s, tube, { color: C.mari, w: 1.2 });
     path(s, ellipsePts([(tube[0] + tube[2]) / 2, (tube[1] + tube[3]) / 2], 6.5, 2.2), { color: C.mari, w: 1.3 });
-    // its left end pivoted on the experimental frame
+    // its right end hinged on the reference frame
     outline(s, [[pivotX, level.y1], [pivotX - 6, top], [pivotX + 4, top]], { w: 1.7 });
-    // its right end on the tip of the micrometer screw, carried from the reference frame by an arm
+    // its left end on the tip of the micrometer screw, carried from the experimental frame by an arm
     path(s, [[screwX, level.y1], [screwX, level.y1 + 10]], { w: 1.7 });
     box(s, [screwX - 6, level.y1 + 10, screwX + 6, top + 12], { w: 1.7 });
-    path(s, [[screwX + 6, top + 12], [xr - fw / 2, top + 12]], { w: 1.7 });
+    path(s, [[screwX - 6, top + 12], [xe + fw / 2, top + 12]], { w: 1.7 });
     s.dot(screwX, level.y1 + 0.5, 2.4, C.ink);
     // the length L of the wire, from the support to the frame
     measure(s, [24, support.y1 + 1], [24, top]);
@@ -455,7 +457,7 @@ const d4: Diagram = {
       { t: 'Rigid support', p: [180, support.y1], at: [[126, 36, 'start'], [150, 36, 'start']] },
       { t: 'Experimental wire', p: [xe, 100], at: [[96, 64, 'start'], [100, 70, 'start']] },
       { t: 'Reference wire', p: [xr, 130], at: [[130, 92, 'start'], [136, 98, 'start']] },
-      { t: 'Spirit level', hi: true, p: [(level.x0 + level.x1) / 2 - 20, level.y1], at: [[104, 172, 'start'], [108, 176, 'start']] },
+      { t: 'Spirit level', hi: true, p: [(level.x0 + level.x1) / 2 - 20, level.y1], at: [[132, 172, 'start'], [146, 176, 'start'], [134, 190, 'start']] },
       { t: 'Frame', p: [F1[0] + 6, top + fh], at: [[6, 222, 'start'], [4, 226, 'start']] },
       { t: 'Frame', p: [F2[2] - 8, top + fh], at: [[282, 222, 'start'], [278, 226, 'start']] },
       { t: 'Micrometer screw', p: [screwX, top + 12], at: [[106, 226, 'start'], [100, 232, 'start']] },
@@ -471,12 +473,12 @@ const d4: Diagram = {
     // Young's modulus from the chapter's table (4.0 kg load, extension 1.575 mm)
     const ext = 6.08 - 4.505, d = 0.5e-3, Lm = 1.5, mg = 4.0 * 9.8;
     const Y = (4 * mg * Lm) / (Math.PI * d * d * (ext * 1e-3));
-    const tube: Rect = [138, level.y0 + 3, 196, level.y1 - 3];
+    const tube: Rect = [164, level.y0 + 3, 222, level.y1 - 3];
     return [
       ['Both wires hang from the support’s lower edge to a frame top at the same height, so they have the same length L and are parallel', xe !== xr && Lpx > 0 && close(top - support.y1, Lpx)],
       ['The two frames are the same size and at the same height, so the spirit level across them is horizontal (a bar with level top and bottom edges)', close(frames4().F1[1], frames4().F2[1]) && close(frames4().F1[3], frames4().F2[3]) && close(frames4().F1[2] - frames4().F1[0], frames4().F2[2] - frames4().F2[0]) && level.y1 > level.y0],
-      ['The level’s left end is pivoted on a point of the experimental frame’s top, and its right end rests on the screw tip carried from the reference frame', pivotX > xe - fw / 2 && pivotX < xe + fw / 2 && screwX > xe + fw / 2 && screwX < xr - fw / 2 && level.x0 < pivotX && level.x1 > screwX],
-      ['The bubble sits at the middle of the tube: the level is read as horizontal', close((tube[0] + tube[2]) / 2, 167, 1e-9) && tube[0] > level.x0 && tube[2] < level.x1],
+      ['The level’s right end is hinged on a point of the reference frame’s top, and its left end rests on the screw tip carried from the experimental frame (the screw falls with the loaded wire)', pivotX > xr - fw / 2 && pivotX < xr + fw / 2 && screwX > xe + fw / 2 && screwX < xr - fw / 2 && level.x0 < screwX && level.x1 > pivotX],
+      ['The bubble sits at the middle of the tube: the level is read as horizontal', close((tube[0] + tube[2]) / 2, (level.x0 + level.x1) / 2, 1e-9) && tube[0] > level.x0 && tube[2] < level.x1],
       [`The ${G4.slots.exp} slotted slabs hang from the experimental wire’s hanger only (${G4.slots.ref} on the reference hanger); both carry one dead load`, G4.slots.exp > 0 && G4.slots.ref === 0 && G4.dead.exp === G4.dead.ref],
       [`Reading back the chapter's data: extension for 4.0 kg is 6.08 − 4.505 = ${fmt(ext, 3)} mm, and Y = 4mgL/(πd²ℓ) = ${fmt(Y / 1e11, 2)} × 10¹¹ N m⁻²`, close(ext, 1.575, 1e-9) && close(Y, 1.90e11, 0.005e11)],
       ...layout(s),
@@ -536,7 +538,7 @@ const d5: Diagram = {
       { t: 'Elastic limit', p: E, at: [[gx(a, 0.55), gy(a, 5.7), 'start'], [gx(a, 0.4), gy(a, 5.2), 'start']] },
       { t: 'Straight line', hi: true, p: [gx(a, 0.6), gy(a, 0.6 * KG5)], at: [[116, 222, 'start'], [124, 224, 'start']] },
       { t: 'Loading', p: [gx(a, EXT5[3].up), gy(a, 3)], at: [[gx(a, 1.3), gy(a, 1.9), 'start'], [gx(a, 1.5), gy(a, 2.4), 'start']] },
-      { t: 'Unloading', p: [gx(a, EXT5[2].down), gy(a, 2) - 6.2], at: [[gx(a, 0.1), gy(a, 3.7), 'start'], [gx(a, 0.1), gy(a, 3.4), 'start']] },
+      { t: 'Unloading', bare: true, own: [gx(a, EXT5[2].down), gy(a, 2)], p: [gx(a, EXT5[2].down) - 6.2 * Math.SQRT1_2, gy(a, 2) - 6.2 * Math.SQRT1_2], at: [[gx(a, 0.1), gy(a, 3.7), 'start'], [gx(a, 0.1), gy(a, 3.4), 'start']] },
     ], []);
     return s;
   },
@@ -941,13 +943,13 @@ const d9: Diagram = {
     const cs = ((mw * cw + mc * cc) * (T - T2)) / (ms * (T1 - T));
     const colHot = heater.bulbY - colTop9(heater.bulbY, T1), colCold = bulbY - colTop9(bulbY, T2);
     // the chapter's second row: copper in the unknown liquid
-    const mcu = 0.15, ml = 0.12, Tf = 40.0;
-    const cl = (mcu * cc * (T1 - Tf) - mc * cc * (Tf - T2)) / (ml * (Tf - T2));
+    const mcu = 0.15, ml = 0.12, Tf = 40.0, T2b = 24.0;
+    const cl = (mcu * cc * (T1 - Tf) - mc * cc * (Tf - T2b)) / (ml * (Tf - T2b));
     return [
       [`The heater’s thermometer column stands ${fmt(colHot, 0)} px above its bulb and the calorimeter’s ${fmt(colCold, 0)} px (1 px a degree): T₁ = 99.0 °C stands well above T₂ = 27.0 °C, in the ratio ${fmt(colHot / colCold, 2)} = 99/27`, colHot > colCold && close(T1 / T2, colHot / colCold, 1e-9) && colTop9(heater.bulbY, T1) > 30 && colTop9(bulbY, T2) > 172],
       [`The final temperature lies between them: T₂ = ${T2} < T = ${T} < T₁ = ${T1}`, T2 < T && T < T1],
       [`Heat lost = heat gained: (m_w c_w + m_c c_c)(T − T₂) = ${fmt((mw * cw + mc * cc) * (T - T2), 0)} J = m_s c_s (T₁ − T), so c_s = ${fmt(cs, 0)} J kg⁻¹ K⁻¹ (the text's 895)`, close(cs, 895, 1) && close((mw * cw + mc * cc) * (T - T2), 6640, 1)],
-      [`For copper in the liquid: c_ℓ = [m_s c_s(T₁ − T)/(T − T₂) − m_c c_c]/m_ℓ = ${fmt(cl, 0)} J kg⁻¹ K⁻¹ (the text's 1.99 × 10³)`, close(cl, 1990, 5)],
+      [`For copper in the liquid: c_ℓ = [m_s c_s(T₁ − T)/(T − T₂) − m_c c_c]/m_ℓ = ${fmt(cl, 0)} J kg⁻¹ K⁻¹ (the text's 1.58 × 10³, from a start 8 K below the 32 °C room and a finish 8 K above it)`, close(cl, 1582, 3) && close(32 - T2b, Tf - 32, 1e-9)],
       ['The solid hangs on a thread from above the heater’s lid, inside the inner wall, away from both walls and the thermometer', solid[0] > heater.inn[0] && solid[2] < heater.inn[2] && solid[3] < heater.inn[3] && solid[2] < heater.xT - 4 && heater.xThread > solid[0] && heater.xThread < solid[2]],
       ['The calorimeter stands inside the jacket (a gap all round), with the water level above the thermometer bulb and the stirrer’s ring, all below the lid', jacket[0] < can[0] && jacket[2] > can[2] && jacket[3] > can[3] && water < bulbY - 4 && water < 296 && lid[3] <= can[1] && xStir > can[0] && xT < can[2]],
       ['The transfer arrow leaves the heater and ends at the open part of the calorimeter, beside the lid, above the water', 130 > lid[2] && 130 < can[2] && 206 < water],

@@ -399,15 +399,15 @@ const fig022: Diagram = {
  * E, K₁, the resistance box R and the galvanometer G in series; the shunt box
  * S with K₂ across G. Beneath, the pointer with K₂ open (θ = 20 divisions, the
  * table's first row: R = 40 000 Ω, S = 120 Ω) and closed (θ/2 = 10 divisions).
- * The dials are 40 divisions over ±50°: 2.5° a division.
+ * The dials are 30 divisions over ±50°: 3⅓° a division, so θ = 20 is two-thirds of the scale (the table's 16 to 24 divisions are 53 % to 80 %).
  */
 const T4: Record<string, P> = { 'cell+': [26, 120], 'cell−': [26, 132], 'K1.a': [64, 52], 'K1.b': [98, 52], 'R.a': [130, 52], 'R.b': [190, 52], 'G.a': [215, 116], 'G.b': [215, 144], 'S.a': [272, 72], 'S.b': [272, 118], 'K2.a': [272, 140], 'K2.b': [272, 170] };
-const D4 = { Rv: 40000, S: 120, G: 120.36, theta: 20, per: 2.5, r: 52, cy: 346, cx: [88, 252], E: 2.0 };
+const D4 = { Rv: 40000, S: 120, G: 120.36, theta: 20, per: 100 / 30, r: 52, cy: 346, cx: [88, 252], E: 2.0 };
 const needle4 = (div: number) => 140 - D4.per * div;
 function dial4(s: Sketch, cx: number, div: number, ghost?: number) {
   const { r, cy } = D4, c: P = [cx, cy];
   path(s, arcPts(c, r, 40, 140, 60), { color: C.slate, w: 1.3 });
-  for (let d = 0; d <= 40; d += 5) {
+  for (let d = 0; d <= 30; d += 5) {
     const a = needle4(d), long = d % 10 === 0;
     path(s, [polar(c, r, a), polar(c, r - (long ? 9 : 5), a)], { color: C.slate, w: 1.2 });
     if (long) { const q = polar(c, r + 15, a); s.sym(q[0], q[1] + 4, String(d), { size: 10, color: C.slate }); }
@@ -472,7 +472,7 @@ const fig024: Diagram = {
       [`The shunt S with K₂ is across the galvanometer alone: G's two terminals are the ends of the S–K₂ branch`, nodes(s, T4).some((g) => g.includes('S.a') && g.includes('G.a')) && nodes(s, T4).some((g) => g.includes('K2.b') && g.includes('G.b'))],
       [`G = RS/(R − S) = ${fmt(Gcalc, 2)} Ω for R = ${Rv} Ω, S = ${S} Ω, the table's 120.36 Ω`, close(Gcalc, G, 0.006)],
       [`With S across G of ${G} Ω the coil current falls to ${fmt(ratio, 4)} of its value with K₂ open: half`, close(ratio, 0.5, 0.0005)],
-      [`The pointers: ${fmt(angleOpen, 1)}° and ${fmt(angleClosed, 1)}° from zero, 20 and 10 divisions at ${per}° a division, so the second is half the first`, close(angleOpen, 50, 1e-9) && close(angleClosed, 25, 1e-9) && close(angleClosed * 2, angleOpen)],
+      [`The pointers: ${fmt(angleOpen, 1)}° and ${fmt(angleClosed, 1)}° from zero, 20 and 10 divisions at ${per}° a division, so the second is half the first`, close(angleOpen, 200 / 3, 1e-9) && close(angleClosed, 100 / 3, 1e-9) && close(angleClosed * 2, angleOpen)],
       [`The deflection is proportional to the current through the coil (θ = I/k), so θ/2 = 10 div is half of the 20 div`, theta / 2 === 10],
       ['Always G > S: 120.36 Ω against 120 Ω', G > S],
       ...layout(s),
@@ -770,7 +770,8 @@ const fig032: Diagram = {
  * The five corrected pairs (u, v) of the convex-lens table, plotted as
  * (1/u, 1/v): they fall on 1/v = 1/f − 1/u, a line of slope −1 cutting each
  * axis at 1/f = 0.0500 per cm (f = 20.0 cm). It meets the line 1/v = 1/u at
- * 1/(2f) = 0.0250, where u = v = 2f = 40 cm.
+ * 1/(2f) = 0.0250, where u = v = 2f = 40 cm. The table is of magnitudes |u|, |v|
+ * (slope −1); with Cartesian signs the 1/v–1/u line would have slope +1.
  */
 const D33 = { pairs: [[30.0, 60.2], [35.0, 46.4], [40.0, 40.1], [50.0, 33.5], [60.0, 29.9]] as P[], f: 20.0, ox: 58, oy: 262, k: 4200 };
 const gx33 = (a: number) => D33.ox + a * D33.k;
@@ -802,8 +803,8 @@ const fig033: Diagram = {
     s.sym(mp[0] + 16, mp[1] + 4, '1/(2<i>f</i>) = 0.0250', { size: 12, anchor: 'start' });
     resultBlock(s, ['<i>f</i> = 1/0.0500 = 20.0 cm'], { size: 14 });
     s.place([
-      { t: 'Fitted line', p: [gx33(0.012), gy33(0.038)], at: [[gx33(0.012) + 16, gy33(0.038) - 24, 'start'], [gx33(0.012) + 24, gy33(0.038) - 8, 'start']] },
-      { t: '1/|v| = 1/|u|', p: [gx33(0.0415), gy33(0.0415)], at: [[gx33(0.0415) - 16, gy33(0.0415) - 44, 'start'], [gx33(0.0415) - 40, gy33(0.0415) - 48, 'start']] },
+      { t: 'Fitted line', bare: true, p: [gx33(0.012), gy33(0.038)], at: [[gx33(0.012) + 16, gy33(0.038) - 24, 'start'], [gx33(0.012) + 24, gy33(0.038) - 8, 'start']] },
+      { t: '1/|v| = 1/|u|', bare: true, p: [gx33(0.0415), gy33(0.0415)], at: [[gx33(0.0415) - 16, gy33(0.0415) - 44, 'start'], [gx33(0.0415) - 40, gy33(0.0415) - 48, 'start']] },
     ]);
     return s;
   },
@@ -813,12 +814,13 @@ const fig033: Diagram = {
     const table = [[0.0333, 0.0166], [0.0286, 0.0216], [0.025, 0.0249], [0.02, 0.0299], [0.0167, 0.0334]];
     const pts = pairs.map(([u, v]) => [Math.round(1e4 / u) / 1e4, Math.round(1e4 / v) / 1e4]);
     const sums = pairs.map(([u, v]) => 1 / u + 1 / v);
+    const tsums = table.map(([a, b]) => Math.round((a + b) * 1e4) / 1e4);
     const fs = pairs.map(([u, v]) => (u * v) / (u + v));
     const lineA: P = [gx33(0), gy33(1 / f)], lineB: P = [gx33(1 / f), gy33(0)];
     const slope = (lineB[1] - lineA[1]) / (lineB[0] - lineA[0]);
     return [
-      [`The five plotted points are the table's 1/u and 1/v: ${pts.map((p) => `(${p[0].toFixed(4)}, ${p[1].toFixed(4)})`).join(' ')}`, pts.every((p, i) => close(p[0], table[i][0], 1.1e-4) && close(p[1], table[i][1], 1.1e-4))],
-      [`Each point has 1/u + 1/v = ${sums.map((a) => a.toFixed(4)).join(', ')}, all within 0.0003 of 0.0500, so the points lie on the line`, sums.every((a) => close(a, 0.05, 0.0003))],
+      [`The five plotted points are the table's 1/|u| and 1/|v|: ${pts.map((p) => `(${p[0].toFixed(4)}, ${p[1].toFixed(4)})`).join(' ')}`, pts.every((p, i) => close(p[0], table[i][0], 1.1e-4) && close(p[1], table[i][1], 1.1e-4))],
+      [`Each point has 1/|u| + 1/|v| = ${sums.map((a) => a.toFixed(4)).join(', ')} exactly, and ${tsums.map((a) => a.toFixed(4)).join(', ')} from the table's rounded entries (the 0.0499, 0.0502, 0.0499, 0.0499, 0.0501 of the worked example), all within 0.0003 of 0.0500, so the points lie on the line`, sums.every((a) => close(a, 0.05, 0.0003)) && tsums.every((a, k) => close(a, [0.0499, 0.0502, 0.0499, 0.0499, 0.0501][k], 1e-9))],
       [`The line has slope −1: on the drawing it rises ${fmt(-(slope) , 3)} pixel up for each pixel to the left, and cuts the 1/v axis at ${fmt((oy - lineA[1]) / k, 4)} and the 1/u axis at ${fmt((lineB[0] - ox) / k, 4)} per cm`, close(slope, 1, 1e-9) && close((oy - lineA[1]) / k, 0.05, 1e-9) && close((lineB[0] - ox) / k, 0.05, 1e-9)],
       [`The intercept is 1/f = 0.0500 per cm, so f = ${fmt(1 / 0.05, 1)} cm; the table's f = uv/(u + v) values (${fs.map((a) => a.toFixed(2)).join(', ')}) average ${fmt(fs.reduce((a, b) => a + b, 0) / 5, 2)} cm`, close(1 / 0.05, 20.0, 1e-9) && close(fs.reduce((a, b) => a + b, 0) / 5, 20.0, 0.005)],
       [`The line 1/v = 1/u meets the fitted line at (${fmt(1 / (2 * f), 4)}, ${fmt(1 / (2 * f), 4)}) = 1/(2f), where u = v = 2f = ${fmt(2 * f, 0)} cm (the table's third row, 40.0 and 40.1 cm)`, close(1 / (2 * f), 0.025, 1e-9) && close(pairs[2][0], 2 * f, 1e-9) && close(pairs[2][1], 2 * f, 0.15)],
@@ -885,9 +887,9 @@ const fig034: Diagram = {
     path(s, [N, add(M, di, 110)], { color: C.slate, w: 1.3, dash: 'dash', free: true });
     path(s, [Q, M], { color: C.slate, w: 1.3, dash: 'dash', free: true });
     path(s, arcBetween(M, 24, di, de), { color: C.mari, w: 2.2 });
-    // δ sits half-way between the dashed incident extension and Q's normal, clear of both
-    const xl = M[0] + 60, yInc = N[1] + ((xl - N[0]) * di[1]) / di[0], yNor = Q[1] + ((xl - Q[0]) * n2out[1]) / n2out[0];
-    s.sym(xl, (yInc + yNor) / 2 + 4.25, '<i>δ</i>', { size: 17, color: C.amber });
+    // δ sits on the bisector of the two rays at M, just past the marigold arc and the prism face (the wedge is too narrow for it inside the glass)
+    const dp = bisect(M, 52, di, de);
+    s.sym(dp[0], dp[1] + 4, '<i>δ</i>', { size: 17, color: C.amber });
     // the four angles
     const lab = (p: P, t: string) => s.sym(p[0], p[1] + 5, t, { size: 14 });
     path(s, arcBetween(N, 34, scale(n1, -1), scale(di, -1)), { color: C.slate, w: 1.3 });
@@ -977,8 +979,8 @@ const fig035: Diagram = {
     s.sym(ox + 6, gy35(dm) - 8, '<i>δ</i><sub>m</sub> ≈ 39°', { size: 12, anchor: 'start' });
     resultBlock(s, ['<i>δ</i><sub>m</sub> = 39.0° at <i>i</i> = 49.5°', '<i>A</i> = 60°, <i>n</i> = 1.52']);
     s.place([
-      { t: 'Minimum deviation', hi: true, own: [gx35(im), gy35(dm)], p: [gx35(im), gy35(dm) + 8], at: [[gx35(im) + 8, gy35(dm) + 14, 'start'], [gx35(im) + 14, gy35(dm) + 22, 'start']] },
-      { t: 'One δ, two values of i', own: [gx35(iHi), gy35(dTwo)], p: [gx35(iHi), gy35(dTwo) - 7], at: [[110, gy35(dTwo) - 44, 'start'], [104, gy35(dTwo) - 56, 'start']] },
+      { t: 'Minimum deviation', hi: true, bare: true, own: [gx35(im), gy35(dm)], p: [gx35(im), gy35(dm) + 8], at: [[gx35(im) + 8, gy35(dm) + 14, 'start'], [gx35(im) + 14, gy35(dm) + 22, 'start']] },
+      { t: 'One δ, two values of i', bare: true, own: [gx35(iHi), gy35(dTwo)], p: [gx35(iHi), gy35(dTwo) - 7], at: [[110, gy35(dTwo) - 44, 'start'], [104, gy35(dTwo) - 56, 'start']] },
     ]);
     return s;
   },

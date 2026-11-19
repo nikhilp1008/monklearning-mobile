@@ -70,7 +70,7 @@ export const TOPICS: Topic[] = [
           ['4.0', '49.7', '4.048', '50.4', '4.065'],
           ['5.0', '55.3', '4.042', '44.8', '4.058'],
         ],
-        note: 'The balance lengths of each pair add up to about 100 cm (99.9, 100.1, 100.1), so the end resistances are small.',
+        note: 'The balance lengths of each pair add up to about 100 cm (99.9, 100.1, 100.1), so the resistances at the two ends are nearly equal. With the null near the middle, their effect on the mean <i>X</i> is small.',
       },
       {
         t: 'ex',
@@ -95,7 +95,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Why the null point should be near 50 cm.</b> Differentiating <i>X</i> = <i>R</i>(100 − <i>l</i>)/<i>l</i> gives Δ<i>X</i>/<i>X</i> = Δ<i>l</i>/<i>l</i> + Δ<i>l</i>/(100 − <i>l</i>) = 100Δ<i>l</i>/[<i>l</i>(100 − <i>l</i>)]. The product <i>l</i>(100 − <i>l</i>) is greatest at <i>l</i> = 50 cm, so the fractional error is least there. At <i>l</i> = 50 cm and Δ<i>l</i> = 0.1 cm it is 0.4 %.<br><br><b>End resistances and the interchange.</b> The ends of the bridge wire carry a little extra resistance (strips, joints). Treat them as extra lengths <i>a</i> (at A) and <i>b</i> (at C), so the true balance is <i>R</i>/<i>X</i> = (<i>l</i> + <i>a</i>)/(100 − <i>l</i> + <i>b</i>). To first order the value of <i>X</i> from the first balance is then off by the fraction <i>a</i>/<i>l</i> − <i>b</i>/(100 − <i>l</i>) and from the interchanged balance by <i>b</i>/<i>l</i> − <i>a</i>/(100 − <i>l</i>) (the two lengths being nearly 100 − <i>l</i> and <i>l</i>). These add to (<i>a</i> + <i>b</i>)[1/<i>l</i> − 1/(100 − <i>l</i>)], which is zero when <i>l</i> = 50 cm. So the interchange does not remove the end error by itself, but when the null is near the middle the mean of the two values of <i>X</i> is almost free of it, and a sum <i>l</i> + <i>l</i>′ far from 100 cm warns you that the end resistances are large.<br><br><b>Which error dominates.</b> The diameter, which enters squared and is the smallest measured quantity: in the example it contributes 6.6 % of the 7.1 %.',
+        html: '<b>Why the null point should be near 50 cm.</b> Differentiating <i>X</i> = <i>R</i>(100 − <i>l</i>)/<i>l</i> gives Δ<i>X</i>/<i>X</i> = Δ<i>l</i>/<i>l</i> + Δ<i>l</i>/(100 − <i>l</i>) = 100Δ<i>l</i>/[<i>l</i>(100 − <i>l</i>)]. The product <i>l</i>(100 − <i>l</i>) is greatest at <i>l</i> = 50 cm, so the fractional error is least there. At <i>l</i> = 50 cm and Δ<i>l</i> = 0.1 cm it is 0.4 %.<br><br><b>End resistances and the interchange.</b> The ends of the bridge wire carry a little extra resistance (strips, joints). Treat them as extra lengths <i>a</i> (at A) and <i>b</i> (at C), so the true balance is <i>R</i>/<i>X</i> = (<i>l</i> + <i>a</i>)/(100 − <i>l</i> + <i>b</i>). To first order the value of <i>X</i> from the first balance is then off by the fraction <i>a</i>/<i>l</i> − <i>b</i>/(100 − <i>l</i>) and from the interchanged balance by <i>b</i>/<i>l</i> − <i>a</i>/(100 − <i>l</i>) (the two lengths being nearly 100 − <i>l</i> and <i>l</i>). These add to (<i>a</i> + <i>b</i>)[1/<i>l</i> − 1/(100 − <i>l</i>)], which is zero when <i>l</i> = 50 cm. So the interchange does not remove the end error by itself, but when the null is near the middle the mean of the two values of <i>X</i> is almost free of it, and the sum <i>l</i> + <i>l</i>′ equals 100 + <i>b</i> − <i>a</i>, so a sum far from 100 cm shows that the two end resistances are unequal. Equal end resistances leave the sum at 100 cm and can only be made harmless by keeping the null near 50 cm.<br><br><b>Which error dominates.</b> The diameter, which enters squared and is the smallest measured quantity: in the example it contributes 6.6 % of the 7.1 %.',
       },
 
       { t: 'part', title: 'Metre bridge: exam traps' },
@@ -131,7 +131,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Resistance by Ohm’s law',
-        main: '<i>R</i> = <i>V</i>/<i>I</i> = slope of the <i>V</i>–<i>I</i> graph<br><i>R</i><sub>meas</sub> = <i>RR</i><sub>V</sub>/(<i>R</i> + <i>R</i><sub>V</sub>)<br><i>R</i><sub>meas</sub> = <i>R</i> + <i>R</i><sub>A</sub>',
+        main: '<i>R</i> = <i>V</i>/<i>I</i> = slope of the <i>V</i>–<i>I</i> graph<br>Voltmeter across wire alone: <i>R</i><sub>meas</sub> = <i>RR</i><sub>V</sub>/(<i>R</i> + <i>R</i><sub>V</sub>)<br>Voltmeter across wire and ammeter: <i>R</i><sub>meas</sub> = <i>R</i> + <i>R</i><sub>A</sub>',
         legend: ['<i>V</i> = potential difference across the wire', '<i>I</i> = current through the wire', '<i>R</i> = true resistance of the wire', '<i>R</i><sub>meas</sub> = value read as <i>V</i>/<i>I</i>', '<i>R</i><sub>V</sub> = resistance of the voltmeter', '<i>R</i><sub>A</sub> = resistance of the ammeter'],
         note: 'The second line is for the voltmeter across the wire alone, the third for the voltmeter across wire and ammeter.',
       },
@@ -221,7 +221,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Galvanometer resistance and figure of merit',
-        main: '<i>G</i> = <i>RS</i>/(<i>R</i> − <i>S</i>)<br><i>G</i> ≈ <i>S</i><br><i>k</i> = <i>E</i>/[(<i>R</i> + <i>G</i>)<i>θ</i>]',
+        main: '<i>G</i> = <i>RS</i>/(<i>R</i> − <i>S</i>)<br><i>G</i> ≈ <i>S</i> (for <i>R</i> ≫ <i>S</i>)<br><i>k</i> = <i>E</i>/[(<i>R</i> + <i>G</i>)<i>θ</i>]',
         legend: ['<i>G</i> = resistance of the galvanometer', '<i>R</i> = series resistance', '<i>S</i> = shunt that halves the deflection', '<i>k</i> = figure of merit, in A per division', '<i>E</i> = emf of the cell', '<i>θ</i> = deflection with the shunt open, in divisions'],
         note: '<i>G</i> ≈ <i>S</i> holds only for <i>R</i> ≫ <i>S</i>.',
       },
@@ -236,7 +236,7 @@ export const TOPICS: Topic[] = [
         title: 'Half-deflection method',
         steps: [
           '<b>Connect</b> the cell, K<sub>1</sub>, the resistance box <i>R</i> and the galvanometer in series. Join <i>S</i> and K<sub>2</sub> across the galvanometer. Take out a large resistance from <i>R</i> (for example 40 kΩ) before closing K<sub>1</sub>.',
-          '<b>Deflection.</b> With K<sub>2</sub> open, close K<sub>1</sub> and adjust <i>R</i> until the deflection is a convenient even number of divisions <i>θ</i>, near the top of the scale. Note <i>R</i> and <i>θ</i>.',
+          '<b>Deflection.</b> With K<sub>2</sub> open, close K<sub>1</sub> and adjust <i>R</i> until the deflection is a convenient even number of divisions <i>θ</i>, a large part of the full scale. Note <i>R</i> and <i>θ</i>.',
           '<b>Half deflection.</b> Without changing <i>R</i>, close K<sub>2</sub> and adjust <i>S</i> until the deflection is exactly <i>θ</i>/2. Note <i>S</i>.',
           '<b>Calculate</b> <i>G</i> = <i>RS</i>/(<i>R</i> − <i>S</i>) and <i>k</i> = <i>E</i>/[(<i>R</i> + <i>G</i>)<i>θ</i>].',
           '<b>Repeat</b> for two or three more values of <i>R</i> (and so of <i>θ</i>), and take the means of <i>G</i> and <i>k</i>.',
@@ -422,7 +422,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Focal length by the parallax method',
-        main: '1/|<i>f</i>| = 1/|<i>u</i>| + 1/|<i>v</i>|<br>|<i>f</i>| = |<i>u</i>||<i>v</i>|/(|<i>u</i>| + |<i>v</i>|)<br><i>f</i> = <i>R</i>/2',
+        main: '1/|<i>f</i>| = 1/|<i>u</i>| + 1/|<i>v</i>|<br>|<i>f</i>| = |<i>u</i>||<i>v</i>|/(|<i>u</i>| + |<i>v</i>|)<br>Convex mirror: <i>f</i> = <i>R</i>/2',
         legend: ['<i>u</i> = object distance from the pole or lens', '<i>v</i> = image distance from the pole or lens', '<i>f</i> = focal length', '<i>R</i> = radius of curvature, the distance from the mirror pole to the real image I in the convex-mirror method'],
         note: 'The first two lines are for a concave mirror or a convex lens, in magnitudes; the third is for the convex mirror.',
       },
@@ -473,7 +473,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: 'Convex lens, corrected distances in cm',
-        head: ['u', 'v', '1/u (per cm)', '1/v (per cm)', 'f = uv/(u + v)'],
+        head: ['|u|', '|v|', '1/|u| (per cm)', '1/|v| (per cm)', 'f = |u||v|/(|u| + |v|)'],
         rows: [
           ['30.0', '60.2', '0.0333', '0.0166', '20.02'],
           ['35.0', '46.4', '0.0286', '0.0216', '19.95'],
@@ -492,7 +492,7 @@ export const TOPICS: Topic[] = [
           '<b>First row.</b> <i>u</i> = 24.6 + 0.4 = 25.0 cm; <i>v</i> = 37.4 + 0.3 = 37.7 cm.',
           '<b>Focal length from that row.</b> <i>f</i> = <i>uv</i>/(<i>u</i> + <i>v</i>) = 25.0 × 37.7/62.7 = 942.5/62.7 = 15.03 cm.',
           '<b>Mean of the five rows.</b> (15.03 + 14.97 + 15.02 + 15.08 + 14.96)/5 = 75.06/5 = 15.01 cm.',
-          '<b>Second route.</b> Mean of 1/<i>u</i> + 1/<i>v</i> over the rows is 0.0666 per cm, so <i>f</i> = 1/0.0666 = 15.0 cm.',
+          '<b>Second route.</b> Mean of 1/|<i>u</i>| + 1/|<i>v</i>| over the rows is 0.0666 per cm, so <i>f</i> = 1/0.0666 = 15.0 cm.',
           '<b>Check.</b> The second row has <i>u</i> ≈ <i>v</i> ≈ 30 cm, which is 2<i>f</i>, the centre of curvature. The radius of curvature is therefore 30 cm.',
         ],
         ans: '|<i>f</i>| = 15.0 cm (so <i>f</i> = −15.0 cm in the sign convention)',
@@ -500,10 +500,10 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'Experiment data (convex lens)',
-        q: 'For the convex-lens table, plot 1/<i>v</i> against 1/<i>u</i> and find the focal length from the intercepts.',
+        q: 'For the convex-lens table, plot 1/|<i>v</i>| against 1/|<i>u</i>| and find the focal length from the intercepts.',
         steps: [
-          '<b>Plot.</b> The five points (1/<i>u</i>, 1/<i>v</i>) = (0.0333, 0.0166), (0.0286, 0.0216), (0.0250, 0.0249), (0.0200, 0.0299), (0.0167, 0.0334) fall on a straight line of slope −1.',
-          '<b>Sum along the line.</b> For each point, 1/<i>u</i> + 1/<i>v</i> = 0.0499, 0.0501, 0.0499, 0.0499, 0.0501, so the intercept on each axis is 0.0500 per cm.',
+          '<b>Plot.</b> The five points (1/|<i>u</i>|, 1/|<i>v</i>|) = (0.0333, 0.0166), (0.0286, 0.0216), (0.0250, 0.0249), (0.0200, 0.0299), (0.0167, 0.0334) fall on a straight line of slope −1.',
+          '<b>Sum along the line.</b> For each point, 1/|<i>u</i>| + 1/|<i>v</i>| = 0.0499, 0.0502, 0.0499, 0.0499, 0.0501, so the intercept on each axis is 0.0500 per cm.',
           '<b>Focal length.</b> <i>f</i> = 1/0.0500 = 20.0 cm.',
           '<b>Second route.</b> The mean of <i>uv</i>/(<i>u</i> + <i>v</i>) in the table is (20.02 + 19.95 + 20.02 + 20.06 + 19.96)/5 = 20.00 cm.',
           '<b>Check.</b> At <i>u</i> = 40.0 cm = 2<i>f</i> the image is at <i>v</i> = 40.1 cm = 2<i>f</i>, real, inverted and the same size as the object.',
@@ -536,7 +536,7 @@ export const TOPICS: Topic[] = [
           '<b>Parallax is a way of finding where the image is,</b> not a way of calculating <i>f</i>; <i>f</i> then comes from the mirror or lens formula.',
           '<b>The index correction is added to the observed distance</b> when the observed distance is too small (true minus observed is positive). It is not applied to <i>f</i>.',
           '<b>A concave mirror has a negative <i>f</i></b> in the new Cartesian convention, and a convex mirror a positive one. A convex lens has a positive <i>f</i>.',
-          '<b>A convex mirror never forms a real image of a real object,</b> which is why an auxiliary convex lens is used and why the image of the pin coincides with the pin when the mirror is placed at the right point.',
+          '<b>A convex mirror never forms a real image of a real object,</b> which is why an auxiliary convex lens is used. The mirror is at the right point when the pin’s image coincides with the pin.',
           '<b>On the graph of 1/|<i>v</i>| against 1/|<i>u</i>|,</b> the slope is −1 and each intercept is 1/|<i>f</i>|; the intercepts are not <i>f</i>.',
           '<b>When <i>u</i> = <i>v</i> the distance is 2<i>f</i>:</b> the object and its image are at the centre of curvature of a mirror (or at 2<i>f</i> of a lens).',
         ],
@@ -627,7 +627,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Prism: result, precautions and errors' },
       {
         t: 'p',
-        html: '<b>Result.</b> The angle of minimum deviation is <i>δ</i><sub>m</sub> = (value)° and the refractive index of the glass is <i>n</i> = (value) ± (uncertainty).<br><br><b>Precautions.</b> Fix the pins vertical and at least 10 cm apart, since the direction error of a line drawn through two pins is smaller for a wide spacing. Keep the angles of incidence within about 30° to 60°; for small <i>i</i> the ray may be totally reflected at the second face, and for large <i>i</i> the emergent ray is very oblique and faint. Do not move the prism once it is traced. Look at the feet of the pins, not their tops.<br><br><b>Errors.</b> The reading of <i>δ</i><sub>m</sub> (the curve is flat near its lowest point, so it is read by eye) and the measurement of <i>A</i> contribute about equally, as in the example.',
+        html: '<b>Result.</b> The angle of minimum deviation is <i>δ</i><sub>m</sub> = (value)° and the refractive index of the glass is <i>n</i> = (value) ± (uncertainty).<br><br><b>Precautions.</b> Fix the pins vertical and at least 10 cm apart, since the direction error of a line drawn through two pins is smaller for a wide spacing. Keep the angles of incidence within about 30° to 65°; with <i>n</i> = 1.52 the ray emerges only for <i>i</i> ≥ 29.4°, and for smaller <i>i</i> it is totally reflected at the second face, and for large <i>i</i> the emergent ray is very oblique and faint. Do not move the prism once it is traced. Look at the feet of the pins, not their tops.<br><br><b>Errors.</b> The reading of <i>δ</i><sub>m</sub> (the curve is flat near its lowest point, so it is read by eye) and the measurement of <i>A</i> contribute about equally, as in the example.',
       },
 
       { t: 'part', title: 'Prism: exam traps' },
@@ -670,7 +670,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Slab and microscope: apparatus and procedure' },
       {
         t: 'p',
-        html: '<b>Apparatus.</b> A travelling microscope (a microscope on a vertical scale with a vernier), a rectangular glass slab, a sheet of paper with a cross drawn on it, fine lycopodium powder and a small brush.<br><br><b>Least count.</b> If one main-scale division is 0.5 mm and 25 vernier divisions equal 24 main-scale divisions, LC = 1 MSD/25 = 0.5 mm/25 = 0.02 mm = 0.002 cm. In general LC is one main-scale division divided by the number of vernier divisions.',
+        html: '<b>Apparatus.</b> A travelling microscope (a microscope on a vertical scale with a vernier), a rectangular glass slab, a sheet of paper with a cross drawn on it, fine lycopodium powder and a small brush.<br><br><b>Least count.</b> If one main-scale division is 0.5 mm and 25 vernier divisions equal 24 main-scale divisions, LC = 1 MSD/25 = 0.5 mm/25 = 0.02 mm = 0.002 cm. When <i>N</i> vernier divisions span <i>N</i> − 1 main-scale divisions, LC is one main-scale division divided by <i>N</i>.',
       },
       {
         t: 'proc',
