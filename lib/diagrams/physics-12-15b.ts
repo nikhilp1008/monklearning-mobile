@@ -698,7 +698,7 @@ const d7: Diagram = {
   id: 'p12-15-01-d7',
   topic: 0,
   name: 'A ball falling at terminal velocity',
-  cases: [{ chip: 'Falling ball', cap: 'A small steel ball falls through glycerine in a tall jar, guided by a short tube at the top, and is timed between the marks A and B, a distance s apart; mark A is a few centimetres below the surface so that the ball has reached its terminal velocity. At terminal velocity three forces balance: the weight W acts downwards, and the buoyancy U and the Stokes drag 6πηrv act upwards, the ball falling at the constant speed v_t.' }],
+  cases: [{ chip: 'Falling ball', cap: 'A small steel ball falls through glycerine in a tall jar, guided by a short tube at the top, and is timed between the marks A and B, a distance s apart; mark A is a few centimetres below the surface so that the ball has reached its terminal velocity. At terminal velocity three forces balance: the weight W acts downwards, and the buoyancy U and the Stokes drag 6πηrv act upwards, the ball falling at the constant speed <i>v</i><sub>t</sub>.' }],
   draw() {
     const s = new Sketch(W, 404);
     const { jar, surface, pxcm, aCm, sCm, rho, sigma, Wpx, ball } = G7;

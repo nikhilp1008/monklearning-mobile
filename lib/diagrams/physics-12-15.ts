@@ -717,7 +717,7 @@ const figReg: Diagram = {
   id: 'p12-15-04-d3',
   topic: 4,
   name: 'Zener voltage regulator',
-  cases: [{ chip: 'Regulator', cap: 'Zener voltage regulator: the input V_in feeds a series resistor R_s. The Zener diode, connected in reverse (cathode towards the positive side), and the load R_L are both across the output, so V_out = V_z. The supply current I_s splits into the Zener current I_z and the load current I_L.' }],
+  cases: [{ chip: 'Regulator', cap: 'Zener voltage regulator: the input <i>V</i><sub>in</sub> feeds a series resistor <i>R</i><sub>s</sub>. The Zener diode, connected in reverse (cathode towards the positive side), and the load <i>R</i><sub>L</sub> are both across the output, so <i>V</i><sub>out</sub> = <i>V</i><sub>z</sub>. The supply current <i>I</i><sub>s</sub> splits into the Zener current <i>I</i><sub>z</sub> and the load current <i>I</i><sub>L</sub>.' }],
   draw: () => buildReg().s,
   check() {
     const { s, terms } = buildReg();
@@ -818,7 +818,7 @@ const figZr: Diagram = {
   id: 'p12-15-04-d5',
   topic: 4,
   name: 'Zener reverse curve',
-  cases: [{ chip: 'Reverse curve', cap: 'Reverse characteristic of a Zener diode (V axis starts at 3 V): the current is near zero up to about 4.5 V, then rises sharply at the knee, V_z ≈ 5.0 V. In the near-vertical breakdown region the dynamic resistance is r_z = ΔV/ΔI = 0.15 V/24.0 mA = 6.25 Ω.' }],
+  cases: [{ chip: 'Reverse curve', cap: 'Reverse characteristic of a Zener diode (V axis starts at 3 V): the current is near zero up to about 4.5 V, then rises sharply at the knee, <i>V</i><sub>z</sub> ≈ 5.0 V. In the near-vertical breakdown region the dynamic resistance is <i>r</i><sub>z</sub> = ΔV/ΔI = 0.15 V/24.0 mA = 6.25 Ω.' }],
   draw() {
     const s = new Sketch(W, 352);
     const g = GZ, o: P = [g.ox, g.oy], f = pchip(ZR.V, ZR.I);

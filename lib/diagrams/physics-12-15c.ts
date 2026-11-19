@@ -779,7 +779,7 @@ const gy33 = (a: number) => D33.oy - a * D33.k;
 const fig033: Diagram = {
   id: 'p12-15-03-d3',
   topic: 3,
-  name: '1/v against 1/u for a lens',
+  name: '1/|v| against 1/|u| for a lens',
   cases: [{ chip: '1/v–1/u graph', cap: 'The graph of 1/|<i>v</i>| against 1/|<i>u</i>| for the convex lens: a straight line of slope −1 that cuts each axis at 1/|<i>f</i>| = 0.0500 cm<sup>−1</sup>, so <i>f</i> = 20.0 cm. It meets the line 1/|<i>v</i>| = 1/|<i>u</i>| at 1/(2<i>f</i>), where the object and image are both at 2<i>f</i>.' }],
   draw() {
     const { ox, oy, f } = D33;
