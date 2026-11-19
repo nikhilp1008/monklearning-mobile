@@ -7,10 +7,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ObButton } from '@/components/onboarding-kit';
+import { OnbTitle } from '@/components/onboarding/onb-screen';
+import { PlanGlow } from '@/components/paywall/light';
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { PaymentNotice } from '@/components/paywall/payment-notice';
 import { UpiPay, useUpiApps } from '@/components/paywall/upi-pay';
@@ -18,17 +20,15 @@ import type { UpiApp } from '@/lib/upi-apps';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PlanChooser, type PlansPick } from '@/components/paywall/plan-chooser';
 import { PLANS } from '@/components/paywall/plans';
-import { PressableScale } from '@/components/pressable-scale';
-import { useScale } from '@/constants/scale';
-import { useFreeTier, usePlan } from '@/lib/free-tier';
+import { usePlan } from '@/lib/free-tier';
 import { passStatus, type PassKind } from '@/lib/pass';
+import { useAndroidBack } from '@/lib/android-back';
 import { PAYMENTS_ON_THIS_DEVICE, payErrorMessage } from '@/lib/payments';
 import { rupeesOf, usePromo } from '@/lib/promo';
 import {
   EXAMS,
   PASSES,
   ob,
-  obFont,
   rupees,
   useDesignScale,
   type ExamKey,
@@ -41,9 +41,7 @@ const LATE_WATCH_EVERY_MS = 5000;
 
 export default function PassScreen() {
   const { ds, fs } = useDesignScale();
-  const { scale } = useScale();
   const styles = useMemo(() => createStyles(ds, fs), [ds, fs]);
-  const freeTier = useFreeTier();
   const { starterUsed } = usePlan();
   const starters = PASSES.filter((p) => !starterUsed.includes(p.id));
 
@@ -51,10 +49,15 @@ export default function PassScreen() {
   // than popping to it — so the pass the student had already chosen has to
   // survive the round trip in params.
   const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string }>();
-  // Nothing preselected. A highlighted row reads as an answer already given,
-  // and this one costs money — the student should pick it, not un-pick ours.
   const isPick = (v?: string): v is PlansPick => PASSES.some((p) => p.id === v) || PLANS.some((p) => p.id === v);
-  const [pass, setPass] = useState<PlansPick | null>(isPick(params.pass) ? params.pass : null);
+  /** What the student tapped, or what the promo screen carried back. Null: not yet. */
+  const [picked, setPass] = useState<PlansPick | null>(isPick(params.pass) ? params.pass : null);
+  // THE CHEAPEST STAY IS ALREADY PICKED (Nikhil, 19 Nov 2026). It used to open
+  // with nothing picked, so a price was never ours to choose for the student.
+  // The new page is built to say "start for ₹7", and a page that says so and
+  // then asks the student to tap ₹7 first is one more step for no reason.
+  // Nothing is charged until Pay, and the amount is on the button.
+  const pass: PlansPick | null = picked ?? starters[0]?.id ?? null;
 
   const plan = PLANS.find((p) => p.id === pass) ?? null;
   const active = plan ?? PASSES.find((p) => p.id === pass) ?? null;
@@ -65,7 +68,9 @@ export default function PassScreen() {
   const total = !active ? 0 : quote ? rupeesOf(quote.finalPaise) : active.price;
   const paid = !!active && !!quote?.free;
 
-  const { pay, checkout, confirming } = usePassCheckout();
+  const { pay, checkout, confirming, stopConfirming } = usePassCheckout();
+  /** Paid, and the bank has not confirmed in time: the confirming page stays up and keeps asking. */
+  const [late, setLate] = useState(false);
   const [paying, setPaying] = useState(false);
   /** True from the tap until the purchase is over: the return-to-app check
    *  below must not open the receipt alongside the purchase's own. */
@@ -77,7 +82,7 @@ export default function PassScreen() {
    *  when the student came back from a UPI app and the server has no answer yet. */
   const [notPaid, setNotPaid] = useState<null | 'sure' | 'unsure'>(null);
   const hideNotPaid = useCallback(() => setNotPaid(null), []);
-  /** The free path pushes the receipt; a second tap must not push it twice. */
+  /** A ₹0 code pushes the receipt; a second tap must not push it twice. */
   const leaving = useRef(false);
   /** The already-paid check below, for the watch after an unsure payment. */
   const checkPass = useRef<() => void>(() => {});
@@ -99,7 +104,13 @@ export default function PassScreen() {
         // opened its own. While a purchase is on, the purchase decides.
         if (!live || st.state !== 'active' || leaving.current || payingNow.current) return;
         leaving.current = true;
-        router.replace({ pathname: '/pass-active', params: { pass: st.record.kind, promo: '', exam: params.exam ?? '', paid: '1' } });
+        // No amount: this screen did not take the payment, so it does not know
+        // it (the receipt leaves "Paid" out rather than say ₹0). The end date
+        // is the server's.
+        router.replace({
+          pathname: '/pass-active',
+          params: { pass: st.record.kind, promo: '', exam: params.exam ?? '', paid: '1', endsAt: st.endsAt.toISOString() },
+        });
       });
     checkPass.current = () => void check();
     void check();
@@ -128,6 +139,12 @@ export default function PassScreen() {
       if (Date.now() > until || leaving.current) {
         if (lateWatch.current) clearInterval(lateWatch.current);
         lateWatch.current = null;
+        // Still nothing after the whole watch: the confirming page comes down
+        // and the banner says what the student needs to know.
+        setLate((was) => {
+          if (was && !leaving.current) setNotPaid('unsure');
+          return false;
+        });
         return;
       }
       checkPass.current();
@@ -164,10 +181,12 @@ export default function PassScreen() {
           },
         });
       } else if (result.status === 'pending') {
-        Alert.alert(
-          'Payment received',
-          `Your bank is still confirming it. Your ${plan ? 'plan' : 'pass'} will start on its own in a few minutes — you don't need to pay again.`
-        );
+        // THE SAME PAGE, NOT A POP-UP (Nikhil, 19 Nov 2026). This was a system
+        // alert over the price list, and under it Pay was live again: a second
+        // loading state, and a way to pay twice. The confirming page stays up,
+        // says the bank is slow, and keeps asking for the pass.
+        setLate(true);
+        watchLate();
       } else if (result.status === 'failed' || result.status === 'cancelled') {
         setNotPaid(result.unsure ? 'unsure' : 'sure');
         if (result.unsure) watchLate();
@@ -183,22 +202,41 @@ export default function PassScreen() {
     }
   };
 
+  /** Picking Pro or Max brings the plans to the top; the day and the week are a scroll away above. */
+  const { height: windowHeight } = useWindowDimensions();
+  const scroll = useRef<ScrollView>(null);
+  const chooserY = useRef(0);
+  const planOpen = !!plan && starters.length > 0;
+  const toPlans = (y: number) => {
+    // After the frame in which the plan opened: the page is only tall enough to move once it has.
+    requestAnimationFrame(() => scroll.current?.scrollTo({ y: chooserY.current + y, animated: true }));
+  };
+
+  // Android's Back is held while a payment is running or being confirmed: it
+  // used to leave the page from under its own purchase.
+  useAndroidBack(() => paying || !!confirming || late);
+
   const toPromo = () =>
     router.push({ pathname: '/promo', params: { pass, promo: params.promo ?? '', exam: params.exam ?? '' } });
 
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
+      <PlanGlow height={ds(340)} />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(26), lineHeight: scale(32), letterSpacing: scale(-0.5), color: ob.ink, marginBottom: scale(20) }}>
-            Choose what works for you
-          </Text>
+        <ScrollView
+          ref={scroll}
+          // Room below an opened plan, or there is nowhere for the page to move to.
+          contentContainerStyle={[styles.content, planOpen ? { paddingBottom: windowHeight * 0.5 } : null]}
+          showsVerticalScrollIndicator={false}>
+          {/* The same heading, size and place as every other onboarding step. */}
+          <OnbTitle title={starters[0] ? `Start for ${rupees(starters[0].price)}` : 'Choose your plan'} inset={ds(20)} />
+          <View style={styles.chooser} onLayout={(e) => (chooserY.current = e.nativeEvent.layout.y)}>
           <PlanChooser
             pick={pass}
             onPick={setPass}
             starters={starters}
-            passesFirst
+            onPlanOpened={toPlans}
             promoLine={
               discount
                 ? `${quote?.code ?? promo} applied · −${rupees(discount)}`
@@ -211,6 +249,7 @@ export default function PassScreen() {
             promoQuiet={!quote && !!promo && !checking && !auto}
             onPromo={toPromo}
           />
+          </View>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -251,27 +290,28 @@ export default function PassScreen() {
               });
             }}
           />
-          {freeTier.free && (
-            // The free tier: a way past the price list. Not hidden and not
-            // shouted: a plan is what this screen is for, and this is what the
-            // student gets if they are not ready to pay yet.
-            <PressableScale
-              style={styles.freeLink}
-              disabled={paying || checking}
-              onPress={() => {
-                if (leaving.current || payingNow.current) return;
-                leaving.current = true;
-                router.push('/teacher');
-              }}>
-              <Text style={styles.freeLinkText}>Continue with the free plan</Text>
-            </PressableScale>
-          )}
+          {/* No free way past this page (Nikhil, 18 Nov 2026): a new student
+              starts with a pass or a plan. The free plan is only for after a
+              pass has ended, and it is never offered here. */}
           </>)}
         </View>
       </SafeAreaView>
       <PaymentNotice visible={notPaid !== null} unsure={notPaid === 'unsure'} onGone={hideNotPaid} />
       {checkout}
-      {confirming ? <PaymentConfirming /> : null}
+      {confirming || late ? (
+        <PaymentConfirming
+          what={plan ? `${plan.name} · 1 month` : active?.name}
+          amount={active ? rupees(total) : undefined}
+          plan={!!plan}
+          mode={confirming === 'checking' ? 'checking' : confirming ? 'paid' : 'late'}
+          onNotPaid={stopConfirming}
+          onClose={() => {
+            // The watch goes on behind the page; the banner says not to pay again.
+            setLate(false);
+            setNotPaid('unsure');
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -286,13 +326,8 @@ function createStyles(ds: (size: number) => number, fs: (size: number) => number
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: ob.surface },
     safeArea: { flex: 1 },
-    content: { paddingHorizontal: ds(20), paddingTop: ds(18), paddingBottom: ds(12) },
-    freeLink: { alignSelf: 'center', paddingVertical: ds(12), marginTop: ds(4) },
-    freeLinkText: {
-      fontFamily: obFont.m500,
-      fontSize: fs(15),
-      color: ob.link,
-    },
+    content: { paddingBottom: ds(12) },
+    chooser: { paddingHorizontal: ds(20), paddingTop: ds(22) },
     footer: { paddingHorizontal: ds(20), paddingTop: ds(8), paddingBottom: ds(10), gap: ds(10) },
   });
 }

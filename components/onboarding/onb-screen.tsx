@@ -37,6 +37,7 @@ export function OnbScreen({
   cta,
   onSkip,
   secondary,
+  error,
   keyboard = false,
 }: {
   title: string;
@@ -46,7 +47,10 @@ export function OnbScreen({
   /** Questions only: moves on without an answer. */
   onSkip?: () => void;
   /** A quieter second button under the first, e.g. "Later, from Home". */
-  secondary?: { label: string; onPress: () => void };
+  secondary?: { label: string; onPress: () => void; busy?: boolean };
+  /** A failure to say, just above the button: in the scroll it could sit
+   *  below the fold on a small phone, and the tap seemed to do nothing. */
+  error?: string | null;
   /** Screens with a text field lift their footer above the keyboard. */
   keyboard?: boolean;
 }) {
@@ -65,6 +69,19 @@ export function OnbScreen({
       </ScrollView>
 
       <View style={{ paddingHorizontal: ds(30), paddingTop: ds(8), paddingBottom: onSkip ? ds(2) : ds(14) }}>
+        {error ? (
+          <Text
+            style={{
+              marginBottom: ds(12),
+              textAlign: 'center',
+              fontFamily: obFont.r400,
+              fontSize: fs(15),
+              lineHeight: ds(15 * 1.4),
+              color: '#DD4433',
+            }}>
+            {error}
+          </Text>
+        ) : null}
         <ObButton
           label={cta.label}
           withArrow
@@ -76,6 +93,7 @@ export function OnbScreen({
           <ObButton
             label={secondary.label}
             variant="outline"
+            busy={secondary.busy}
             onPress={secondary.onPress}
             style={{ marginTop: ds(12) }}
           />
@@ -123,18 +141,23 @@ export function OnbScreen({
  * with its line under it. Exported for the screens that keep their own body
  * (the email code screen) so their heading still lands in the same place.
  */
-export function OnbTitle({ title, sub }: { title: string; sub?: string }) {
+export function OnbTitle({ title, sub, inset }: { title: string; sub?: string; inset?: number }) {
   const { ds, fs, tracking } = useDesignScale();
+  /** The side margin: 30, or the page's own where its content runs wider
+   *  (the price list's table), so the heading lines up with what is under it. */
+  const side = inset ?? ds(30);
   return (
     <>
       <Text
         style={{
           paddingTop: ds(40),
-          paddingHorizontal: ds(30),
-          fontFamily: obFont.m500,
-          fontSize: fs(24),
-          lineHeight: fs(30),
-          letterSpacing: tracking(-0.02, 24),
+          paddingHorizontal: side,
+          // Semibold 26 since 19 Nov 2026 (was medium 24): one heading for every
+          // step up to the payment, the plan pages included.
+          fontFamily: obFont.sb600,
+          fontSize: fs(26),
+          lineHeight: fs(33),
+          letterSpacing: tracking(-0.023, 26),
           color: ob.ink,
         }}>
         {title}
@@ -143,7 +166,7 @@ export function OnbTitle({ title, sub }: { title: string; sub?: string }) {
         <Text
           style={{
             marginTop: ds(10),
-            paddingHorizontal: ds(30),
+            paddingHorizontal: side,
             fontFamily: obFont.r400,
             fontSize: fs(15),
             lineHeight: fs(22),

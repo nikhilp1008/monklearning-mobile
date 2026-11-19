@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -14,6 +14,7 @@ import { PAYMENTS_ON_THIS_DEVICE } from '@/lib/payments';
 import type { TeacherId } from '@/lib/preferences';
 import { rupeesOf, usePromo } from '@/lib/promo';
 
+import { PlanGlow } from './light';
 import { PlanChooser, type PlansPick } from './plan-chooser';
 import { PLANS } from './plans';
 
@@ -21,8 +22,14 @@ export type { PlansPick };
 
 /**
  * THE PLANS PAGE. The choice itself is components/paywall/plan-chooser.tsx, shared
- * with onboarding. NOTHING IS PICKED WHEN THE PAGE OPENS, unless the promo screen
- * carried a pick back.
+ * with onboarding.
+ *
+ * WHEN A PASS HAS ENDED IT IS PRO AND MAX ALONE (Nikhil, 18 Nov 2026). The day
+ * and the week are how a student starts; this is a different page for a
+ * different moment, and it used to be the first price list again, with the
+ * unused short stay on top. Pro is picked when it opens, marked recommended.
+ * From "Add more time" nothing is picked, unless the promo screen carried a
+ * pick back.
  *
  * TWO WAYS IN, ONE PAGE. `gate`: the pass has ended or there never was one, and the
  * app opens here; there is no way out but a pass. `extend`: Profile → Your plan,
@@ -46,6 +53,8 @@ export type PlansPageProps = {
   neverHadPass?: boolean;
   /** Gate only: what ended was Pro, Max or an older plan, not a pass. */
   endedPlan?: boolean;
+  /** Gate only: closing leads back to the free plan, and the page says so. */
+  freeBehind?: boolean;
   /** Starter passes already used on this account: not offered again. */
   starterUsed?: PassKind[];
   /** The plan carried back from the promo screen. */
@@ -78,24 +87,25 @@ function midnight(d: Date) {
   return m;
 }
 
-function CloseButton({ onPress }: { onPress: () => void }) {
+function BackButton({ onPress }: { onPress: () => void }) {
   const { scale } = useScale();
   return (
     <PressableScale
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Close"
+      accessibilityLabel="Back"
       style={{
         width: scale(40),
         height: scale(40),
         borderRadius: scale(20),
         borderWidth: 1,
         borderColor: colors.hairline,
+        backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
       <Svg viewBox="0 0 24 24" width={scale(18)} height={scale(18)} fill="none">
-        <Path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke={INK} strokeWidth={1.9} strokeLinecap="round" />
+        <Path d="M14.5 5.5L8 12l6.5 6.5" stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
     </PressableScale>
   );
@@ -106,19 +116,28 @@ function CloseButton({ onPress }: { onPress: () => void }) {
 export function PlansPage(props: PlansPageProps) {
   const { scale } = useScale();
 
-  const [pick, setPick] = useState<PlansPick | null>(props.pick ?? null);
+  /** What the student tapped, or what the promo screen carried back. Null: not yet. */
+  const [tapped, setPick] = useState<PlansPick | null>(props.pick ?? null);
   // The promo screen goes back to this same page with the pick it carried.
   useEffect(() => {
     if (props.pick) setPick(props.pick);
   }, [props.pick]);
 
+  const starterUsed = props.starterUsed ?? [];
+  const runningStarter = props.runningKind === 'day' || props.runningKind === 'week';
+  const gate = props.context === 'gate';
+  /** The gate, for a student whose pass or plan has run out. */
+  const ended = gate && !props.neverHadPass;
+  // A short stay is for starting out: never for a student whose pass has ended,
+  // nor for one already on Pro, Max or a longer pass.
+  const starters = ended || (props.runningKind && !runningStarter) ? [] : PASSES.filter((p) => !starterUsed.includes(p.id));
+  // At the gate the page opens with its answer picked: the cheapest stay for a
+  // student starting out, Pro for one whose pass has ended.
+  const pick: PlansPick | null = tapped ?? (gate ? (starters[0]?.id ?? PLANS[0].id) : null);
+
   const plan = PLANS.find((p) => p.id === pick) ?? null;
   const starter = PASSES.find((p) => p.id === pick) ?? null;
   const price = plan?.price ?? starter?.price ?? 0;
-  const starterUsed = props.starterUsed ?? [];
-  const runningStarter = props.runningKind === 'day' || props.runningKind === 'week';
-  // A starter is for trying the app: not offered to someone already on Pro, Max or a longer pass.
-  const starters = props.runningKind && !runningStarter ? [] : PASSES.filter((p) => !starterUsed.includes(p.id));
   /** Pro or Max over a running starter pass begins now, not after it. */
   const startsNow = props.context === 'extend' && runningStarter && !!plan;
 
@@ -129,7 +148,16 @@ export function PlansPage(props: PlansPageProps) {
   const free = !!quote?.free;
 
   const today = midnight(new Date());
-  const title = props.context === 'extend' ? (runningStarter ? 'Keep going' : 'Add more time') : 'Choose what works for you';
+  const title =
+    props.context === 'extend'
+      ? runningStarter
+        ? 'Keep going'
+        : 'Add more time'
+      : ended
+        ? 'Keep learning every day'
+        : starters[0]
+          ? `Start for ${rupees(starters[0].price)}`
+          : 'Choose your plan';
   // Only what the student must know. A new student needs no line here at all.
   const sub =
     props.context === 'extend'
@@ -140,7 +168,7 @@ export function PlansPage(props: PlansPageProps) {
           : `New time starts after your current ${runningStarter ? 'pass' : 'plan'} ends.`
       : props.neverHadPass
         ? null
-        : `Your ${props.endedPlan ? 'plan' : 'pass'} has ended. Your progress is saved.`;
+        : `Your ${props.endedPlan ? 'plan' : 'pass'} has ended. Everything you did is saved.`;
 
   const promoLine = quote
     ? `${quote.code} applied · −${rupees(rupeesOf(quote.discountPaise))}`
@@ -162,35 +190,62 @@ export function PlansPage(props: PlansPageProps) {
       ? 'Complete for ₹0'
       : codeOnly
         ? 'Enter a promo code'
-        : `Pay ${rupees(total)}`;
-  const trailing = plan ? `${plan.name} · 1 month` : starter?.name;
+        : ended && plan
+          ? `Continue with ${plan.name}`
+          : `Pay ${rupees(total)}`;
+  // The price alone beside "Continue with Pro": anything longer wrapped on the key.
+  const trailing = ended && plan && !free ? rupees(total) : plan ? `${plan.name} · 1 month` : starter?.name;
+
+  /** Picking Pro or Max on a page that also shows the short stays brings the plans to the top. */
+  const { height: windowHeight } = useWindowDimensions();
+  const scroll = useRef<ScrollView>(null);
+  const chooserY = useRef(0);
+  const planOpen = !!plan && starters.length > 0;
+  const toPlans = (y: number) => {
+    requestAnimationFrame(() => scroll.current?.scrollTo({ y: chooserY.current + y, animated: true }));
+  };
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: '#fff' }}>
       <StatusBar style="dark" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: scale(20), paddingTop: scale(18), paddingBottom: scale(12) }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(12), marginBottom: scale(20) }}>
-          <View style={{ flex: 1 }}>
-            <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(26), lineHeight: scale(32), letterSpacing: scale(-0.5), color: INK }}>
-              {title}
-            </Text>
-            {sub ? <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(14), lineHeight: scale(20), color: SLATE, marginTop: scale(4) }}>{sub}</Text> : null}
-          </View>
-          {props.onClose ? <CloseButton onPress={props.onClose} /> : null}
+      <PlanGlow height={scale(340)} />
+      {/* THE WAY BACK IS PART OF THE PAGE, NOT OF ITS SCROLL: it is there in the
+          first frame and stays put. It used to arrive seconds late, after the
+          server had been asked whether there was anything to go back to. */}
+      {props.onClose ? (
+        <View style={{ paddingHorizontal: scale(16), paddingTop: scale(8) }}>
+          <BackButton onPress={props.onClose} />
         </View>
+      ) : null}
+      <ScrollView
+        ref={scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: scale(20), paddingTop: scale(props.onClose ? 16 : 40), paddingBottom: planOpen ? windowHeight * 0.5 : scale(12) }}>
+        <Text accessibilityRole="header" style={{ fontFamily: 'Onest_600SemiBold', fontSize: scale(26), lineHeight: scale(33), letterSpacing: scale(-0.6), color: INK }}>
+          {title}
+        </Text>
+        {sub ? <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(15), lineHeight: scale(22), color: SLATE, marginTop: scale(8) }}>{sub}</Text> : null}
 
-        <PlanChooser
-          pick={pick}
-          onPick={setPick}
-          starters={starters}
-          passesFirst={props.context === 'gate'}
-          promoLine={promoLine}
-          promoQuiet={!quote && !!promo.code && !promo.checking && !promo.auto}
-          onPromo={codeOnly && !promo.code ? null : () => props.onPromo(pick)}
-        />
+        <View style={{ marginTop: scale(24) }} onLayout={(e) => (chooserY.current = e.nativeEvent.layout.y)}>
+          <PlanChooser
+            pick={pick}
+            onPick={setPick}
+            starters={starters}
+            recommend={ended}
+            onPlanOpened={toPlans}
+            promoLine={promoLine}
+            promoQuiet={!quote && !!promo.code && !promo.checking && !promo.auto}
+            onPromo={codeOnly && !promo.code ? null : () => props.onPromo(pick)}
+          />
+        </View>
+        {props.freeBehind && props.onClose ? (
+          <Text style={{ fontFamily: 'Onest_400Regular', fontSize: scale(12.5), lineHeight: scale(18), color: SLATE, textAlign: 'center', marginTop: scale(8) }}>
+            Not now? Go back and keep using the free plan.
+          </Text>
+        ) : null}
       </ScrollView>
 
-      <SafeAreaView edges={['bottom']} style={{ backgroundColor: '#fff' }}>
+      <SafeAreaView edges={['bottom']}>
         <View style={{ paddingHorizontal: scale(20), paddingTop: scale(8), paddingBottom: scale(10) }}>
           <ObButton
             label={label}

@@ -1,9 +1,7 @@
-import { Image } from "expo-image";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   StyleSheet,
   View,
-  type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -23,53 +21,40 @@ import { ob, obFont, useDesignScale } from "@/constants/onboarding";
 import { hapticSwitched } from "@/lib/haptics";
 
 /**
- * THE ONBOARDING'S PICKED STATE: THE ANSWER BECOMES A PIECE OF THE SKY.
+ * THE ONBOARDING'S PICKED STATE: A WHITE CARD WITH A MARIGOLD EDGE AND TICK.
  *
- * "4c" on the design canvas. An unpicked answer is white with a hairline. A
- * picked one is filled with the app's own night sky — the same shader as
- * Home's header (components/night-sky.tsx) with its marigold foot raised and
- * its top softened — and its text turns cream, with a cream tick.
+ * Since 19 Nov 2026 (Nikhil). A picked answer used to be filled with a piece of
+ * the night sky, cream words on it; hence this file's name. The sky is the
+ * teacher's, and a student has no teacher until after they have paid, so the
+ * sky now stays out of everything before that. Picked and unpicked answers are
+ * the same white card with a soft shadow; picking one turns its edge marigold
+ * and brings in a marigold tick. The same picked state as a plan on the price
+ * page (components/paywall/light.tsx), so the questions and the price read as
+ * one run of screens.
  *
- * A PLAIN FADE, NOTHING MORE. The tap used to raise the glow up through the
- * answer from its bottom edge over half a second, with the tick growing in;
- * on a screen of quick picks that read as heavy. Now the sky, the text colour
- * and the tick all fade together in under a fifth of a second.
+ * A PLAIN FADE, NOTHING MORE: the edge and the tick fade in under a fifth of a
+ * second. On a screen of quick picks anything slower read as heavy.
  *
- * THE SKY IS A PICTURE, NOT THE SHADER. Home draws its sky live because there
- * is one of it. A question screen can have a dozen answers and chips, and a
- * Skia canvas under each would be a dozen GPU surfaces for a backdrop that
- * never moves. So the sky is rendered once per shape, offline, with the
- * shader's own maths and grain (uB .5, soft .28, dark .6, lift .2, grain .6,
- * at 3x), and stretched to the answer it sits in. The four pictures are the
- * four shapes the questions use; each is drawn at that shape's proportions so
- * the stretch is slight.
- *
- * NO BORDER WHEN PICKED, AND NO SHADOW. An RN border sits outside the content
- * box, so a picked answer with a transparent border showed a white rim; and a
- * drop shadow read as a black bar under the glow. The hairline is an overlay
- * that fades out instead, and the sky runs to the rounded edge.
+ * NO GRADIENT AND NO GLOW. A warm wash at the top of these steps was tried and
+ * taken off the same day: it read as cheap.
  */
 
-const SKY = {
-  row: require("@/assets/images/onboarding/sky-row.png"),
-  tile3: require("@/assets/images/onboarding/sky-tile3.png"),
-  tile2: require("@/assets/images/onboarding/sky-tile2.png"),
-  chip: require("@/assets/images/onboarding/sky-chip.png"),
-};
-
-const CREAM = "#FBF9F2";
+const ACCENT = "#EEA31F";
+/** Marigold as small words: the fill itself is too pale to read on white. */
+const ACCENT_INK = "#B97A0F";
+const EDGE = "rgba(28,26,22,0.08)";
 const FADE_MS = 180;
 
 export type ChoiceShape = "row" | "tile" | "chip";
 
-function TickDisc({ size, ink = false }: { size: number; ink?: boolean }) {
+function TickDisc({ size }: { size: number }) {
   return (
     <View
       style={{
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: ink ? ob.ink : CREAM,
+        backgroundColor: ACCENT,
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -82,7 +67,7 @@ function TickDisc({ size, ink = false }: { size: number; ink?: boolean }) {
       >
         <Path
           d="M3.5 8.4l3 3L12.5 5"
-          stroke={ink ? CREAM : ob.ink}
+          stroke={ob.ink}
           strokeWidth={2.4}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -105,15 +90,7 @@ export function SkyChoice({
   onPress,
   style,
   tickArrives = false,
-  plain = false,
 }: {
-  /**
-   * Picked without the sky: the row stays white, its edge turns ink, and the
-   * tick (ink, with a cream mark) is the whole change. For the plans page,
-   * where the sky is already the page's header and a second piece of it in
-   * the list read as colour from nowhere.
-   */
-  plain?: boolean;
   /**
    * Rows only: make room for the tick as it arrives, as tiles do, instead of
    * holding an empty tick-sized gap after every row's price. The plans page
@@ -138,7 +115,7 @@ export function SkyChoice({
   style?: StyleProp<ViewStyle>;
 }) {
   const { ds, fs, tracking } = useDesignScale();
-  const radius = shape === "chip" ? ds(12) : ds(14);
+  const radius = shape === "chip" ? ds(12) : ds(18);
   const tick = shape === "row" ? ds(22) : ds(16);
   const gap = shape === "row" ? ds(12) : ds(7);
 
@@ -152,39 +129,13 @@ export function SkyChoice({
     });
   }, [selected, progress]);
 
-  const [box, setBox] = useState({ w: 0, h: 0 });
-  const onLayout = (e: LayoutChangeEvent) => {
-    const { width, height: h } = e.nativeEvent.layout;
-    if (width !== box.w || h !== box.h) setBox({ w: width, h });
-  };
-
-  const sky =
-    shape === "row"
-      ? SKY.row
-      : shape === "chip"
-        ? SKY.chip
-        : box.w / Math.max(box.h, 1) > 2.4
-          ? SKY.tile2
-          : SKY.tile3;
-
-  const skyIn = useAnimatedStyle(() => ({ opacity: plain ? 0 : progress.value }));
-  const hairline = useAnimatedStyle(() =>
-    plain
-      ? { opacity: 1, borderColor: interpolateColor(progress.value, [0, 1], [ob.hairline14, ob.ink]) }
-      : { opacity: 1 - progress.value },
-  );
-  const labelColor = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [ob.ink, plain ? ob.ink : CREAM]),
+  const edge = useAnimatedStyle(() => ({
+    borderColor: interpolateColor(progress.value, [0, 1], [EDGE, ACCENT]),
   }));
-  const noteColor = useAnimatedStyle(() => ({
-    color: interpolateColor(
-      progress.value,
-      [0, 1],
-      [ob.ink55, plain ? ob.ink55 : "rgba(251,249,242,0.8)"],
-    ),
-  }));
+  const labelColor = { color: ob.ink };
+  const noteColor = { color: ob.ink55 };
   const tagColor = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [ob.ink40, ob.amberLight]),
+    color: interpolateColor(progress.value, [0, 1], [ob.ink40, ACCENT_INK]),
   }));
   const tickIn = useAnimatedStyle(() => ({ opacity: progress.value }));
   // Tiles and chips make room for the tick as it arrives, rather than holding
@@ -228,7 +179,18 @@ export function SkyChoice({
   // The dim sits on a wrapper: PressableScale drives the Pressable's own
   // opacity for its press feedback, which overrode a dim set alongside it.
   return (
-    <View style={[{ opacity: disabled ? 0.35 : 1 }, style]}>
+    <View
+      style={[
+        {
+          opacity: disabled ? 0.35 : 1,
+          borderRadius: radius,
+          backgroundColor: "#FFFFFF",
+          // The same lift as a plan card (softShadow in components/paywall/light.tsx).
+          boxShadow: [{ offsetX: 0, offsetY: ds(10), blurRadius: ds(30), spreadDistance: ds(-14), color: "rgba(28,26,22,.13)" }],
+        },
+        style,
+      ]}
+    >
       <PressableScale
         disabled={disabled}
         accessibilityRole="button"
@@ -241,28 +203,24 @@ export function SkyChoice({
         style={{ borderRadius: radius }}
       >
         <View
-          onLayout={onLayout}
           style={{
             borderRadius: radius,
             overflow: "hidden",
             backgroundColor: "#FFFFFF",
           }}
         >
-          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, skyIn]}>
-            {box.h > 0 && !plain && (
-              <Image source={sky} contentFit="fill" style={StyleSheet.absoluteFill} />
-            )}
-          </Animated.View>
+          {/* An overlay, not the card's own border: a border sits outside the
+              content box and would move the label as it thickens. */}
           <Animated.View
             pointerEvents="none"
             style={[
               StyleSheet.absoluteFill,
               {
                 borderRadius: radius,
-                borderWidth: 1.5,
-                borderColor: ob.hairline14,
+                borderWidth: 2,
+                borderColor: EDGE,
               },
-              hairline,
+              edge,
             ]}
           />
 
@@ -322,12 +280,12 @@ export function SkyChoice({
                   // unpicked price ends on the padding edge.
                   <Animated.View style={[{ overflow: "hidden", alignItems: "flex-end", marginLeft: -gap }, tickSlot]}>
                     <Animated.View style={tickIn}>
-                      <TickDisc size={tick} ink={plain} />
+                      <TickDisc size={tick} />
                     </Animated.View>
                   </Animated.View>
                 ) : (
                   <Animated.View style={[{ width: tick }, tickIn]}>
-                    <TickDisc size={tick} ink={plain} />
+                    <TickDisc size={tick} />
                   </Animated.View>
                 )}
               </>
