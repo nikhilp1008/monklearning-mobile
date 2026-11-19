@@ -60,8 +60,8 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 0,
     kind: 'remember',
-    q: 'How is the slope of a straight-line graph taken, and what is plotted so that the unknown becomes a slope: <i>V</i>–<i>I</i>, <i>T</i><sup>2</sup>–<i>L</i>, 1/<i>v</i>–1/<i>u</i>?',
-    a: 'Take two points far apart on the best-fit line, not data points: slope = Δ<i>y</i>/Δ<i>x</i>, with units. <i>V</i> against <i>I</i> has slope <i>R</i>; <i>T</i><sup>2</sup> against <i>L</i> has slope 4π<sup>2</sup>/<i>g</i>; 1/<i>v</i> against 1/<i>u</i> has slope 1 and intercept 1/<i>f</i>',
+    q: 'How is the slope of a straight-line graph taken, and what is plotted so that the unknown becomes a slope or an intercept: <i>V</i>–<i>I</i>, <i>T</i><sup>2</sup>–<i>L</i>, 1/<i>v</i>–1/<i>u</i> for a lens?',
+    a: 'Take two points far apart on the best-fit line, not data points: slope = Δ<i>y</i>/Δ<i>x</i>, with units. <i>V</i> against <i>I</i> has slope <i>R</i>; <i>T</i><sup>2</sup> against <i>L</i> has slope 4π<sup>2</sup>/<i>g</i>; for a lens with Cartesian signs, 1/<i>v</i> against 1/<i>u</i> has slope +1 and intercept 1/<i>f</i> (with magnitudes, as in the parallax experiment, the slope is −1)',
     why: 'A zero error shifts the line but keeps its slope: a voltmeter reading 0.05 V too high gives <i>V</i> = <i>IR</i> + 0.05 V, still of slope <i>R</i>.',
     say: null,
   },
@@ -69,7 +69,7 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 0,
     kind: 'mixup',
-    q: 'Systematic error, random error and least-count error: how do they differ, and what removes each?',
+    q: 'Systematic error, random error and least-count error: how do they differ, and which does repeating the reading reduce?',
     a: 'A systematic error pushes every reading the same way (a zero error, a mis-calibrated scale): repeating does not remove it, so find it and correct for it. A random error scatters the readings both ways (reaction time, parallax): repeating and averaging reduces it. The least-count error is the limit set by the scale itself',
     why: 'A very fine scale with an uncorrected zero error is precise but wrong.',
     say: null,
@@ -126,7 +126,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 1,
     kind: 'remember',
     q: 'Surface tension by capillary rise: the working formula, and where does the <i>r</i>/3 come from?',
-    a: '<i>T</i> = <i>r</i>(<i>h</i> + <i>r</i>/3)<i>ρg</i>/(2 cos <i>θ</i>), with <i>h</i> read to the lowest point of the meniscus. For <i>θ</i> = 0 the meniscus is a hemisphere, and the liquid above its lowest point is a cylinder of extra height <i>r</i>/3. Water on clean glass has cos <i>θ</i> = 1',
+    a: '<i>T</i> = <i>r</i>(<i>h</i> + <i>r</i>/3)<i>ρg</i>/(2 cos <i>θ</i>), with <i>h</i> read to the lowest point of the meniscus. For <i>θ</i> = 0 the meniscus is a hemisphere, and the liquid above its lowest point has the volume of a cylinder of height <i>r</i>/3. Water on clean glass has cos <i>θ</i> = 1',
     why: 'Bore 0.70 mm: <i>h</i> = 4.130 cm gives <i>T</i> = 0.0710 N m<sup>−1</sup> for water, and <i>h</i> = 2.040 cm gives 0.0352 N m<sup>−1</sup> with detergent, about half.',
     say: null,
   },
@@ -172,7 +172,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'mistake',
     q: 'In specific heat by mixtures, heat leaks to the surroundings and lowers <i>T</i>. What happens to <i>c</i><sub>s</sub> of the solid and to <i>c</i><sub>ℓ</sub> of the liquid?',
     a: 'The specific heat of the solid comes out too small and that of the liquid too large. Leaving out the calorimeter’s <i>m</i><sub>c</sub><i>c</i><sub>c</sub> also makes the answer for the solid too small',
-    why: 'Both differences are positive, <i>T</i><sub>1</sub> − <i>T</i> and <i>T</i> − <i>T</i><sub>2</sub>, and <i>T</i> lies between <i>T</i><sub>2</sub> and <i>T</i><sub>1</sub>.',
+    why: 'A lower <i>T</i> shrinks <i>T</i> − <i>T</i><sub>2</sub> and enlarges <i>T</i><sub>1</sub> − <i>T</i>: <i>c</i><sub>s</sub> falls, while the ratio (<i>T</i><sub>1</sub> − <i>T</i>)/(<i>T</i> − <i>T</i><sub>2</sub>) in <i>c</i><sub>ℓ</sub> grows. Copper in oil gives <i>c</i><sub>ℓ</sub> ≈ 1.6 × 10<sup>3</sup> J kg<sup>−1</sup> K<sup>−1</sup>.',
     say: null,
   },
   // Capillary rise, viscosity and Searle: exam traps
@@ -202,7 +202,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'Resistance by Ohm’s law: what is the slope, and what do real meters do to <i>V</i>/<i>I</i>?',
     a: '<i>R</i> = <i>V</i>/<i>I</i> = slope of the <i>V</i>–<i>I</i> graph. Voltmeter across the wire alone: <i>V</i>/<i>I</i> = <i>RR</i><sub>V</sub>/(<i>R</i> + <i>R</i><sub>V</sub>), too low. Voltmeter across the wire and the ammeter: <i>V</i>/<i>I</i> = <i>R</i> + <i>R</i><sub>A</sub>, too high',
     why: 'Mean <i>V</i>/<i>I</i> = 5.08 Ω; with <i>R</i><sub>V</sub> = 2000 Ω the corrected <i>R</i> = 5.09 Ω, a 0.25 % correction; result 5.1 ± 0.2 Ω.',
-    say: 'A real voltmeter in parallel reads too low; a real ammeter in series reads too high.',
+    say: 'A real voltmeter in parallel makes the measured <i>R</i> too small; a real ammeter in series makes it too large.',
   },
   // Galvanometer resistance and figure of merit
   {
@@ -237,7 +237,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'shortcut',
     q: 'Where should the null point fall on the metre bridge, and how do you get it there?',
     a: 'Near 50 cm: Δ<i>X</i>/<i>X</i> = 100Δ<i>l</i>/[<i>l</i>(100 − <i>l</i>)] is least where <i>l</i>(100 − <i>l</i>) is greatest, <i>l</i> = 50 cm. Take out a plug from the box so that <i>R</i> is close to the expected <i>X</i>',
-    why: 'At <i>l</i> = 50 cm and Δ<i>l</i> = 0.1 cm the error is 0.4 %; the diameter, entering squared, still gave 6.6 % of the 7.1 % in the worked example.',
+    why: 'Interchanging <i>R</i> and <i>X</i>: <i>l</i> + <i>l</i>′ = 100 + <i>b</i> − <i>a</i>, so a sum far from 100 cm shows unequal end resistances, and the mean of the two values of <i>X</i> is free of first-order end error only when the null is near 50 cm. At <i>l</i> = 50 cm and Δ<i>l</i> = 0.1 cm the error is 0.4 %.',
     say: null,
   },
 
@@ -282,7 +282,7 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 3,
     kind: 'mistake',
-    q: 'The observed object distance is too small by the index error. How is it corrected, and is the correction applied to <i>f</i>?',
+    q: 'On the optical bench, the observed object distance is too small by the index error. How is it corrected, and is the correction applied to <i>f</i>?',
     a: 'The correction is true minus observed, and it is added to the observed distance. It is not applied to <i>f</i>. The object pin and the image pin each have their own correction, found with a knitting needle',
     why: 'A needle of true length 20.0 cm reads 19.6 cm: +0.4 cm, so an observed 24.6 cm becomes 25.0 cm.',
     say: null,
@@ -291,8 +291,8 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 3,
     kind: 'shortcut',
-    q: 'In the parallax experiment the image pin sits exactly at the object pin. What do you read off at once?',
-    a: '<i>u</i> = <i>v</i> = 2|<i>f</i>|: both are at the centre of curvature of a mirror (or at 2<i>f</i> of a lens), so <i>f</i> is half that distance',
+    q: 'In the parallax experiment the image distance equals the object distance (for a mirror, the image pin sits exactly at the object pin). What do you read off at once?',
+    a: '|<i>u</i>| = |<i>v</i>| = 2|<i>f</i>|: for a mirror both are at the centre of curvature, for a lens at 2<i>f</i>, so |<i>f</i>| is half that distance',
     why: 'Concave mirror with <i>u</i> ≈ <i>v</i> ≈ 30 cm: <i>R</i> = 30 cm. Convex lens with <i>u</i> = 40.0 cm and <i>v</i> = 40.1 cm: <i>f</i> = 20.0 cm.',
     say: null,
   },
@@ -338,8 +338,8 @@ export const KEY_POINTS: KeyPoint[] = [
   {
     topic: 4,
     kind: 'mistake',
-    q: 'Is Zener breakdown damage, what limits the current, and what happens when the supply is below <i>V</i><sub>z</sub>?',
-    a: 'Breakdown is not damage: it is reversible while the power stays within the rating, and the series resistor, not the diode, limits the current. Below <i>V</i><sub>z</sub> there is no regulation: the diode is off',
+    q: 'Is Zener breakdown damage, what limits the current, and when is there no regulation?',
+    a: 'Breakdown is not damage: it is reversible while the power stays within the rating, and the series resistor, not the diode, limits the current. If <i>V</i><sub>in</sub><i>R</i><sub>L</sub>/(<i>R</i><sub>s</sub> + <i>R</i><sub>L</sub>) is below <i>V</i><sub>z</sub> the diode is off, and the load gets that divider voltage',
     why: 'In forward bias a Zener diode is an ordinary diode, with about 0.7 V across it.',
     say: null,
   },
