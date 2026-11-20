@@ -237,14 +237,14 @@ const hasText = (s: Sketch, ...parts: string[]): boolean => { const all = flowOf
 /* ======================================================================
  * 02-d1  Recrystallisation
  * ====================================================================== */
-const CAP_D1 = 'Recrystallisation: the crude solid is dissolved in the least hot solvent, filtered hot only if specks remain, cooled slowly and left alone, filtered off, washed with a little cold solvent (the mother liquor stays behind), dried between filter paper and its melting point taken.';
+const CAP_D1 = 'Recrystallisation: the crude solid is dissolved in the least hot solvent, filtered hot only if specks remain, cooled slowly and left alone, filtered off (the mother liquor, holding the dissolved impurity, runs through), washed with a little cold solvent to rinse off the mother liquor that clings to the crystals, dried between the folds of filter paper and its melting point taken.';
 const D1: NodeSpec[] = [
   { id: 'dissolve', lines: ['Dissolve the crude solid', 'in the minimum of', 'hot solvent'] },
   { id: 'hot', lines: ['Filter hot, only if', 'specks remain'], dash: true },
   { id: 'cool', lines: ['Cool slowly,', 'undisturbed'], hi: true },
   { id: 'filter', lines: ['Filter off the crystals'] },
   { id: 'wash', lines: ['Wash with a little', 'cold solvent'] },
-  { id: 'dry', lines: ['Dry between filter paper'] },
+  { id: 'dry', lines: ['Dry between the folds', 'of filter paper'] },
   { id: 'mp', lines: ['Take the melting point'] },
 ];
 const d1: Diagram = {
@@ -255,10 +255,10 @@ const d1: Diagram = {
   draw() {
     const s = new Sketch(W, colH(D1, 20) + 24);
     const ns = column(s, D1, 14, 196, 12, 20);
-    const wash = ns[4];
-    const m: FNode = { id: 'liquor', lines: ['mother liquor', 'left behind'], dash: true, x: 236, w: 96, h: hFor(2), y: wash.y };
+    const filt = ns[3];
+    const m: FNode = { id: 'liquor', lines: ['filtrate:', 'mother liquor', 'and impurity'], dash: true, x: 222, w: 112, h: hFor(3), y: filt.y + filt.h / 2 - hFor(3) / 2 };
     putNode(s, m);
-    edge(s, wash, m, [Rt(wash), Lf(m)], { dash: true });
+    edge(s, filt, m, [Rt(filt), Lf(m)], { dash: true });
     return s;
   },
   check() {
@@ -266,7 +266,7 @@ const d1: Diagram = {
     const out = flowChecks(s, ['dissolve']);
     const order = chainOf(s, 'dissolve', ['liquor']);
     out.push([`The steps run in the book's order: ${order.join(' > ')}`, order.join() === D1.map((n) => n.id).join()]);
-    out.push(['The mother liquor leaves at the wash step, not at the end', flowOf(s).edges.some((e) => e.from === 'wash' && e.to === 'liquor') && !flowOf(s).edges.some((e) => e.to === 'liquor' && e.from !== 'wash')]);
+    out.push(['The mother liquor, with the dissolved impurity, leaves as the filtrate when the crystals are filtered off, before the wash', flowOf(s).edges.some((e) => e.from === 'filter' && e.to === 'liquor') && !flowOf(s).edges.some((e) => e.to === 'liquor' && e.from !== 'filter') && hasText(s, 'impurity')]);
     out.push(['The hot filtration is dashed (optional); slow cooling is the highlight', !!flowOf(s).nodes.find((n) => n.id === 'hot')!.dash && flowOf(s).nodes.filter((n) => n.hi).map((n) => n.id).join() === 'cool']);
     return out;
   },
@@ -327,7 +327,7 @@ const d2: Diagram = {
 const RF = { cx: 150, cy: 215, r: 46, neck: 9, joint: 118, top: 30, sand: 232, trayTop: 225, trayBot: 285, trayL: 60, trayR: 240, trayInset: 12 };
 const arcPts = (c: P, r: number, from: number, to: number): P[] => Array.from({ length: 81 }, (_, i) => polar(c, from + ((to - from) * i) / 80, r));
 const CAP_D3A = 'Reflux for acetanilide: aniline with acetic anhydride and acetic acid, with a few pumice stones, in a round-bottom flask standing in a sand bath, the air condenser upright on the flask’s mouth, heated gently from below.';
-const CAP_D3B = 'The cooled mixture is poured slowly, with stirring, into a beaker of ice-cold water; acetanilide separates as a solid.';
+const CAP_D3B = 'The cooled reaction mixture is poured slowly, with stirring, into 150–200 mL of ice-cold water; acetanilide separates as a solid.';
 const BK = { l: 120, r: 240, top: 70, bot: 270, water: 130 };
 const ICE: [number, number][] = [[135, 0], [160, 0], [214, 0]];
 const ROD: [P, P] = [[225, 30], [170, 235]];
@@ -353,8 +353,11 @@ const d3: Diagram = {
       const half = (Math.asin(RF.neck / RF.r) * 180) / Math.PI;
       path(s, arcPts([RF.cx, RF.cy], RF.r, 90 + half, 450 - half));
       const yN = RF.cy - Math.sqrt(RF.r * RF.r - RF.neck * RF.neck);
-      path(s, [[RF.cx - RF.neck, yN], [RF.cx - RF.neck, RF.top]], { color: C.mari, w: 2.4 });
-      path(s, [[RF.cx + RF.neck, yN], [RF.cx + RF.neck, RF.top]], { color: C.mari, w: 2.4 });
+      // the flask's neck in ink up to the joint, the air condenser (the highlight) above it, one tube on one axis
+      path(s, [[RF.cx - RF.neck, yN], [RF.cx - RF.neck, RF.joint]]);
+      path(s, [[RF.cx + RF.neck, yN], [RF.cx + RF.neck, RF.joint]]);
+      path(s, [[RF.cx - RF.neck, RF.joint], [RF.cx - RF.neck, RF.top]], { color: C.mari, w: 2.4 });
+      path(s, [[RF.cx + RF.neck, RF.joint], [RF.cx + RF.neck, RF.top]], { color: C.mari, w: 2.4 });
       path(s, [[RF.cx - RF.neck - 4, RF.joint], [RF.cx + RF.neck + 4, RF.joint]]);
       // the liquid
       const dl = Math.sqrt(RF.r * RF.r - 100);
@@ -373,6 +376,7 @@ const d3: Diagram = {
         { t: 'round-bottom flask', p: polar([RF.cx, RF.cy], 42, RF.r), at: [[336, 146, 'end']] },
         { t: 'sand bath', p: [RF.trayR - RF.trayInset * 0.55, 255], at: [[336, 250, 'end']] },
         { t: 'pumice stones', p: [135, 245], at: [[8, 296, 'start']] },
+        { t: 'reaction mixture', p: [RF.cx - dl + 10, RF.cy - 10], at: [[4, 138, 'start']] },
         { t: 'flame', p: [166.6, 312], at: [[190, 296, 'start']] },
       ]);
       return s;
@@ -384,8 +388,8 @@ const d3: Diagram = {
     SOLID.forEach(([x, y]) => s.add(`<circle cx="${r1(x)}" cy="${r1(y)}" r="2.8" fill="none" stroke="${C.mari}" stroke-width="1.8"/>`));
     path(s, ROD, { w: 2 });
     arrow(s, [106, 52], [150, 104], { color: C.grey, w: 1.6 });
-    s.sym(16, 24, 'poured in slowly', { size: 12.5, anchor: 'start' });
-    s.sym(16, 40, 'with stirring', { size: 12.5, anchor: 'start' });
+    s.sym(16, 24, 'cooled mixture poured', { size: 12.5, anchor: 'start' });
+    s.sym(16, 40, 'in slowly, with stirring', { size: 12.5, anchor: 'start' });
     s.place([
       { t: 'ice water', p: [BK.l + 6, 200], at: [[3, 214, 'start']] },
       { t: 'stirring rod', p: [223, 38], at: [[336, 6, 'end']] },
@@ -407,7 +411,8 @@ const d3: Diagram = {
       const [a, b, c2, d] = SAND_SEG(RF.sand);
       out.push([`The sand’s surface stops at the flask’s outline: it runs ${fmt(a, 1)}–${fmt(b, 1)} and ${fmt(c2, 1)}–${fmt(d, 1)}, clear of the circle (centre ${RF.cx}, radius ${RF.r})`, b < RF.cx && c2 > RF.cx && close(Math.hypot(b - RF.cx, RF.sand - RF.cy), RF.r, 1e-6) && close(Math.hypot(c2 - RF.cx, RF.sand - RF.cy), RF.r, 1e-6) && a < b && c2 < d]);
       out.push(['The flame is below the tray and under the flask', 292 > RF.trayBot && 150 === RF.cx]);
-      out.push(['Five parts are named: air condenser, round-bottom flask, sand bath, pumice stones, flame', ['air condenser', 'round-bottom flask', 'sand bath', 'pumice stones', 'flame'].every((t) => s.tags.some((q) => q.name === t))]);
+      out.push(['Six things are named: air condenser, round-bottom flask, reaction mixture, sand bath, pumice stones, flame', ['air condenser', 'round-bottom flask', 'reaction mixture', 'sand bath', 'pumice stones', 'flame'].every((t) => s.tags.some((q) => q.name === t))]);
+      out.push([`The condenser (the highlight) starts at the joint, y = ${RF.joint}, above the flask; below it the neck is the flask’s`, RF.joint < RF.cy - Math.sqrt(RF.r ** 2 - RF.neck ** 2) && RF.top < RF.joint]);
       out.push(...layout(s));
     } else {
       const s = d3.draw(c);
@@ -453,7 +458,7 @@ const azGap = (a: number, b: number) => { const d = (((a - b) % 360) + 360) % 36
  * 02-d4  Acetanilide to p-nitroacetanilide
  * ====================================================================== */
 const NITR = 'HNO3 + 2H2SO4 → NO2^+ + H3O^+ + 2HSO4^−';
-const CAP_D4A = 'Nitration of acetanilide with nitric and concentrated sulphuric acids at 0–5 °C, never above 10 °C: the para isomer is the major product; the minor ortho isomer stays in the mother liquor.';
+const CAP_D4A = 'Nitration of acetanilide with nitric and concentrated sulphuric acids at 0–5 °C, never above 10 °C: the para isomer is the major product; the minor, yellow ortho isomer stays in the alcohol mother liquor when the product is recrystallised.';
 const CAP_D4B = 'Concentrated sulphuric acid turns nitric acid into the nitronium ion, NO₂⁺, the electrophile that attacks the para position of acetanilide.';
 const d4: Diagram = {
   id: 'c12-12-02-d4',
@@ -476,7 +481,7 @@ const d4: Diagram = {
       s.place([
         { t: 'acetanilide', p: [100, 66 - 19.05], at: [[53, 8, 'start']] },
         { t: 'para (major)', p: [100, 226 + 19.05], hi: true, at: [[60, 262, 'start']] },
-        { t: 'ortho (minor)', p: [100, 352 - 19.05], at: [[60, 302, 'start']] },
+        { t: 'ortho (minor, yellow)', p: [100, 352 - 19.05], at: [[60, 302, 'start']] },
       ]);
       return s;
     }
@@ -487,11 +492,11 @@ const d4: Diagram = {
     ring(s, RC, [NHAC]);
     lab(s, 62, 165, eq('NO2^+'), 15, 'middle', C.amber);
     arrow(s, [86, 160], [RC[0] - RR - 8, 160], { w: 1.8 });
-    lab(s, 137, 192, 'para position', 12.5);
     s.place([
       { t: 'nitronium ion', p: [(no2.x0 + no2.x1) / 2, 42], hi: true, at: [[90, 60, 'start']] },
       { t: 'attacking electrophile', p: [128, 160], at: [[14, 100, 'start']] },
-      { t: 'acetanilide', p: [RC[0], RC[1] + 19.05], at: [[RC[0] - 47, 200, 'start']] },
+      { t: 'para carbon', p: polar(RC, 180, RR), at: [[96, 206, 'start']] },
+      { t: 'acetanilide', p: polar(RC, -60, RR), at: [[236, 206, 'start']] },
     ]);
     return s;
   },
@@ -509,13 +514,13 @@ const d4: Diagram = {
       out.push(['The overall equation C6H5NHCOCH3 + HNO3 → O2N–C6H4–NHCOCH3 + H2O is balanced', balanced('C8H9NO + HNO3 → C8H8N2O3 + H2O')]);
       out.push([`The text’s yield ratio 180.16/135.17 = ${fmt(180.16 / 135.17, 4)}; the drawn masses give ${fmt(massOf(pn) / massOf(ac), 4)}`, close(massOf(pn) / massOf(ac), 180.16 / 135.17, 2e-4)]);
       out.push(['The conditions are the book’s: HNO₃ + H₂SO₄ (conc.), 0–5 °C, below 10 °C, and the ortho isomer stays in the mother liquor', ['HNO3 + H2SO4 (conc.)', '0–5 °C, below 10 °C', 'stays in the mother liquor'].every((t) => s.labels.some((l) => l.text === t))]);
-      out.push(['The three structures are named: acetanilide, para (major), ortho (minor)', ['acetanilide', 'para (major)', 'ortho (minor)'].every((t) => s.tags.some((q) => q.name === t))]);
+      out.push(['The three structures are named: acetanilide, para (major), ortho (minor, yellow)', ['acetanilide', 'para (major)', 'ortho (minor, yellow)'].every((t) => s.tags.some((q) => q.name === t))]);
     } else {
       out.push([`The nitrating mixture ${NITR} is balanced in atoms and charge`, balanced(NITR)]);
       const ar = rings[0];
       const tip = 222 - RR - 8;
       out.push([`The electrophile’s arrow ends ${fmt(polar(ar.c, 180, RR)[0] - tip, 0)} px short of the ring’s left vertex, the position opposite NHCOCH₃ (${azGap(180, NHAC.az)}° away): para`, azGap(180, NHAC.az) === 180 && polar(ar.c, 180, RR)[0] - tip > 0 && polar(ar.c, 180, RR)[0] - tip < 12]);
-      out.push(['NO₂⁺ is shown with its charge and named as the nitronium ion and the attacking electrophile', ['nitronium ion', 'attacking electrophile'].every((t) => s.tags.some((q) => q.name === t))]);
+      out.push(['NO₂⁺ is shown with its charge and named as the nitronium ion and the attacking electrophile; the vertex it heads for is named the para carbon', ['nitronium ion', 'attacking electrophile', 'para carbon'].every((t) => s.tags.some((q) => q.name === t))]);
     }
     out.push(...layout(s));
     return out;
@@ -527,8 +532,8 @@ const d4: Diagram = {
  * ====================================================================== */
 const DIAZO = 'C6H5NH2 + NaNO2 + 2HCl → C6H5N2Cl + NaCl + 2H2O';
 const COUPLE = 'C6H5N2^+ + C6H5NH2 → H2NC6H4N2C6H5 + H^+';
-const CAP_D5A = 'Aniline yellow, route (a): aniline is diazotised at 0–5 °C with sodium nitrite and hydrochloric acid, then the benzenediazonium ion couples with more aniline in weakly acidic solution at the para position.';
-const CAP_D5B = 'Aniline yellow, route (b): diazoaminobenzene rearranges to p-aminoazobenzene when warmed at 40–45 °C with aniline hydrochloride in aniline as solvent; the two are isomers.';
+const CAP_D5A = 'Aniline yellow, route (a): aniline is diazotised at 0–5 °C with sodium nitrite and hydrochloric acid, then the benzenediazonium ion couples at the para position with more aniline, taken in dilute hydrochloric acid so that the medium is weakly acidic.';
+const CAP_D5B = 'Aniline yellow, route (b): diazoaminobenzene rearranges to p-aminoazobenzene when warmed at 40–45 °C with a little aniline hydrochloride (the catalyst) in aniline as solvent; the two are isomers.';
 /** The product H₂N–C₆H₄–N=N–C₆H₅ centred on row y; registers its two rings. */
 function aminoazo(s: Sketch, y: number, x1 = 80): { c1: P; c2: P; bottom: number } {
   const c1: P = [x1, y];
@@ -556,7 +561,7 @@ const d5: Diagram = {
       s.sym(X + 14, 140, '0–5 °C', { size: 12.5, anchor: 'start' });
       ring(s, [X, 204], [{ az: 0, html: 'N<sub>2</sub><sup>+</sup>Cl<sup>−</sup>', f: 'N2Cl' }]);
       arrow(s, [X, 238 + 24], [X, 330], { w: 1.8 });
-      s.sym(X + 14, 288, '+ aniline', { size: 12.5, anchor: 'start' });
+      s.sym(X + 14, 288, '+ aniline in dilute HCl', { size: 12.5, anchor: 'start' });
       s.sym(X + 14, 306, '(weakly acidic)', { size: 12.5, anchor: 'start' });
       const pr = aminoazo(s, 382, X);
       s.place([
@@ -575,13 +580,14 @@ const d5: Diagram = {
     path(s, [[L[2] + 5, 62], [L[2] + 5 + 12, 62]]);
     ring(s, c2, [{ az: 180, html: '', f: '' }]);
     arrow(s, [170, 128], [170, 218], { w: 1.8 });
-    s.sym(158, 158, 'aniline hydrochloride', { size: 12.5, anchor: 'end' });
-    s.sym(158, 176, 'in aniline as solvent', { size: 12.5, anchor: 'end' });
-    s.sym(158, 194, '40–45 °C', { size: 12.5, anchor: 'end' });
+    s.sym(158, 148, 'aniline hydrochloride', { size: 12.5, anchor: 'end' });
+    s.sym(158, 166, '(catalyst)', { size: 12.5, anchor: 'end' });
+    s.sym(158, 184, 'aniline as solvent', { size: 12.5, anchor: 'end' });
+    s.sym(158, 202, '40–45 °C', { size: 12.5, anchor: 'end' });
     const pr = aminoazo(s, 252, 80);
     s.place([
       { t: 'diazoaminobenzene', p: [c1[0], 62 + 19.05], at: [[8, 100, 'start']] },
-      { t: 'isomerisation', p: [170, 170], hi: true, at: [[190, 168, 'start']] },
+      { t: 'isomerisation', p: [170, 170], at: [[190, 168, 'start']] },
       { t: 'p-aminoazobenzene', p: [pr.c1[0], pr.bottom], hi: true, at: [[14, 296, 'start']] },
     ]);
     return s;
@@ -599,11 +605,11 @@ const d5: Diagram = {
       out.push([`The coupling ${COUPLE} is balanced in atoms and charge`, balanced(COUPLE)]);
       const an = ringAtoms(rings[0]), dz = ringAtoms(rings[1]);
       out.push([`The drawn aniline counts ${formulaText(an)} and the diazonium salt ${formulaText(dz)}; together they carry the product’s atoms less one H`, formulaText(an) === 'C6H7N' && formulaText(dz) === 'C6H5ClN2' && sameAtoms(addAtoms('C6H7N', 'C6H5N2'), addAtoms(formulaText(product), 'H'))]);
-      out.push(['The conditions are the book’s: NaNO₂ + HCl, 0–5 °C, then + aniline (weakly acidic)', ['NaNO2 + HCl', '0–5 °C', '+ aniline', '(weakly acidic)'].every((t) => s.labels.some((l) => l.text === t))]);
+      out.push(['The conditions are the book’s: NaNO₂ + HCl, 0–5 °C, then + aniline in dilute HCl (weakly acidic)', ['NaNO2 + HCl', '0–5 °C', '+ aniline in dilute HCl', '(weakly acidic)'].every((t) => s.labels.some((l) => l.text === t))]);
     } else {
       const dza = addAtoms('C6H5', 'N3H', 'C6H5');
       out.push([`Diazoaminobenzene as drawn counts ${formulaText(dza)}: the same formula as the product, so the change is an isomerisation`, sameAtoms(dza, product) && formulaText(dza) === 'C12H11N3']);
-      out.push(['The conditions are the book’s: aniline hydrochloride, aniline as solvent, 40–45 °C, named as an isomerisation', ['aniline hydrochloride', 'in aniline as solvent', '40–45 °C'].every((t) => s.labels.some((l) => l.text === t)) && s.tags.some((q) => q.name === 'isomerisation')]);
+      out.push(['The conditions are the book’s: aniline hydrochloride (catalyst), aniline as solvent, 40–45 °C, named as an isomerisation', ['aniline hydrochloride', '(catalyst)', 'aniline as solvent', '40–45 °C'].every((t) => s.labels.some((l) => l.text === t)) && s.tags.some((q) => q.name === 'isomerisation')]);
     }
     out.push(...layout(s));
     return out;
@@ -624,7 +630,7 @@ const d6: Diagram = {
   cases: [{ chip: 'Iodoform reaction', cap: CAP_D6 }],
   draw() {
     const s = new Sketch(W, 456);
-    row(s, 26, [{ t: eq('I2 + 2NaOH → NaI +') }, { t: eq('NaOI'), hi: true }, { t: eq('+ H2O') }], 13.5);
+    s.sym(W / 2, 26, eq('I2 + 2NaOH → NaI + NaOI + H2O'), { size: 13.5 });
     const mk = (id: string, lines: string[], x: number, y: number, w: number, o: Partial<NodeSpec> = {}): FNode => { const n: FNode = { id, lines, x, y, w, h: hFor(lines.length), ...o }; putNode(s, n); return n; };
     const A = mk('alcohol', [`${chem('CH3')}CH(OH)R`.replace('CH<sub>3</sub>CH', `CH<sub>3</sub>CH`), 'ethanol: R = H'], 14, 70, 190);
     const Bn = mk('ketone', [`${chem('CH3')}COR`], 14, 70 + A.h + 34, 190);
@@ -699,7 +705,7 @@ const d51: Diagram = {
       { t: 'cotton wool', p: [119, 150], at: [[3, 150, 'start']] },
       { t: 'outer beaker', p: [CAL.ol, 232], at: [[3, 196, 'start']] },
       { t: 'wooden block', p: [CAL.br, 252], at: [[236, 244, 'start']] },
-      { t: 'solution', p: [CAL.sr - 2, 190], at: [[236, 172, 'start']] },
+      { t: 'solution', p: [CAL.sr - 7, 176], at: [[236, 172, 'start']] },
       { t: 'cardboard cover', p: [CAL.cover[1] - 4, CAL.top - 6], at: [[214, 28, 'start']] },
       { t: 'thermometer', p: [CAL.thx - 3, 78], at: [[40, 28, 'start']] },
       { t: 'stirrer', p: [CAL.stx, 32], at: [[170, 0, 'start']] },
@@ -734,18 +740,19 @@ const cooling = (t: number) => RUN.t2 - RUN.slope * (t - RUN.mix);
 const rise = (t: number) => { const u = t - RUN.mix; return RUN.t1 + (TMAX - RUN.t1) * (1 - Math.pow(1 - u, 2.5)); };
 const BASE_T = [0, 0.5, 1, 1.5, 2, 2.5, 3];
 const COOL_T = [4, 4.5, 5, 5.5, 6, 6.5, 7];
-const CAP_05D2 = 'Temperature against time for the neutralisation of 1.0 M HCl by 1.0 M NaOH: a steady baseline, a jump at the moment of mixing, a maximum, then a slow fall. The cooling line, extended back to the time of mixing, gives the corrected final temperature t₂ = 33.3 °C, so ΔT = 33.3 − 27.0 = 6.3 K.';
+const CAP_05D2 = 'Schematic temperature–time graph for the neutralisation of 1.0 M HCl by 1.0 M NaOH, read every 30 s: a steady baseline, a jump at the moment of mixing, a maximum, then a slow fall. The cooling line extended back to the time of mixing gives the corrected final temperature. Only <i>t</i><sub>1</sub> = 27.0 °C and <i>t</i><sub>2</sub> = 33.3 °C are the text’s readings; the times and the curve between them are illustrative. Δ<i>T</i> = 33.3 − 27.0 = 6.3 K.';
 const d52: Diagram = {
   id: 'c12-12-05-d2',
   topic: 4,
   name: 'Temperature against time',
   cases: [{ chip: 'Neutralisation run', cap: CAP_05D2 }],
   draw() {
-    const s = new Sketch(W, 322);
+    const s = new Sketch(W, 336);
     arrow(s, [G2.x0, G2.y0], [332, G2.y0], { color: C.slate, w: 1.4 });
     arrow(s, [G2.x0, G2.y0], [G2.x0, 26], { color: C.slate, w: 1.4 });
     for (let t = 0; t <= 7; t++) { path(s, [[X2(t), G2.y0], [X2(t), G2.y0 + 4]], { color: C.slate, w: 1.2 }); lab(s, X2(t), G2.y0 + 17, String(t), 11.5); }
     lab(s, 332, 240, 'time / min', 12, 'end');
+    lab(s, X2(RUN.mix), G2.y0 + 32, 'mixing', 12);
     lab(s, G2.x0 + 8, 22, '<i>T</i> / °C', 12, 'start');
     lab(s, G2.x0 - 6, Y2(RUN.t1) + 4, '27.0', 12, 'end');
     lab(s, G2.x0 - 6, Y2(RUN.t2) + 4, '33.3', 12, 'end');
@@ -754,7 +761,8 @@ const d52: Diagram = {
     const jump: P[] = Array.from({ length: 41 }, (_, i) => { const t = RUN.mix + (RUN.peak - RUN.mix) * (i / 40); return [X2(t), Y2(rise(t))] as P; });
     path(s, jump, { w: 1.9 });
     path(s, [[X2(RUN.peak), Y2(cooling(RUN.peak))], [X2(7), Y2(cooling(7))]], { w: 1.9 });
-    [...BASE_T, ...COOL_T].forEach((t) => s.add(`<circle cx="${r1(X2(t))}" cy="${r1(Y2(t <= RUN.mix ? RUN.t1 : cooling(t)))}" r="2.6" fill="${C.ink}"/>`));
+    // the readings as open rings, so the tags' filled leader dots cannot be mistaken for readings
+    [...BASE_T, ...COOL_T].forEach((t) => s.add(`<circle cx="${r1(X2(t))}" cy="${r1(Y2(t <= RUN.mix ? RUN.t1 : cooling(t)))}" r="3" fill="#fff" stroke="${C.ink}" stroke-width="1.5"/>`));
     // helpers: the time of mixing, the corrected level, the extended cooling line
     path(s, [[X2(RUN.mix), G2.y0], [X2(RUN.mix), 62]], { color: C.slate, w: 1.2, dash: true });
     path(s, [[G2.x0, Y2(RUN.t2)], [X2(RUN.mix), Y2(RUN.t2)]], { color: C.slate, w: 1.2, dash: true });
@@ -767,7 +775,6 @@ const d52: Diagram = {
     lab(s, bx - 8, ym + 12, '<i>t</i><sub>2</sub> − <i>t</i><sub>1</sub>', 13, 'end', C.amber);
     s.place([
       { t: 'baseline', p: [X2(1), Y2(RUN.t1)], at: [[96, 160, 'start']] },
-      { t: 'mixing', p: [X2(RUN.mix), 215], at: [[X2(RUN.mix) + 8, 224, 'start']] },
       { t: 'extended cooling line', p: [(X2(RUN.peak) + X2(RUN.mix)) / 2, (Y2(cooling(RUN.peak)) + Y2(RUN.t2)) / 2], at: [[102, 34, 'start']] },
       { t: 'maximum', p: [X2(RUN.peak), Y2(cooling(RUN.peak))], hi: false, at: [[X2(RUN.peak) + 4, 104, 'start']] },
     ]);
@@ -777,6 +784,8 @@ const d52: Diagram = {
   check() {
     const s = d52.draw(d52.cases[0]);
     const out: Check[] = [];
+    out.push(['The caption calls the graph schematic and names the text’s only readings, t₁ and t₂', CAP_05D2.startsWith('Schematic') && CAP_05D2.includes('27.0 °C') && CAP_05D2.includes('33.3 °C')]);
+    out.push(['The mixing time is named under its tick on the time axis', s.labels.some((l) => l.text === 'mixing' && Math.abs((l.rect[0] + l.rect[2]) / 2 - X2(RUN.mix)) < 0.5 && l.rect[1] > G2.y0 + 17)]);
     const base = BASE_T.map(() => RUN.t1), mean = base.reduce((a, b) => a + b, 0) / base.length;
     out.push([`The readings before mixing form a steady baseline at ${fmt(mean, 1)} °C`, close(mean, 27.0, 1e-9) && BASE_T.every((t) => t <= RUN.mix)]);
     // least-squares line through the readings after the maximum, extended back to the time of mixing
@@ -866,7 +875,7 @@ const NET = 'H2O2 + 2S2O3^2− + 2H^+ → S4O6^2− + 2H2O';
 const CK = { ax: 60, ay: 380, sx: 1.5, cs: 45000, c0: 0.002, tB: 150 };
 const Xk = (t: number) => CK.ax + CK.sx * t;
 const Yk = (cc: number) => CK.ay - CK.cs * cc;
-const CAP_05D4 = 'The clock reaction: H₂O₂ oxidises I⁻ to I₂ in acid, and thiosulphate reduces the I₂ straight back to I⁻ (forming S₄O₆²⁻) while it lasts. When the thiosulphate is used up, free I₂ colours the starch blue: the time to the blue colour measures the rate.';
+const CAP_05D4 = 'The clock reaction: H₂O₂ oxidises I⁻ to I₂ in acid, and thiosulphate reduces the I₂ straight back to I⁻ (forming S₄O₆²⁻) while it lasts. When the thiosulphate is used up, free I₂ colours the starch blue: the time to the blue colour measures the rate. The graph is flask B of the worked example: 0.002 M thiosulphate used up steadily in 150 s.';
 const d54: Diagram = {
   id: 'c12-12-05-d4',
   topic: 4,
@@ -875,9 +884,9 @@ const d54: Diagram = {
   draw() {
     const s = new Sketch(W, 450);
     const mk = (id: string, lines: string[], x: number, y: number, w: number, o: Partial<NodeSpec> = {}): FNode => { const n: FNode = { id, lines, x, y, w, h: hFor(lines.length), ...o }; putNode(s, n); return n; };
-    const N1 = mk('iodide', [eq('I^− + H2O2 + H^+')], 14, 90, 150);
+    const N1 = mk('iodide', [eq('2I^− + H2O2 + 2H^+')], 14, 90, 150);
     const N2 = mk('iodine', [chem('I2')], 226, 90, 100);
-    const N3 = mk('blue', ['free I₂ + starch → blue'.replace('I₂', 'I<sub>2</sub>'), 'thiosulphate all used up'], 126, 190, 200, { hi: true });
+    const N3 = mk('blue', ['free I<sub>2</sub> + starch', '→ intense blue colour'], 126, 190, 200);
     edge(s, N1, N2, [Rt(N1), Lf(N2)]);
     const yTop = 68;
     edge(s, N2, N1, [Tp(N2), [Tp(N2)[0], yTop], [Tp(N1)[0], yTop], Tp(N1)]);
@@ -885,7 +894,7 @@ const d54: Diagram = {
     lab(s, W / 2, 36, `while ${chem('S2O3^2−')} lasts, I₂ is reduced back:`.replace('I₂', 'I<sub>2</sub>'), 12.5);
     lab(s, W / 2, 54, eq(RED), 12.5);
     lab(s, Bt(N2)[0] - 10, 166, `${chem('S2O3^2−')} used up`, 12.5, 'end');
-    lab(s, (Rt(N1)[0] + Lf(N2)[0]) / 2, N1.y - 6, 'oxidation', 11.5);
+    lab(s, (Rt(N1)[0] + Lf(N2)[0]) / 2, N1.y + N1.h / 2 + 17, 'oxidation', 11.5);
     // thiosulphate against time, to the blue colour
     arrow(s, [CK.ax, CK.ay], [330, CK.ay], { color: C.slate, w: 1.4 });
     arrow(s, [CK.ax, CK.ay], [CK.ax, 276], { color: C.slate, w: 1.4 });
@@ -893,7 +902,8 @@ const d54: Diagram = {
     lab(s, CK.ax - 6, Yk(CK.c0) + 4, '0.002', 11.5, 'end');
     lab(s, CK.ax - 6, CK.ay - 1 + 4 - 4 + 2, '0', 11.5, 'end');
     lab(s, 190, CK.ay + 16, 'time / s', 12);
-    arrow(s, [CK.ax, Yk(CK.c0)], [Xk(CK.tB), Yk(0)], { w: 1.9 });
+    path(s, [[CK.ax, Yk(CK.c0)], [Xk(CK.tB), Yk(0)]], { w: 1.9 });
+    lab(s, 166, 314, `flask B, [I<sup>−</sup>] = 0.005 M`, 12, 'start');
     path(s, [[CK.ax, Yk(CK.c0)], [CK.ax + 6, Yk(CK.c0)]], { w: 1.5 });
     s.add(`<circle cx="${r1(Xk(CK.tB))}" cy="${r1(Yk(0))}" r="5.4" fill="none" stroke="${C.mari}" stroke-width="2.4"/>`);
     lab(s, Xk(CK.tB) + 14, CK.ay - 12, '150 s', 12, 'start');
@@ -913,7 +923,9 @@ const d54: Diagram = {
     const slope = CK.c0 / CK.tB, rateB = 0.001 / 150;
     out.push([`The drawn line falls from 0.002 M to zero in 150 s: ${fmt(slope * 1e5, 2)} × 10⁻⁵ M s⁻¹, twice the rate ${fmt(rateB * 1e6, 2)} × 10⁻⁶ M s⁻¹ of flask B (2 S₂O₃²⁻ per I₂)`, close(slope, 2 * rateB, 1e-9)]);
     out.push(['The line starts at 0.002 M on the axis and ends on the time axis, where the ring marks the blue', close(Yk(CK.c0), CK.ay - 90, 1e-9) && close(Yk(0), CK.ay, 1e-9)]);
-    out.push(['The blue box is the highlight and the time tag says the blue appears when thiosulphate is used up', flowOf(s).nodes.filter((n) => n.hi).map((n) => n.id).join() === 'blue' && s.tags.some((q) => q.name === 'blue appears when thiosulphate is used up')]);
+    out.push(['The graph is named as flask B, [I⁻] = 0.005 M, the run whose time is 150 s', s.labels.some((l) => l.text === 'flask B, [I−] = 0.005 M') && RUNS[0].c === 0.005 && RUNS[0].t === CK.tB]);
+    out.push(['The box equation 2I⁻ + H₂O₂ + 2H⁺ carries the coefficients of the balanced oxidation', OXI.startsWith('2I^− + H2O2 + 2H^+')]);
+    out.push(['One highlight: the ring where the line meets the time axis, tagged “blue appears when thiosulphate is used up”; no box is highlighted', flowOf(s).nodes.every((n) => !n.hi) && s.tags.some((q) => q.name === 'blue appears when thiosulphate is used up')]);
     return out;
   },
 };
@@ -945,7 +957,7 @@ const d55: Diagram = {
       const xv = rateCase ? r.c : 1 / r.c;
       path(s, [[pts[i][0], G5.y0], pts[i]], { color: C.grey, w: 1.2, dash: true });
       path(s, [[G5.x0, pts[i][1]], pts[i]], { color: C.grey, w: 1.2, dash: true });
-      lab(s, pts[i][0], G5.y0 + 17, rateCase ? fmt(xv, 3) : fmt(xv, 0), 11.5);
+      lab(s, pts[i][0], G5.y0 + 17, rateCase ? xv.toFixed(3) : fmt(xv, 0), 11.5);
     });
     if (rateCase) { [1, 2].forEach((v) => lab(s, G5.x0 - 6, Y(v) + 4, String(v), 11.5, 'end')); }
     else { [50, 100, 150].forEach((v) => lab(s, G5.x0 - 6, Y(v) + 4, String(v), 11.5, 'end')); }

@@ -802,7 +802,7 @@ export const TOPICS: Topic[] = [
           ['Initial temperature t<sub>1</sub> (°C)', '27.0'],
           ['Final temperature t<sub>2</sub> (°C)', '33.3'],
         ],
-        note: 'To correct for heat loss during the run, read the temperature every 30 seconds before mixing and after it, and extend the cooling line back to the moment of mixing. Taking the rise from that line is common practice and is not part of the manual’s procedure.',
+        note: 'To correct for heat loss during the run, read the temperature every 30 seconds before mixing and after it, and extend the cooling line back to the moment of mixing. Taking the rise from that line is common practice and is not part of the manual’s procedure. In this run, 33.3 °C is the value read from that line.',
       },
       {
         t: 'ex',
