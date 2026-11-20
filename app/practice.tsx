@@ -45,14 +45,19 @@ import {
   clearQueuedQuestion,
   getNextQuestion,
   getPracticeStats,
+  answersAccepted,
+  foldQuotaReply,
   hasQueuedQuestion,
   holdQueuedQuestion,
+  noteAnswerAccepted,
   questionScopeKey,
   parseAnswerSolution,
   solutionFinalAnswer,
   submitAnswer,
+  stampAnswerTally,
   takeQueuedQuestion,
 } from '@/lib/practice';
+import { QuotaAnchor, questionsLeft } from '@/lib/practice-quota';
 import { ApiError, friendlyError } from '@/lib/api';
 import { isPassRequired } from '@/lib/pass-events';
 import { examSubjects } from '@/lib/drona';
@@ -198,9 +203,19 @@ export default function PracticeScreen() {
     run: 0,
   });
 
-  /** The day's tally, off whichever response last mentioned it. Null until the
-   *  API says — never counted here, or two devices would disagree. */
-  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);
+  /** The day's tally: the server's `questions_used_today`, pinned to how many
+   *  answers had been accepted when that reply's request went out, plus the
+   *  answers accepted since (lib/practice-quota.ts). Null until the API has
+   *  answered on THIS visit, so the line never shows a number it was not given.
+   *
+   *  It used to be the last LIVE reply's number as is — so a question taken
+   *  from the prefetch queue never moved it, and a student five answers in
+   *  still read "99 left". */
+  const [quotaAnchor, setQuotaAnchor] = useState<QuotaAnchor | null>(null);
+  /** Mirrors the module tally so an accepted answer re-renders the line. */
+  const [accepted, setAccepted] = useState(answersAccepted);
+  const quotaLeft = questionsLeft(quotaAnchor, accepted);
+  const quotaLimit = quotaAnchor?.limit ?? null;
 
   /** Lifetime totals, fetched once. This session's answers are added on top
    *  rather than re-fetching, so the line moves the moment one is graded. */
@@ -312,6 +327,10 @@ export default function PracticeScreen() {
     context: { gaveUp: boolean; chapter: string | null }
   ) {
     setAnswerResult(result);
+    // The server writes an attempt row for every graded answer, "I don't know"
+    // included, so each one is a question off the day.
+    noteAnswerAccepted();
+    setAccepted(answersAccepted());
     // The verdict, felt. Only for an answer actually given: "I don't know" asked
     // to be shown the working, and a tap for it would read as a mark against.
     if (!context.gaveUp) {
@@ -469,13 +488,16 @@ export default function PracticeScreen() {
   function prefetchNext() {
     const subject = SUBJECT_QUERY[activeSubject];
     if (!scope || prefetchInFlight.current || hasQueuedQuestion(scopeKey)) return;
+    // Taken before the request: its count covers at most what was accepted
+    // by now, and an answer accepted while it is out is added on top.
+    const stamp = stampAnswerTally();
     prefetchInFlight.current = getNextQuestion({ subject, ...scope, ...nextChapterFilter() })
       .then((result) => {
         // Drop it if the student changed subject meanwhile — a Physics
         // question must never appear under the Chemistry pill. The subject it
         // was fetched for is stored beside it, so this cannot go stale.
         if ('exhausted' in result) return;
-        holdQueuedQuestion(result, scopeKey);
+        holdQueuedQuestion(result, scopeKey, stamp);
       })
       .catch(() => {
         clearQueuedQuestion();
@@ -551,7 +573,10 @@ export default function PracticeScreen() {
     }
 
     if (ready) {
-      setQuestion(ready);
+      const { question: next, stamp } = ready;
+      setQuestion(next);
+      // Its count is as of when it was prefetched; the anchor carries that.
+      setQuotaAnchor(foldQuotaReply(next, stamp));
       shownAt.current = Date.now();
       setSeen((n) => n + 1);
       setLoading(false);
@@ -575,6 +600,7 @@ export default function PracticeScreen() {
       // weak chapter (or unfiltered when none is left to offer). A pool_empty
       // response serves nothing, so the retry costs none of the daily 150.
       const filter = nextChapterFilter();
+      let stamp = stampAnswerTally();
       let result = await getNextQuestion({
         subject: SUBJECT_QUERY[activeSubject],
         ...scope,
@@ -586,16 +612,15 @@ export default function PracticeScreen() {
         weakMode &&
         filter.chapter_id
       ) {
+        stamp = stampAnswerTally();
         result = await getNextQuestion({
           subject: SUBJECT_QUERY[activeSubject],
           ...scope,
           ...nextChapterFilter([filter.chapter_id]),
         });
       }
+      setQuotaAnchor(foldQuotaReply(result, stamp));
       if ('exhausted' in result) {
-        if (result.questions_used_today != null && result.daily_limit != null) {
-          setQuota({ used: result.questions_used_today, limit: result.daily_limit });
-        }
         // The day's questions are used up: felt as the refusal it is.
         if (result.reason === 'daily_limit') hapticWarning();
         setPoolReason(result.reason === 'daily_limit' ? 'daily_limit' : 'pool_empty');
@@ -606,9 +631,6 @@ export default function PracticeScreen() {
       } else {
         setQuestion(result);
         shownAt.current = Date.now();
-        if (result.questions_used_today != null && result.daily_limit != null) {
-          setQuota({ used: result.questions_used_today, limit: result.daily_limit });
-        }
         setSeen((n) => n + 1);
       }
     } catch (err) {
@@ -829,8 +851,8 @@ export default function PracticeScreen() {
               glyph="clock"
               title={
                 free
-                  ? quota ? `You've done today's ${quota.limit} free questions` : "You've done today's free questions"
-                  : quota ? `That's today's ${quota.limit}` : "That's today's questions"
+                  ? quotaLimit != null ? `You've done today's ${quotaLimit} free questions` : "You've done today's free questions"
+                  : quotaLimit != null ? `That's today's ${quotaLimit}` : "That's today's questions"
               }
               line={poolMessage}
               action={{ label: 'See plans', onPress: () => router.push('/plans') }}
@@ -842,7 +864,7 @@ export default function PracticeScreen() {
             <StateCard
               style={styles.stateCard}
               glyph="clock"
-              title={quota ? `That's today's ${quota.limit}` : "That's today's questions"}
+              title={quotaLimit != null ? `That's today's ${quotaLimit}` : "That's today's questions"}
               line="Practice opens again tomorrow. Until then, read a chapter or open your notes."
               action={{ label: 'Open Textbooks', onPress: () => router.push('/(tabs)/textbooks') }}
               quiet={{ label: 'See your progress', onPress: () => router.push('/progress') }}
@@ -1196,9 +1218,9 @@ export default function PracticeScreen() {
               the server's numbers: counting locally would disagree with a
               second device the moment one existed. Hidden until the API has
               spoken, so it never renders a guess. */}
-          {quota && (
+          {quotaLeft != null && (
             <Text style={styles.quotaText}>
-              {Math.max(0, quota.limit - quota.used)} questions left today
+              {Math.max(0, quotaLeft)} questions left today
             </Text>
           )}
           <KeyboardSpacer />

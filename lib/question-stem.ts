@@ -87,6 +87,21 @@ const LISTITEM = /^\s*\(?([0-9]{1,2}|[ivx]{1,4}|[A-H])\)[.\s]\s*(.+)$/i;
  * none of them is a single letter before the dot.
  */
 const LISTITEM_DOT = /^\s*\(?([0-9]{1,2}|[IVX]{1,4}|[A-H])\.\s+(.+)$/;
+/**
+ * "E. coli whose DNA was entirely …" is a sentence, not list row E.
+ *
+ * A capital, a dot and a lowercase word is exactly how a binomial is
+ * abbreviated, and LISTITEM_DOT read the genus initial as a marker: the
+ * student saw a grey "E" pill and a stem starting "coli whose DNA". A
+ * lowercase body alone cannot decide it — the bank has hundreds of genuine
+ * rows like "A. thymus", "B. is a keto sugar." — so the word after the dot
+ * has to be a known species epithet. Measured 2026-11-20 over every stem line
+ * of the form "[A-H]. lowercase": the only species line was "E. coli …"
+ * (9 stems); the rest of the list covers the organisms NEET/JEE biology names
+ * with an abbreviated genus, so a new stem about them does not regress.
+ */
+const SPECIES_ABBREV =
+  /^\s*[A-Z]\.\s+(?:coli|aureus|epidermidis|subtilis|thuringiensis|anthracis|tumefaciens|rhizogenes|aquaticus|pneumoniae|pyogenes|typhi|typhimurium|tuberculosis|leprae|cholerae|pestis|botulinum|tetani|diphtheriae|acidophilus|lactis|sapiens|erectus|habilis|neanderthalensis|melanogaster|elegans|cerevisiae|pombe|falciparum|vivax|malariae|histolytica|lumbricoides|bancrofti|notatum|chrysogenum|niger|thaliana|sativa|sativum|mays|vulgaris|faba|oleracea|tabacum|esculentum|lycopersicum|japonicum|hydrogenophilus|lamblia|vaginalis|leguminosarum|meliloti|azollae|vinelandii|chroococcum)\b/;
 // A second list marker sitting INSIDE a row's body — "a) Spongocoel b) Choanocytes".
 // PDF two-column lists extract onto one line, so splitting on newlines alone
 // swallowed every even-numbered item into the odd one before it. The leading
@@ -108,6 +123,10 @@ const TAIL =
 const INLINE_LABEL =
   /(?<=[.;:)\s])((?:Assertion|Reason|Statement|Column)\s*[-–—]?\s*(?:\([A-Za-z]\)|[IVX]+|[A-D])?\s*[:.])/g;
 
+// A line that is only a label closed by a full stop: "Column II.", "Reason (R)."
+const ORPHAN_LABEL =
+  /^\s*(?:assertion|reason|statement|column)\s*[-–—]?\s*(?:\([A-Za-z]\)|[IVX]+|[A-D])?\s*\.\s*$/i;
+
 function classify(line: string): StemBlock | null {
   const raw = line.trim();
   if (!raw) return null;
@@ -126,7 +145,7 @@ function classify(line: string): StemBlock | null {
     };
   }
 
-  const item = raw.match(LISTITEM) ?? raw.match(LISTITEM_DOT);
+  const item = raw.match(LISTITEM) ?? (SPECIES_ABBREV.test(raw) ? null : raw.match(LISTITEM_DOT));
   // A stem beginning "1) " is a list row; "(1990) was the year" is not — so the
   // body has to look like content rather than a bare number.
   if (item && item[2] && item[2].trim().length > 1) {
@@ -201,7 +220,12 @@ export function parseStem(text: string): StemBlock[] {
   // Splitting on sentence ends generally would shatter ordinary multi-sentence
   // prose into fragments, which is worse than the run-on this fixes.
   const rawLines = joinDisplayMath(text)
-    .replace(INLINE_LABEL, '\n$1')
+    // A label already at the start of a line needs no break; adding one put a
+    // blank line between it and the line above, which hid that it continues
+    // that line's sentence (see the orphan-label join below).
+    .replace(INLINE_LABEL, (label: string, _g: string, at: number, all: string) =>
+      at > 0 && all[at - 1] === '\n' ? label : `\n${label}`
+    )
     .split(/\r?\n/)
     // Strip an alignment run only from a line that also carries content.
     // Doing it to the whole string first also rewrote the ordinary
@@ -218,6 +242,25 @@ export function parseStem(text: string): StemBlock[] {
   // column of naked letters above their own items.
   const lines: string[] = [];
   for (let i = 0; i < rawLines.length; i += 1) {
+    // "Match the item in Column I with the description in" / "Column II." is
+    // ONE sentence. INLINE_LABEL breaks before "Column II." (it ends in a
+    // full stop, so it looks like a label), or the extraction broke the line
+    // there itself; either way the instruction rendered in italic as a tail
+    // and its last two words below it in upright type, a font change in the
+    // middle of a sentence. A bare label ending in a FULL STOP, straight
+    // after a line that has not finished its sentence, is that sentence's
+    // end: it goes back on. "Column II:" with a colon introduces a list and
+    // is left alone, and so is "Column II." after a finished sentence.
+    const prev = lines.length ? lines[lines.length - 1] : '';
+    if (
+      ORPHAN_LABEL.test(rawLines[i]) &&
+      prev.trim() &&
+      !/[.:;?!|]\s*$/.test(prev) &&
+      !TABLE_ROW.test(prev)
+    ) {
+      lines[lines.length - 1] = `${prev.trimEnd()} ${rawLines[i].trim()}`;
+      continue;
+    }
     if (LONE_MARKER.test(rawLines[i])) {
       let j = i + 1;
       while (j < rawLines.length && !rawLines[j].trim()) j += 1;

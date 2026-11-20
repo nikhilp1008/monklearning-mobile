@@ -17,6 +17,7 @@ import {
   submitCurrentSession,
 } from '@/lib/mock';
 import { hapticCommitted, hapticWarning } from '@/lib/haptics';
+import { subjectNumbers } from '@/lib/mock-numbering';
 
 const SUBJECT_LABEL: Record<string, string> = {
   physics: 'Physics',
@@ -47,6 +48,10 @@ export default function MockPaletteScreen() {
   };
 
   const answered = session.paper.questions.filter((q) => session.answers.has(q.id)).length;
+  /** The number printed on each square restarts in each subject, as the
+   *  paper's "Q6 of 9" does; `i` (the place in the whole paper) is still
+   *  what a tap jumps to. */
+  const nums = subjectNumbers(session.paper.questions);
 
   /**
    * THE PAPER ENDS HERE, and only here.
@@ -120,7 +125,7 @@ export default function MockPaletteScreen() {
 
           {session.paper.sections.map((section) => {
             const rows = session.paper.questions
-              .map((q, i) => ({ q, i }))
+              .map((q, i) => ({ q, i, n: nums[i] }))
               .filter(({ q }) => q.subject === section.subject);
             const done = rows.filter(({ q }) => session.answers.has(q.id)).length;
             return (
@@ -134,7 +139,7 @@ export default function MockPaletteScreen() {
                     cell on wider phones. Each cell flexes to share its row. */}
                 {chunk(rows, GRID_COLUMNS).map((line, r) => (
                   <View key={r} style={styles.gridRow}>
-                    {line.map(({ q, i }) => {
+                    {line.map(({ q, i, n }) => {
                       const isAnswered = session.answers.has(q.id);
                       const isMarked = session.marked.has(q.id);
                       const isCurrent = i === session.index;
@@ -143,7 +148,7 @@ export default function MockPaletteScreen() {
                           key={q.id}
                           style={[styles.cellRing, isCurrent && styles.cellRingOn]}
                           accessibilityRole="button"
-                          accessibilityLabel={`Question ${q.question_num}${isAnswered ? ', answered' : ''}${isMarked ? ', marked' : ''}`}
+                          accessibilityLabel={`${SUBJECT_LABEL[q.subject] ?? q.subject} question ${n}${isAnswered ? ', answered' : ''}${isMarked ? ', marked' : ''}`}
                           onPress={() => jump(i)}
                         >
                           <View
@@ -154,7 +159,7 @@ export default function MockPaletteScreen() {
                             ]}
                           >
                             <Text style={[styles.cellText, isAnswered && styles.cellTextAnswered]}>
-                              {q.question_num}
+                              {n}
                             </Text>
                           </View>
                         </Pressable>
