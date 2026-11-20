@@ -132,7 +132,7 @@ const ROWS: Row[] = [
 const itemLine = (it: Item) => (it.ppt ? `${it.ions} → ${it.ppt} ${it.col}${it.extra ? `, ${it.extra}` : ''}` : `${it.ions} → ${it.note}`);
 const rowLines = (r: Row) => [`${r.g} · ${r.reagent}`, ...r.items.map(itemLine)];
 
-const D1_CAP = 'The seven rows of the cation scheme, each with its group reagent, the syllabus ions it takes out and the precipitate with its colour. Each reagent is added to the filtrate of the group before; Group zero is tested on the original salt and Group VI has no reagent of its own.';
+const D1_CAP = 'The seven rows of the cation scheme, each with its group reagent, the syllabus ions it takes out and the precipitate with its colour. Each reagent is added to the filtrate of the group before; Group zero is tested on the original salt and Group VI has no reagent of its own. Pb<sup>2+</sup> stands in two rows: PbCl<sub>2</sub> is fairly soluble in water, so lead left in the Group I filtrate comes down as black PbS in Group II.';
 const d1: Diagram = {
   id: 'c12-12-04-d1',
   topic: 3,
@@ -182,12 +182,12 @@ type FlowCase = { chip: string; cap: string; start: string[]; steps: Step[]; end
 const D2_CASES: FlowCase[] = [
   {
     chip: 'Groups I to III',
-    cap: 'From the original solution: dilute HCl takes out Group I; H<sub>2</sub>S in the diluted acid takes out the black sulphides of Group II (checked in yellow ammonium sulphide); after boiling off H<sub>2</sub>S, conc. HNO<sub>3</sub>, NH<sub>4</sub>Cl and excess NH<sub>4</sub>OH take out Group III. Each precipitate leaves to the right; the filtrate goes on down.',
+    cap: 'From the original solution: dilute HCl takes out Group I; H<sub>2</sub>S in the diluted, warm acid takes out the black sulphides of Group II (checked in yellow ammonium sulphide); after boiling off H<sub>2</sub>S and heating with a few drops of conc. HNO<sub>3</sub> (which turns any Fe<sup>2+</sup> into Fe<sup>3+</sup>), NH<sub>4</sub>Cl and then excess NH<sub>4</sub>OH take out Group III. Each precipitate leaves to the right; the filtrate goes on down.',
     start: ['Original solution'],
     steps: [
       { left: ['Add dilute HCl'], right: ['Group I', 'PbCl<sub>2</sub>: white'], grp: 'Group I', ppts: [{ f: 'PbCl<sub>2</sub>', col: 'white' }], rk: ['dilute hcl'] },
-      { left: ['Dilute with water,', 'pass H<sub>2</sub>S in the', 'dilute acid'], right: ['Group II', 'CuS, PbS: black', 'not dissolved by', 'yellow (NH<sub>4</sub>)<sub>2</sub>S'], hi: true, grp: 'Group II', ppts: [{ f: 'CuS', col: 'black' }, { f: 'PbS', col: 'black' }], rk: ['h2s', 'dilute hcl'], keys: ['yellow ammonium sulphide', 'do not dissolve'] },
-      { left: ['Boil off H<sub>2</sub>S, then add', 'conc. HNO<sub>3</sub>, NH<sub>4</sub>Cl and', 'excess NH<sub>4</sub>OH'], right: ['Group III', 'Al(OH)<sub>3</sub>: white,', 'gelatinous', 'Fe(OH)<sub>3</sub>: brown'], grp: 'Group III', ppts: [{ f: 'Al(OH)<sub>3</sub>', col: 'white', extra: 'gelatinous' }, { f: 'Fe(OH)<sub>3</sub>', col: 'brown' }], rk: ['nh4oh', 'nh4cl'], keys: ['boil off the h2s', 'hno3'] },
+      { left: ['Dilute with water, warm;', 'pass H<sub>2</sub>S in the', 'dilute acid'], right: ['Group II', 'CuS, PbS: black', 'not dissolved by', 'yellow (NH<sub>4</sub>)<sub>2</sub>S'], hi: true, grp: 'Group II', ppts: [{ f: 'CuS', col: 'black' }, { f: 'PbS', col: 'black' }], rk: ['h2s', 'dilute hcl'], keys: ['yellow ammonium sulphide', 'do not dissolve', 'into the warm solution'] },
+      { left: ['Boil off H<sub>2</sub>S; heat with', '2–3 drops conc. HNO<sub>3</sub>;', 'cool, add NH<sub>4</sub>Cl, then', 'excess NH<sub>4</sub>OH'], right: ['Group III', 'Al(OH)<sub>3</sub>: white,', 'gelatinous', 'Fe(OH)<sub>3</sub>: brown'], grp: 'Group III', ppts: [{ f: 'Al(OH)<sub>3</sub>', col: 'white', extra: 'gelatinous' }, { f: 'Fe(OH)<sub>3</sub>', col: 'brown' }], rk: ['nh4oh', 'nh4cl'], keys: ['boil off the h2s', '2 to 3 drops of concentrated hno3', 'oxidises any iron(ii) to iron(iii)', 'after cooling, add solid nh4cl and excess nh4oh'] },
     ],
     end: ['Filtrate: to Group IV'],
   },
@@ -275,36 +275,36 @@ const TBL = { dilute: 'Dilute sulphuric acid', conc: 'Concentrated sulphuric aci
 const D3_CASES: ACase[] = [
   {
     chip: 'Dilute acid',
-    cap: 'Dilute sulphuric acid on the solid salt (warmed if nothing happens): the gas is read from its look and its test. If there is no gas, go on to concentrated acid.',
+    cap: 'Dilute sulphuric acid on the solid salt (warmed if nothing happens): each observation names a gas, the gas test confirms it, and the first line of each result names the anion. Brown fumes here mean nitrite, NO<sub>2</sub><sup>−</sup>; brown fumes only with concentrated acid mean nitrate. If there is no gas, go on to concentrated acid.',
     top: ['Solid salt + dilute H<sub>2</sub>SO<sub>4</sub>', '(warm if no gas)'],
     topKeys: ['if no gas is evolved, warm the tube'],
     rows: [
-      { obs: ['Brisk effervescence;', 'colourless,', 'odourless gas'], res: ['CO<sub>2</sub>: lime water', 'turns milky', 'carbonate, CO<sub>3</sub><sup>2−</sup>'], tbl: 'dilute', first: 'co32−', gas: 'CO<sub>2</sub>', keys: ['brisk effervescence', 'colourless, odourless gas', 'lime water milky'] },
-      { obs: ['Colourless gas,', 'smell of', 'rotten eggs'], res: ['H<sub>2</sub>S: lead acetate', 'paper turns black', 'sulphide, S<sup>2−</sup>'], tbl: 'dilute', first: 's2−', gas: 'H<sub>2</sub>S', keys: ['rotten eggs', 'lead acetate paper black'] },
-      { obs: ['Brown fumes'], res: ['NO<sub>2</sub>: KI-starch', 'turns blue', 'nitrite, NO<sub>2</sub><sup>−</sup>'], tbl: 'dilute', first: 'no2−', gas: 'NO<sub>2</sub>', keys: ['brown fumes', 'ki-starch solution blue'] },
+      { obs: ['Brisk effervescence;', 'colourless,', 'odourless gas'], res: ['Carbonate, CO<sub>3</sub><sup>2−</sup>', 'CO<sub>2</sub>: turns', 'lime water milky'], tbl: 'dilute', first: 'co32−', gas: 'CO<sub>2</sub>', keys: ['brisk effervescence', 'colourless, odourless gas', 'lime water milky'] },
+      { obs: ['Colourless gas,', 'smell of', 'rotten eggs'], res: ['Sulphide, S<sup>2−</sup>', 'H<sub>2</sub>S: lead acetate', 'paper turns black'], tbl: 'dilute', first: 's2−', gas: 'H<sub>2</sub>S', keys: ['rotten eggs', 'lead acetate paper black'] },
+      { obs: ['Brown fumes'], res: ['Nitrite, NO<sub>2</sub><sup>−</sup>', 'NO<sub>2</sub>: acidified', 'KI-starch solution', 'turns blue'], tbl: 'dilute', first: 'no2−', gas: 'NO<sub>2</sub>', keys: ['brown fumes', 'acidified ki-starch solution blue'] },
       { obs: ['No gas, even', 'on warming'], res: ['Try concentrated', 'H<sub>2</sub>SO<sub>4</sub> (next case)'], next: true },
     ],
   },
   {
     chip: 'Conc. acid',
-    cap: 'If dilute acid gives nothing: concentrated sulphuric acid on a fresh portion, in the cold and then warmed. The gas or vapour names the halide or the nitrate; if there is still no result, test for sulphate.',
+    cap: 'If dilute acid gives nothing: concentrated sulphuric acid on a fresh portion, in the cold and then warmed. The gas or vapour names the halide or the nitrate (first line of each result); bromine and NO<sub>2</sub> are both brown, so the nitrate is told by the copper turnings, not by the colour. If there is still no result, test for sulphate.',
     top: ['Fresh salt + conc. H<sub>2</sub>SO<sub>4</sub>', '(cold, then warm)'],
     topKeys: ['watch in the cold and then warm', 'if dilute acid gives nothing'],
     rows: [
-      { obs: ['Colourless gas,', 'pungent smell'], res: ['HCl: white fumes', 'on an NH<sub>4</sub>OH rod', 'chloride, Cl<sup>−</sup>'], tbl: 'conc', first: 'cl−', gas: 'HCl', keys: ['pungent', 'white fumes', 'nh4oh'] },
-      { obs: ['Reddish-brown', 'vapour'], res: ['Br<sub>2</sub> vapour', 'bromide, Br<sup>−</sup>'], tbl: 'conc', first: 'br−', gas: 'Br<sub>2</sub> vapour', keys: ['reddish-brown'] },
-      { obs: ['Violet vapour'], res: ['I<sub>2</sub> vapour', 'iodide, I<sup>−</sup>'], tbl: 'conc', first: 'i−', gas: 'I<sub>2</sub> vapour', keys: ['violet'] },
-      { obs: ['Brown fumes, denser', 'with Cu turnings;', 'blue solution'], res: ['NO<sub>2</sub> fumes', 'nitrate, NO<sub>3</sub><sup>−</sup>'], tbl: 'conc', first: 'no3−', gas: 'NO<sub>2</sub>', keys: ['brown fumes', 'copper turnings', 'turns blue'] },
+      { obs: ['Colourless gas,', 'pungent smell'], res: ['Chloride, Cl<sup>−</sup>', 'HCl: white fumes', 'on an NH<sub>4</sub>OH rod'], tbl: 'conc', first: 'cl−', gas: 'HCl', keys: ['pungent', 'white fumes', 'nh4oh'] },
+      { obs: ['Reddish-brown', 'vapour'], res: ['Bromide, Br<sup>−</sup>', 'Br<sub>2</sub> vapour'], tbl: 'conc', first: 'br−', gas: 'Br<sub>2</sub> vapour', keys: ['reddish-brown'] },
+      { obs: ['Violet vapour'], res: ['Iodide, I<sup>−</sup>', 'I<sub>2</sub> vapour'], tbl: 'conc', first: 'i−', gas: 'I<sub>2</sub> vapour', keys: ['violet'] },
+      { obs: ['Brown fumes, denser', 'with copper', 'turnings; solution', 'turns blue'], res: ['Nitrate, NO<sub>3</sub><sup>−</sup>', 'NO<sub>2</sub> fumes'], tbl: 'conc', first: 'no3−', gas: 'NO<sub>2</sub>', keys: ['brown fumes', 'copper turnings', 'turns blue'] },
       { obs: ['Still no result'], res: ['Test for sulphate', '(next case)'], next: true },
     ],
   },
   {
     chip: 'Sulphate',
-    cap: 'Sulphate gives no gas with either acid, so it is tested for last: acidify with dilute HCl and add BaCl<sub>2</sub>.',
-    top: ['Neither acid gave a result:', 'acidify with dilute HCl,', 'add BaCl<sub>2</sub>'],
-    topKeys: ['tested for last', 'acidify the extract with dilute hcl'],
+    cap: 'Sulphate gives no gas with either acid, so it is tested for last, on the water extract (or the sodium carbonate extract): acidify with dilute HCl and add BaCl<sub>2</sub>. A white precipitate of BaSO<sub>4</sub> that does not dissolve in conc. HCl confirms sulphate.',
+    top: ['Neither acid gave a result: take the water', 'extract (or Na<sub>2</sub>CO<sub>3</sub> extract), acidify', 'with dilute HCl, add BaCl<sub>2</sub>'],
+    topKeys: ['tested for last', 'acidify the extract with dilute hcl', 'sodium carbonate extract'],
     rows: [
-      { obs: ['White precipitate,', 'insoluble in', 'conc. HCl'], res: ['BaSO<sub>4</sub>', 'sulphate, SO<sub>4</sub><sup>2−</sup>'], tbl: 'confirm', first: 'sulphate', gas: 'BaSO<sub>4</sub>', keys: ['white precipitate', 'insoluble in conc. hcl', 'bacl2'] },
+      { obs: ['White precipitate,', 'insoluble in', 'conc. HCl'], res: ['Sulphate, SO<sub>4</sub><sup>2−</sup>', 'BaSO<sub>4</sub>'], tbl: 'confirm', first: 'sulphate', gas: 'BaSO<sub>4</sub>', keys: ['white precipitate', 'insoluble in conc. hcl', 'bacl2'] },
     ],
   },
 ];
@@ -324,7 +324,7 @@ const d3: Diagram = {
     c.rows.forEach((r, i) => {
       y += GAP + (i === 0 ? 6 : 0);
       const o = box(s, OX, y, OW, r.obs, { h: rh[i] });
-      const res = box(s, RX, y, RW, r.res, { h: rh[i], boldLast: !r.next });
+      const res = box(s, RX, y, RW, r.res, { h: rh[i], boldFirst: !r.next });
       const ym = y + rh[i] / 2;
       link(s, top, o, [[SPINE, top.rect[3]], [SPINE, ym], [OX, ym]]);
       across(s, o, res);
@@ -341,11 +341,10 @@ const d3: Diagram = {
       const tb = tableByTitle(TBL[r.tbl!]);
       const rows = tb.rows.filter((x) => low(x[0]).includes(r.first!));
       const txt = rows.map((x) => x.map(low).join(' ')).join(' ');
-      const ionLine = low(r.res[r.res.length - 1]);
-      out.push([`${plain(r.res[r.res.length - 1])}: the text has an anion row for it (${rows.length ? plain(rows[0][0]) : 'none found'})`, rows.length > 0 && ionLine.startsWith(low(rows[0][0]))]);
-      out.push([`${plain(r.res[r.res.length - 1])}: the gas or precipitate ${plain(r.gas!)} is the text's`, rows.some((x) => x.some((cell) => low(cell).startsWith(low(r.gas!))))]);
-      r.keys!.forEach((k) => out.push([`${plain(r.res[r.res.length - 1])}: the text says "${k}" for it`, txt.includes(k)]));
-      out.push([`${plain(r.res[r.res.length - 1])}: the drawing writes the observation`, r.keys!.some((k) => low(r.obs.join(' ') + ' ' + r.res.join(' ')).includes(k.split(' ')[0]))]);
+      const ion = plain(r.res[0]), drawn = low([...c.top, ...r.obs, ...r.res].join(' '));
+      out.push([`${ion}: the text has an anion row for it (${rows.length ? plain(rows[0][0]) : 'none found'})`, rows.length > 0 && low(r.res[0]).startsWith(low(rows[0][0]))]);
+      out.push([`${ion}: the gas or precipitate ${plain(r.gas!)} is the text's and is drawn`, rows.some((x) => x.some((cell) => low(cell).startsWith(low(r.gas!)))) && drawn.includes(low(r.gas!))]);
+      r.keys!.forEach((k) => out.push([`${ion}: the text says "${k}" for it, and every word of it is in the drawing`, txt.includes(k) && k.split(' ').every((w) => drawn.includes(w))]));
     });
     out.push([`${c.rows.length} rows, one arrow in to each from the test box and one from each observation to its result`, flowOf(s).edges.length === c.rows.length * 2]);
     out.push(...flowChecks(s, [0]));
@@ -407,8 +406,17 @@ const d4: Diagram = {
     const T = TUBE, s = this.draw({});
     const out: Check[] = [];
     out.push(['Layers from the top: FeSO₄ surface above the junction, the junction above the rounded bottom, all below the mouth', T.top < T.surface && T.surface < T.junction && T.junction < T.bend + (T.x1 - T.x0) / 2]);
-    out.push(['The ring is centred on the junction of the two layers', Math.abs(T.junction - T.ringH / 2 - (T.junction + T.ringH / 2) + T.ringH) < 1e-9 && T.junction > T.surface]);
-    out.push(['The ring spans the tube and stays inside both walls', T.x0 + 2 > T.x0 && T.x1 - 2 < T.x1]);
+    const ring = /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"[^>]*stroke="[^"]*" stroke-width="2.4"/.exec(s.svg());
+    const [rx, ry, rw, rh] = ring ? ring.slice(1).map(Number) : [NaN, NaN, NaN, NaN];
+    out.push([`The ring as drawn is centred on the junction of the two layers (centre ${fmt(ry + rh / 2)}, junction ${T.junction})`, Math.abs(ry + rh / 2 - T.junction) < 0.6]);
+    out.push(['The ring as drawn spans the tube and stays inside both walls', rx > T.x0 && rx + rw < T.x1 && rw > 0.8 * (T.x1 - T.x0)]);
+    const at = (start: string) => s.tags.find((t) => t.name.startsWith(start))?.from ?? null;
+    const fe = at('fresh FeSO4'), no3 = at('nitrate solution'), rg = at('dark brown ring'), arm = at('added slowly');
+    out.push(['The FeSO₄ label points into the upper layer (between the surface and the junction)', !!fe && fe[1] > T.surface && fe[1] < T.junction - T.ringH / 2 && fe[0] > T.x0 && fe[0] < T.x1]);
+    out.push(['The nitrate + conc. H₂SO₄ label points into the lower layer (below the junction, inside the tube)', !!no3 && no3[1] > T.junction + T.ringH / 2 && no3[1] < T.bend && no3[0] > T.x0 && no3[0] < T.x1]);
+    out.push(['The ring label points at the ring itself', !!rg && Math.abs(rg[1] - T.junction) < 0.6 && rg[0] > rx && rg[0] < rx + rw]);
+    out.push(['The "added slowly down the side" label points at the run-in arrow', !!arm && arm[0] === T.armX && arm[1] > T.armY0 && arm[1] < T.armY1]);
+    out.push(['The heavier layer (nitrate solution with conc. H₂SO₄) is the lower one; the FeSO₄ floats on it, as the text says ("forms a layer on top")', ALL.includes('forms a layer on top of the liquid') && T.surface < T.junction]);
     out.push(['The FeSO₄ is run in along the inner wall: the arrow is 10 px inside the right wall and stops above the surface', T.x1 - T.armX === 10 && T.armY1 < T.surface && T.armY0 > T.top]);
     const names = s.tags.map((t) => t.name);
     out.push(['The five labels: added down the side, fresh FeSO₄ solution, dark brown ring [Fe(NO)]²⁺, nitrate solution + conc. H₂SO₄, do not shake', ['added slowly down the side', 'fresh FeSO4 solution', 'dark brown ring, [Fe(NO)]2+', 'nitrate solution + conc. H2SO4', 'do not shake'].every((n) => names.includes(n))]);
