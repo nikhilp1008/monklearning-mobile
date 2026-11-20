@@ -434,6 +434,24 @@ export function statusOf(record: PassRecord | null, now: Date = new Date()): Pas
 }
 
 /**
+ * "7 days left", "5 hours left", "1 hour left": how long a running pass has, in
+ * the numbers `statusOf` gives. Days while more than one is left; hours on the
+ * last day. It used to be written out on the plan screen, which said
+ * "1 hours left" in a pass's final hour.
+ */
+export function timeLeftWords(daysLeft: number, hoursLeft: number): string {
+  if (daysLeft > 1) return `${daysLeft} days left`;
+  const hours = Math.max(1, hoursLeft);
+  return hours === 1 ? '1 hour left' : `${hours} hours left`;
+}
+
+/** The same words for a stretch of time in milliseconds, rounded up as `statusOf` rounds. */
+export function timeLeftWordsMs(ms: number): string {
+  const left = Math.max(ms, 0);
+  return timeLeftWords(Math.ceil(left / 86400000), Math.ceil(left / 3600000));
+}
+
+/**
  * Where the student stands, from the server, falling back to the last answer.
  *
  * Only a failure to REACH the server falls back. If it answers "none" the

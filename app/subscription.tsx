@@ -11,7 +11,17 @@ import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import { SKY_THEMES } from '@/constants/teachers';
 import { useFreeTier, usePlan } from '@/lib/free-tier';
-import { PASS_NAME, cachedPassStatus, isTeamAccess, passDays, passStatus, type PassRecord, type PassStatus } from '@/lib/pass';
+import {
+  PASS_NAME,
+  cachedPassStatus,
+  isTeamAccess,
+  passDays,
+  passStatus,
+  timeLeftWords,
+  timeLeftWordsMs,
+  type PassRecord,
+  type PassStatus,
+} from '@/lib/pass';
 import { getTeacherPreference, type TeacherId } from '@/lib/preferences';
 
 /**
@@ -115,7 +125,7 @@ export default function SubscriptionScreen() {
    *  the running plan's own start plus its own length. */
   const runningEnds = stacked && record ? new Date(new Date(record.startedAt).getTime() + passDays(record.kind) * 86400000) : null;
   const runningMs = runningEnds ? Math.max(runningEnds.getTime() - Date.now(), 0) : 0;
-  const runningLeft = runningMs >= 86400000 ? `${Math.ceil(runningMs / 86400000)} days left` : `${Math.max(1, Math.ceil(runningMs / 3600000))} hours left`;
+  const runningLeft = timeLeftWordsMs(runningMs);
 
   return (
     <SettingsPage title="Your plan">
@@ -135,7 +145,7 @@ export default function SubscriptionScreen() {
                 : active && endsAt && runningEnds
                   ? `This plan ends ${asDate(runningEnds)} · ${runningLeft}\nPaid until ${asDate(endsAt)}`
                 : active && endsAt
-                  ? `Ends ${asDate(endsAt)} · ${active.daysLeft > 1 ? `${active.daysLeft} days left` : `${active.hoursLeft} hours left`}`
+                  ? `Ends ${asDate(endsAt)} · ${timeLeftWords(active.daysLeft, active.hoursLeft)}`
                   : free
                     ? `Each day: ${limits.snap_questions} snapped questions, ${limits.practice_questions} practice questions and ${limits.followups} follow-ups. A plan adds live classes and full mock tests.`
                     : status.state === 'expired' && endsAt
