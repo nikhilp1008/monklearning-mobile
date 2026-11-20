@@ -588,7 +588,7 @@ export const TOPICS: Topic[] = [
           ['Strong acid and weak base (HCl and Na<sub>2</sub>CO<sub>3</sub>)', 'Acidic, below 7', 'Methyl orange', 'Yellow to pinkish red'],
           ['Weak acid and weak base', 'Near 7, no sharp change', 'None is suitable', 'No clear end point'],
         ],
-        note: 'The equivalence-point values for the first three rows are explained in the worked example below.',
+        note: 'The worked example below finds the equivalence pH for the simplest weak pairs, acetic acid with NaOH and ammonia with HCl. Oxalic acid and sodium carbonate lose their protons in two steps, but their solutions at the end point lie on the same side of 7, so the same indicators are used.',
       },
       {
         t: 'ex',
