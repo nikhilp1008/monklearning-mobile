@@ -52,21 +52,25 @@ export const razorpayChoiceOn = (): boolean => process.env.EXPO_PUBLIC_RAZORPAY_
 /**
  * Play Console product ids, one per pass on sale. Legacy kinds are not sold.
  *
- * The day and 7-day passes are ONE-TIME products (bought, then consumed). Pro and Max are
- * MONTHLY SUBSCRIPTIONS (base plan "monthly", auto-renewing, India): one purchase token that
- * renews itself, never consumed, acknowledged instead. See billing/PLAY_SUBSCRIPTIONS_SCOPE.md.
+ * Every pass is a Google Play SUBSCRIPTION product, acknowledged, never consumed:
+ *   - Pro and Max: base plan "monthly", auto-renewing (India). One token renews itself.
+ *   - Day and 7-day: one PREPAID base plan (1 day, 1 week). One payment, never renews.
+ * The day and week passes were meant to be one-time products (`pass_day`, `pass_week`), but Play
+ * Console would not create them (19 Nov 2026), so they are prepaid plans instead. A prepaid plan can be
+ * topped up (bought again); the server grants a starter once per account and leaves any second one
+ * unacknowledged, so Google refunds it. See billing/PLAY_SUBSCRIPTIONS_SCOPE.md.
  */
 export const PLAY_PRODUCT_IDS: Partial<Record<PassKind, string>> = {
-  day: 'pass_day',
-  week: 'pass_week',
+  day: 'day_pass',
+  week: 'week_pass',
   pro_1m: 'pro_monthly',
   max_1m: 'max_monthly',
 };
 
-/** The Play subscriptions (a renewing token), as opposed to the one-time products. */
-export const PLAY_SUBSCRIPTION_IDS: string[] = ['pro_monthly', 'max_monthly'];
+/** The Play subscription products (all four today), as opposed to one-time products (none today). */
+export const PLAY_SUBSCRIPTION_IDS: string[] = ['pro_monthly', 'max_monthly', 'day_pass', 'week_pass'];
 export const isPlaySubscription = (productId: string): boolean => PLAY_SUBSCRIPTION_IDS.includes(productId);
-/** The base plan every subscription here is sold on. */
+/** Pro and Max's base plan. The day and week passes have one prepaid base plan each, taken whatever its id. */
 export const PLAY_BASE_PLAN = 'monthly';
 
 /** Google Play's own page for managing or cancelling one subscription of this app. */
@@ -152,10 +156,11 @@ function resetConnection() {
 export type PlayProduct = { price: number | null; offerToken?: string };
 
 /**
- * The four products, read once per connection: the one-time passes as in-app products and Pro and
- * Max as subscriptions (each read on its own, so one kind failing never hides the other). Missing
- * ones are simply absent. A subscription is present only with an offer token on its monthly base
- * plan: without it there is nothing to buy.
+ * The products, read once per connection: any one-time products as in-app products and the
+ * subscriptions (Pro, Max, and the prepaid day and week passes) on their own, so one kind failing never
+ * hides the other. Missing ones are simply absent. A subscription is present only with an offer token
+ * (Pro and Max on their monthly base plan; the day and week on their one prepaid plan): without it there
+ * is nothing to buy.
  */
 export function loadPlayProducts(): Promise<Map<string, PlayProduct>> {
   if (!productsRead) {
@@ -165,7 +170,8 @@ export function loadPlayProducts(): Promise<Map<string, PlayProduct>> {
       const oneTime = PLAY_SKUS.filter((s) => !isPlaySubscription(s));
       const subs = PLAY_SKUS.filter(isPlaySubscription);
       type Found = { id: string; price?: number | null; productStatusAndroid?: string | null };
-      const inApp = (await iap().fetchProducts({ skus: oneTime, type: 'in-app' })) ?? [];
+      // No one-time products today: Google is not asked for an empty list.
+      const inApp = oneTime.length ? ((await iap().fetchProducts({ skus: oneTime, type: 'in-app' })) ?? []) : [];
       for (const p of inApp as Found[]) {
         if (p.productStatusAndroid && p.productStatusAndroid !== 'ok') continue;
         map.set(p.id, { price: typeof p.price === 'number' ? p.price : null });
