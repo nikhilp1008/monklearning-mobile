@@ -1,5 +1,14 @@
 import { apiFetch } from '@/lib/api';
 import { clearProgressCache } from '@/lib/progress';
+import {
+  AnswerTally,
+  emptyTally,
+  QuotaAnchor,
+  reconcile,
+  recordAccepted,
+  stampTally,
+  TallyStamp,
+} from '@/lib/practice-quota';
 import { ParsedStep, parseSolutionSteps } from '@/lib/solution-steps';
 
 export type QuestionType = 'single_correct' | 'numerical' | string;
@@ -215,7 +224,45 @@ export function getPracticeStats(): Promise<PracticeStats> {
  * question held across a restart would have a serve timestamp from another
  * sitting — see the note on timing in `submitAnswer`.
  */
-let queued: { question: NextQuestion; scope: string } | null = null;
+let queued: { question: NextQuestion; scope: string; stamp: TallyStamp } | null = null;
+
+/**
+ * Answers the server has accepted while the app has been open — the other half
+ * of the "questions left today" line (see lib/practice-quota.ts). Module scope
+ * for the same reason as `queued`: a queued question carries the tally it was
+ * fetched at, so the tally must outlive the screen too, or a question queued in
+ * one visit would be measured against a counter reset by the next.
+ */
+let tally: AnswerTally = emptyTally();
+
+/** Call after `/practice/answer` succeeds — and only then: a failed or refused
+ *  submit writes no attempt row, so it does not count against the day. */
+export function noteAnswerAccepted(now: number = Date.now()) {
+  tally = recordAccepted(tally, now);
+}
+
+/** The tally as of a request being issued now. Take it BEFORE the request. */
+export function stampAnswerTally(now: number = Date.now()): TallyStamp {
+  return stampTally(tally, now);
+}
+
+export function answersAccepted(): number {
+  return tally.accepted;
+}
+
+/** The last server count, kept beside the tally it is relative to. It
+ *  outlives the screen so a reply that has not yet seen the last answer
+ *  (lib/practice-quota.ts `reconcile`) is still caught after a re-entry. */
+let quotaAnchor: QuotaAnchor | null = null;
+
+/** Fold a `/practice/next` reply, issued at `stamp`, into the day's count. */
+export function foldQuotaReply(
+  reply: { questions_used_today?: number | null; daily_limit?: number | null },
+  stamp: TallyStamp
+): QuotaAnchor | null {
+  quotaAnchor = reconcile(quotaAnchor, reply, stamp);
+  return quotaAnchor;
+}
 
 /**
  * The scope a queued question was fetched under — subject AND chapter.
@@ -250,15 +297,19 @@ export function questionScopeKey(subject: string, chapterId?: string | null): st
   return `${subject}|${chapterId ?? ''}`;
 }
 
-export function takeQueuedQuestion(scope: string): NextQuestion | null {
+/** The queued question with the tally its request was issued at, so its
+ *  `questions_used_today` can be read against the answers given since. */
+export function takeQueuedQuestion(
+  scope: string
+): { question: NextQuestion; stamp: TallyStamp } | null {
   if (!queued || queued.scope !== scope) return null;
-  const { question } = queued;
+  const { question, stamp } = queued;
   queued = null;
-  return question;
+  return { question, stamp };
 }
 
-export function holdQueuedQuestion(question: NextQuestion, scope: string) {
-  queued = { question, scope };
+export function holdQueuedQuestion(question: NextQuestion, scope: string, stamp: TallyStamp) {
+  queued = { question, scope, stamp };
 }
 
 export function hasQueuedQuestion(scope: string): boolean {
