@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ZoomableImage } from '@/components/zoomable-image';
 import { colors } from '@/constants/brand';
 import { useScale } from '@/constants/scale';
 import type { DiagramFigure } from '@/lib/practice';
@@ -46,7 +47,6 @@ export function QuestionDiagram({
   const [failed, setFailed] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [open, setOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
 
   const label = total > 1 ? `Figure ${index + 1} of ${total}` : 'Question diagram';
 
@@ -65,24 +65,13 @@ export function QuestionDiagram({
     );
   }
 
-  const pinch = Gesture.Pinch().onUpdate((e) => {
-    setZoom(Math.min(Math.max(e.scale, 1), 5));
-  });
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd(() => setZoom((z) => (z > 1.5 ? 1 : 2.5)));
-  const composed = Gesture.Race(pinch, doubleTap);
-
   return (
     <>
       <Pressable
         accessibilityRole="imagebutton"
         accessibilityLabel={`${label} — tap to enlarge`}
         style={styles.frame}
-        onPress={() => {
-          setZoom(1);
-          setOpen(true);
-        }}
+        onPress={() => setOpen(true)}
       >
         <Image
           key={retryKey}
@@ -102,37 +91,48 @@ export function QuestionDiagram({
         />
       </Pressable>
 
+      {/* The enlarged figure is the same viewer as question-peek's
+          (components/zoomable-image.tsx). It used to be an Image sized
+          width 100% / height 85% inside a style-less Pressable: a percentage of
+          an auto-sized parent is zero, so the Modal opened on a dark scrim
+          with nothing in it. And a Modal is its own native hierarchy, so the
+          app's gesture root does not reach into it: it brings its own, or the
+          pinch and drag never fire. */}
       <Modal
         visible={open}
         transparent
         animationType="fade"
+        // Edge to edge, so the scrim covers the status bar and the close
+        // button's insets.top offset is measured from the real top.
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setOpen(false)}
       >
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close enlarged figure"
-            // Clear of the status bar and camera: the Modal is drawn edge to
-            // edge, and a fixed 48 sat on the punch-hole on some Androids.
-            style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
-            onPress={() => setOpen(false)}
-          >
-            <Text style={styles.closeText}>Close ✕</Text>
-          </Pressable>
-          <GestureDetector gesture={composed}>
-            <Pressable onPress={(e) => e.stopPropagation()}>
-              <Image
-                source={{ uri: figure.url }}
-                style={[
-                  styles.fullImage,
-                  { transform: [{ scale: zoom }] },
-                ]}
-                contentFit="contain"
-                accessibilityLabel={label}
-              />
+        <GestureHandlerRootView style={styles.gestureRoot}>
+          <View style={styles.backdrop}>
+            {/* The scrim closes the viewer and sits BEHIND the figure, a
+                sibling not a parent: a pinch that ended over the figure must
+                not count as a tap that shuts it. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close enlarged figure"
+              style={StyleSheet.absoluteFill}
+              onPress={() => setOpen(false)}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close enlarged figure"
+              hitSlop={10}
+              // Clear of the status bar and camera: the Modal is drawn edge to
+              // edge, and a fixed 48 sat on the punch-hole on some Androids.
+              style={[styles.closeButton, { top: Math.max(verticalScale(48), insets.top + 8) }]}
+              onPress={() => setOpen(false)}
+            >
+              <Text style={styles.closeText}>Close ✕</Text>
             </Pressable>
-          </GestureDetector>
-        </Pressable>
+            <ZoomableImage uri={figure.url} label={label} />
+          </View>
+        </GestureHandlerRootView>
       </Modal>
     </>
   );
@@ -212,12 +212,15 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontWeight: '700',
       color: '#1c1a16',
     },
+    gestureRoot: { flex: 1 },
     backdrop: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.75)',
       alignItems: 'center',
       justifyContent: 'center',
       padding: scale(16),
+      // Room for the close button above the figure.
+      paddingTop: verticalScale(96),
     },
     closeButton: {
       position: 'absolute',
@@ -233,12 +236,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       fontSize: scale(12),
       fontWeight: '700',
       color: '#1c1a16',
-    },
-    fullImage: {
-      width: '100%',
-      height: '85%',
-      borderRadius: scale(12),
-      backgroundColor: '#fff',
     },
   });
 }
