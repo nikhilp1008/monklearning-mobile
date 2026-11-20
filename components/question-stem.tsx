@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { MathLine } from '@/components/math-line';
 import { colors } from '@/constants/brand';
@@ -86,37 +86,7 @@ function renderBlock(
   fontSize: number
 ) {
   if (block.kind === 'table' && block.rows?.length) {
-    const head = block.hasHeader ? block.rows[0] : null;
-    const rows = block.hasHeader ? block.rows.slice(1) : block.rows;
-    // A wide match-table scrolls inside its own box rather than pushing the
-    // question sideways. Columns are equal-width because the content is
-    // two-column Column-I/Column-II far more often than it is anything else.
-    return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.table}>
-          {head && (
-            <View style={[styles.row, styles.headRow]}>
-              {head.map((cell, i) => (
-                <View key={i} style={styles.cell}>
-                  <Text style={styles.headText} numberOfLines={0}>
-                    {cell}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-          {rows.map((row, ri) => (
-            <View key={ri} style={[styles.row, ri < rows.length - 1 && styles.rowDivider]}>
-              {row.map((cell, ci) => (
-                <View key={ci} style={styles.cell}>
-                  {body(cell, fontSize - scale(1))}
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    );
+    return <StemTable block={block} styles={styles} body={body} scale={scale} fontSize={fontSize} />;
   }
 
   if (block.kind === 'labelled') {
@@ -146,6 +116,111 @@ function renderBlock(
   return body(block.body);
 }
 
+/**
+ * A match table, laid out against the width it was actually given.
+ *
+ * It used to sit in a horizontal ScrollView with `flex: 1` cells. A horizontal
+ * ScrollView gives its content no width to fill, so the cells were sized from
+ * an unconstrained measure: the noble-gas table in a mock test came out wider
+ * than the phone, its List - 2 column cut at the right edge ("1) U", "2) Used
+ * in light b") by the table's `overflow: hidden`, and nothing slid because
+ * the ScrollView's content had been measured no wider than the screen.
+ *
+ * Now the box measures itself first. If every column still gets a readable
+ * width (COL_MIN) the table is drawn at exactly that width with its text
+ * wrapping inside the cells: no ScrollView at all, the ordinary two-column
+ * case. Only a table that cannot fit (four unfolded columns, say) scrolls,
+ * at an explicit width per column so the content really is wider than the
+ * viewport, with the scroll bar shown (flashed on iOS, kept on Android) so a
+ * student can see it slides.
+ */
+function StemTable({
+  block,
+  styles,
+  body,
+  scale,
+  fontSize,
+}: {
+  block: StemBlock;
+  styles: ReturnType<typeof createStyles>;
+  body: (content: string, size?: number) => React.ReactNode;
+  scale: (size: number) => number;
+  fontSize: number;
+}) {
+  const [width, setWidth] = useState(0);
+  const scroller = useRef<ScrollView>(null);
+  const all = block.rows ?? [];
+  const head = block.hasHeader ? all[0] : null;
+  const rows = block.hasHeader ? all.slice(1) : all;
+  const columns = Math.max(1, ...all.map((r) => r.length));
+  const scrolls = tableScrolls(width, columns, scale(COL_MIN));
+  // Explicit widths only when scrolling; otherwise the cells share the box.
+  const cellWidth = scrolls ? { width: scale(COL_SCROLL) } : styles.cellFill;
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    const next = Math.round(e.nativeEvent.layout.width);
+    if (next !== width) setWidth(next);
+  };
+
+  const table = (
+    <View style={[styles.table, scrolls && { width: columns * scale(COL_SCROLL) }]}>
+      {head && (
+        <View style={[styles.row, styles.headRow]}>
+          {head.map((cell, i) => (
+            <View key={i} style={[styles.cell, cellWidth]}>
+              <Text style={styles.headText} numberOfLines={0}>
+                {cell}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {rows.map((row, ri) => (
+        <View key={ri} style={[styles.row, ri < rows.length - 1 && styles.rowDivider]}>
+          {row.map((cell, ci) => (
+            <View key={ci} style={[styles.cell, cellWidth]}>
+              {body(cell, fontSize - scale(1))}
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+
+  return (
+    <View onLayout={onLayout} testID="stem-table">
+      {scrolls ? (
+        <ScrollView
+          ref={scroller}
+          horizontal
+          showsHorizontalScrollIndicator
+          persistentScrollbar
+          nestedScrollEnabled
+          contentContainerStyle={styles.tableScrollContent}
+          onContentSizeChange={() => scroller.current?.flashScrollIndicators()}>
+          {table}
+        </ScrollView>
+      ) : (
+        table
+      )}
+    </View>
+  );
+}
+
+/** The narrowest a column may be before the table scrolls instead (pre-scale). */
+const COL_MIN = 120;
+/** Each column's width once a table scrolls (pre-scale). */
+const COL_SCROLL = 160;
+
+/**
+ * Whether a table of `columns` columns must slide sideways in `available`
+ * points. Before the first layout (`available` 0) it never scrolls: the table
+ * fills its box, which is right for the common two-column case.
+ */
+export function tableScrolls(available: number, columns: number, minColumn: number): boolean {
+  return available > 0 && columns * minColumn > available;
+}
+
 function createStyles(scale: (size: number) => number, verticalScale: (size: number) => number) {
   return StyleSheet.create({
     spaced: {
@@ -156,7 +231,13 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderColor: colors.hairline,
       borderRadius: scale(10),
       overflow: 'hidden',
-      minWidth: scale(300),
+    },
+    tableScrollContent: {
+      // Room under the table for the scroll bar, so it never sits on the border.
+      paddingBottom: verticalScale(6),
+    },
+    cellFill: {
+      flex: 1,
     },
     row: {
       flexDirection: 'row',
@@ -170,8 +251,6 @@ function createStyles(scale: (size: number) => number, verticalScale: (size: num
       borderBottomColor: colors.hairline,
     },
     cell: {
-      flex: 1,
-      minWidth: scale(120),
       paddingHorizontal: scale(10),
       paddingVertical: verticalScale(8),
       borderRightWidth: StyleSheet.hairlineWidth,
