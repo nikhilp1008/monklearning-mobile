@@ -23,6 +23,7 @@ import { footPadding } from '@/lib/foot-padding';
 import { shadow } from '@/lib/shadow';
 import { fetchReport, getMockSession } from '@/lib/mock';
 import { buildReport, formatSpan, loadReport, type MockReport } from '@/lib/mock-report';
+import { subjectNumbers, subjectTotals } from '@/lib/mock-numbering';
 import { parseAnswerSolution, type AnswerResult } from '@/lib/practice';
 import { openReportSheet } from '@/lib/reports';
 
@@ -98,6 +99,15 @@ export default function MockReviewScreen() {
     () => (q ? parseAnswerSolution(q.solution as AnswerResult['solution']) : []),
     [q]
   );
+  /** Numbers restart in each subject, as on the paper ("Q6 of 9"); `index`
+   *  (the place in the whole paper) is still what the arrows move through. */
+  const numbering = useMemo(
+    () =>
+      report
+        ? { nums: subjectNumbers(report.questions), totals: subjectTotals(report.questions) }
+        : null,
+    [report]
+  );
 
   // Never a blank page: while it loads, or if the paper cannot be found,
   // the way back is still there.
@@ -135,6 +145,8 @@ export default function MockReviewScreen() {
   }
 
   const total = report.questions.length;
+  const num = numbering?.nums[index] ?? index + 1;
+  const subjectTotal = numbering?.totals.get(q.subject) ?? total;
   const verdict = !q.answered ? 'skipped' : q.is_correct ? 'right' : 'wrong';
   const options = q.options ? Object.entries(q.options).sort(([a], [b]) => a.localeCompare(b)) : [];
   const figures = Array.isArray(q.diagram) ? q.diagram.filter((f) => !!f?.url) : [];
@@ -157,8 +169,8 @@ export default function MockReviewScreen() {
           {/* One line: the question and where it sits in the paper. The
               subject and chapter are said once, above the question. */}
           <Text style={styles.title} numberOfLines={1}>
-            Question {q.num}
-            <Text style={styles.titleOf}> of {total}</Text>
+            Question {num}
+            <Text style={styles.titleOf}> of {subjectTotal}</Text>
           </Text>
           {/* A wrong key or a broken question, reported by the question with
               the paper and what was put attached, as the report did. */}
@@ -166,7 +178,7 @@ export default function MockReviewScreen() {
             style={styles.round}
             hitSlop={10}
             accessibilityRole="button"
-            accessibilityLabel={`Report a mistake in question ${q.num}`}
+            accessibilityLabel={`Report a mistake in ${SUBJECT_LABEL[q.subject] ?? q.subject} question ${num}`}
             onPress={() =>
               openReportSheet({
                 surface: 'mock',
@@ -176,6 +188,7 @@ export default function MockReviewScreen() {
                 context: {
                   run_id: report.run_id,
                   num: q.num,
+                  subject_num: num,
                   picked: q.chosen_option ?? q.chosen_value,
                   answered: q.answered,
                   marked_correct: q.is_correct,

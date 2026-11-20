@@ -25,6 +25,7 @@ import { colors } from '@/constants/brand';
 import { QUESTION_READ_LINE, QUESTION_READ_SIZE, READ_LINE, READ_SIZE } from '@/constants/reading';
 import { useScale } from '@/constants/scale';
 import { hapticSwitched, hapticWarning } from '@/lib/haptics';
+import { subjectNumbers, subjectTotals } from '@/lib/mock-numbering';
 import {
   chargeElapsed,
   getMockSession,
@@ -130,19 +131,14 @@ export default function MockTestScreen() {
   /** Within-subject numbering ("Physics · Q 3 / 25") and pill jump targets. */
   const layout = useMemo(() => {
     if (!session) return null;
-    const bySubject = new Map<string, number>();
-    const positions = session.paper.questions.map((q) => {
-      const n = (bySubject.get(q.subject) ?? 0) + 1;
-      bySubject.set(q.subject, n);
-      return n;
-    });
+    const positions = subjectNumbers(session.paper.questions);
     const firstIndex = new Map<string, number>();
     session.paper.questions.forEach((q, i) => {
       if (!firstIndex.has(q.subject)) firstIndex.set(q.subject, i);
     });
     return {
       positions,
-      totals: bySubject,
+      totals: subjectTotals(session.paper.questions),
       firstIndex,
       subjects: [...firstIndex.keys()],
     };

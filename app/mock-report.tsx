@@ -27,6 +27,7 @@ import {
   type MockReport,
   formatDay,
 } from '@/lib/mock-report';
+import { subjectNumbers } from '@/lib/mock-numbering';
 import { usePracticeFocus } from '@/lib/practice-focus-context';
 
 /**
@@ -544,6 +545,9 @@ function QuestionGrid({
   styles: ReturnType<typeof createStyles>;
 }) {
   const subjects = [...new Set(report.questions.map((q) => q.subject))];
+  // The label restarts at 1 in each subject, as on the question screen; the
+  // tap still opens the question by its place in the whole paper (`i`).
+  const nums = subjectNumbers(report.questions);
   return (
     <View style={styles.card}>
       {subjects.map((subject, si) => {
@@ -569,7 +573,7 @@ function QuestionGrid({
                         pressed && styles.gridCellPressed,
                       ]}
                       accessibilityRole="button"
-                      accessibilityLabel={`Question ${q.num}, ${verdict}`}
+                      accessibilityLabel={`${SUBJECT_LABEL[subject] ?? subject} question ${nums[i]}, ${verdict}`}
                       onPress={() =>
                         router.push({
                           pathname: '/mock-review',
@@ -584,7 +588,7 @@ function QuestionGrid({
                           verdict === 'wrong' && styles.gridTextWrong,
                         ]}
                       >
-                        {q.num}
+                        {nums[i]}
                       </Text>
                     </Pressable>
                   );
