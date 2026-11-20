@@ -333,7 +333,6 @@ const fig01d1: Diagram = {
       // water: the level that 15 mL makes in this bowl
       const h = capHeight(G.R, G.mL), yw = G.yb - h * k, hw = Math.sqrt(R * R - (yw - yc) * (yw - yc));
       path(s, [[cx - hw, yw], [cx + hw, yw]], { color: C.slate, w: 1.5, name: 'water' });
-      path(s, [[cx - hw + 12, yw + 6], [cx + hw - 12, yw + 6]], { color: C.grey, w: 1.2, name: 'water2' });
       // the red-hot tube lying in the water, closed end low, open end up the side
       const T = G.tube, u: P = [Math.cos(rad(T.ang)), -Math.sin(rad(T.ang))], n: P = [-u[1], u[0]], r = T.r, Lp = T.L * k;
       const c1: P = [T.c0[0] + u[0] * Lp, T.c0[1] + u[1] * Lp];
@@ -348,7 +347,7 @@ const fig01d1: Diagram = {
       for (let x = cx - aPx - 8; x <= cx + aPx + 8; x += 7) path(s, [[x, gy], [x, gy + 6]], { color: C.grey, w: 1, name: 'mesh' });
       s.place([
         { t: 'Wire gauze', p: [cx - aPx - 14, gy + 3], at: [[8, 54, 'start'], [8, 30, 'start']] },
-        { t: 'Distilled water (15 mL)', p: [cx - hw + 20, yw + 3], at: [[8, 176, 'start'], [8, 190, 'start']] },
+        { t: 'Distilled water (15 mL)', p: [cx - hw + 9, yw], at: [[8, 176, 'start'], [8, 190, 'start']] },
         { t: 'Red-hot tube', p: [T.c0[0] + u[0] * 40, T.c0[1] + u[1] * 40 + r], hi: true, at: [[110, 200, 'start'], [120, 204, 'start']] },
         { t: 'China dish', p: [cx + aPx - 12, wallY(cx + aPx - 12)], at: [[238, 176, 'start'], [238, 190, 'start']] },
       ]);
@@ -463,7 +462,7 @@ const D2_CASES: Record<string, D2> = {
       ROOT,
       { id: 'HCl', x: 170, y: 60, lines: ['dilute HCl, then FeCl<sub>3</sub>, shake'] },
       { id: 'red', x: 208, y: 112, hi: true, w: 252, lines: ['blood red colour: N and S together', eqHtml(THIOCYANATE)] },
-      { id: 'none', x: 208, y: 168, w: 252, dash: true, lines: ['no red colour: sodium was in excess,', 'test N and S separately'] },
+      { id: 'none', x: 208, y: 168, w: 252, dash: true, lines: ['no red colour: no thiocyanate,', 'test N and S separately'] },
     ],
     edges: [{ a: 'extract', b: 'HCl' }, { a: 'HCl', b: 'red', route: trunk(44) }, { a: 'HCl', b: 'none', route: trunk(44) }],
   },
@@ -493,7 +492,7 @@ D2_CASES.layer.h = 300;
 const CAP_D2: Record<string, string> = {
   N: 'Nitrogen in the sodium extract: FeSO<sub>4</sub> and boiling, dilute H<sub>2</sub>SO<sub>4</sub>, then FeCl<sub>3</sub>. A Prussian blue precipitate shows nitrogen.',
   S: 'Sulphur in the sodium extract, two ways: sodium nitroprusside gives a purple colour, and acetic acid then lead acetate gives black PbS.',
-  NS: 'Nitrogen and sulphur together: dilute HCl and FeCl<sub>3</sub> give a blood red colour of Fe(SCN)<sub>3</sub>. With excess sodium there is no red, and each element is tested alone.',
+  NS: 'Nitrogen and sulphur together: dilute HCl and FeCl<sub>3</sub> give a blood red colour of Fe(SCN)<sub>3</sub>. No red means no thiocyanate: with excess sodium it is broken down to cyanide and sulphide even when both elements are present, so each element is tested alone.',
   Ag: 'Halogens by silver nitrate: boil with conc. HNO<sub>3</sub> first if N or S is present, add AgNO<sub>3</sub>, then test the precipitate with NH<sub>4</sub>OH. AgCl is white and soluble, AgBr yellow and partly soluble, AgI dark yellow and insoluble.',
   layer: 'Bromine and iodine by the layer test: CCl<sub>4</sub> and excess chlorine water, shaken. The lower layer is orange for bromine and purple or violet for iodine.',
 };
@@ -525,7 +524,7 @@ const fig01d2: Diagram = {
       out.push(['Both sulphur tests end at the same conclusion, S²⁻: the purple colour and the black PbS each lead to "Sulphur present"', has('purple', 'purple colour') && has('black', 'black precipitate', 'PbS') && flowsOf(s).filter((f) => f.to === 'sulphur').length === 2]);
     } else if (c.k === 'NS') {
       out.push(eqCheck('Thiocyanate', THIOCYANATE));
-      out.push(['The two outcomes the text gives: blood red means thiocyanate (N and S together); no red means excess sodium, test N and S separately', has('red', 'blood red', 'N and S together') && has('none', 'no red colour', 'excess', 'separately')]);
+      out.push(['The two outcomes the text gives: blood red means thiocyanate (N and S together); no red means no thiocyanate (with N and S both present, excess sodium broke it down), so test N and S separately', has('red', 'blood red', 'N and S together') && has('none', 'no red colour', 'no thiocyanate', 'separately')]);
     } else if (c.k === 'Ag') {
       SILVER.forEach(([, eq], i) => out.push(eqCheck(`${['Chloride', 'Bromide', 'Iodide'][i]} with silver`, eq)));
       const ks = [KSP.Cl, KSP.Br, KSP.I];
@@ -557,7 +556,7 @@ const D3_CASES: Record<string, D3> = {
       { id: 'COOH', x: 262, y: 88, w: LEAF_W, hi: true, lines: ['Carboxylic acid', '–COOH'] },
       { id: 'FeCl3', x: 92, y: 162, w: SPINE_W, lines: ['Neutral FeCl<sub>3</sub>:', 'violet colour?'] },
       { id: 'phenol', x: 262, y: 162, w: LEAF_W, lines: ['Phenol', '–OH on a ring'] },
-      { id: 'notshown', x: 92, y: 236, w: SPINE_W, dash: true, lines: ['phenol not shown', '(no colour)'] },
+      { id: 'notshown', x: 92, y: 236, w: SPINE_W, dash: true, lines: ['no colour: phenol', 'not ruled out'] },
     ],
     edges: [no('litmus', 'neither', { side: 'r' }), yes('litmus', 'bicarb'), yes('bicarb', 'COOH', { side: 'r' }), no('bicarb', 'FeCl3'), yes('FeCl3', 'phenol', { side: 'r' }), no('FeCl3', 'notshown')],
     samples: [
@@ -570,7 +569,7 @@ const D3_CASES: Record<string, D3> = {
   carbonyl: {
     h: 292,
     nodes: [
-      { id: 'DNP', x: 92, y: 14, w: SPINE_W, lines: ['2,4-DNP:', 'orange precipitate?'] },
+      { id: 'DNP', x: 92, y: 14, w: SPINE_W, lines: ['2,4-DNP: yellow or', 'orange precipitate?'] },
       { id: 'nocarbonyl', x: 262, y: 14, w: LEAF_W, dash: true, lines: ['no carbonyl', 'group'] },
       { id: 'oxid', x: 92, y: 88, w: SPINE_W, lines: ['Tollens’ mirror', 'or Schiff pink?'] },
       { id: 'aldehyde', x: 262, y: 88, w: LEAF_W, hi: true, lines: ['Aldehyde', '–CHO'] },
@@ -613,7 +612,7 @@ const D3_CASES: Record<string, D3> = {
     h: 312,
     nodes: [
       { id: 'HCl', x: 92, y: 14, w: SPINE_W, lines: ['Dilute HCl:', 'does it dissolve?'] },
-      { id: 'notamine', x: 262, y: 14, w: 130, dash: true, lines: ['not an', 'amine'] },
+      { id: 'notamine', x: 262, y: 14, w: 130, dash: true, lines: ['no basic', 'amino group'] },
       { id: 'carbyl', x: 92, y: 88, w: SPINE_W, lines: ['Carbylamine:', 'foul smell?'] },
       { id: 'sec3', x: 262, y: 88, w: 130, dash: true, lines: ['secondary or', 'tertiary amine'] },
       { id: 'azo', x: 92, y: 162, w: SPINE_W, lines: ['Diazotise (0–5 °C),', 'then β-naphthol:', 'scarlet red?'] },
@@ -630,15 +629,15 @@ const D3_CASES: Record<string, D3> = {
   },
 };
 const CAP_D3: Record<string, string> = {
-  acid: 'Carboxylic acid or phenol: blue litmus turns red for both, NaHCO<sub>3</sub> effervesces only for the carboxylic acid, and neutral FeCl<sub>3</sub> gives a violet colour for a phenol.',
-  carbonyl: 'Aldehyde or ketone: 2,4-DNP shows a carbonyl group, a silver mirror (Tollens’) or a pink colour (Schiff’s) shows an aldehyde, and a ketone with a CH<sub>3</sub>CO– group gives yellow iodoform.',
+  acid: 'Carboxylic acid or phenol: blue litmus turns red for both, NaHCO<sub>3</sub> effervesces only for the carboxylic acid, and neutral FeCl<sub>3</sub> gives a violet colour for phenol. No colour does not rule a phenol out: 1- and 2-naphthol give none.',
+  carbonyl: 'Aldehyde or ketone: a yellow, orange or orange-red 2,4-DNP precipitate shows a carbonyl group, a silver mirror (Tollens’) or a pink colour (Schiff’s) shows an aldehyde, and a ketone with a CH<sub>3</sub>CO– group gives yellow iodoform.',
   alcohol: 'Alcohols: ceric ammonium nitrate gives a red colour, then Lucas reagent separates the classes by time: tertiary at once, secondary in about 1–5 minutes, primary no layers.',
   amine: 'Amines: dilute HCl dissolves the amine, the carbylamine smell shows a primary amine, and diazotisation with β-naphthol gives a scarlet red dye for an aromatic primary amine.',
 };
 /** What a chart must show, by its text: which boxes carry which words. */
 const D3_WORDS: Record<string, [string, string[]][]> = {
   acid: [['litmus', ['Blue litmus', 'red']], ['bicarb', ['NaHCO3', 'effervescence']], ['FeCl3', ['Neutral FeCl3', 'violet']], ['COOH', ['Carboxylic acid', '–COOH']], ['phenol', ['Phenol']]],
-  carbonyl: [['DNP', ['2,4-DNP', 'orange']], ['oxid', ['Tollens', 'Schiff', 'pink']], ['iodoform', ['Iodoform', 'yellow CHI3']], ['aldehyde', ['Aldehyde']], ['methylketone', ['CH3CO–']]],
+  carbonyl: [['DNP', ['2,4-DNP', 'yellow', 'orange']], ['oxid', ['Tollens', 'Schiff', 'pink']], ['iodoform', ['Iodoform', 'yellow CHI3']], ['aldehyde', ['Aldehyde']], ['methylketone', ['CH3CO–']]],
   alcohol: [['CAN', ['Ceric ammonium nitrate', 'red']], ['Lucas', ['Lucas reagent']]],
   amine: [['HCl', ['Dilute HCl']], ['carbyl', ['Carbylamine', 'foul smell']], ['azo', ['β-naphthol', 'scarlet red']], ['aromatic', ['aromatic', 'primary amine']]],
 };
@@ -716,10 +715,10 @@ const BANDS = { pp: { name: 'Phenolphthalein', lo: 8.2, hi: 10.0 }, mo: { name: 
 const CURVE_V = (() => { const v: number[] = []; for (let x = 0; x <= 9.5; x += 0.25) v.push(x); for (let x = 9.55; x <= 10.45; x += 0.05) v.push(+x.toFixed(2)); for (let x = 10.5; x <= 20; x += 0.25) v.push(x); return v; })();
 type TitCase = { pair: Pair; chip: string; cap: string; bands: ('pp' | 'mo')[]; eq: string; usable: boolean; tagEq: [number, number]; tagBand: Record<string, [number, number]> };
 const TIT_CASES: Record<Pair, TitCase> = {
-  ss: { pair: 'ss', chip: 'Strong–strong', bands: ['pp', 'mo'], eq: '7.0', usable: true, tagEq: [54, 66], tagBand: { pp: [180, 142], mo: [180, 198] }, cap: 'Strong acid with strong base (HCl and NaOH): the curve jumps vertically through pH 7 at equivalence, so either indicator changes colour on the steep part.' },
-  wa: { pair: 'wa', chip: 'Weak acid–strong base', bands: ['pp'], eq: '8.7', usable: true, tagEq: [54, 66], tagBand: { pp: [180, 142] }, cap: 'Weak acid with strong base (oxalic acid and NaOH): equivalence is alkaline, at about pH 8.7, so phenolphthalein, which changes on the alkaline side, fits.' },
-  wb: { pair: 'wb', chip: 'Strong acid–weak base', bands: ['mo'], eq: '5.3', usable: true, tagEq: [54, 198], tagBand: { mo: [180, 142] }, cap: 'Strong acid with weak base (HCl and Na<sub>2</sub>CO<sub>3</sub>): equivalence is acidic, at about pH 5.3, so methyl orange, which changes on the acid side, fits.' },
-  ww: { pair: 'ww', chip: 'Weak–weak', bands: [], eq: '7.0', usable: false, tagEq: [54, 66], tagBand: {}, cap: 'Weak acid with weak base: the curve has no steep step near pH 7, so neither indicator gives a sharp end point.' },
+  ss: { pair: 'ss', chip: 'Strong–strong', bands: ['pp', 'mo'], eq: '7.0', usable: true, tagEq: [54, 66], tagBand: { pp: [182, 94], mo: [186, 170] }, cap: 'Strong acid with strong base (0.100 M HCl and NaOH): the curve jumps vertically through pH 7 at equivalence, so either indicator changes colour on the steep part, phenolphthalein on the alkaline side and methyl orange on the acid side.' },
+  wa: { pair: 'wa', chip: 'Weak acid–strong base', bands: ['pp'], eq: '8.7', usable: true, tagEq: [54, 66], tagBand: { pp: [182, 94] }, cap: 'Weak acid with strong base (0.100 M acetic acid and NaOH, the worked example): equivalence is alkaline, at about pH 8.7, so phenolphthalein, which changes on the alkaline side, fits. Oxalic acid with NaOH behaves the same way.' },
+  wb: { pair: 'wb', chip: 'Strong acid–weak base', bands: ['mo'], eq: '5.3', usable: true, tagEq: [54, 198], tagBand: { mo: [186, 170] }, cap: 'Weak base with strong acid (0.100 M ammonia and HCl, the worked example): equivalence is acidic, at about pH 5.3, so methyl orange, which changes on the acid side, fits. Sodium carbonate with HCl is titrated to methyl orange for the same reason.' },
+  ww: { pair: 'ww', chip: 'Weak–weak', bands: [], eq: '7.0', usable: false, tagEq: [54, 66], tagBand: {}, cap: 'Weak acid with weak base (acetic acid and ammonia): the curve has no steep step near pH 7, so neither indicator gives a sharp end point.' },
 };
 const fig03d1: Diagram = {
   id: 'c12-12-03-d1',
@@ -788,14 +787,14 @@ const fig03d1: Diagram = {
 /* ===================================================================== */
 /* c12-12-03-d2 · the burette set-up and the end-point colours (index 2)   */
 /* ===================================================================== */
-/** Colour is a thick stroke (no fills). Phenolphthalein pink, methyl orange yellow and pinkish red, permanent light pink. */
-const COL = { pink: '#E0558F', yellow: '#E6B800', pinkRed: '#D9484F', lightPink: '#EDA3C2' };
+/** Colour is a thick stroke (no fills). Phenolphthalein faint pink, methyl orange yellow and pinkish red, permanent light pink. */
+const COL = { pink: '#EC86B1', yellow: '#E6B800', pinkRed: '#D9484F', lightPink: '#EDA3C2' };
 const SETUP = {
-  rod: 52, cx: 150, hw: 11, top: 38, bottom: 214, y0: 66, y50: 214, clampY: 48, cock: 232, nozzleTip: 254,
+  rod: 52, cx: 150, hw: 11, top: 38, bottom: 214, y0: 66, y50: 214, clampY: 118, cock: 232, nozzleTip: 254,
   neckHalf: 12, neckTop: 244, neckEnd: 270, baseY: 318, baseHalf: 46, tileTop: 318, tileHalf: 66, tileH: 8, level: 74,
 };
 const ENDPOINTS: { id: string; name: string; before: string | null; after: string; bw: string; aw: string; note: string }[] = [
-  { id: 'phenolphthalein', name: 'Phenolphthalein', before: null, after: COL.pink, bw: 'colourless', aw: 'pink', note: 'acid in the flask, NaOH from the burette' },
+  { id: 'phenolphthalein', name: 'Phenolphthalein', before: null, after: COL.pink, bw: 'colourless', aw: 'faint pink', note: 'acid in the flask, NaOH from the burette' },
   { id: 'methyl orange', name: 'Methyl orange', before: COL.yellow, after: COL.pinkRed, bw: 'yellow', aw: 'pinkish red', note: 'base in the flask, acid from the burette' },
   { id: 'KMnO4', name: 'KMnO<sub>4</sub> in acid', before: null, after: COL.lightPink, bw: 'colourless (Mn<sup>2+</sup>)', aw: 'permanent light pink', note: 'self-indicator, no other indicator' },
 ];
@@ -806,7 +805,7 @@ const fig03d2: Diagram = {
   name: 'Burette set-up and end points',
   cases: [
     { chip: 'Set-up', cap: 'A burette clamped on its stand, the funnel taken out, the titrant run in from the stopcock into a conical flask that stands on a white tile.', view: 'setup' },
-    { chip: 'End-point colours', cap: 'The end point: phenolphthalein goes from colourless to pink, methyl orange from yellow to pinkish red, and KMnO<sub>4</sub> in acid from colourless (Mn<sup>2+</sup>) to a permanent light pink.', view: 'colours' },
+    { chip: 'End-point colours', cap: 'The end point: phenolphthalein goes from colourless to a faint permanent pink, methyl orange from yellow to pinkish red, and KMnO<sub>4</sub> in acid from colourless (Mn<sup>2+</sup>) to a permanent light pink.', view: 'colours' },
   ],
   draw(c: { view: 'setup' | 'colours' }) {
     if (c.view === 'colours') {
@@ -834,8 +833,8 @@ const fig03d2: Diagram = {
     path(s, [[G.rod - 22, G.baseY + G.tileH], [G.rod + 22, G.baseY + G.tileH]], { w: 2.4, name: 'standbase' });
     path(s, [[G.rod, G.baseY + G.tileH], [G.rod, 24]], { w: 2.2, name: 'rod' });
     path(s, [[G.rod, G.clampY], [cx - hw - 4, G.clampY]], { w: 2, name: 'arm' });
-    s.add(`<rect x="${cx - hw - 4}" y="${G.clampY - 7}" width="${2 * hw + 8}" height="14" rx="3" fill="none" stroke="${C.ink}" stroke-width="1.5"/>`);
-    keep(s, [[cx - hw - 4, G.clampY - 7], [cx + hw + 4, G.clampY - 7], [cx + hw + 4, G.clampY + 7], [cx - hw - 4, G.clampY + 7], [cx - hw - 4, G.clampY - 7]], 'clamp');
+    s.add(`<rect x="${cx - hw - 4}" y="${G.clampY - 5}" width="${2 * hw + 8}" height="10" rx="3" fill="none" stroke="${C.ink}" stroke-width="1.5"/>`);
+    keep(s, [[cx - hw - 4, G.clampY - 5], [cx + hw + 4, G.clampY - 5], [cx + hw + 4, G.clampY + 5], [cx - hw - 4, G.clampY + 5], [cx - hw - 4, G.clampY - 5]], 'clamp');
     // the burette: two walls, open at the top (the funnel is out), the stopcock, the nozzle
     path(s, [[cx - hw, G.top], [cx - hw, G.bottom + 6]], { name: 'wallL' });
     path(s, [[cx + hw, G.top], [cx + hw, G.bottom + 6]], { name: 'wallR' });
@@ -862,10 +861,10 @@ const fig03d2: Diagram = {
       { t: 'Stopcock', p: [cx + 30, G.cock + 2], hi: true, at: [[cx + 44, G.cock - 8, 'start']] },
       { t: 'Funnel removed', p: [cx + hw, G.top + 2], at: [[cx + 28, 30, 'start']] },
       { t: 'Titrant: NaOH', p: [cx + hw, G.level + 2], at: [[cx + 28, 64, 'start']] },
-      { t: 'Burette', p: [cx + hw, 128], at: [[cx + 34, 118, 'start']] },
+      { t: 'Burette', p: [cx + hw, 170], at: [[cx + 34, 160, 'start']] },
       { t: 'Conical flask', p: [cx + 34, G.baseY - 26], at: [[cx + 62, 272, 'start']] },
       { t: 'White tile', p: [cx + G.tileHalf - 6, G.tileTop + 4], at: [[cx + 74, 324, 'start']] },
-      { t: 'Stand', p: [G.rod, 90], at: [[G.rod + 12, 96, 'start']] },
+      { t: 'Stand', p: [G.rod, 176], at: [[G.rod + 12, 182, 'start']] },
     ]);
     return s;
   },
@@ -889,7 +888,7 @@ const fig03d2: Diagram = {
       const dOx = 7 - 2, e = KMNO4[0].find(([, f]) => f.includes('e<sup>'))![0];
       out.push([`Mn goes from +7 to +2, ${dOx} electrons, the ${e} e⁻ in the half-equation and the n-factor 5 of KMnO₄; Mn²⁺ is colourless, so the first permanent pink is one drop of excess MnO₄⁻`, dOx === e && e === 5]);
       out.push(['Colour as stroke: ' + ENDPOINTS.map((x) => `${x.id} ${x.before ? 'coloured' : 'colourless'} → coloured`).join(', ') + '; "colourless" is a dashed grey outline', ENDPOINTS.every((x) => { const L = LINES.get(s)!; const b = L.find((l) => l.name === `before-${x.id}`)!, a = L.find((l) => l.name === `after-${x.id}`)!; return !!b && !!a && a.pts.length >= 2; })]);
-      out.push(['The names and colours as the text gives them: colourless · pink · yellow · pinkish red · colourless (Mn²⁺) · permanent light pink', ['colourless', 'pink', 'yellow', 'pinkish red', 'colourless (Mn2+)', 'permanent light pink'].every((t) => hasLabel(s, t))]);
+      out.push(['The names and colours as the text gives them: colourless · faint pink · yellow · pinkish red · colourless (Mn²⁺) · permanent light pink', ['colourless', 'faint pink', 'yellow', 'pinkish red', 'colourless (Mn2+)', 'permanent light pink'].every((t) => hasLabel(s, t))]);
       out.push(['One highlight: the three end-point arrows in marigold, all pointing from the starting colour to the end colour (left to right)', ENDPOINTS.every((x) => { const a = lineOf(s, `arrow-${x.id}`); return a[1][0] > a[0][0]; })]);
     }
     out.push(...layout(s));
