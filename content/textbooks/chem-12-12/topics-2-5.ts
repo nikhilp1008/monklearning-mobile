@@ -68,8 +68,8 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Formation of Mohr’s salt',
-        main: 'FeSO<sub>4</sub> + (NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub> + 6H<sub>2</sub>O → FeSO<sub>4</sub>·(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub>·6H<sub>2</sub>O',
-        legend: ['FeSO<sub>4</sub> = ferrous sulphate', '(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub> = ammonium sulphate', 'Mohr’s salt = ferrous ammonium sulphate, 392 g mol<sup>−1</sup>'],
+        main: 'FeSO<sub>4</sub>·7H<sub>2</sub>O + (NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub> → FeSO<sub>4</sub>·(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub>·6H<sub>2</sub>O + H<sub>2</sub>O',
+        legend: ['FeSO<sub>4</sub>·7H<sub>2</sub>O = ferrous sulphate (green crystals)', '(NH<sub>4</sub>)<sub>2</sub>SO<sub>4</sub> = ammonium sulphate', 'Mohr’s salt = ferrous ammonium sulphate, 392 g mol<sup>−1</sup>'],
         note: 'The two salts are taken in equimolar amounts; the crystals are light green.',
       },
       {
@@ -669,7 +669,7 @@ export const TOPICS: Topic[] = [
           '<b>Formula.</b> <i>W</i> = 4.184 × (100 × 15.0 − 100 × 13.0)/13.0 = 4.184 × 200/13.0 = 64.4 J K<sup>−1</sup>.',
           '<b>Second route, heat by heat.</b> The hot water gave out 100 × 4.184 × 15.0 = 6276 J. The cold water took in 100 × 4.184 × 13.0 = 5439 J. The 837 J that remains went into the beaker over 13.0 K: 837/13.0 = 64.4 J K<sup>−1</sup>.',
         ],
-        ans: '<i>W</i> = 64 J K<sup>−1</sup>',
+        ans: '<i>W</i> = 64.4 J K<sup>−1</sup>',
       },
       {
         t: 'formula',

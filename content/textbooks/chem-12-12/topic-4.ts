@@ -62,7 +62,7 @@ export const TOPICS: Topic[] = [
             ],
             [
               'Iron(III), Fe<sup>3+</sup> (and iron(II))',
-              'light green, yellow or brown',
+              'iron(III) yellow or brown; iron(II) light green',
               'not listed for iron(III); iron(II) is green cold, dirty white or yellow hot',
             ],
             [
