@@ -5,6 +5,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 import { AppState, Platform } from 'react-native';
 
 import { apiFetch } from '@/lib/api';
+import { setTapSink } from '@/lib/tap';
 
 /**
  * What the app does, sent to the server so /admin can see it.
@@ -238,6 +239,8 @@ export function initTracking(): () => void {
   if (started) return () => {};
   started = true;
   launchId = newId();
+  installErrorTracking();
+  setTapSink(trackTap);   // lib/tap.ts: how promo and payment code reports an action without importing this file
 
   (async () => {
     try {
@@ -270,7 +273,108 @@ export function initTracking(): () => void {
   };
 }
 
+/** The screen the student is on, so an error or an action can say where it happened. */
+let lastScreen: string | null = null;
+
 /** A screen the student opened. Called from the root layout on route change. */
 export function trackScreen(pathname: string): void {
+  lastScreen = pathname;
   track('screen_view', undefined, pathname);
+}
+
+/**
+ * A deliberate action that is not a screen: starting to pay, trying a promo
+ * code. A screen view says a student reached the plans page; this says what
+ * they did there. `name` is a fixed word chosen in code, never something typed.
+ */
+export function trackTap(name: string, props?: Record<string, unknown>): void {
+  track('tap', { name, ...(props ?? {}) }, lastScreen ?? undefined);
+}
+
+/* ── Errors ────────────────────────────────────────────────────────────────
+   There is no outside crash reporter, on purpose: nothing about a student
+   leaves for a third party. An error is one more event on the queue above, so
+   it goes to our own server with the screen it happened on, survives being
+   offline, and is restored on the next launch if this one dies.
+
+   What is sent: the error's message, its name and the top of its stack, each
+   cut short. What is not: anything typed, anything on screen. */
+
+/** One launch that loops on the same error must not fill the queue with it. */
+const MAX_SAME_ERROR = 3;
+const MAX_ERRORS_PER_LAUNCH = 20;
+/** How long a fatal error's own handler is held back so the event can be saved first. */
+const FATAL_SAVE_MS = 250;
+
+const seenErrors = new Map<string, number>();
+let errorCount = 0;
+let errorsInstalled = false;
+
+function clip(v: unknown, limit: number): string | null {
+  const s = text(v);
+  return s ? s.slice(0, limit) : null;
+}
+
+/**
+ * Record an error. `where` is how it was caught: 'global' (an uncaught error),
+ * 'promise' (a rejection nothing handled) or 'screen' (a screen failed to draw
+ * and the student saw "Try again"). Never throws.
+ */
+export function trackError(error: unknown, where: 'global' | 'promise' | 'screen', fatal = false): void {
+  try {
+    const e = error as any;
+    const message = clip(e?.message ?? e, 300) ?? 'unknown error';
+    const key = message.slice(0, 120);
+    const times = (seenErrors.get(key) ?? 0) + 1;
+    seenErrors.set(key, times);
+    if (times > MAX_SAME_ERROR) return;
+    if (errorCount >= MAX_ERRORS_PER_LAUNCH) return;
+    errorCount += 1;
+    track('app_error', {
+      message,
+      name: clip(e?.name, 60),
+      stack: clip(e?.stack, 1500),
+      where,
+      fatal,
+    }, lastScreen ?? undefined);
+    void flush();   // it may be the last thing this launch does
+  } catch {
+    // Reporting an error must never be the second error.
+  }
+}
+
+/** Catch what nothing else caught. Once per launch; the handlers that were there still run. */
+function installErrorTracking(): void {
+  if (errorsInstalled) return;
+  errorsInstalled = true;
+  try {
+    const EU: any = (globalThis as any).ErrorUtils;
+    if (EU?.getGlobalHandler && EU?.setGlobalHandler) {
+      const previous = EU.getGlobalHandler();
+      EU.setGlobalHandler((error: unknown, isFatal?: boolean) => {
+        trackError(error, 'global', !!isFatal);
+        const pass = () => { try { previous?.(error, isFatal); } catch {} };
+        // A fatal error ends the app. Give the event a moment to reach storage
+        // first, or the one crash worth knowing about is the one never seen.
+        // Not in development: the red screen should appear at once.
+        if (isFatal && !__DEV__) setTimeout(pass, FATAL_SAVE_MS);
+        else pass();
+      });
+    }
+  } catch {
+    // No global handler on this runtime. Screens still report through the boundary.
+  }
+  try {
+    // In development React Native already shows unhandled rejections; leave that alone.
+    const H: any = (globalThis as any).HermesInternal;
+    if (!__DEV__ && H?.enablePromiseRejectionTracker) {
+      H.enablePromiseRejectionTracker({
+        allRejections: true,
+        onUnhandled: (_id: number, error: unknown) => trackError(error, 'promise', false),
+        onHandled: () => {},
+      });
+    }
+  } catch {
+    // Not Hermes, or the hook is gone: uncaught errors are still reported above.
+  }
 }

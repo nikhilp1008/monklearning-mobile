@@ -105,7 +105,7 @@ import { getAnswers } from '@/lib/onboarding-answers';
 import { getProfile } from '@/lib/profile';
 import { installForegroundHandler, registerForPush, routeForNotification } from '@/lib/push';
 import type { PushData } from '@/lib/push';
-import { initTracking, trackScreen } from '@/lib/track';
+import { initTracking, trackError, trackScreen } from '@/lib/track';
 import { assertAssetsConfigured } from '@/lib/widgets/labelled-figure/r2-figure-resolver';
 import { PracticeFocusProvider } from '@/lib/practice-focus-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -117,14 +117,18 @@ export const unstable_settings = {
 
 /**
  * A render error anywhere below the root lands here instead of closing the
- * app. There is no crash reporter yet, so without this a production crash is
- * simply the app vanishing — the student retries the same screen and churns.
+ * app. Without this a production crash is simply the app vanishing — the
+ * student retries the same screen and churns. The error is reported to our
+ * own server (lib/track.ts, trackError), never to an outside crash service.
  * The error's own text stays in the log: it can carry internals, and "Try
  * again" is the only thing a student can act on.
  */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   useEffect(() => {
     console.error('[root error boundary]', error);
+    // A screen failed to draw and the student is looking at "Try again": the
+    // one kind of error the global handler never sees. Sent to our own server.
+    trackError(error, 'screen', true);
   }, [error]);
   // How it looks lives in components/error-screen.tsx.
   return <ErrorScreen onRetry={retry} />;

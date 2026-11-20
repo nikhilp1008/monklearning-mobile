@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 import { ApiError, apiFetch } from '@/lib/api';
+import { noteTap } from '@/lib/tap';
 import type { PassKind } from '@/lib/pass';
 
 /**
@@ -102,6 +103,9 @@ export function createOrder(
   if (offer) body.offer = offer;
   else if (promo) body.promo = promo;
   if (externalTransactionToken) body.external_transaction_token = externalTransactionToken;
+  // The student pressed Pay. The order itself is recorded by the server; this
+  // puts the press in the same trail as the screens around it.
+  noteTap('pay_started', { kind, with_code: !!promo, offer: offer ?? null });
   return apiFetch<Order>('/payments/orders', {
     method: 'POST',
     body: JSON.stringify(body),

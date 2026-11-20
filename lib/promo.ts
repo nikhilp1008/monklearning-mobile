@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { ApiError, apiFetch } from '@/lib/api';
+import { noteTap } from '@/lib/tap';
 import type { PassKind } from '@/lib/pass';
 
 /**
@@ -61,6 +62,10 @@ export async function checkPromo(code: string, kind: PassKind): Promise<PromoAns
       body: JSON.stringify({ code: typed, kind }),
       timeoutMs: 10000,
     });
+    // Which code was tried on which pass, and what the server said. A founder
+    // asking "why did it say invalid?" had nothing to look at before this.
+    noteTap('promo_checked', { kind, ok: !!r.valid, code: typed.toUpperCase().slice(0, 24),
+                                said: r.valid ? null : (r.message || 'That code is not valid.').slice(0, 120) });
     if (!r.valid) return { valid: false, message: r.message || 'That code is not valid.' };
     return {
       valid: true,
