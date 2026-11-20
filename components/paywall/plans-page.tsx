@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ObButton } from '@/components/onboarding-kit';
+import { BuildStamp } from '@/components/paywall/build-stamp';
 import { PressableScale } from '@/components/pressable-scale';
 import { PromoPlayNote } from '@/components/paywall/promo-play-note';
 import { RefundNote } from '@/components/paywall/refund-note';
@@ -226,6 +227,7 @@ export function PlansPage(props: PlansPageProps) {
           ) : null}
           {plan && PAYMENTS_ON_THIS_DEVICE && !free ? <SubscriptionNote plan={plan.name} rupees={plan.price} /> : null}
           {pick && PAYMENTS_ON_THIS_DEVICE && !free ? <RefundNote /> : null}
+          <BuildStamp />
         </View>
       </SafeAreaView>
     </SafeAreaView>

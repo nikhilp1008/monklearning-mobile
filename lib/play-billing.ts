@@ -77,12 +77,23 @@ export const PLAY_SKUS: string[] = Object.values(PLAY_PRODUCT_IDS) as string[];
 
 export const playProductId = (kind: PassKind): string | null => PLAY_PRODUCT_IDS[kind] ?? null;
 
-/** Google's own sentence is not shown to students; this one is. */
+/**
+ * Google's own sentence is not shown to students; this one is. `detail` is a short tag (where it failed and
+ * Google's code) added in brackets so a screenshot says WHY. It carries no personal data.
+ */
 export class PlayBillingUnavailableError extends Error {
-  constructor(message = 'Google Play could not start the payment. Check that you are signed in to Google Play on this phone, then try again. Nothing was charged.') {
-    super(message);
+  constructor(message = 'Google Play could not start the payment. Check that you are signed in to Google Play on this phone, then try again. Nothing was charged.', detail?: string) {
+    super(detail ? `${message} [${detail}]` : message);
     this.name = 'PlayBillingUnavailableError';
   }
+}
+
+/** "stage: code message", short, for the bracket on PlayBillingUnavailableError. */
+function billingDetail(stage: string, e: unknown): string {
+  const x = e as { code?: unknown; message?: unknown } | null;
+  const code = x?.code != null ? String(x.code) : '';
+  const msg = typeof x?.message === 'string' ? x.message : '';
+  return `${stage}: ${[code, msg].filter(Boolean).join(' ').replace(/\s+/g, ' ').slice(0, 70) || 'no detail'}`;
 }
 
 /**
@@ -121,11 +132,11 @@ export function connectPlayBilling(): Promise<void> {
       // User choice billing only when Razorpay-beside-Google is switched on; otherwise a
       // plain Play Billing connection (Google Play is the only way to pay).
       const ok = await (razorpayChoiceOn() ? iap().initConnection({ enableBillingProgramAndroid: 'user-choice-billing' }) : iap().initConnection());
-      if (!ok) throw new PlayBillingUnavailableError();
+      if (!ok) throw new PlayBillingUnavailableError(undefined, 'connect: init returned false');
     })().catch((err) => {
       connecting = null;
       productsRead = null;
-      throw err instanceof PlayBillingUnavailableError ? err : new PlayBillingUnavailableError();
+      throw err instanceof PlayBillingUnavailableError ? err : new PlayBillingUnavailableError(undefined, billingDetail('connect', err));
     });
   }
   return connecting;
@@ -177,7 +188,7 @@ export function loadPlayProducts(): Promise<Map<string, PlayProduct>> {
       return map;
     })().catch((err) => {
       productsRead = null;
-      throw err instanceof PlayBillingUnavailableError ? err : new PlayBillingUnavailableError();
+      throw err instanceof PlayBillingUnavailableError ? err : new PlayBillingUnavailableError(undefined, billingDetail('products', err));
     });
   }
   return productsRead;
@@ -319,7 +330,7 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
       await request();
     } catch (err) {
       if (isCancelError(err)) return { type: 'cancelled' };
-      if (!isNotReadyError(err)) throw new PlayBillingUnavailableError();
+      if (!isNotReadyError(err)) throw new PlayBillingUnavailableError(undefined, billingDetail('buy', err));
       // Play's service had dropped: connect again, once.
       resetConnection();
       await loadPlayProducts();
@@ -329,7 +340,7 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
   } catch (err) {
     if (err instanceof PlayBillingUnavailableError) throw err;
     if (isCancelError(err)) return { type: 'cancelled' };
-    throw new PlayBillingUnavailableError();
+    throw new PlayBillingUnavailableError(undefined, billingDetail('buy2', err));
   } finally {
     if (timer) clearTimeout(timer);
     cancelCurrent = null;

@@ -85,6 +85,11 @@
       [
         "expo-build-properties",
         {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** {*;}\n-optimizations !method/inlining/*\n-keepclasseswithmembers class * { public void onPayment*(...); }\n-keep class com.android.billingclient.** {*;}\n-dontwarn com.android.billingclient.**"
+          },
           "ios": {
             "deploymentTarget": "16.4"
           }
