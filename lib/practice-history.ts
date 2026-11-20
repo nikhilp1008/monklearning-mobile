@@ -207,6 +207,75 @@ export function shadeLevel(total: number, t: [number, number, number]): 0 | 1 | 
   return 4;
 }
 
+/* ------------------------------------------------------------ calendar */
+
+export interface HistoryMonth {
+  year: number;
+  /** 0-based, as Date uses. */
+  month: number;
+}
+
+/**
+ * The months the calendar draws, OLDEST FIRST: from the month of `from` (the
+ * first kept day) to the month of `to` (today). Scrolling down moves forward in
+ * time and the last block is always the current month, where the screen opens.
+ */
+export function historyMonths(from: string, to: string): HistoryMonth[] {
+  const a = parseDay(from);
+  const b = parseDay(to);
+  const list: HistoryMonth[] = [];
+  let y = a.getFullYear();
+  let m = a.getMonth();
+  while (y < b.getFullYear() || (y === b.getFullYear() && m <= b.getMonth())) {
+    list.push({ year: y, month: m });
+    m += 1;
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+  }
+  return list;
+}
+
+/**
+ * Where a month's grid starts. Days before `from` are outside the 90 days and
+ * are not drawn: the grid begins at `firstDay`, after `blanks` empty squares
+ * (Monday-first), with any week row that would be entirely empty dropped.
+ */
+export function monthLayout(
+  year: number,
+  month: number,
+  from: string
+): { firstDay: number; length: number; blanks: number } {
+  const length = new Date(year, month + 1, 0).getDate();
+  const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+  const f = parseDay(from);
+  const firstDay = f.getFullYear() === year && f.getMonth() === month ? f.getDate() : 1;
+  const leading = offset + firstDay - 1;
+  return { firstDay, length, blanks: leading % 7 };
+}
+
+export type HistoryDayKind = 'loading' | 'old' | 'future' | 'empty' | 'practice';
+
+/**
+ * What one square is, and whether it opens. Only a loaded, kept, past-or-today
+ * day with at least one answer opens. A day with nothing recorded — today
+ * included — does not; today still carries its outline (`isToday`).
+ */
+export function historyDayState(
+  date: string,
+  { today, from, total, loaded }: { today: string; from: string; total: number; loaded: boolean }
+): { kind: HistoryDayKind; tappable: boolean; isToday: boolean } {
+  const isToday = date === today;
+  let kind: HistoryDayKind;
+  if (!loaded) kind = 'loading';
+  else if (date > today) kind = 'future';
+  else if (date < from) kind = 'old';
+  else if (total > 0) kind = 'practice';
+  else kind = 'empty';
+  return { kind, tappable: kind === 'practice', isToday };
+}
+
 /* --------------------------------------------------------------- cache */
 
 /**

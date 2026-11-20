@@ -15,7 +15,10 @@ import {
   addDays,
   clockTime,
   getHistoryCalendar,
+  historyDayState,
+  historyMonths,
   isoDay,
+  monthLayout,
   parseDay,
   shadeLevel,
   shadeThresholds,
@@ -27,13 +30,22 @@ import {
  * PRACTICE HISTORY: the calendar.
  *
  * Opened from the clock button on Practice's header. One block per month,
- * newest first, each date a square that deepens (Soft orange) with how many
- * questions were answered that day. Tap a day with practice — or today,
- * always — for that day's questions (app/practice-history-day.tsx).
+ * oldest first, so scrolling down moves forward in time; the screen opens
+ * scrolled to the end, on the current month. The first month starts at the
+ * first kept day (today − 89): days before it are not drawn. Each date is a
+ * square that deepens (Soft orange) with how many questions were answered
+ * that day. Only a day with practice opens that day's questions
+ * (app/practice-history-day.tsx); today included, so an empty today does not
+ * open, but keeps its outline.
+ *
+ * A past day with nothing recorded is crossed out with a faint diagonal line
+ * and quiet number, and does not open (student feedback, 20 Nov 2026). It
+ * means "nothing recorded here", never "missed": the legend says so. Days
+ * after today keep their own faint outline, no line.
  *
  * Read only, 90 days, free for everyone. Design: "Practice history · final",
  * 17 Nov 2026. Squares only ever show HOW MUCH was practised, never mistakes,
- * and white is never "missed": no streaks anywhere.
+ * and no day is ever "missed": no streaks anywhere.
  */
 export default function PracticeHistoryScreen() {
   const { scale, verticalScale } = useScale();
@@ -46,6 +58,10 @@ export default function PracticeHistoryScreen() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
   const loadId = useRef(0);
+  const scrollRef = useRef<ScrollView>(null);
+  // Follow the end of the list (the current month) as it grows, until the
+  // student scrolls themselves.
+  const followEnd = useRef(true);
 
   const load = useCallback(() => {
     const id = ++loadId.current;
@@ -73,23 +89,13 @@ export default function PracticeHistoryScreen() {
   const totals = useMemo(() => new Map((data?.days ?? []).map((d) => [d.date, d.total])), [data]);
   const thresholds = useMemo(() => shadeThresholds(data?.days ?? []), [data]);
 
-  /** Months to draw, newest first: from today's month back to the first kept day's. */
+  /** Months to draw, oldest first: from the first kept day's month to today's. */
   const months = useMemo(() => {
-    const to = parseDay(data?.to ?? isoDay(new Date()));
-    const from = parseDay(data?.from ?? addDays(isoDay(new Date()), -89));
-    const list: { year: number; month: number }[] = [];
-    let y = to.getFullYear();
-    let m = to.getMonth();
-    while (y > from.getFullYear() || (y === from.getFullYear() && m >= from.getMonth())) {
-      list.push({ year: y, month: m });
-      m -= 1;
-      if (m < 0) {
-        m = 11;
-        y -= 1;
-      }
-    }
-    return list;
+    const to = data?.to ?? isoDay(new Date());
+    const from = data?.from ?? addDays(to, -89);
+    return historyMonths(from, to);
   }, [data]);
+  const current = months[months.length - 1];
 
   const openDay = (date: string) => router.push({ pathname: '/practice-history-day', params: { date } });
 
@@ -110,8 +116,8 @@ export default function PracticeHistoryScreen() {
     body = (
       <>
         <Month
-          year={months[0].year}
-          month={months[0].month}
+          year={current.year}
+          month={current.month}
           data={data}
           totals={totals}
           thresholds={thresholds}
@@ -133,6 +139,15 @@ export default function PracticeHistoryScreen() {
             text={`Showing what was saved at ${clockTime(new Date(savedAt).toISOString())}.`}
           />
         )}
+        {data && (
+          <View style={styles.startNote}>
+            <Text style={styles.endTitle}>Your practice since {shortDate(data.from)}.</Text>
+            <Text style={styles.endLine}>
+              We keep your practice for 90 days. Older practice isn&apos;t saved here, but it still counts in your
+              totals and in Progress.
+            </Text>
+          </View>
+        )}
         {months.map((m, i) => (
           <View key={`${m.year}-${m.month}`} style={i > 0 && styles.monthGap}>
             <Month
@@ -146,18 +161,9 @@ export default function PracticeHistoryScreen() {
               onOpen={openDay}
               styles={styles}
             />
-            {i === 0 && <Legend styles={styles} scale={scale} />}
+            {i === months.length - 1 && <Legend styles={styles} scale={scale} />}
           </View>
         ))}
-        {data && (
-          <View style={styles.endNote}>
-            <Text style={styles.endTitle}>That&apos;s everything since {shortDate(data.from)}.</Text>
-            <Text style={styles.endLine}>
-              We keep your practice for 90 days. Older practice isn&apos;t saved here, but it still counts in
-              your totals and in Progress.
-            </Text>
-          </View>
-        )}
       </>
     );
   }
@@ -167,6 +173,13 @@ export default function PracticeHistoryScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <HistoryHeader title="History" />
         <ScrollView
+          ref={scrollRef}
+          onScrollBeginDrag={() => {
+            followEnd.current = false;
+          }}
+          onContentSizeChange={() => {
+            if (followEnd.current) scrollRef.current?.scrollToEnd({ animated: false });
+          }}
           style={styles.scroll}
           contentContainerStyle={[
             styles.scrollContent,
@@ -211,46 +224,50 @@ function Month({
 }) {
   const today = data?.to ?? isoDay(new Date());
   const from = data?.from ?? addDays(today, -89);
-  const len = new Date(year, month + 1, 0).getDate();
-  const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+  // Days before the 90-day window are not drawn: the grid starts at `firstDay`.
+  const { firstDay, length, blanks } = monthLayout(year, month, from);
 
   let sum = 0;
   let on = 0;
   const cells: React.ReactNode[] = [];
-  for (let i = 0; i < offset; i++) cells.push(<View key={`b${i}`} style={{ width: square, height: square }} />);
-  for (let d = 1; d <= len; d++) {
+  for (let i = 0; i < blanks; i++) cells.push(<View key={`b${i}`} style={{ width: square, height: square }} />);
+  for (let d = firstDay; d <= length; d++) {
     const date = isoDay(new Date(year, month, d, 12));
-    const future = date > today;
-    const old = date < from;
     const total = totals.get(date) ?? 0;
-    if (total) {
+    const { kind, tappable, isToday } = historyDayState(date, { today, from, total, loaded: !!data });
+    if (kind === 'practice') {
       sum += total;
       on += 1;
     }
-    const isToday = date === today;
     const level = shadeLevel(total, thresholds);
-    const tappable = !!data && !future && !old && (total > 0 || isToday);
+    const quiet = kind === 'future' || kind === 'old' || kind === 'empty';
     cells.push(
       <Pressable
         key={date}
         disabled={!tappable}
         onPress={() => onOpen(date)}
         accessibilityRole={tappable ? 'button' : undefined}
-        accessibilityLabel={`${d} ${MONTH_LONG[month]}${total ? `, ${total} questions` : ''}`}
+        accessibilityState={{ disabled: !tappable }}
+        accessibilityLabel={`${d} ${MONTH_LONG[month]}${isToday ? ', today' : ''}${
+          kind === 'practice' ? `, ${total} questions` : kind === 'empty' ? ', nothing recorded' : ''
+        }`}
         style={({ pressed }) => [
           styles.cell,
           { width: square, height: square, borderRadius: square * 0.26 },
-          !data
+          kind === 'loading'
             ? styles.cellLoading
-            : future
+            : kind === 'future'
               ? styles.cellFuture
-              : old
+              : kind === 'old'
                 ? styles.cellOld
-                : { backgroundColor: SHADES[level], borderWidth: level ? 0 : 1, borderColor: 'rgba(28,26,22,.10)' },
+                : kind === 'empty'
+                  ? styles.cellEmpty
+                  : { backgroundColor: SHADES[level] },
           isToday && styles.cellToday,
-          pressed && { opacity: 0.6 },
+          pressed && tappable && { opacity: 0.6 },
         ]}>
-        {!!data && <Text style={[styles.cellText, (future || old) && styles.cellTextQuiet]}>{d}</Text>}
+        {kind === 'empty' && <View style={[styles.strike, { width: square * 0.62 }]} />}
+        {!!data && <Text style={[styles.cellText, quiet && styles.cellTextQuiet]}>{d}</Text>}
       </Pressable>
     );
   }
@@ -289,24 +306,37 @@ function Month({
 
 function Legend({ styles, scale }: { styles: ReturnType<typeof createStyles>; scale: (n: number) => number }) {
   return (
-    <View style={styles.legend}>
-      <Text style={styles.legendText}>Darker = more questions</Text>
-      <View style={styles.legendRamp}>
-        <Text style={styles.legendText}>Less</Text>
-        {SHADES.map((c, i) => (
-          <View
-            key={c}
-            style={{
-              width: scale(11),
-              height: scale(11),
-              borderRadius: scale(3),
-              backgroundColor: c,
-              borderWidth: i ? 0 : 1,
-              borderColor: 'rgba(28,26,22,.12)',
-            }}
-          />
-        ))}
-        <Text style={styles.legendText}>More</Text>
+    <View>
+      <View style={styles.legend}>
+        <Text style={styles.legendText}>Darker = more questions</Text>
+        <View style={styles.legendRamp}>
+          <Text style={styles.legendText}>Less</Text>
+          {SHADES.map((c, i) => (
+            <View
+              key={c}
+              style={{
+                width: scale(11),
+                height: scale(11),
+                borderRadius: scale(3),
+                backgroundColor: c,
+                borderWidth: i ? 0 : 1,
+                borderColor: 'rgba(28,26,22,.12)',
+              }}
+            />
+          ))}
+          <Text style={styles.legendText}>More</Text>
+        </View>
+      </View>
+      <View style={styles.legendEmpty}>
+        <View
+          style={[
+            styles.cellEmpty,
+            styles.legendEmptySquare,
+            { width: scale(11), height: scale(11), borderRadius: scale(3) },
+          ]}>
+          <View style={[styles.strike, { width: scale(9) }]} />
+        </View>
+        <Text style={styles.legendText}>Crossed out = no practice that day</Text>
       </View>
     </View>
   );
@@ -343,6 +373,17 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
     cellLoading: { borderWidth: 1, borderColor: 'rgba(28,26,22,.08)' },
     cellFuture: { borderWidth: 1, borderColor: 'rgba(28,26,22,.06)' },
     cellOld: {},
+    /** A kept past day with nothing recorded: no fill, no outline, a faint
+     *  diagonal line through a quiet number. Distinct from a future day's
+     *  faint outline, and never coloured like a mistake. */
+    cellEmpty: { backgroundColor: '#fff' },
+    strike: {
+      position: 'absolute',
+      height: Math.max(1, scale(1.3)),
+      borderRadius: scale(1),
+      backgroundColor: 'rgba(28,26,22,.22)',
+      transform: [{ rotate: '-45deg' }],
+    },
     cellToday: { borderWidth: scale(2), borderColor: colors.ink },
     cellText: { fontFamily: 'Onest_600SemiBold', fontSize: scale(12.5), color: colors.ink },
     cellTextQuiet: { color: colors.quiet },
@@ -351,6 +392,17 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       alignItems: 'center',
       justifyContent: 'space-between',
       marginTop: verticalScale(12),
+    },
+    legendEmpty: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: verticalScale(6),
+    },
+    legendEmptySquare: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      marginRight: scale(3),
     },
     legendRamp: { flexDirection: 'row', alignItems: 'center', gap: scale(3) },
     legendText: { fontFamily: 'Onest_500Medium', fontSize: scale(11), color: colors.faint, marginHorizontal: scale(2) },
@@ -361,7 +413,7 @@ function createStyles(scale: (n: number) => number, verticalScale: (n: number) =
       textAlign: 'center',
       marginTop: verticalScale(22),
     },
-    endNote: { marginTop: verticalScale(28), gap: verticalScale(4) },
+    startNote: { marginBottom: verticalScale(14), gap: verticalScale(4) },
     endTitle: { fontFamily: 'Onest_700Bold', fontSize: scale(14), color: colors.ink },
     endLine: { fontFamily: 'Onest_400Regular', fontSize: scale(13), lineHeight: scale(19), color: colors.slate },
     foot: {
