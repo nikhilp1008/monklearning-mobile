@@ -30,7 +30,7 @@ export const TOPICS: Topic[] = [
     n: 'A',
     title: 'The Three-Domain System: Why Woese Split the Moneran Kingdom',
     extra: true,
-    kalam: 'Both Archaea and Bacteria are prokaryotic, so together they replace Kingdom Monera.',
+    kalam: 'Both Archaea and Bacteria are prokaryotic, so Kingdom Monera is divided between them.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -45,11 +45,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>The domain logic.</b><br>The five-kingdom system (1969) groups all prokaryotes into one kingdom. Carl Woese’s rRNA sequencing (1970s) showed that “prokaryotes” are actually two groups so deeply diverged that they do not share a recent common ancestor with each other any more than either shares one with eukaryotes; the three-domain system itself was proposed in 1990. This means the prokaryote/eukaryote divide is not the deepest split in the tree of life. On the rRNA tree, the deepest split is between Bacteria and the Archaea-plus-Eukarya branch. The three-domain system restructures life accordingly:<br>• <b>Archaea</b>: prokaryotic cell type, branched-chain membrane lipids, no peptidoglycan in the cell wall, rRNA sequence distinct from Bacteria.<br>• <b>Bacteria</b>: prokaryotic cell type, straight-chain (unbranched) membrane lipids, peptidoglycan wall present, rRNA sequence distinct from Archaea.<br>• <b>Eukarya</b>: eukaryotic cell type, membranes with sterols, no peptidoglycan, rRNA sequence sister to Archaea (on the rRNA evidence).',
+        html: '<b>The domain logic.</b><br>The five-kingdom system (1969) groups all prokaryotes into one kingdom. Carl Woese’s rRNA sequencing (1970s) showed that “prokaryotes” are actually two groups that diverged at the very root of the tree of life; the three-domain system itself was proposed in 1990. This means the prokaryote/eukaryote divide is not the deepest split in the tree of life. On the rRNA tree, the deepest split is between Bacteria and the Archaea-plus-Eukarya branch. The three-domain system restructures life accordingly:<br>• <b>Archaea</b>: prokaryotic cell type, branched-chain membrane lipids, no peptidoglycan in the cell wall, rRNA sequence distinct from Bacteria.<br>• <b>Bacteria</b>: prokaryotic cell type, straight-chain (unbranched) membrane lipids, peptidoglycan wall present, rRNA sequence distinct from Archaea.<br>• <b>Eukarya</b>: eukaryotic cell type, membranes with sterols, no peptidoglycan, rRNA sequence sister to Archaea (on the rRNA evidence).',
       },
       {
         t: 'p',
-        html: '<b>Domain–kingdom mapping.</b> Both Archaea and Bacteria are prokaryotic, so together they replace Kingdom Monera. All four remaining kingdoms (Protista, Fungi, Plantae, Animalia) are eukaryotic and sit inside Domain Eukarya.',
+        html: '<b>Domain–kingdom mapping.</b> Both Archaea and Bacteria are prokaryotic, so Kingdom Monera is divided between them. All four remaining kingdoms (Protista, Fungi, Plantae, Animalia) are eukaryotic and sit inside Domain Eukarya.',
       },
 
       { t: 'part', title: 'Key Distinguishing Features' },
@@ -75,7 +75,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Why the Domain System Matters Evolutionarily' },
       {
         t: 'p',
-        html: 'The deepest split in the living world is not “prokaryote vs eukaryote.” On the rRNA tree, it is between Bacteria and the Archaea-plus-Eukarya branch. Eukaryotes (Domain Eukarya) are more closely related to Archaea than to Bacteria on the rRNA evidence, despite sharing the prokaryote label with Bacteria under Whittaker’s scheme. This is why the domain system is not merely an extra rank above kingdom; it corrects a fundamental misrepresentation of evolutionary history that the five-kingdom system perpetuates by treating all prokaryotes as one group.',
+        html: 'The deepest split in the living world is not “prokaryote vs eukaryote.” On the rRNA tree, it is between Bacteria and the Archaea-plus-Eukarya branch. Archaea are more closely related to Eukarya than to Bacteria on the rRNA evidence, despite sharing the prokaryote label with Bacteria under Whittaker’s scheme. This is why the domain system is not merely an extra rank above kingdom; it corrects a fundamental misrepresentation of evolutionary history that the five-kingdom system perpetuates by treating all prokaryotes as one group.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -110,8 +110,8 @@ export const TOPICS: Topic[] = [
             a: '<b>Archaea.</b>',
           },
           {
-            q: '[NEET] Assertion–Reason: Assertion (A): Kingdom Monera is split between two domains. Reason (R): Molecular studies show that archaebacteria and eubacteria are as different from each other as either is from eukaryotes.<br>Choose: (a) Both A and R are true, and R is the correct explanation of A; (b) Both A and R are true, and R is not the correct explanation of A; (c) A is true, R is false; (d) A is false, R is true.',
-            a: '<b>(a)</b> Both A and R are true, and R is the correct explanation of A. Molecular phylogeny (rRNA sequencing) demonstrates that the prokaryote kingdom Monera contains two lineages as anciently diverged from each other as either is from the eukaryotes.',
+            q: '[NEET] Assertion–Reason: Assertion (A): Kingdom Monera is split between two domains. Reason (R): Molecular (rRNA) studies show that archaebacteria and eubacteria are two lineages that separated at the root of the tree of life.<br>Choose: (a) Both A and R are true, and R is the correct explanation of A; (b) Both A and R are true, and R is not the correct explanation of A; (c) A is true, R is false; (d) A is false, R is true.',
+            a: '<b>(a)</b> Both A and R are true, and R is the correct explanation of A. Molecular phylogeny (rRNA sequencing) shows that the prokaryote kingdom Monera holds two lineages that separated at the root of the tree of life, so one kingdom cannot hold them both.',
           },
           {
             q: '[NEET] Name the domain that contains (a) <i>Agaricus</i>, (b) Methanogen, (c) Cyanobacterium.',
@@ -123,7 +123,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Why is the three-domain system considered more evolutionarily accurate than the five-kingdom system?',
-            a: 'The five-kingdom system groups all prokaryotes into one kingdom (Monera), implying they share a recent common ancestor. The three-domain system reveals that Archaea and Bacteria are as anciently diverged as any other pair of domains, so grouping them together misrepresents their evolutionary relationship. The domain system places Archaea closer to Eukarya than to Bacteria, reflecting the tree of life as the rRNA evidence shows it.',
+            a: 'The five-kingdom system groups all prokaryotes into one kingdom (Monera), implying they share a recent common ancestor. The three-domain system reveals that Archaea and Bacteria separated at the root of the tree of life, so grouping them together misrepresents their evolutionary relationship. The domain system places Archaea closer to Eukarya than to Bacteria, reflecting the tree of life as the rRNA evidence shows it.',
           },
         ],
       },
@@ -161,7 +161,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Note: “Bacillus” is both a shape and a genus name (e.g., <i>Bacillus anthracis</i> causes anthrax). The shape name and the genus name are unrelated.',
+        html: 'Note: “Bacillus” is both a shape and a genus name (e.g., <i>Bacillus anthracis</i> causes anthrax). The genus is named for its rod shape, but not every rod-shaped bacterium belongs to the genus <i>Bacillus</i> (<i>E. coli</i> is a rod too).',
       },
       {
         t: 'table',
@@ -409,10 +409,10 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[NEET] What is meant by the “perfect” and “imperfect” stages of a fungus?',
-            a: 'The perfect stage is the complete sexual cycle (plasmogamy → karyogamy → meiosis), producing sexual spores in spore-bearing structures (asci or basidia) borne in a fruiting body. The imperfect stage is the asexual phase producing only conidia, observed when the sexual stage is unknown or absent.',
+            a: 'The perfect stage is the complete sexual cycle (plasmogamy → karyogamy → meiosis), ending in sexual spores (for example zygospores, ascospores in asci or basidiospores on basidia, often in a fruiting body). The imperfect stage is the asexual phase producing only conidia, observed when the sexual stage is unknown or absent.',
           },
           {
-            q: '[NEET] Assertion–Reason: Assertion (A): Deuteromycetes is called an artificial/heterogeneous group. Reason (R): Once the sexual stage of a member of Deuteromycetes is discovered, it is removed from the group.<br>Choose: (a) Both A and R are true, and R is the correct explanation of A; (b) Both A and R are true, and R is not the correct explanation of A; (c) A is true, R is false; (d) A is false, R is true.',
+            q: '[NEET] Assertion–Reason: Assertion (A): Deuteromycetes is called an artificial/heterogeneous group. Reason (R): Deuteromycetes is defined only by the absence of a known sexual stage, not by shared ancestry.<br>Choose: (a) Both A and R are true, and R is the correct explanation of A; (b) Both A and R are true, and R is not the correct explanation of A; (c) A is true, R is false; (d) A is false, R is true.',
             a: '<b>(a)</b> Both A and R are true, and R is the correct explanation of A. Deuteromycetes is defined solely by the absence of a known sexual stage, an operational, not natural, grouping. Discovering the sexual stage destroys the only criterion for membership, so the fungus is reclassified accordingly.',
           },
           {
@@ -552,13 +552,13 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Eubacteria (by function):</b><br>• Cyanobacteria (photosynthetic, peptidoglycan wall, naked DNA): <i>Nostoc</i>, <i>Anabaena</i>: filamentous forms with heterocysts for nitrogen fixation; <i>Oscillatoria</i>: filamentous, without heterocysts<br>• Chemosynthetic autotrophs: nitrifying bacteria (<i>Nitrosomonas</i>, <i>Nitrobacter</i>)<br>• Nitrogen-fixers: <i>Rhizobium</i> (symbiotic in legume root nodules), <i>Azotobacter</i> (free-living)<br>• Pathogens: <i>Rickettsia</i> (typhus), <i>Mycoplasma</i> (smallest, no cell wall at all, so the exception among eubacteria; penicillin-resistant)<br>• Food and dairy: <i>Lactobacillus</i> (lactic acid bacteria, curdles milk into dahi)<br>• Decomposers: most soil bacteria',
+        html: '<b>Eubacteria (by function):</b><br>• Cyanobacteria (photosynthetic, peptidoglycan wall, naked DNA): <i>Nostoc</i>, <i>Anabaena</i>: filamentous forms with heterocysts for nitrogen fixation; <i>Oscillatoria</i>: filamentous, without heterocysts<br>• Spore-former: <i>Clostridium</i><br>• Antibiotic source: <i>Streptomyces</i><br>• Chemosynthetic autotrophs: nitrifying bacteria (<i>Nitrosomonas</i>, <i>Nitrobacter</i>)<br>• Nitrogen-fixers: <i>Rhizobium</i> (symbiotic in legume root nodules), <i>Azotobacter</i> (free-living)<br>• Pathogens: <i>Rickettsia</i> (typhus), <i>Mycoplasma</i> (smallest, no cell wall at all, so the exception among eubacteria; penicillin-resistant)<br>• Food and dairy: <i>Lactobacillus</i> (lactic acid bacteria, curdles milk into dahi)<br>• Decomposers: most soil bacteria',
       },
 
       { t: 'part', title: 'Kingdom Protista' },
       {
         t: 'p',
-        html: '<b>Plant-like (algal) protists:</b><br>• Chrysophytes (silica wall, chrysolaminarin store): Diatoms (centric and pennate types: <i>Navicula</i>, <i>Pinnularia</i>) and golden algae<br>• Dinoflagellates (cellulose plates, two flagella, starch store): <i>Gonyaulax</i> (red tide), <i>Noctiluca</i> (mostly heterotrophic, bioluminescent, “sea sparkle”)<br>• Euglenoids (protein pellicle, no wall, paramylon store, mixotrophic): <i>Euglena</i><br>• Hard-to-place green algae: <i>Chlamydomonas</i>, <i>Chlorella</i>',
+        html: '<b>Plant-like (algal) protists:</b><br>• Chrysophytes (silica wall, chrysolaminarin store): Diatoms (centric and pennate types; e.g., the pennate <i>Navicula</i> and <i>Pinnularia</i>) and golden algae<br>• Dinoflagellates (cellulose plates, two flagella, starch store): <i>Gonyaulax</i> (red tide), <i>Noctiluca</i> (mostly heterotrophic, bioluminescent, “sea sparkle”)<br>• Euglenoids (protein pellicle, no wall, paramylon store, mixotrophic): <i>Euglena</i>',
       },
       {
         t: 'p',
@@ -594,7 +594,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Kingdom Plantae' },
       {
         t: 'p',
-        html: '<b>Autotrophic exceptions:</b><br>• Insectivorous (partly heterotrophic): Venus flytrap (<i>Dionaea</i>), bladderwort (<i>Utricularia</i>), pitcher plant (<i>Nepenthes</i>)<br>• Parasitic (has almost lost its chlorophyll): <i>Cuscuta</i> (dodder, Amarbel)<br>• Fully autotrophic comparison: <i>Spirogyra</i> (green alga)<br>• Gymnosperm: <i>Cycas</i>',
+        html: '<b>Autotrophic exceptions:</b><br>• Insectivorous (partly heterotrophic): Venus flytrap (<i>Dionaea</i>), bladderwort (<i>Utricularia</i>), pitcher plant (<i>Nepenthes</i>)<br>• Parasitic (has almost lost its chlorophyll): <i>Cuscuta</i> (dodder, Amarbel)<br>• Green algae placed in Plantae (NCERT), though they sit near the protist boundary: <i>Chlamydomonas</i>, <i>Chlorella</i>',
+      },
+      {
+        t: 'p',
+        html: '<b>Other examples named in the chapter:</b><br>• Fully autotrophic comparison: <i>Spirogyra</i> (green alga)<br>• Gymnosperm: <i>Cycas</i>',
       },
       {
         t: 'p',
@@ -644,15 +648,15 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Assertion–Reason: Assertion (A): Kingdom Monera is split between two domains. Reason (R): Archaebacteria and eubacteria differ in cell wall chemistry and membrane lipids, placing them in different domains.<br>Choose: (a) Both A and R are true, and R is the correct explanation of A; (b) Both A and R are true, and R is not the correct explanation of A; (c) A is true, R is false; (d) A is false, R is true.',
-            a: '<b>(a)</b> Both A and R are true, and R is the correct explanation of A. The five-kingdom system places all prokaryotes in Monera, but molecular data (rRNA sequencing, membrane lipid analysis) show that archaebacteria and eubacteria are as anciently diverged as any pair of domains, justifying their placement in separate domains.',
+            a: '<b>(a)</b> Both A and R are true, and R is the correct explanation of A. The five-kingdom system places all prokaryotes in Monera, but molecular data (rRNA sequencing, membrane lipid analysis) show that archaebacteria and eubacteria separated at the root of the tree of life, justifying their placement in separate domains.',
           },
           {
             q: '[CBSE] Give two differences between heterocysts and ordinary cells of <i>Nostoc</i>.',
-            a: '(a) Heterocysts have a thickened, multilayered wall that restricts gas diffusion; ordinary cells have a normal vegetative wall. (b) Heterocysts lack the photosystem II oxygen-evolving complex and so do not release oxygen or fix CO<sub>2</sub> by photosynthesis; they are dedicated to nitrogen fixation. Two differences are enough; (b) is for interest and goes beyond the chapter.',
+            a: '(a) Heterocysts have a thickened, multilayered wall that restricts gas diffusion; ordinary cells have a normal vegetative wall. (b) Heterocysts do not carry out oxygen-releasing photosynthesis (they lack the oxygen-evolving photosystem II), so they keep the oxygen-free conditions nitrogenase needs; ordinary cells photosynthesise and release O<sub>2</sub>.',
           },
           {
             q: '[NEET] A student observes a soil bacterium under a microscope: it is rod-shaped and appears pink after Gram staining. (a) What is its Gram type? (b) Name one example. (c) State one consequence of its Gram type for antibiotic treatment.',
-            a: '(a) Gram-negative (pink, safranin-counterstained). (b) <i>Escherichia coli</i>, <i>Salmonella typhi</i> or <i>Klebsiella</i> (any Gram-negative bacillus). (c) Gram-negative bacteria have an outer membrane containing lipopolysaccharide (LPS), which confers resistance to many antibiotics that act on the cell wall. Penicillin-family drugs (which target peptidoglycan synthesis) are generally less effective against them; other classes of antibiotics are often needed.',
+            a: '(a) Gram-negative (pink, safranin-counterstained). (b) Any Gram-negative bacillus, for example <i>Pseudomonas</i> (a common soil rod) or <i>Escherichia coli</i>, <i>Salmonella typhi</i>, <i>Klebsiella</i> (gut or pathogenic rods). (c) Gram-negative bacteria have an outer membrane containing lipopolysaccharide (LPS), which confers resistance to many antibiotics that act on the cell wall. Penicillin-family drugs (which target peptidoglycan synthesis) are generally less effective against them; other classes of antibiotics are often needed.',
           },
           {
             q: '[NEET] A student is given an unknown organism: single-celled, eukaryotic, has chloroplasts, a flagellum, and a flexible pellicle but no rigid cell wall. State its kingdom and give two reasons excluding the pellicle.',
@@ -671,8 +675,8 @@ export const TOPICS: Topic[] = [
             a: '(a) Enhanced phosphorus uptake: fungal hyphae access soil phosphate beyond the depletion zone of root hairs, transferring it to the plant in exchange for carbohydrate. (b) Drought resistance: the extensive hyphal network improves water access for the plant. (c) Protection of roots: some mycorrhizal fungi are reported to help guard roots against soil pathogens (for interest). (d) Facilitation of plant colonisation: the mycorrhizal partnership was probably essential for the transition of plants from water to land.',
           },
           {
-            q: '[NEET] Assertion–Reason: Assertion (A): Clamp connections are found in dikaryotic Basidiomycete mycelium. Reason (R): Clamp connections ensure that each daughter cell receives one nucleus of each parental mating type during hyphal division.<br>Choose: (a) Both A and R are true, and R is the correct explanation of A; (b) Both A and R are true, and R is not the correct explanation of A; (c) A is true, R is false; (d) A is false, R is true.',
-            a: '<b>(a)</b> Both A and R are true, and R is the correct explanation of A. Clamp connections form at septation in dikaryotic Basidiomycete hyphae specifically to ensure precise distribution of both parental nuclei to each daughter cell. Finding clamp connections on a mycelium is diagnostic of dikaryotic Basidiomycete mycelium.',
+            q: '[NEET] Assertion–Reason: Assertion (A): Clamp connections are found in the dikaryotic mycelium of many Basidiomycetes. Reason (R): Clamp connections ensure that each daughter cell receives one nucleus of each parental mating type during hyphal division.<br>Choose: (a) Both A and R are true, and R is the correct explanation of A; (b) Both A and R are true, and R is not the correct explanation of A; (c) A is true, R is false; (d) A is false, R is true.',
+            a: '<b>(a)</b> Both A and R are true, and R is the correct explanation of A. Clamp connections form at septation in the dikaryotic hyphae of many Basidiomycetes (not rusts and smuts) to ensure precise distribution of both parental nuclei to each daughter cell. Finding clamp connections on a mycelium is diagnostic of dikaryotic Basidiomycete mycelium.',
           },
           {
             q: '[NEET] Lichens are scarce or absent in a heavily industrialised area but abundant in a nearby forest. Explain the biological reason.',
@@ -696,7 +700,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Why is Deuteromycetes described as an “imperfect” group? State one consequence of this imperfection.',
-            a: 'Deuteromycetes is called an “imperfect” group because fungi are classified by the structures of their sexual (perfect) stage: the ascus in Ascomycetes or the basidium in Basidiomycetes, spore-bearing structures borne in a fruiting body. Deuteromycetes are fungi known only from their asexual (imperfect) stage; their sexual stage has never been observed. Consequence: the group is artificial and will shrink as sexual stages are discovered. Once a sexual stage is found, the fungus is reclassified into Ascomycetes or Basidiomycetes and removed from Deuteromycetes.',
+            a: 'Deuteromycetes is called an “imperfect” group because fungi are classified by the structures of their sexual (perfect) stage, for example the ascus of Ascomycetes or the basidium of Basidiomycetes. Deuteromycetes are fungi known only from their asexual (imperfect) stage; their sexual stage has never been observed. Consequence: the group is artificial and will shrink as sexual stages are discovered. Once a sexual stage is found, the fungus is reclassified into Ascomycetes or Basidiomycetes and removed from Deuteromycetes.',
           },
         ],
       },
@@ -939,10 +943,10 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Q7: Analysis (Medium-Hard)] Consider the following statements about <i>Mycoplasma</i>:<br>(i) It has no cell wall.<br>(ii) It is the smallest living organism known.<br>(iii) It cannot survive without O<sub>2</sub>.<br>(iv) It is pathogenic in animals and plants.<br>(v) It reproduces mainly by binary fission.<br>Which of the following is correct?<br>(a) Only (iii) (b) (i), (iii) and (v) (c) (i), (ii), (iv) and (v) (d) All of the above',
-            a: '<b>Answer: (c).</b><br>• Statement (i) is TRUE: no cell wall is the defining feature.<br>• Statement (ii) is TRUE: <i>Mycoplasma</i> is the smallest known living cell.<br>• Statement (iii) is <b>FALSE</b>: <i>Mycoplasma</i> <b>can survive without O<sub>2</sub></b> (NCERT), so it is not dependent on oxygen.<br>• Statement (iv) is TRUE: it causes diseases in animals (e.g., atypical pneumonia) and plants (e.g., little leaf of brinjal).<br>• Statement (v) is TRUE: like other bacteria, <i>Mycoplasma</i> multiplies mainly by binary fission.<br>Since (iii) is false but (i), (ii), (iv) and (v) are all true, the correct option is <b>(c)</b>.',
+            a: '<b>Answer: (c).</b><br>• Statement (i) is TRUE: no cell wall is the defining feature.<br>• Statement (ii) is TRUE: <i>Mycoplasma</i> is the smallest known living cell.<br>• Statement (iii) is <b>FALSE</b>: <i>Mycoplasma</i> <b>can survive without O<sub>2</sub></b> (NCERT), so it is not dependent on oxygen.<br>• Statement (iv) is TRUE: it causes diseases in animals (e.g., atypical pneumonia) and plants (e.g., little leaf of brinjal, caused by a <i>Mycoplasma</i>-like phytoplasma).<br>• Statement (v) is TRUE: like other bacteria, <i>Mycoplasma</i> multiplies mainly by binary fission.<br>Since (iii) is false but (i), (ii), (iv) and (v) are all true, the correct option is <b>(c)</b>.',
           },
           {
-            q: '[Q8: Evaluation (Hard)] <b>Assertion (A):</b> Viruses are not included in Whittaker’s five-kingdom classification.<br><b>Reason (R):</b> Viruses are acellular and are acellular and metabolically inert outside a host cell, lacking the cellular organisation on which the five-kingdom scheme is based.<br>(a) Both A and R true, R is the correct explanation of A<br>(b) Both A and R true, R is not the correct explanation of A<br>(c) A true, R false<br>(d) A false, R true',
+            q: '[Q8: Evaluation (Hard)] <b>Assertion (A):</b> Viruses are not included in Whittaker’s five-kingdom classification.<br><b>Reason (R):</b> Viruses are acellular and metabolically inert outside a host cell, lacking the cellular organisation on which the five-kingdom scheme is based.<br>(a) Both A and R true, R is the correct explanation of A<br>(b) Both A and R true, R is not the correct explanation of A<br>(c) A true, R false<br>(d) A false, R true',
             a: '<b>Answer: (a).</b><br>• A is <b>true</b>: viruses, viroids and lichens are all excluded from the five kingdoms.<br>• R is <b>true</b>: viruses have no cell membrane, no cytoplasm, no organelles; they are crystallisable and metabolically inert outside a host.<br>• R <b>directly explains</b> A: Whittaker’s five criteria (cell structure, body organisation, nutrition, reproduction, phylogenetic relationships) all require a cell; viruses have no cell to evaluate against any criterion. The causal link is tight.<br>Therefore: both true, R explains A → <b>(a)</b>.',
           },
           {

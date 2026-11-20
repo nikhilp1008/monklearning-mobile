@@ -54,7 +54,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b> The “CO<sub>2</sub> drives breathing” rule is the normal physiological case. The role of oxygen-sensing becomes important only in unusual situations such as very high altitude or chronic lung disease: edge cases that go beyond the core NCERT treatment. And while we can override the automatic rhythm voluntarily for a while, the rising CO<sub>2</sub> drive normally forces an inhale; after hyperventilation, though, the CO<sub>2</sub> alarm is delayed and oxygen can fall dangerously low before the urge comes. Hyperventilation is also why breathing faster than necessary (hyperventilation) makes you light-headed: you blow off so much CO<sub>2</sub> that the chemical “alarm” goes quiet and the drive to breathe briefly fades. The system is built around keeping CO<sub>2</sub> in a narrow band, and it defends that band hard in both directions.',
+        html: '<b>Limiting conditions & assumptions.</b> The “CO<sub>2</sub> drives breathing” rule is the normal physiological case. The role of oxygen-sensing becomes important only in unusual situations such as very high altitude or chronic lung disease: edge cases that go beyond the core NCERT treatment. And while we can override the automatic rhythm voluntarily for a while, the rising CO<sub>2</sub> drive normally forces an inhale; after hyperventilation, though, the CO<sub>2</sub> alarm is delayed and oxygen can fall dangerously low before the urge comes. This is also why breathing faster than necessary (hyperventilation) makes you light-headed: you blow off so much CO<sub>2</sub> that blood flow to the brain falls, and the chemical “alarm” goes quiet, so the drive to breathe briefly fades. The system is built around keeping CO<sub>2</sub> in a narrow band, and it defends that band hard in both directions.',
       },
 
       { t: 'part', title: 'Key structures, definitions and processes' },
@@ -83,7 +83,7 @@ export const TOPICS: Topic[] = [
         t: 'p',
         html: 'Oxygen, by contrast, plays only a <b>minor role</b> in the normal moment-to-moment regulation of breathing.',
       },
-      { t: 'p', html: '<b>The major respiratory disorders (core NCERT)</b>' },
+      { t: 'p', html: '<b>The major respiratory disorders</b>' },
       {
         t: 'def',
         term: 'Asthma',
@@ -123,7 +123,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Why the venous oxygen “reserve” matters here</b><br><br>Recall that at rest only about <b>5 mL of O<sub>2</sub></b> is unloaded from every 100 mL of oxygenated blood (which carries roughly 20 mL), leaving the bulk to return to the lungs. During strenuous exercise this same blood can deliver around <b>15 mL per 100 mL</b>, three times more, because the right-shifted dissociation curve and the faster, deeper breathing driven by the CO<sub>2</sub> loop together mobilise that reserve exactly when demand spikes. Regulation and transport thus work as one system: the control centre raises ventilation while the tissues simultaneously extract more from each unit of blood.',
+        html: '<b>Why the venous oxygen “reserve” matters here</b><br><br>Recall that at rest only about <b>5 mL of O<sub>2</sub></b> is unloaded from every 100 mL of oxygenated blood (which carries roughly 20 mL), leaving the bulk to return to the lungs. During strenuous exercise this same blood can deliver around <b>15 mL per 100 mL</b>, three times more, because tissue <i>p</i>O<sub>2</sub> falls lower and the right-shifted dissociation curve releases more, while the faster, deeper breathing driven by the CO<sub>2</sub> loop keeps the arterial blood fully loaded. Regulation and transport thus work as one system: the control centre raises ventilation while the tissues simultaneously extract more from each unit of blood.',
       },
       {
         t: 'p',
@@ -131,7 +131,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Mapping each disease onto what the previous topic said controls diffusion (the pressure gradient, the thickness of the membrane and, by common sense, the surface area) is the cleanest way to remember them.',
+        html: 'Mapping each disease onto what the previous topic said controls diffusion (the pressure gradient, the thickness of the membrane and the surface area) is the cleanest way to remember them.',
       },
       {
         t: 'p',
@@ -224,10 +224,10 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'Receptors in the aortic arch and carotid arteries primarily detect changes in:',
         opts: [
-          { label: 'O<sub>2</sub> and temperature', nudge: '<b>(a)</b> and <b>(d)</b> introduce irrelevant variables.' },
+          { label: 'O<sub>2</sub> and temperature', nudge: '<b>(a)</b> and <b>(d)</b> bring in temperature and glucose, which these receptors do not track.' },
           { label: 'CO<sub>2</sub> and H<sup>+</sup>', nudge: null },
-          { label: 'O<sub>2</sub> only', nudge: '<b>(c)</b> overstates oxygen’s role.' },
-          { label: 'glucose and H<sup>+</sup>', nudge: '<b>(a)</b> and <b>(d)</b> introduce irrelevant variables.' },
+          { label: 'O<sub>2</sub> only', nudge: '<b>(c)</b> is too narrow: these receptors can also sense a fall in O<sub>2</sub> (it matters at high altitude), but in normal breathing they respond to CO<sub>2</sub> and H<sup>+</sup>.' },
+          { label: 'glucose and H<sup>+</sup>', nudge: '<b>(a)</b> and <b>(d)</b> bring in temperature and glucose, which these receptors do not track.' },
         ],
         correct: 1,
         solution: 'These peripheral chemoreceptors sense CO<sub>2</sub> and H<sup>+</sup> and signal the rhythm centre. The system tracks CO<sub>2</sub>/H<sup>+</sup>.',
@@ -408,11 +408,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives you the five-step framework, the pressure-gradient logic, the partial-pressure table, the O<sub>2</sub>–Hb dissociation curve, the respiratory centres, and the three core disorders. Six NEET-pattern tools are still standing outside the door, and each one is either a numerical method the chapter shows qualitatively or a concept it touches only briefly or leaves out. Additional topic A marries the volume definitions of Topic 02 to the first quantitative skill you need: alveolar ventilation and dead-space calculations. Additional topic B takes the Bohr effect description of Topic 03 and turns it into an actual number: how much extra oxygen unloads when <i>p</i>CO<sub>2</sub> rises. Additional topic C deepens Topic 03’s bicarbonate machinery with the Haldane effect and the chloride shift, both of which NEET asks by name. Additional topic D opens the ventilation–perfusion relationship, which the chapter does not mention, and the diffusion-capacity concept that puts a number on the chapter’s diffusion factors. Additional topic E explains why surfactant matters and why premature babies cannot breathe: the compliance side the chapter leaves out. Additional topic F maps respiratory adaptations in different environments: high altitude (met in Topic 04), diving mammals and birds.',
+        html: 'The chapter gives you the five-step framework, the pressure-gradient logic, the partial-pressure table, the O<sub>2</sub>–Hb dissociation curve, the respiratory centres, and the three core disorders. Six NEET-pattern tools are still standing outside the door, and each one is either a numerical method the chapter shows qualitatively or a concept it touches only briefly or leaves out. Additional topic A marries the volume definitions of Topic 02 to the first quantitative skill you need: alveolar ventilation and dead-space calculations. Additional topic B takes the Bohr effect description of Topic 03 and turns it into an actual number: how much extra oxygen unloads when <i>p</i>CO<sub>2</sub> rises. Additional topic C deepens Topic 03’s bicarbonate machinery with the Haldane effect and the chloride shift, both of which can be asked by name. Additional topic D opens the ventilation–perfusion relationship, which the chapter does not mention, and the diffusion-capacity concept that puts a number on the chapter’s diffusion factors. Additional topic E explains why surfactant matters and why premature babies cannot breathe: the compliance side the chapter mentions only in passing. Additional topic F maps respiratory adaptations in different environments: high altitude (met in Topic 04), diving mammals and birds.',
       },
       {
         t: 'p',
-        html: 'Numbering continues from the chapter. Every method below applies the same pressure-gradient and carrier-molecule logic the chapter already established, one step into the calculable or comparative territory that NEET and Boards now require.',
+        html: 'Numbering continues from the chapter. Every method below applies the same pressure-gradient and carrier-molecule logic the chapter already established, one step into the calculable or comparative territory that NEET and Board questions can reach.',
       },
       {
         t: 'p',
@@ -449,7 +449,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: null,
-        head: ['Situation', 'VT', 'f', 'AVR (mL/min)'],
+        head: ['Situation', '<i>V</i><sub>T</sub>', '<i>f</i>', 'AVR (mL/min)'],
         rows: [
           ['Rest (quiet breathing)', '500 mL', '12', '4200'],
           ['Moderate exercise', '800 mL', '20', '13 000'],
@@ -481,7 +481,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Step 1: Alveolar ventilation from CO<sub>2</sub> output.</b> All the CO<sub>2</sub> leaving the body comes out of alveolar air, so:<br>CO<sub>2</sub> removed = AVR × alveolar CO<sub>2</sub> fraction<br>AVR = <frac><num>210 mL/min</num><den>0.05</den></frac> = 4200 mL/min = 4.2 L/min',
           '<b>Step 2: Find anatomical dead space.</b> Total ventilation = 6000 mL/min = <i>f</i> × <i>V</i><sub>T</sub>. With <i>f</i> = 12 breaths/min:<br><i>V</i><sub>T</sub> = <frac><num>6000</num><den>12</den></frac> = 500 mL<br>AVR = <i>f</i> × (<i>V</i><sub>T</sub> − <i>V</i><sub>D</sub>)<br>4200 = 12 × (500 − <i>V</i><sub>D</sub>)<br>350 = 500 − <i>V</i><sub>D</sub><br><i>V</i><sub>D</sub> = 150 mL',
-          '<b>Check.</b> Anatomical dead space ≈ 150 mL: the standard value. Clinically, this use of CO<sub>2</sub> clearance to estimate dead space is the Bohr method (Bohr’s dead-space method, not the Bohr effect of the dissociation curve); strictly it gives the physiological dead space, which equals the anatomical dead space in a healthy lung.',
+          '<b>Check.</b> Anatomical dead space ≈ 150 mL: the standard value. Clinically, this use of CO<sub>2</sub> clearance to estimate dead space is the Bohr method (Bohr’s dead-space method, not the Bohr effect of the dissociation curve); strictly it gives the physiological dead space, which is close to the anatomical dead space in a healthy lung.',
         ],
         ans: '',
       },
@@ -517,11 +517,11 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] State two ways to increase alveolar ventilation and explain which is more effective for a patient with restricted airflow.',
-            a: 'Increase tidal volume (deep breathing) or increase respiratory rate. For restricted airflow, increasing tidal volume is more effective because each deeper breath delivers proportionally more fresh air past the obstruction before the dead-space air arrives. Increasing rate alone risks rapid shallow breathing, which reduces AVR.',
+            a: 'Increase tidal volume (deep breathing) or increase respiratory rate. For restricted airflow, increasing tidal volume is more effective because the fixed dead space (about 150 mL) is then a smaller share of each breath, so more of every breath reaches the alveoli. Increasing rate alone risks rapid shallow breathing, which reduces AVR.',
           },
           {
             q: '[CUET] What is physiological dead space? How does it differ from anatomical dead space, and why is the distinction clinically important?',
-            a: 'Physiological dead space = anatomical dead space + alveolar dead space (alveoli that are ventilated but not perfused with blood). Anatomical dead space is fixed (~150 mL); physiological dead space varies with lung perfusion. In healthy lungs they are equal. In lung disease with V/Q mismatch (e.g., pulmonary embolism), physiological dead space exceeds anatomical dead space, reducing effective gas exchange.',
+            a: 'Physiological dead space = anatomical dead space + alveolar dead space (alveoli that are ventilated but not perfused with blood). Anatomical dead space is fixed (~150 mL); physiological dead space varies with lung perfusion. In healthy lungs they are almost equal (the alveolar dead space is very small). In lung disease with V/Q mismatch (e.g., pulmonary embolism), physiological dead space exceeds anatomical dead space, reducing effective gas exchange.',
           },
         ],
       },
@@ -538,7 +538,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives the qualitative Bohr effect: high <i>p</i>CO<sub>2</sub>, low pH, and high temperature shift the curve right and unload oxygen at the tissues. It gives the headline figures (about 20 mL carried and about 5 mL delivered per 100 mL of blood) but not how they follow from [Hb], saturation and 1.34 mL/g, nor how much extra oxygen the Bohr shift alone releases. This additional topic supplies those numbers and the calculation method that NEET uses in its higher-difficulty items.',
+        html: 'The chapter gives the qualitative Bohr effect: high <i>p</i>CO<sub>2</sub>, low pH, and high temperature shift the curve right and unload oxygen at the tissues. It gives the headline figures (about 20 mL carried and about 5 mL delivered per 100 mL of blood) but not how they follow from [Hb], saturation and 1.34 mL/g, nor how much extra oxygen the Bohr shift alone releases. This additional topic supplies those numbers and the calculation method used in higher-difficulty items.',
       },
 
       { t: 'part', title: 'Method' },
@@ -568,7 +568,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'This matches the chapter’s figure of approximately 5 mL O<sub>2</sub> per 100 mL blood (slight variation due to rounding and the approximations used).',
+        html: 'This is a little below the chapter’s figure of about 5 mL O<sub>2</sub> per 100 mL blood; the exact value depends on the saturations taken (a 25-point fall, for example 97% to 72%, gives 15 × 1.34 × 0.25 ≈ 5.0 mL).',
       },
       {
         t: 'p',
@@ -584,7 +584,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Extra O<sub>2</sub> released: 15 × 1.34 × (0.75 − 0.65) = 15 × 1.34 × 0.10 = 2.01 mL/100 mL additional, on top of the normal 4 mL, giving about 6 mL with the Bohr shift alone. In strenuous exercise the chapter’s figure is higher (about 15 mL per 100 mL), because tissue <i>p</i>O<sub>2</sub> falls far below 40 mmHg and more O<sub>2</sub> is unloaded. This is the physiological basis of the Bohr effect.',
+        html: 'Extra O<sub>2</sub> released: 15 × 1.34 × (0.75 − 0.65) = 15 × 1.34 × 0.10 = 2.01 mL/100 mL additional, on top of the normal 4 mL, giving about 6 mL with the Bohr shift alone. This extra release is the benefit of the Bohr effect. In strenuous exercise the chapter’s figure is higher (about 15 mL per 100 mL), because tissue <i>p</i>O<sub>2</sub> falls far below 40 mmHg and more O<sub>2</sub> is unloaded.',
       },
       {
         t: 'p',
@@ -601,7 +601,7 @@ export const TOPICS: Topic[] = [
           '<b>Step 2: Venous O<sub>2</sub> content.</b><br>O<sub>2</sub>(venous) = 14 × 1.34 × 0.70 = 13.1 mL/dL',
           '<b>Step 3: O<sub>2</sub> released to tissues.</b><br>O<sub>2</sub> released = 17.8 − 13.1 = 4.7 mL/dL',
           '<b>Step 4: Total O<sub>2</sub> delivery per minute.</b> Cardiac output = 5 L/min = 5000 mL/min.<br>O<sub>2</sub> delivered/min = 5000 × <frac><num>4.7</num><den>100</den></frac> = 235 mL O<sub>2</sub>/min',
-          '<b>Check.</b> The chapter gives approximately 5 mL O<sub>2</sub> per 100 mL; the arterial-venous saturation gap here is 25 points (95% − 70%) rather than 20, hence 4.7 rather than about 4. Total O<sub>2</sub> delivery of ~235 mL/min matches resting metabolic demand for oxygen.',
+          '<b>Check.</b> The chapter gives approximately 5 mL O<sub>2</sub> per 100 mL, and 4.7 mL is close to it: the saturation gap here is 25 points (95% − 70%), against 20 points in the Method’s 4 mL. Total O<sub>2</sub> delivery of ~235 mL/min matches resting metabolic demand for oxygen.',
         ],
         ans: '',
       },
@@ -614,7 +614,7 @@ export const TOPICS: Topic[] = [
           '<b>Step 2: O<sub>2</sub> content with Bohr shift.</b><br>O<sub>2</sub>(shifted venous) = 15 × 1.34 × 0.65 = 13.065 mL/dL',
           '<b>Step 3: Additional O<sub>2</sub> released.</b><br>Additional release = 15.075 − 13.065 = 2.01 mL/dL ≈ 2 mL/100 mL',
         ],
-        ans: 'The Bohr effect releases an additional ~2 mL O<sub>2</sub> per 100 mL of blood in exercising muscle: roughly a 40–50% increase over the resting 4–5 mL delivery (<frac><num>2</num><den>5</den></frac> = 40%, <frac><num>2</num><den>4</den></frac> = 50%). This extra oxygen is precisely why the tissues can meet the surge in metabolic demand during activity.',
+        ans: 'The Bohr effect releases an additional ~2 mL O<sub>2</sub> per 100 mL of blood in exercising muscle: roughly a 40–50% increase over the resting 4–5 mL delivery (<frac><num>2</num><den>5</den></frac> = 40%, <frac><num>2</num><den>4</den></frac> = 50%). This extra oxygen is part of how the tissues meet the surge in metabolic demand during activity.',
       },
       {
         t: 'ex',
@@ -650,7 +650,7 @@ export const TOPICS: Topic[] = [
             a: 'P50 is the partial pressure of oxygen at which haemoglobin is 50% saturated. A right-shifted curve (Bohr effect) has a higher P50, meaning Hb needs a higher <i>p</i>O<sub>2</sub> to reach the same saturation, so its affinity is lower and it releases O<sub>2</sub> more readily.',
           },
           {
-            q: '[NEET A-R] Assertion: Carbon dioxide facilitates oxygen release at the tissues. Reason: CO<sub>2</sub> (and H<sup>+</sup>) shift the O<sub>2</sub>-Hb dissociation curve to the right, decreasing Hb’s affinity for O<sub>2</sub>. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> Both false',
+            q: '[NEET A-R] Assertion: Carbon dioxide facilitates oxygen release at the tissues. Reason: CO<sub>2</sub> (and H<sup>+</sup>) shift the O<sub>2</sub>-Hb dissociation curve to the right, decreasing Hb’s affinity for O<sub>2</sub>. <b>(a)</b> A and R true, R correctly explains A <b>(b)</b> A and R true, R does not explain A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
             a: '(a) Both true and R correctly explains A. This is the Bohr effect restated as an assertion–reason item.',
           },
         ],

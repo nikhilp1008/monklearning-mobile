@@ -20,7 +20,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A perennial favourite. CBSE Boards reliably draw a 2–3 mark question on the phases of the cell cycle or the events of a named mitotic stage, and a 5-mark “describe mitosis with diagrams” is common. CUET asks crisp single-fact recall (longest phase, where DNA doubles, what splits in anaphase). NEET loves the conceptual traps here (the DNA-amount-versus-chromosome-number distinction, the “most dramatic / best-studied stage” pair, and ordering questions), typically 1–2 questions every year (the book’s estimate from past papers, not official figures). Expect assertion–reason items at the higher-difficulty NEET level.',
+        html: '<b>Exam Relevance:</b> A perennial favourite. CBSE Boards reliably draw a 2–3 mark question on the phases of the cell cycle or the events of a named mitotic stage, and a 5-mark “describe mitosis with diagrams” is common (the book’s estimate from past papers, not official figures). CUET asks crisp single-fact recall (longest phase, where DNA doubles, what splits in anaphase). NEET loves the conceptual traps here (the DNA-amount-versus-chromosome-number distinction, the “most dramatic / best-studied stage” pair, and ordering questions), typically 1–2 questions every year (the book’s estimate from past papers, not official figures). Expect assertion–reason items at the higher-difficulty NEET level.',
       },
       {
         t: 'p',
@@ -28,7 +28,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'This is the single most important intuition to carry forward: <b>a cell does not divide on a whim.</b> It divides only after it has grown to a sufficient size and has faithfully duplicated its entire genetic instruction set, so that each of the two daughter cells receives a complete, identical copy. The whole sequence of events from the birth of a cell to its division into two daughter cells is what we call the <b>cell cycle</b>.',
+        html: 'This is a key intuition to carry forward: <b>a cell does not divide on a whim.</b> It divides only after it has grown to a sufficient size and has faithfully duplicated its entire genetic instruction set, so that each of the two daughter cells receives a complete, identical copy. The whole sequence of events from the birth of a cell to its division into two daughter cells is what we call the <b>cell cycle</b>.',
       },
       {
         t: 'p',
@@ -68,7 +68,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Duration of the cell cycle:</b> Cycle length varies widely with cell type and organism. In a typical human cell the whole cycle takes about <b>24 hours</b>, of which interphase occupies roughly <b>23 hours</b> and the M phase <b>less than an hour</b>: the dividing itself is brief, the preparation long. (A yeast cell, by contrast, completes the entire cycle in about <b>90 minutes</b>.) Within human interphase the time is shared among G<sub>1</sub>, S and G<sub>2</sub>, with S phase devoted to replication.',
+        html: '<b>Duration of the cell cycle:</b> Cycle length varies widely with cell type and organism. In a typical human cell the whole cycle takes about <b>24 hours</b>, of which interphase occupies roughly <b>23 hours</b> and the M phase only <b>about an hour</b>: the dividing itself is brief, the preparation long. (A yeast cell, by contrast, completes the entire cycle in about <b>90 minutes</b>.) Within human interphase the time is shared among G<sub>1</sub>, S and G<sub>2</sub>, with S phase devoted to replication.',
       },
       {
         t: 'p',
@@ -102,7 +102,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Beyond the Class 11 syllabus (enrichment, optional):</b> The deeper molecular details of cycle control (specific cyclin–CDK complexes, the “restriction point” R, and tumour-suppressor proteins such as p53/Rb) go beyond the NCERT text (a little beyond what CBSE and NEET usually ask), but are worth knowing. The named G<sub>1</sub>/S and G<sub>2</sub>/M check points and the cyclin–CDK mechanism above are within scope.',
+        html: '<b>Beyond the Class 11 syllabus (enrichment, optional):</b> The deeper molecular details of cycle control (specific cyclin–CDK complexes, the “restriction point” R, and tumour-suppressor proteins such as p53/Rb) go beyond the NCERT text (a little beyond what CBSE and NEET usually ask), but are worth knowing. The named G<sub>1</sub>/S and G<sub>2</sub>/M check points and the cyclin–CDK mechanism above are not in the NCERT text either; treat them as enrichment too.',
       },
 
       { t: 'part', title: 'Phase-by-phase process walkthrough' },
@@ -143,7 +143,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Step 8, Cytokinesis.</b> Finally the cytoplasm divides:' },
       {
         t: 'p',
-        html: '• In <b>animal cells</b>, a <b>cleavage furrow</b> forms by constriction of the plasma membrane, deepening from the periphery inward (wall → centre) until the cell pinches in two.<br>• In <b>plant cells</b>, the rigid cell wall forbids pinching, so a <b>cell plate</b> is laid down from the <b>centre outward</b> (centre → wall), growing to fuse with the existing wall and partition the cell. The middle lamella develops along this plate.',
+        html: '• In <b>animal cells</b>, a <b>cleavage furrow</b> forms by constriction of the plasma membrane, deepening from the periphery inward, towards the centre, until the cell pinches in two.<br>• In <b>plant cells</b>, the rigid cell wall forbids pinching, so a <b>cell plate</b> is laid down from the <b>centre outward</b> (centre → wall), growing to fuse with the existing wall and partition the cell. The middle lamella develops along this plate.',
       },
       {
         t: 'p',
@@ -306,7 +306,7 @@ export const TOPICS: Topic[] = [
         ],
         correct: 2,
         solution:
-          'Interphase is conventionally called the resting phase (with respect to visible division), so A is true. But R is false. Interphase is the most metabolically active period: the cell grows, synthesises proteins, and replicates its entire DNA. The whole item turns on recognising that “resting” refers only to the absence of visible division, not to inactivity.',
+          'Interphase is conventionally called the resting phase (with respect to visible division), so A is true. But R is false. Interphase is far from inactive: the cell grows, synthesises proteins, and replicates its entire DNA. The whole item turns on recognising that “resting” refers only to the absence of visible division, not to inactivity.',
       },
 
       { t: 'part', title: 'Common student pitfalls and pro-tips' },
@@ -315,7 +315,7 @@ export const TOPICS: Topic[] = [
         items: [
           '<b>Confusing DNA amount with chromosome number.</b> After S phase the DNA doubles but the chromosome count is unchanged; the chromosome number of the cell doubles in anaphase (46 to 92, counting each separated chromatid as a chromosome, with no new DNA made) and each daughter cell returns to 46 at telophase and cytokinesis. Track the two quantities in separate columns whenever a numerical is given.',
           '<b>Misplacing nuclear-envelope breakdown.</b> The envelope disappears by the end of prophase (not in metaphase); it reforms in telophase. A surprising number of marks are lost by writing “metaphase” for its disappearance.',
-          '<b>“Resting phase” taken literally.</b> Interphase is the longest and the busiest phase: never describe it as inactive.',
+          '<b>“Resting phase” taken literally.</b> Interphase is the longest phase and far from inactive: never describe it as inactive.',
           '<b>Animal versus plant cytokinesis swap.</b> Furrow = animal (periphery → centre); cell plate = plant (centre → periphery). This exact pair is a NEET staple.',
         ],
       },
@@ -346,7 +346,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Cytokinesis',
-            note: 'animal = <b>cleavage furrow</b> (wall → centre); plant = <b>cell plate</b> (centre → wall). Karyokinesis without cytokinesis ⇒ <b>syncytium</b> (coconut liquid endosperm).',
+            note: 'animal = <b>cleavage furrow</b> (periphery → centre); plant = <b>cell plate</b> (centre → wall). Karyokinesis without cytokinesis ⇒ <b>syncytium</b> (coconut liquid endosperm).',
           },
           {
             f: 'Significance',
@@ -519,7 +519,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Meiosis I versus a mitotic division: the three contrasts.</b> It helps to hold the two divisions side by side, because almost every exam item exploits the differences. First, <b>pairing:</b> homologous chromosomes synapse in prophase I (forming bivalents), whereas in mitosis chromosomes behave individually and never pair. Second, <b>what separates in anaphase:</b> Meiosis I separates whole <b>homologous chromosomes</b> (each still two chromatids), while mitotic anaphase splits the centromere and separates <b>sister chromatids</b>. Third, <b>the outcome:</b> Meiosis I is <b>reductional</b>: one diploid cell yields two haploid cells, whereas mitosis is conservative, yielding two cells identical to the parent. A useful shared fact to remember is that in both divisions the nucleolus and nuclear envelope disappear (in meiosis, specifically by diakinesis) and reappear once division is complete; the machinery of breakdown and reassembly is the same, but the choreography of the chromosomes is not.',
+        html: '<b>Meiosis I versus a mitotic division: the three contrasts.</b> It helps to hold the two divisions side by side, because many exam items exploit the differences. First, <b>pairing:</b> homologous chromosomes synapse in prophase I (forming bivalents), whereas in mitosis chromosomes behave individually and never pair. Second, <b>what separates in anaphase:</b> Meiosis I separates whole <b>homologous chromosomes</b> (each still two chromatids), while mitotic anaphase splits the centromere and separates <b>sister chromatids</b>. Third, <b>the outcome:</b> Meiosis I is <b>reductional</b>: one diploid cell yields two haploid cells, whereas mitosis is conservative, yielding two cells identical to the parent. A useful shared fact to remember is that in both divisions the nucleolus and nuclear envelope disappear (in meiosis, specifically by diakinesis) and reappear once division is complete; the machinery of breakdown and reassembly is the same, but the choreography of the chromosomes is not.',
       },
       {
         t: 'p',
@@ -684,7 +684,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Thinking anaphase I separates chromatids.</b> It separates homologous chromosomes; chromatids stay joined until Meiosis II. This single point decides a large share of NEET marks on the chapter (the book’s estimate from past papers, not official figures).',
+          '<b>Thinking anaphase I separates chromatids.</b> It separates homologous chromosomes; chromatids stay joined until Meiosis II. This point is tested often (the book’s estimate from past papers, not official figures).',
           '<b>Confusing where crossing over happens versus where chiasmata appear.</b> Crossing over = <b>pachytene</b>; chiasmata first clearly visible = <b>diplotene</b>. They are adjacent but distinct.',
           '<b>Calling Meiosis I “equational.”</b> Meiosis I is <b>reductional</b> (2n → n); Meiosis II is equational. Reversing them is a classic slip.',
           '<b>Forgetting that no DNA replication occurs before Meiosis II.</b> Interkinesis is brief and skips S phase: the chromosomes are already duplicated.',

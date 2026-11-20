@@ -79,7 +79,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'A fall in WBC count is called <b>leucopenia</b> (seen in folic-acid deficiency, AIDS, etc.). The total WBC count (~6,000–8,000 per mm<sup>3</sup>) is far lower than the RBC count; <b>granulocytes</b> (neutrophils, eosinophils, basophils) carry cytoplasmic granules, while <b>agranulocytes</b> (lymphocytes, monocytes) do not. An abnormal rise in WBCs, as in blood cancer, is <b>leukaemia</b>.',
+        html: 'A fall in WBC count is called <b>leucopenia</b> (seen in folic-acid deficiency, AIDS, etc.). The total WBC count (~6,000–8,000 per mm<sup>3</sup>) is far lower than the RBC count; <b>granulocytes</b> (neutrophils, eosinophils, basophils) carry cytoplasmic granules, while <b>agranulocytes</b> (lymphocytes, monocytes) do not. A cancer of the WBC-forming tissue, usually with a large abnormal rise in WBCs, is <b>leukaemia</b> (an ordinary rise, as in an infection, is <b>leucocytosis</b>).',
       },
       {
         t: 'p',
@@ -113,7 +113,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The brake: anticoagulants</b> Blood naturally contains a little <b>heparin</b>, a fast-acting anticoagulant that prevents clotting inside uninjured vessels by inhibiting the conversion of prothrombin to thrombin; it is used clinically during open-heart surgery. In the body it works with the plasma protein antithrombin, which inactivates thrombin and factor Xa; it is made by basophils and mast cells. Prothrombinase, by contrast, promotes clotting. In the laboratory, blood is kept fluid for testing by agents that mop up calcium (<b>sodium citrate, potassium oxalate, or EDTA</b>), since the cascade cannot run without Ca<sup>2+</sup>.',
+        html: '<b>The brake: anticoagulants</b> Blood naturally contains a little <b>heparin</b>, a fast-acting anticoagulant that prevents clotting inside uninjured vessels by inhibiting the conversion of prothrombin to thrombin; it is used clinically during open-heart surgery. In the body it works with the plasma protein antithrombin, which inactivates thrombin and factor Xa. Heparin itself is made by basophils and mast cells. Prothrombinase, by contrast, promotes clotting. In the laboratory, blood is kept fluid for testing by agents that mop up calcium (<b>sodium citrate, potassium oxalate, or EDTA</b>), since the cascade cannot run without Ca<sup>2+</sup>.',
       },
       {
         t: 'p',
@@ -376,12 +376,12 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The heart’s genius is that it keeps two blood streams from ever mixing. The right side handles “dirty” (deoxygenated) blood and ships it to the lungs; the left side handles “clean” (oxygenated) blood and ships it to the body. Because blood passes through the heart <b>twice</b> in one full circuit, we call it <b>double circulation</b>. (The two streams never mix only in complete double circulation, found in crocodiles, birds and mammals.)',
+        html: 'The heart’s genius is that it keeps two blood streams from ever mixing. The right side handles “dirty” (deoxygenated) blood and ships it to the lungs; the left side handles “clean” (oxygenated) blood and ships it to the body. Because blood passes through the heart <b>twice</b> in one full circuit, we call it <b>double circulation</b>. (The two streams are kept fully apart only in complete double circulation, found in crocodiles, birds and mammals; in amphibians and most other reptiles they mix a little.)',
       },
       { t: 'p', html: '<b>Limiting Conditions & Assumptions.</b>' },
       {
         t: 'p',
-        html: '• “Arteries carry oxygenated, veins carry deoxygenated” is the general rule but has two famous exceptions: the <b>pulmonary artery</b> carries deoxygenated blood (heart→lungs) and the <b>pulmonary veins</b> carry oxygenated blood (lungs→heart). Defining vessels by oxygen content is the trap; define them by direction instead: an <b>artery carries blood away from the heart</b>, a vein carries it back.<br>• Double circulation is complete in crocodiles, birds and mammals (4-chambered heart). Amphibians and most other reptiles have a 3-chambered heart with <b>incomplete</b> double circulation: some mixing occurs.<br>• The heart beats on its own. Because it is <b>myogenic</b> (the impulse arises within the heart muscle itself), it keeps beating rhythmically even if its nerve supply is cut. Nerves only modulate the rate; they do not start it.',
+        html: '• “Arteries carry oxygenated, veins carry deoxygenated” is the general rule but has two famous exceptions: the <b>pulmonary artery</b> carries deoxygenated blood (heart→lungs) and the <b>pulmonary veins</b> carry oxygenated blood (lungs→heart). Defining vessels by oxygen content is the trap; define them by direction instead: an <b>artery carries blood away from the heart</b>, a vein carries it back.<br>• Double circulation is complete in crocodiles, birds and mammals (4-chambered heart). Amphibians and most other reptiles have a 3-chambered heart with <b>incomplete</b> double circulation: some mixing occurs.<br>• The heart beats on its own. Because it is <b>myogenic</b> (the impulse arises within the heart muscle itself), it keeps beating rhythmically even if its nerve supply is cut. Nerves only modulate the rate and force; they do not start it.',
       },
 
       { t: 'part', title: 'Key components and normal values' },
@@ -483,7 +483,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Open vs closed circulation</b> Animals move blood in one of two designs. In an <b>open circulatory system</b>, seen in <b>arthropods and molluscs</b> (cephalopod molluscs such as the octopus are closed), the heart pumps blood into open spaces (sinuses, the haemocoel) where it bathes the tissues directly before draining back; flow is usually slower and less finely regulated. In a <b>closed circulatory system</b>, seen in <b>annelids and all chordates</b> (including humans), blood always stays inside a continuous network of vessels, so its flow and distribution can be precisely and efficiently controlled. The closed plan is usually the more efficient of the two.',
+        html: '<b>Open vs closed circulation</b> Animals move blood in one of two designs. In an <b>open circulatory system</b>, seen in <b>arthropods and molluscs</b> (cephalopod molluscs such as the octopus are closed), the heart pumps blood into open spaces (sinuses, the haemocoel) where it bathes the tissues directly before draining back; flow is usually slower and less finely regulated. In a <b>closed circulatory system</b>, seen in <b>annelids and chordates</b> (including humans; the tunicates are an exception), blood always stays inside a continuous network of vessels, so its flow and distribution can be precisely and efficiently controlled. The closed plan is usually the more efficient of the two.',
       },
       {
         t: 'table',
@@ -499,7 +499,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Vertebrate and molluscan hearts are <b>myogenic</b>; the hearts of most crustaceans and some annelids are <b>neurogenic</b>. The hearts of fishes, amphibians and reptiles also carry <b>accessory chambers</b> absent in mammals: a <b>sinus venosus</b> that collects incoming venous blood and a <b>truncus arteriosus</b> that channels blood out; in birds and mammals these have been incorporated into the main chambers and great vessels.',
+        html: 'Vertebrate and molluscan hearts are <b>myogenic</b>; the hearts of most crustaceans and some annelids are <b>neurogenic</b>. The hearts of fishes, amphibians and most reptiles keep a <b>sinus venosus</b> that collects incoming venous blood, and fishes and amphibians also have an outflow chamber that channels blood out (a <b>conus or bulbus arteriosus</b> in fishes, a <b>truncus arteriosus</b> in amphibians); in birds and mammals these have been incorporated into the main chambers and great vessels.',
       },
       { t: 'fig', id: 'b11-15-fig-15.5' },
 
@@ -659,7 +659,7 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Pulmonary artery/vein reversal.</b> A common error in this topic. Lock it: pulmonary <b>a</b>rtery = <b>a</b>way to lungs = deoxygenated.',
-          '<b>“Veins have no valves.”</b> Wrong: many veins have valves (to fight gravity), while arteries have none along their length (the venae cavae and venules are the exceptions). Don’t swap.',
+          '<b>“Veins have no valves.”</b> Wrong: many veins have valves to fight gravity (though not all: the venae cavae, the pulmonary veins and the smallest venules have none), while arteries have none along their length. Don’t swap.',
           '<b>Confusing AV node with SA node.</b> SA starts the beat; AV delays and relays it. Order of naming = order of action.',
           '<b>Calling the heart 3-chambered for “reptiles” without exception.</b> The <b>crocodile</b> is the reptilian exception: 4 chambers.',
         ],

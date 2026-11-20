@@ -1,0 +1,54 @@
+# Ch 11 final re-shoot check notes (shots-11-final)
+## Cards 1-20
+- card001: "+ (z₂ − z₁)²)" starts line 2 of PQ formula (said done in r4, still shows)
+- card016: denominator arrows FIXED; card017: arrows FIXED; card017 "|b1×b2| = √((b1c2 − b2c1)²" / "+ (c1a2 − …" line starts "+"
+- card014: "=" chain lines (set display, not reported)
+- cards 21-44 clean; card026 b arrow FIXED
+## p002
+- p002-01/02 Distance box: "+ (z₂ − z₁)²)" starts line (same as card001)
+- p002-05/06 "B, C:" now together: FIXED
+- p002-06/07 minor: "Collinearity of three points: either" / "the direction ratios..." early break (glued run?), minor
+## p003/p004
+- p003 caption |z2 − z1| FIXED (one line)
+- NEW p003-08/09: "the distance to it" / "is" alone / long √ formula line (stranded word)
+- minor p003-11/13: "+ A) =(A+B+C)/3": no space between "=" and fraction
+- p004-04..06 step 3 (0)(1) together FIXED
+- p007 clean; p008-01 External m:n FIXED
+- p010-07: gap before 'It is worth pausing' still ~1.6x: STILL
+- p012-01 y-axis label clear of dotted line: FIXED; cos β y/r fine
+- NEW p012-08/09 Theorem 3: 'where PQ = √((x2 − x1)² + (y2 − y1)²' / '+ (z2 − z1)²).' line starts with '+', split inside √( )
+- p013 ok (step5 set break known)
+- p020-03 perpendicular "a1a2 + b1b2 + c1c2 = 0" one line: FIXED
+- NEW p020-01/02 Angle box: denominator |b1||b2| of 1st fraction touches numerator |a1a2 + b1b2 + c1c2| of 2nd fraction (stacked fractions touching)
+- p020-05/06 Cartesian determinant box: '|b1×b2| = √((b1c2 − b2c1)²' / '+ (c1a2 − c2a1)² + ...)' line starts '+' (renderer said fixed for boxes; still shows) ; same in card017
+- NEW p021-07: "√((b1c2 − b2c1)² + (c1a2 − c2a1)²" / "+ (a1b2 − a2b1)²)." line starts '+' inside √( )
+- p021-04/05: "d = |(a2−a1)·n̂|" / "= fraction" (display chain, probably set break; not reported)
+- p021 rest, p024-01..08 clean
+- p030-08 ■ glued: FIXED; p030 otherwise ok
+- p031-04 step 2 '= 0:' glued: FIXED; p031-01..04 clean
+- p037-01 minor: first bullet 'the foot F' butts against 'Three things appear...:' line with no gap while bullets 2,3 have paragraph gaps (uneven list gaps)
+- p037 rest, p038-01..07 ok (p038 gap known). minor NEW p038-05/06: '(image).' alone on a line after the symmetric fractions chain
+- NEW p039-01 Theorem 1: 'and' alone on a line between λ0 fraction and PF fraction (stranded word); NEW p039-02 Proof: 'so' alone on a line before 'FP = p − (a + λb) = …'
+- NEW p039-06 Theorem 2 proof: 'i.e.' alone and 'giving' alone on lines between long formulas (same pattern as p048-02)
+- p039-07..13 ok
+- p040-02 |AP×b| bars intact: FIXED; p040-01..03 clean
+- p044-01 fractions separated: FIXED. p045-01 para 2 'scope, so' early break (the 'the' would fit): STILL minor
+- p047-02 'Cc ≠ 0' glued: FIXED
+- p047-04/05 bisector box: gap + '±' line start FIXED, but NEW: second fraction now sits directly under the first: denominator √(a1²+b1²+c1²) touches numerator a2x+b2y+c2z+d2 (stacked fractions touching)
+- p047-06/07 ok; p048-01 step 3 'for λ.' FIXED
+- p048-02/03 Proof Thm1: 'gives' now ends prev line (fixed) but 'i.e.' STILL alone on a line between the two long formulas -> STILL (half)
+- p048-06 caption 'N = b × (P − a) is normal' on one line: FIXED
+- p048-09 Proof Thm3: ', i.e.' now attached (FIXED) but NEW: the |P1/|n1|| = |P2/|n2|| line's denominators touch the numerators of the next line P1/|n1| = ± P2/|n2| (stacked fractions touching)
+- p048 rest ok. p050-02 answer bracket glued: FIXED. minor NEW p050-01/02 question: '[JEE Main] Find the point' / 'of intersection of the' breaks early, half lines empty (glued run?)
+- p050-04 '≠ 2)' FIXED; p050-03..06 ok
+- p050-07..10 ok (5/5 answer maths checked); p052-01 blank line under title gone: FIXED
+- p052 rest ok
+- p061-06 'instead.' now with fraction: FIXED. p061 ok
+- p067-04 MB² chain on one line: FIXED; p067 ok
+- p071-01 E1 chain fixed, 'so' attached: FIXED
+- p071 rest ok. p074-04/05 row-title gap gone: FIXED
+- p075-02 coplanarity '= 0.' together: FIXED
+- p077-13 practice 4/8: gap after (d) before Check answer ~117px vs ~52px elsewhere: STILL
+- p077-23 radicand breaks after '+', no lone ')': FIXED
+- p077-28/29 '(a) cos ∠(OQ, OS)' now together: FIXED; maths checked ok
+- p074/p075/p077 rest ok. DONE (all 314 incl p077-30 present).

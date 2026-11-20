@@ -19,6 +19,7 @@ import { KEY_POINTS as C12_08 } from '@/lib/revise/keypoints-chemistry-12-08';
 import { KEY_POINTS as C12_09 } from '@/lib/revise/keypoints-chemistry-12-09';
 import { KEY_POINTS as C12_10 } from '@/lib/revise/keypoints-chemistry-12-10';
 import { KEY_POINTS as C12_11 } from '@/lib/revise/keypoints-chemistry-12-11';
+import { KEY_POINTS as C12_12 } from '@/lib/revise/keypoints-chemistry-12-12';
 import { KEY_POINTS as B11_01 } from '@/lib/revise/keypoints-biology-11-01';
 import { KEY_POINTS as B11_02 } from '@/lib/revise/keypoints-biology-11-02';
 import { KEY_POINTS as B11_03 } from '@/lib/revise/keypoints-biology-11-03';
@@ -107,6 +108,7 @@ import { KEY_POINTS as P12_11 } from '@/lib/revise/keypoints-physics-12-11';
 import { KEY_POINTS as P12_12 } from '@/lib/revise/keypoints-physics-12-12';
 import { KEY_POINTS as P12_13 } from '@/lib/revise/keypoints-physics-12-13';
 import { KEY_POINTS as P12_14 } from '@/lib/revise/keypoints-physics-12-14';
+import { KEY_POINTS as P12_15 } from '@/lib/revise/keypoints-physics-12-15';
 
 /**
  * KEY POINTS, by chapter ("physics|11|1").
@@ -157,6 +159,7 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'physics|12|12': P12_12,
   'physics|12|13': P12_13,
   'physics|12|14': P12_14,
+  'physics|12|15': P12_15,
   'chemistry|11|1': C11_01,
   'chemistry|11|2': C11_02,
   'chemistry|11|3': C11_03,
@@ -178,6 +181,7 @@ export const KEY_POINTS: Record<string, KeyPoint[]> = {
   'chemistry|12|10': C12_10,
   // One chapter from two books: the Class 11 p-Block (Groups 13–14) then the Class 12 (Groups 15–18), in topic order.
   'chemistry|12|11': [...C11_10, ...C12_11].sort((a, b) => a.topic - b.topic),
+  'chemistry|12|12': C12_12,
   'mathematics|11|1': M11_01,
   'mathematics|11|2': M11_02,
   'mathematics|11|3': M11_03,

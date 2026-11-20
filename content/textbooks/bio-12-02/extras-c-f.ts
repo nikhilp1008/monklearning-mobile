@@ -19,7 +19,7 @@ export const TOPICS: Topic[] = [
     n: 'C',
     title: 'Contraceptive Methods',
     extra: true,
-    kalam: 'NEET and CBSE ask for the classification of contraceptive methods, the biological mechanism of each, and which methods are reversible and which are permanent (the book’s estimate from past papers, not official figures).',
+    kalam: 'Contraceptive methods are classified by how each works, and by whether it is reversible or permanent.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -52,7 +52,7 @@ export const TOPICS: Topic[] = [
           [
             'Mifepristone (RU-486)',
             'Blocks progesterone receptors, so the endometrium breaks down and cannot sustain an implanted embryo',
-            'Not a contraceptive in the NCERT context; used for medical termination of early pregnancy',
+            'Not covered in NCERT; used for medical termination of early pregnancy, not as a routine contraceptive',
           ],
           [
             'Copper-releasing IUD (Cu-T, Cu-7)',
@@ -77,7 +77,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>NCERT note:</b> Saheli, a once-a-week pill, contains centchroman (ormeloxifene), a non-steroidal oral contraceptive; chemically it is a selective oestrogen receptor modulator (SERM).',
+        html: '<b>Note:</b> Saheli (NCERT: a once-a-week, non-steroidal oral contraceptive pill) contains centchroman (ormeloxifene); chemically it is a selective oestrogen receptor modulator (SERM), a detail beyond NCERT.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -132,8 +132,8 @@ export const TOPICS: Topic[] = [
             a: 'A true, R true, and R explains A. A contraceptive prevents conception or implantation, whereas mifepristone acts on an established pregnancy: by blocking progesterone receptors it makes the endometrium break down. It is therefore a medical-termination drug, not a contraceptive.',
           },
           {
-            q: '[CBSE] Name one non-steroidal oral contraceptive mentioned in NCERT, state how often it is taken, and name the class of compound it belongs to.',
-            a: 'Centchroman (ormeloxifene), sold as Saheli, taken once a week; it belongs to the class of selective oestrogen receptor modulators (SERMs).',
+            q: '[CBSE] Name the non-steroidal oral contraceptive named in NCERT, its active compound, how often it is taken, and the class of compound it belongs to.',
+            a: 'Saheli, taken once a week; it contains centchroman (ormeloxifene), a selective oestrogen receptor modulator (SERM).',
           },
         ],
       },
@@ -164,7 +164,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The Acrosome Reaction (triggered by contact with zona pellucida):</b><br>The acrosome is a large, enzyme-filled vesicle on the anterior surface of the sperm head (covering the nucleus). When a capacitated sperm contacts the zona pellucida:<br>1. <b>Binding:</b> Sperm surface receptors (e.g. ZP3 receptors) bind to ZP3 glycoprotein of the zona pellucida.<br>2. <b>Acrosome membrane fusion:</b> The plasma membrane and outer acrosomal membrane fuse at multiple points.<br>3. <b>Enzyme release:</b> The fused membranes break into vesicles through which the acrosomal contents escape: acrosin (a protease), hyaluronidase (breaks down hyaluronic acid in the cell matrix between the granulosa cells; the sperm meets and crosses this layer before it reaches the zona), and other glycosidases.<br>4. <b>Penetration path:</b> Hyaluronidase has cleared the granulosa (cumulus) layer on the way to the zona; acrosin helps digest a path through the zona pellucida.<br>5. <b>Membrane merger:</b> The sperm plasma membrane (equatorial region of the head) fuses with the oocyte plasma membrane, allowing the sperm nucleus to enter the ooplasm.<br>6. <b>Block to polyspermy:</b> Contact of the sperm with the oocyte triggers the cortical reaction (cortical granules release their contents into the perivitelline space), modifying the zona pellucida to prevent additional sperm from binding.',
+        html: '<b>The Acrosome Reaction (triggered by contact with zona pellucida):</b><br>The acrosome is a large, enzyme-filled vesicle on the anterior surface of the sperm head (covering the nucleus). When a capacitated sperm contacts the zona pellucida:<br>1. <b>Binding:</b> Sperm surface receptors (e.g. ZP3 receptors) bind to ZP3 glycoprotein of the zona pellucida.<br>2. <b>Acrosome membrane fusion:</b> The plasma membrane and outer acrosomal membrane fuse at multiple points.<br>3. <b>Enzyme release:</b> The fused membranes break into vesicles through which the acrosomal contents escape: acrosin (a protease) and other glycosidases. (Hyaluronidase, which breaks down hyaluronic acid between the granulosa (cumulus) cells, has already acted earlier: much of it sits on the sperm surface, and it lets the sperm cross the cumulus layer before it reaches and binds the zona.)<br>4. <b>Penetration path:</b> acrosin helps digest a path through the zona pellucida.<br>5. <b>Membrane merger:</b> The sperm plasma membrane (equatorial region of the head) fuses with the oocyte plasma membrane, allowing the sperm nucleus to enter the ooplasm.<br>6. <b>Block to polyspermy:</b> Contact of the sperm with the oocyte triggers the cortical reaction (cortical granules release their contents into the perivitelline space), modifying the zona pellucida to prevent additional sperm from binding.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -221,7 +221,7 @@ export const TOPICS: Topic[] = [
     n: 'E',
     title: 'Menstrual Cycle: Hormonal Feedback and Clinical Applications',
     extra: true,
-    kalam: 'Beyond the four phases and four hormones, NEET high-difficulty and CUET case-based questions ask about the feedback relationships across the cycle, the hormonal basis of common clinical conditions, and the interpretation of hormone-level graphs (the book’s estimate from past papers, not official figures).',
+    kalam: 'Beyond the four phases and four hormones lie the feedback relationships across the cycle and the hormonal basis of common clinical conditions.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -241,6 +241,10 @@ export const TOPICS: Topic[] = [
           ['Ovulatory (day 14)', 'Pulses more frequent (drives the surge)', 'Peaks with LH (days 13–14)', 'LH surge', 'Peak just before (days 12–13); triggers the LH surge', 'Low'],
           ['Luteal (days 15–28)', 'Pulses slowed', 'Low', 'Low', 'Rises then falls', 'High then falls'],
         ],
+      },
+      {
+        t: 'p',
+        html: '(The table follows NCERT’s simple wording, a gradual rise of FSH and LH through the follicular phase. Figure 2.6 shows the finer pattern: FSH is highest at the start of the cycle, falls through the follicular phase as oestrogen and inhibin hold it down, and peaks again with LH at mid-cycle.)',
       },
       {
         t: 'p',
@@ -342,8 +346,8 @@ export const TOPICS: Topic[] = [
         title: null,
         head: ['Area', 'Frequency in past papers'],
         rows: [
-          ['<b>Male reproductive anatomy</b> (ducts, glands, scrotum, sperm pathway)', 'High: recurs every year'],
-          ['<b>Gametogenesis: spermatogenesis</b> (stages, ploidy, hormones)', 'High: single largest node'],
+          ['<b>Male reproductive anatomy</b> (ducts, glands, scrotum, sperm pathway)', 'High: recurs often'],
+          ['<b>Gametogenesis: spermatogenesis</b> (stages, ploidy, hormones)', 'High: a large node'],
           ['<b>Gametogenesis: oogenesis</b> (stages, polar bodies, zona pellucida, follicle development)', 'Moderate–High'],
           ['<b>Menstrual cycle</b> (phases, hormones, LH surge, progesterone source)', 'Moderate: steady presence'],
           ['<b>Fertilisation & early development</b> (zygote, cleavage, morula, blastocyst, implantation)', 'Moderate'],
@@ -441,7 +445,7 @@ export const TOPICS: Topic[] = [
         steps: [
           'A is true. R is false: the zona pellucida and cortical reaction block polyspermy; only one sperm enters. So the answer is (c): A true, R false.',
         ],
-        ans: '',
+        ans: '(c) A true, R false.',
       },
       { t: 'p', html: '<b>Archetype 6: The Germ-Layer Derivative Table</b>' },
       {
@@ -495,7 +499,7 @@ export const TOPICS: Topic[] = [
           ],
           [
             '<b>“Ampulla” in two places</b>',
-            'Same word, different organs: the wide part of the Fallopian tube (fertilisation happens at its junction with the isthmus), the widened end of the vas deferens and the widened part of the mammary duct.',
+            'Same word, different organs: the wide part of the Fallopian tube (fertilisation happens at its junction with the isthmus) and the widened part of the mammary duct.',
             'Typical distractor: the same word read for the wrong organ.',
           ],
           [
@@ -537,7 +541,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Moderate: Menstrual cycle, LH surge and ovulation] The LH surge that induces ovulation occurs during which phase of the menstrual cycle?<br><b>(a)</b> Menstrual phase<br><b>(b)</b> Follicular phase<br><b>(c)</b> Ovulatory phase<br><b>(d)</b> Luteal phase',
-            a: '<b>Solution:</b> The ovulatory phase (~day 14 of a 28-day cycle) is characterised by the mid-cycle surge in both LH and FSH. The LH surge ruptures the Graafian follicle, releasing the secondary oocyte. The menstrual phase involves bleeding from the endometrium. The follicular phase involves rebuilding of the endometrium under rising FSH. The luteal phase follows ovulation and is dominated by progesterone.<br><b>Answer:</b> (c) Ovulatory phase.',
+            a: '<b>Solution:</b> The ovulatory phase (~day 14 of a 28-day cycle) is characterised by the mid-cycle surge in both LH and FSH. The LH surge ruptures the Graafian follicle, releasing the secondary oocyte. The menstrual phase involves bleeding from the endometrium. The follicular phase involves rebuilding of the endometrium under rising oestrogen from the growing follicles (which FSH stimulates). The luteal phase follows ovulation and is dominated by progesterone.<br><b>Answer:</b> (c) Ovulatory phase.',
           },
           {
             q: '[Moderate: Oogenesis, stages] At ovulation, the cell released from the ovary, surrounded by the zona pellucida, is a:<br><b>(a)</b> Primary oocyte<br><b>(b)</b> Secondary oocyte<br><b>(c)</b> Ovum<br><b>(d)</b> Oogonium',

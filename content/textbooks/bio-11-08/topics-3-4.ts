@@ -90,7 +90,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Cilia and flagella.</b> These are hair-like outgrowths of the cell surface, each sheathed in an extension of the <b>plasma membrane</b> and cored by a bundle of microtubules called the <b>axoneme</b>. The axoneme follows the <b>9 + 2</b> plan: nine <b>peripheral doublet</b> microtubules forming a ring, plus <b>two central</b> microtubules enclosed in a <b>central sheath</b>. The peripheral doublets are tied to the central sheath by <b>radial spokes</b> and linked to one another by bridges, while <b>arms</b> projecting from each doublet supply the sliding force that bends the structure. Both cilia and flagella emerge from a <b>basal body</b>, which is itself a centriole. Cilia tend to occur in large numbers and beat in coordinated waves, sweeping fluid or particles across an epithelial surface, or rowing a unicellular organism along, whereas flagella are fewer and longer and drive whole-cell locomotion, as in a sperm cell. The distinction from the <b>bacterial flagellum</b> is worth stating outright: the bacterial version is a slender protein filament with a hook and basal body and has <b>no 9+2 axoneme</b>, so the two are analogous in job but utterly different in build.',
+        html: '<b>Cilia and flagella.</b> These are hair-like outgrowths of the cell surface, each sheathed in an extension of the <b>plasma membrane</b> and cored by a bundle of microtubules called the <b>axoneme</b>. The axoneme follows the <b>9 + 2</b> plan: nine <b>peripheral doublet</b> microtubules forming a ring, plus <b>two central</b> microtubules enclosed in a <b>central sheath</b>. The peripheral doublets are tied to the central sheath by <b>radial spokes</b> and linked to one another by linkers (the two central microtubules are joined by a bridge), while <b>arms</b> projecting from each doublet supply the sliding force that bends the structure. Both cilia and flagella emerge from a <b>basal body</b>, which is itself a centriole. Cilia tend to occur in large numbers and beat in coordinated waves, sweeping fluid or particles across an epithelial surface, or rowing a unicellular organism along, whereas flagella are fewer and longer and drive whole-cell locomotion, as in a sperm cell. The distinction from the <b>bacterial flagellum</b> is worth stating outright: the bacterial version is a slender protein filament with a hook and basal body and has <b>no 9+2 axoneme</b>, so the two are analogous in job but utterly different in build.',
       },
       {
         t: 'p',
@@ -106,7 +106,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Chromosome structure.</b> When a dividing cell condenses its chromatin, each <b>chromosome</b> appears as a defined body marked by a <b>centromere</b> at its <b>primary constriction</b>, where a protein–DNA <b>kinetochore</b> anchors the spindle fibres and ensures the accurate segregation of the chromatids. Chemically, a chromosome is a complex of <b>DNA, histone and non-histone proteins</b> (with some RNA). A replicated chromosome consists of two <b>sister chromatids</b> held together at the centromere: identical strands carrying the same genetic information, which is why their precise separation matters so much. The position of that centromere classifies the chromosome into the four types tabulated above: metacentric, sub-metacentric, acrocentric, and telocentric. Some chromosomes carry a <b>secondary constriction</b> as well; the small terminal segment beyond it is the <b>satellite</b>, and a satellite-bearing <b>SAT chromosome</b> is associated with the nucleolus: the nucleolus forms at its secondary-constriction region, the <b>nucleolar organiser</b>. The number of chromosomes is characteristic and constant for a given species, which is why the genomic content of the nucleus stays fixed across the individuals of that species. (In Class 11, chromatin is treated as this DNA–histone thread; the finer split into transcriptionally active <b>euchromatin</b> and condensed, inactive <b>heterochromatin</b> becomes a NEET favourite later.)',
+        html: '<b>Chromosome structure.</b> When a dividing cell condenses its chromatin, each <b>chromosome</b> appears as a defined body marked by a <b>centromere</b> at its <b>primary constriction</b>, where a protein–DNA <b>kinetochore</b> anchors the spindle fibres and ensures the accurate segregation of the chromatids. Chemically, a chromosome is a complex of <b>DNA, histone and non-histone proteins</b> (with some RNA). A replicated chromosome consists of two <b>sister chromatids</b> held together at the centromere: identical strands carrying the same genetic information, which is why their precise separation matters so much. The position of that centromere classifies the chromosome into the four types tabulated above: metacentric, sub-metacentric, acrocentric, and telocentric. Some chromosomes carry a <b>secondary constriction</b> as well; the small terminal segment beyond it is the <b>satellite</b>, and a satellite-bearing <b>SAT chromosome</b> is associated with the nucleolus: the nucleolus forms at its secondary-constriction region, the <b>nucleolar organiser</b>. The number of chromosomes is characteristic and constant for a given species, which is why the genomic content of the nucleus stays fixed across the individuals of that species. (In Class 11, chromatin is treated as this DNA–histone thread; the finer split into transcriptionally active <b>euchromatin</b> and condensed, inactive <b>heterochromatin</b> is taken up again in Class 12.)',
       },
       { t: 'fig', id: 'b11-08-fig-8.6' },
 
@@ -141,12 +141,12 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET assertion–reason',
-        q: '<b>High-difficulty.</b> <b>Assertion (A):</b> The flagellum of a bacterium and the flagellum of a sperm cell are structurally identical. <b>Reason (R):</b> Both contain a 9 + 2 arrangement of microtubules covered by the plasma membrane. Options: <b>(a)</b> both true, R explains A; <b>(b)</b> both true, R does not explain A; <b>(c)</b> A false, R false; <b>(d)</b> A false, R true.',
+        q: '<b>High-difficulty.</b> <b>Assertion (A):</b> The flagellum of a bacterium and the flagellum of a sperm cell are structurally identical. <b>Reason (R):</b> The flagellum of a sperm cell contains a 9 + 2 arrangement of microtubules covered by the plasma membrane. Options: <b>(a)</b> both true, R explains A; <b>(b)</b> both true, R does not explain A; <b>(c)</b> A true, R false; <b>(d)</b> A false, R true.',
         steps: [
-          '<b>Reasoning.</b> Test each clause. A is <b>false</b>: the two are analogous in function but built differently. R is also <b>false</b> as a general claim: only the <b>eukaryotic</b> (sperm) flagellum has the 9 + 2 membrane-covered axoneme; the <b>bacterial</b> flagellum is a bare protein filament with no 9 + 2 core. Both statements false.',
-          'The trap is letting the true description of the eukaryotic flagellum smuggle in a false claim about the bacterial one.',
+          '<b>Reasoning.</b> Test each clause. A is <b>false</b>: the two are analogous in function but built differently. R is <b>true</b>: the <b>eukaryotic</b> (sperm) flagellum has the 9 + 2 membrane-covered axoneme, while the <b>bacterial</b> flagellum is a bare protein filament with no 9 + 2 core, which is exactly why A fails.',
+          'The trap is letting the true description of the sperm flagellum persuade you that the bacterial one is built the same way.',
         ],
-        ans: 'Option (c).',
+        ans: 'Option (d).',
       },
 
       { t: 'part', title: 'Practice exercises' },
@@ -171,7 +171,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET assertion–reason] <b>A:</b> Centrioles are not found in the cells of higher plants. <b>R:</b> Higher plants organise their spindle apparatus without a centrosome. Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
-            a: '(a): both true and R correctly explains A.',
+            a: '(b): both are true, but R does not explain A: building the spindle without a centrosome follows from having no centrioles; it is not the reason they are absent.',
           },
         ],
       },
@@ -300,7 +300,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Step back from the parts and see the whole. Almost every cell, bacterium or blue whale’s neuron, is a bag of <b>cytoplasm</b> (the living ground substance, also called the cytoplasmic matrix) wrapped in a <b>plasma membrane</b>, containing <b>ribosomes</b> and <b>genetic material</b> (a mature red blood cell and a phloem sieve-tube element lose their nucleus but are still cells). That shared minimum is what the cell theory means by “the unit of life.” Beyond that minimum, life took two great architectural decisions.',
+        html: 'Step back from the parts and see the whole. Almost every cell, bacterium or blue whale’s neuron, is a bag of <b>cytoplasm</b> (the living ground substance, also called the cytoplasmic matrix) wrapped in a <b>plasma membrane</b>, containing <b>ribosomes</b> and <b>genetic material</b> (a mature mammalian red blood cell loses its nucleus and ribosomes, and a phloem sieve-tube element loses its nucleus, yet both are still cells). That shared minimum is what the cell theory means by “the unit of life.” Beyond that minimum, life took two great architectural decisions.',
       },
       {
         t: 'p',
@@ -443,7 +443,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET assertion–reason',
-        q: '<b>High-difficulty.</b> <b>A:</b> A bacterial cell can carry out aerobic respiration without possessing mitochondria. <b>R:</b> In prokaryotes, respiratory functions are associated with the <b>mesosome</b> and plasma membrane. Options: <b>(a)</b> both true, R explains A; <b>(b)</b> both true, R doesn’t explain A; <b>(c)</b> A true, R false; <b>(d)</b> both false.',
+        q: '<b>High-difficulty.</b> <b>A:</b> A bacterial cell can carry out aerobic respiration without possessing mitochondria. <b>R:</b> In prokaryotes, respiratory functions are associated with the <b>mesosome</b> and plasma membrane. Options: <b>(a)</b> both true, R explains A; <b>(b)</b> both true, R doesn’t explain A; <b>(c)</b> A true, R false; <b>(d)</b> A false, R true.',
         steps: [
           '<b>Reasoning.</b> A is true: many bacteria respire aerobically yet have no mitochondria. R is true and is the explanation: bacteria respire on the plasma membrane (and its infoldings, the mesosomes) without mitochondria, doing there the job that mitochondria do in eukaryotes.',
           '(NCERT lists respiration among mesosome functions; modern electron microscopy treats mesosomes as preparation artefacts, and the respiratory chain sits in the plasma membrane.)',
@@ -522,10 +522,10 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Mixing the two forks.</b> Prokaryote/eukaryote is about the nucleus; plant/animal is about the wall, plastids, vacuole, centriole. Don’t answer one fork’s question with the other’s facts.',
-          '<b>Ribosome-size reversal.</b> 70S = prokaryote + mitochondria/plastids; 80S = eukaryotic cytoplasm. The single most repeated trap in the chapter.',
+          '<b>Ribosome-size reversal.</b> 70S = prokaryote + mitochondria/plastids; 80S = eukaryotic cytoplasm. A trap that recurs across the chapter.',
           '<b>“Membrane-bound = endomembrane.”</b> Mitochondria, chloroplasts and microbodies are membrane-bound yet <b>excluded</b>: membership needs coordinated function.',
           '<b>Centrioles in plant cells / mitochondria for all respiration.</b> Higher plants lack centrioles; bacteria respire on the plasma membrane (and its infoldings, the mesosomes) without mitochondria.',
-          '<b>Adding membranes to inclusion bodies / nucleoid.</b> Both are membrane-less; only true organelles and the nucleus get membranes.',
+          '<b>Adding membranes to inclusion bodies / nucleoid.</b> Both are membrane-less; membranes enclose only the membrane-bound organelles and the nucleus.',
         ],
       },
       {

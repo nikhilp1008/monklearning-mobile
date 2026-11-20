@@ -324,7 +324,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b> Two cautions. First, the neat “aquatic = ammonotelic, terrestrial = uricotelic” rule is a tendency, not a law; the frog is the classic trap: the aquatic <b>tadpole is ammonotelic</b>, but the adult land frog shifts to <b>ureotelic</b>. Second, “the kidney removes ammonia” is wrong for mammals: by the time blood reaches the kidney the ammonia has already been converted to urea in the <b>liver</b>. The kidney excretes the urea; the liver makes it. If the liver fails, it is <b>ammonia</b> (not urea) that dangerously builds up in the blood.',
+        html: '<b>Limiting conditions & assumptions.</b> Two cautions. First, the neat “aquatic = ammonotelic, terrestrial = uricotelic” rule is a tendency, not a law; the frog is the classic trap: the aquatic <b>tadpole is ammonotelic</b>, but the adult land frog shifts to <b>ureotelic</b>. Second, “the kidney turns ammonia into urea” is wrong for mammals: by the time blood reaches the kidney, most of the ammonia has already been converted to urea in the <b>liver</b>. The kidney excretes the urea (and secretes a little ammonia into the urine to help keep the blood’s pH steady); the liver makes it. If the liver fails, it is <b>ammonia</b> (not urea) that dangerously builds up in the blood.',
       },
 
       { t: 'part', title: 'Key structures, definitions and functional units' },
@@ -423,7 +423,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET Level',
         q: '<b>(Statement type)</b> Read the two statements and choose the correct option. Statement I: In humans, the conversion of ammonia to urea occurs in the kidney. Statement II: Humans are ureotelic animals. (a) Both I and II are correct (b) I correct, II incorrect (c) I incorrect, II correct (d) Both incorrect',
         steps: [
-          '<b>Reasoning & answer: (c).</b> Statement II is correct: humans excrete urea, so we are <b>ureotelic</b>. Statement I is the planted error: the ammonia → urea conversion happens in the <b>liver</b>, not the kidney; the kidney only <b>excretes</b> the already-formed urea. A classic “right destination, wrong factory” trap.',
+          '<b>Reasoning & answer: (c).</b> Statement II is correct: humans excrete urea, so we are <b>ureotelic</b>. Statement I is the planted error: the ammonia → urea conversion happens in the <b>liver</b>, not the kidney; the kidney <b>excretes</b> the already-formed urea. A classic “right destination, wrong factory” trap.',
         ],
         ans: '',
       },
@@ -525,7 +525,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>“The kidney converts ammonia to urea.”</b> It does <b>not</b>: the <b>liver</b> does. The kidney only excretes urea. Pin this with the liver-failure cue: failing liver → <b>ammonia</b> rises, not urea.',
+          '<b>“The kidney converts ammonia to urea.”</b> It does <b>not</b>: the <b>liver</b> does. The kidney excretes urea; it does not make it. Pin this with the liver-failure cue: failing liver → <b>ammonia</b> rises, not urea.',
           '<b>Frog vs tadpole.</b> Writing “frog is ammonotelic” loses easy marks. The <b>tadpole</b> is ammonotelic; the <b>adult frog</b> is ureotelic. Whenever “frog” appears, immediately ask: which stage?',
           '<b>Mixing up the arterioles and the zones.</b> Afferent = <b>wider/incoming</b>; efferent = <b>narrower/outgoing</b>. And by zone: corpuscle/PCT/DCT in <b>cortex</b>, loop of Henle in the <b>medulla</b> (the long loops of juxtamedullary nephrons). These two facts alone answer a startling number of NEET questions (the book’s estimate from past papers, not official figures).',
           '<b>Reversing toxicity and water need.</b> They do <b>not</b> oppose each other: both peak at ammonia and bottom out at uric acid.',
@@ -543,10 +543,10 @@ export const TOPICS: Topic[] = [
           { f: 'Source of N-waste', note: 'mainly deamination of <b>amino acids</b> (protein metabolism); uric acid also from purines.' },
           { f: 'Master arrow', note: 'NH<sub>3</sub> → urea → uric acid: toxicity ↓, water-economy ↑.' },
           {
-            f: '– Ammonotelic → aquatic (fish, tadpole, aquatic insects); Ureotelic → mammals, adult land amphibians; Uricotelic → most birds, reptiles and insects.',
-            note: '',
+            f: 'Excretion type',
+            note: 'Ammonotelic → aquatic (fish, tadpole, aquatic insects); Ureotelic → mammals, adult land amphibians; Uricotelic → most birds, reptiles and insects.',
           },
-          { f: 'Conversion site', note: 'ammonia → urea in the <b>liver</b> (kidney only excretes).' },
+          { f: 'Conversion site', note: 'ammonia → urea in the <b>liver</b> (the kidney excretes the urea).' },
           { f: 'System', note: 'kidneys → ureters → urinary bladder → urethra. Right kidney slightly lower than left.' },
           {
             f: 'Kidney zones',
@@ -561,7 +561,7 @@ export const TOPICS: Topic[] = [
             note: 'GFR ≈ 125 mL/min ≈ 180 L/day; RBF ≈ 1100–1200 mL/min ≈ <frac><num>1</num><den>5</den></frac> of cardiac output; ~99% of filtrate reabsorbed.',
           },
         ],
-        aids: ['<b>Mnemonic: “Cooks Prepare Delicious Dishes” → Cortex: PCT, DCT</b> (loop of Henle is the odd one out, in the <b>medulla</b>). (Cortex: PCT, DCT; “Dishes” is just the end of the phrase.)'],
+        aids: ['<b>Mnemonic: “Cooks Prepare Delicious Dishes” → Cortex: PCT, DCT</b> (loop of Henle is the odd one out, in the <b>medulla</b>). (Cooks = Cortex, Prepare = PCT, Delicious = DCT; “Dishes” only completes the phrase. The renal corpuscle is in the cortex too.)'],
       },
     ],
   },
@@ -587,7 +587,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Step two is the rescue: <b>tubular reabsorption.</b> Obviously you cannot afford to lose 180 litres of water (let alone all your glucose) every day. So as the filtrate flows down the tubule, the lining cells reclaim the valuables back into the surrounding blood. Glucose and amino acids are pulled back completely; most water and salts return too. By the time the dust settles, roughly <b>99% of the filtrate has been reabsorbed</b>, leaving only about 1–1.5 litres to leave as urine (a flat 99% of 180 L would leave 1.8 L, so the figures run from about 1 to 1.8 L).',
+        html: 'Step two is the rescue: <b>tubular reabsorption.</b> Obviously you cannot afford to lose 180 litres of water (let alone all your glucose) every day. So as the filtrate flows down the tubule, the lining cells reclaim the valuables back into the surrounding blood. Glucose and amino acids are pulled back completely; most water and salts return too. By the time the dust settles, roughly <b>99% of the filtrate has been reabsorbed</b>, leaving only about 1–1.5 litres to leave as urine (the NCERT figure; exactly 99% of 180 L would leave 1.8 L, so the 99% is a rounded value).',
       },
       {
         t: 'p',
@@ -676,7 +676,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Step 3: Tubular secretion.</b> In the DCT and collecting duct (and also to some extent in the PCT) the tubule actively adds H<sup>+</sup>, K<sup>+</sup> and NH<sub>3</sub> to the forming urine (and can reabsorb HCO<sub>3</sub><sup>−</sup>). This is the kidney’s pH-and-ion control knob: the reason the same organ that excretes waste also keeps blood chemistry constant regardless of what you eat or drink.',
+        html: '<b>Step 3: Tubular secretion.</b> In the PCT, the DCT and the collecting duct the tubule actively adds H<sup>+</sup>, K<sup>+</sup> and NH<sub>3</sub> to the forming urine (and can reabsorb HCO<sub>3</sub><sup>−</sup>). This is the kidney’s pH-and-ion control knob: the reason the same organ that excretes waste also keeps blood chemistry constant regardless of what you eat or drink.',
       },
       {
         t: 'p',

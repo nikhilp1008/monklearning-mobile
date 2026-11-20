@@ -283,7 +283,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 4,
     kind: 'remember',
     q: 'Which vector carries which size of insert, and which host does each use?',
-    a: 'A plasmid such as pBR322 carries up to about 10 kb in <i>E. coli</i>; lambda phage about 10–25 kb; a cosmid about 30–45 kb; a BAC (F-factor based, in <i>E. coli</i>) about 100–300 kb; a YAC (telomeres, centromere and <i>ori</i>, in yeast) about 200 kb–2 Mb. Plasmids are too small for a genomic fragment, so cDNA, with the introns removed, is used there; BACs and YACs were developed to carry large genomic pieces',
+    a: 'A plasmid such as pBR322 carries up to about 10 kb in <i>E. coli</i>; lambda phage about 10–25 kb; a cosmid about 30–45 kb; a BAC (F-factor based, in <i>E. coli</i>) about 100–300 kb; a YAC (telomeres, centromere and <i>ori</i>, in yeast) about 500 kb–1.5 Mb as the chapter gives it (published YACs span about 0.2–2 Mb). Plasmids are too small for a genomic fragment, so cDNA, with the introns removed, is used there; BACs and YACs were developed to carry large genomic pieces',
     why: 'A 150 kb or 200 kb fragment points to a BAC; a fragment larger than about 300 kb to a YAC.',
     say: null,
   },
@@ -304,7 +304,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'How do selection and screening differ, and how does blue-white screening work?',
     a: 'Selection stops non-transformants from growing, for example plating on an antibiotic. Screening tests the colonies that did grow to find the recombinant, for example blue-white screening or colony hybridisation with a labelled probe. In blue-white screening the multiple cloning site lies inside <i>lacZ</i>; non-recombinants make β-galactosidase and turn blue on X-gal, while an insert breaks <i>lacZ</i> and the recombinant colony stays white',
-    why: 'Antibiotic resistance is selection; <i>lacZ</i> disruption is screening (NCERT calls both selectable markers, so use its wording in a CBSE answer).',
+    why: 'Antibiotic resistance is selection; <i>lacZ</i> disruption is screening (NCERT calls both selectable markers).',
     say: null,
   },
   // pp. 516–518

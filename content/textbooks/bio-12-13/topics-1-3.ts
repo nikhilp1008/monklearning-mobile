@@ -35,7 +35,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The second big idea is that this diversity is not spread evenly over the Earth. It clusters and thins in patterns you can actually predict. The strongest pattern is <b>latitudinal</b>: life piles up near the equator and thins towards the poles. The Amazon basin alone holds about 40,000 plant species, more than most temperate countries. India, sitting partly in the tropics, occupies just 2.4% of the world’s land area yet shelters about 8.1% of its recorded species, which is why it counts as a <b>megadiversity nation</b>.',
+        html: 'The second big idea is that this diversity is not spread evenly over the Earth. It clusters and thins in patterns you can actually predict. The strongest pattern is <b>latitudinal</b>: life piles up near the equator and thins towards the poles. The Amazon basin alone holds more than 40,000 plant species, more than most temperate countries. India, sitting partly in the tropics, occupies just 2.4% of the world’s land area yet shelters about 8.1% of its recorded species, which is why it counts as a <b>megadiversity nation</b>.',
       },
       {
         t: 'p',
@@ -107,7 +107,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Memory hook (the book’s order):</b> <b>H</b>abitat loss > <b>O</b>ver-exploitation > <b>A</b>lien species > <b>C</b>o-extinction (HOAC). Habitat loss and fragmentation is generally ranked the most important cause; the order of the other three is not fixed.',
+        html: '<b>Memory hook (the book’s order):</b> <b>H</b>abitat loss, <b>O</b>ver-exploitation, <b>A</b>lien species, <b>C</b>o-extinction (HOAC). Habitat loss and fragmentation is generally ranked the most important cause; the order of the other three is not fixed.',
       },
       {
         t: 'p',
@@ -155,7 +155,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '(a) Slope <i>z</i> = 0.25; intercept log <i>C</i> = 1.40 ⇒ <i>C</i> = 10<sup>1.40</sup> ≈ 25.1 (in species per ha<sup>0.25</sup>, since <i>C</i> carries units of area<sup>−<i>z</i></sup>).',
           '(b) For <i>A</i> = 100 ha (logarithms to base 10): log <i>S</i> = 0.25(log 100) + 1.40 = 0.25(2) + 1.40 = 0.50 + 1.40 = 1.90, so<br><i>S</i> = 10<sup>1.90</sup> ≈ 79 species.',
-          '(c) <i>z</i> = 0.25 sits just above the <b>within-region</b> band (0.1–0.2) and well below the <b>continental</b> band (0.6–1.2): it is nearer the within-region band (about 0.1–0.2, sometimes a little higher), so this is a regional-scale study (a single landscape, not whole continents).',
+          '(c) <i>z</i> = 0.25 sits just above the <b>within-region</b> band (0.1–0.2) and well below the <b>continental</b> band (0.6–1.2), so it is much nearer the within-region values: this is a regional-scale study (a single landscape, not whole continents).',
         ],
         ans: '',
       },
@@ -278,8 +278,8 @@ export const TOPICS: Topic[] = [
             note: '<i>S</i> = <i>C</i><i>A</i><sup><i>z</i></sup> ⇔ log <i>S</i> = log <i>C</i> + <i>z</i> log <i>A</i>; slope <i>z</i> = <b>0.1–0.2</b> (small) / <b>0.6–1.2</b> (continental).',
           },
           {
-            f: 'Evil Quartet (order of harm, “HOAC”)',
-            note: '<b>H</b>abitat loss & fragmentation (generally ranked first) > <b>O</b>ver-exploitation > <b>A</b>lien species > <b>C</b>o-extinction.',
+            f: 'Evil Quartet (memory order “HOAC”)',
+            note: '<b>H</b>abitat loss & fragmentation (generally ranked first), then <b>O</b>ver-exploitation, <b>A</b>lien species, <b>C</b>o-extinction.',
           },
           { f: 'Rivet Popper (Ehrlich)', note: 'species = rivets on an aircraft; keystone species = wing rivets (lose them and the ecosystem fails).' },
           {
@@ -356,7 +356,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Number of hotspots:</b> the concept was introduced by <b>Norman Myers</b>. The NCERT-based key says <b>34</b>; Conservation International now counts <b>36</b>. In an NCERT-based exam, answer 34 unless the question cites a current source: this 34-vs-36 gap is a deliberate trap.',
+        html: '<b>Number of hotspots:</b> the concept was introduced by <b>Norman Myers</b>. The NCERT-based key says <b>34</b>; Conservation International now counts <b>36</b>. In an NCERT-based exam, answer 34 unless the question cites a current source.',
       },
       {
         t: 'p',
@@ -368,7 +368,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Zonation of a Biosphere Reserve (a key in situ unit):</b><br>• <b>Core zone:</b> legally protected; no human activity permitted.<br>• <b>Buffer zone:</b> limited, regulated activity (research, education, restricted use).<br>• <b>Transition (manipulation) zone:</b> active human use, restoration and cooperation with local people.',
+        html: '<b>Zonation of a Biosphere Reserve (a key in situ unit):</b><br>• <b>Core zone:</b> legally protected; no settlement or human use, only non-destructive research and monitoring.<br>• <b>Buffer zone:</b> limited, regulated activity (research, education, restricted use).<br>• <b>Transition (manipulation) zone:</b> active human use, restoration and cooperation with local people.',
       },
       { t: 'p', html: '(No SI units apply: these are categorical/structural concepts, not measured physical quantities.)' },
 
@@ -387,7 +387,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>In situ machinery (India):</b><br>• <b>Wildlife (Protection) Act, 1972:</b> the legal backbone for protected areas in India.<br>• <b>Protected-area categories:</b> national parks (the highest protection: no private rights, no grazing, no human exploitation of the area), wildlife sanctuaries (protection focused on animal life; some regulated activity allowed), and biosphere reserves (large multi-use units, designated under UNESCO’s <b>Man and Biosphere (MAB)</b> programme, with the core/buffer/transition zonation above). India’s first national park was <b>Hailey National Park (1935)</b>, now <b>Jim Corbett</b> (1935 is the year of the Act; the park itself is usually dated 1936). India has <b>18 biosphere reserves</b> (older NCERT texts print 14; the later official count is 18).<br>• <b>Sacred groves:</b> community-protected forest patches, often the last refuges of rare species. Found in the <b>Khasi and Jaintia Hills (Meghalaya)</b>, <b>Aravalli Hills (Rajasthan)</b>, the <b>Western Ghats of Karnataka and Maharashtra</b>, and the <b>Sarguja–Chanda–Bastar belt (Chhattisgarh/Madhya Pradesh)</b>.<br>• <b>Ramsar wetlands:</b> under the <b>Ramsar Convention (1971)</b> for wetland conservation. Wetlands filter water, buffer floods and shelter vast numbers of migratory birds, which earns them the name “kidneys of the ecosystem”. (World Wetlands Day = 2 February.)',
+        html: '<b>In situ machinery (India):</b><br>• <b>Wildlife (Protection) Act, 1972:</b> the legal backbone for protected areas in India.<br>• <b>Protected-area categories:</b> national parks (the highest protection: no private rights, no grazing, no human exploitation of the area), wildlife sanctuaries (protection focused on animal life; some regulated activity allowed), and biosphere reserves (large multi-use units, designated under UNESCO’s <b>Man and Biosphere (MAB)</b> programme, with the core/buffer/transition zonation above). India’s first national park was <b>Hailey National Park (1935)</b>, now <b>Jim Corbett</b> (1935 is the year of the Act; the park itself is usually dated 1936). India has <b>18 biosphere reserves</b> by the current official count (NCERT prints 14).<br>• <b>Sacred groves:</b> community-protected forest patches, often the last refuges of rare species. Found in the <b>Khasi and Jaintia Hills (Meghalaya)</b>, <b>Aravalli Hills (Rajasthan)</b>, the <b>Western Ghats of Karnataka and Maharashtra</b>, and the <b>Sarguja, Chanda and Bastar areas</b> (NCERT places them in Madhya Pradesh; Sarguja and Bastar are now in Chhattisgarh, Chanda (Chandrapur) in Maharashtra).<br>• <b>Ramsar wetlands:</b> under the <b>Ramsar Convention (1971)</b> for wetland conservation. Wetlands filter water, buffer floods and shelter vast numbers of migratory birds, which earns them the name “kidneys of the ecosystem”. (World Wetlands Day = 2 February.)',
       },
       {
         t: 'p',
@@ -469,8 +469,8 @@ export const TOPICS: Topic[] = [
             a: 'Ex situ; called advanced because gametes, embryos or tissue are kept viable and fertile for long periods at −196 °C in liquid nitrogen.',
           },
           {
-            q: '[NEET] Name the three zones of a biosphere reserve and state which permits no human activity.',
-            a: 'Core (no human activity), buffer, transition/manipulation.',
+            q: '[NEET] Name the three zones of a biosphere reserve and state which is the most strictly protected.',
+            a: 'Core (strictly protected; only non-destructive research and monitoring), buffer, transition/manipulation.',
           },
           {
             q: '[NEET high-difficulty] “Sacred groves are among the most effective in situ measures despite often having no legal status.” Defend or challenge this statement in 3–4 lines.',
@@ -556,7 +556,7 @@ export const TOPICS: Topic[] = [
           { f: 'Hotspot criteria (both needed)', note: '≥1,500 endemic vascular plants AND ≥70% vegetation lost. Concept: Norman Myers.' },
           { f: 'Hotspot number', note: '34 (NCERT-based key) / 36 (Conservation International’s current count): know both.' },
           { f: 'India’s hotspots', note: 'Western Ghats–Sri Lanka · Himalaya · Indo-Burma.' },
-          { f: 'Biosphere reserve zones', note: 'Core (no human activity) → Buffer → Transition.' },
+          { f: 'Biosphere reserve zones', note: 'Core (strictly protected) → Buffer → Transition.' },
           { f: 'Cryopreservation', note: 'germplasm at −196 °C in liquid nitrogen: an advanced ex situ method.' },
           {
             f: 'Dates to lock',
@@ -715,7 +715,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Arrange in decreasing order of number of described species: plants, insects, all (non-insect) animals.',
-            a: 'Insects (~49%) > plants (~22%) > all other animals (~21%) (animals are about 70%, insects about 70% of animals).',
+            a: 'Insects (about 49%) > plants (about 22%) > all other animals (about 21%). (Animals are about 70% of species and insects about 70% of animals. The last two figures are close and rounded, so only insects first is firm.)',
           },
           {
             q: '[NEET] State the two main conclusions of David Tilman’s long-term ecosystem experiments.',

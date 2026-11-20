@@ -25,7 +25,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives the direction of the cleavage furrow in animal cells and of the cell plate in plant cells, and the coconut syncytium. For the exam you need the molecular machinery, the direction of movement, the timing relative to karyokinesis, and the specific cases where cytokinesis fails or is modified.',
+        html: 'The chapter gives the direction of the cleavage furrow in animal cells and of the cell plate in plant cells, and the coconut syncytium. Going beyond NCERT, this topic adds the molecular machinery, the direction of movement, the timing relative to karyokinesis, and the specific cases where cytokinesis fails or is modified.',
       },
 
       { t: 'part', title: 'Method' },
@@ -107,7 +107,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET-style] A cell is treated with a drug that inhibits Golgi vesicle fusion. Which type of cytokinesis (animal or plant) will be more severely affected, and why?',
-            a: 'Plant cytokinesis will be more severely affected. Cell plate formation absolutely requires Golgi-derived vesicles carrying wall materials (pectins, hemicellulose) that fuse to build the plate. If vesicle fusion is blocked, no cell plate forms and cytokinesis cannot be completed. Animal cytokinesis uses a contractile ring of actin and myosin; it does not require vesicle fusion and is therefore less directly affected.',
+            a: 'Plant cytokinesis will be more severely affected. Cell plate formation absolutely requires Golgi-derived vesicles carrying wall materials (pectins, hemicellulose) that fuse to build the plate. If vesicle fusion is blocked, no cell plate forms and cytokinesis cannot be completed. Animal cytokinesis uses a contractile ring of actin and myosin; it uses vesicle fusion only to add membrane and to complete the final separation, so it is less directly affected.',
           },
           {
             q: '[NEET-style] Why is colchicine used in karyotyping procedures?',
@@ -138,7 +138,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b><i>Drosophila</i> syncytial divisions.</b> In early <i>Drosophila</i> embryogenesis, the nucleus undergoes 13 rounds of nuclear division without cytokinesis, producing a syncytium (thousands of nuclei in one shared cytoplasm). The cycles in the first nine rounds consist only of alternating S and M phases; a short G<sub>2</sub> appears from cycle 10, and G<sub>1</sub> only after cellularisation. Cellularisation (converting the syncytium into individual cells) occurs at cycle 14. This is NOT meiosis; it is mitosis without cytokinesis. The significance: rapid generation of nuclei for early development before gene expression from the zygotic genome begins.',
+        html: '<b><i>Drosophila</i> syncytial divisions.</b> In early <i>Drosophila</i> embryogenesis, the nucleus undergoes 13 rounds of nuclear division without cytokinesis, producing a syncytium (thousands of nuclei in one shared cytoplasm). All 13 syncytial cycles consist only of alternating S and M phases, with no G<sub>1</sub> or G<sub>2</sub>; the cycles slow from cycle 10 as S phase lengthens. A G<sub>2</sub> phase first appears in cycle 14, when cellularisation occurs, and G<sub>1</sub> later still. Cellularisation (converting the syncytium into individual cells) occurs at cycle 14. This is NOT meiosis; it is mitosis without cytokinesis. The significance: rapid generation of nuclei for early development before gene expression from the zygotic genome begins.',
       },
       {
         t: 'p',
@@ -192,7 +192,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET-style] State two differences between the first 13 divisions in a <i>Drosophila</i> embryo and normal mitotic divisions.',
-            a: '(i) No cytokinesis: nuclei divide in a shared cytoplasm (syncytium); normal mitosis includes cytokinesis. (ii) No cellular membranes between nuclei; in normal mitosis each cell has its own membrane. (iii) The cycles are extremely rapid (about 10 minutes in the early cycles), nearly synchronous across the embryo, and in the first nine cycles consist only of alternating S and M phases; a short G2 appears from cycle 10, and G1 only after cellularisation, whereas normal mitotic cycles have G1 and G2 and are far slower.',
+            a: '(i) No cytokinesis: nuclei divide in a shared cytoplasm (syncytium); normal mitosis includes cytokinesis. (ii) No cellular membranes between nuclei; in normal mitosis each cell has its own membrane. (iii) The cycles are extremely rapid (about 10 minutes in the early cycles), nearly synchronous across the embryo, and consist only of alternating S and M phases with no G1 or G2, whereas normal mitotic cycles have G1 and G2 and are far slower.',
           },
           {
             q: '[NEET-style] The drone (male honeybee) is haploid. By what process do its body cells divide? Is the chromosome number halved when its sperm form?',
@@ -225,7 +225,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter mentions that unchecked mitosis leads to tumours and cancer. For NEET you need the specific vocabulary: oncogenes, tumour suppressor genes, how checkpoint failure drives proliferation, and which chemotherapy drugs exploit cell-cycle machinery.',
+        html: 'The chapter mentions that unchecked mitosis leads to tumours and cancer. Going beyond NCERT, this topic adds the specific vocabulary: oncogenes, tumour suppressor genes, how checkpoint failure drives proliferation, and which chemotherapy drugs exploit cell-cycle machinery.',
       },
 
       { t: 'part', title: 'Method' },
@@ -243,7 +243,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Cancer and the cell cycle.</b> Cancer results when: (i) growth-promoting signals override checkpoints (oncogene activation); (ii) checkpoints fail to arrest damaged cells (tumour suppressor loss); (iii) cells escape apoptosis (p53 loss); (iv) replicative immortality: telomerase is reactivated, preventing telomere shortening and allowing unlimited divisions. These are the four routes to cancer.',
+        html: '<b>Cancer and the cell cycle.</b> Cancer results when: (i) growth-promoting signals override checkpoints (oncogene activation); (ii) checkpoints fail to arrest damaged cells (tumour suppressor loss); (iii) cells escape apoptosis (p53 loss); (iv) replicative immortality: telomerase is reactivated, preventing telomere shortening and allowing unlimited divisions. These are four of the ways a cell’s cycle control breaks down in cancer.',
       },
       {
         t: 'table',
@@ -259,7 +259,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'All these drugs exploit the fact that rapidly dividing cancer cells spend significant time in S and M phases: targeting those phases selectively kills proliferating cells (cancer cells and some normal tissues like bone marrow, intestinal epithelium, and hair follicles; the side effects of chemotherapy).',
+        html: 'The anticancer drugs among these exploit the fact that rapidly dividing cancer cells spend significant time in S and M phases: targeting those phases selectively kills proliferating cells (cancer cells and some normal tissues like bone marrow, intestinal epithelium, and hair follicles; the side effects of chemotherapy).',
       },
       {
         t: 'p',
@@ -281,7 +281,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET level',
         q: '<b>Chemotherapy Mechanism.</b> Taxol is used to treat breast and ovarian cancers. It acts on the mitotic spindle. (a) At which stage does Taxol block the cell? (b) Why are cancer cells more susceptible to Taxol than most normal cells? (c) Name one common side effect of Taxol that reflects its effect on normal dividing cells.',
         steps: [
-          '(a) Taxol stabilises microtubules and prevents their depolymerisation, which is required for anaphase movement of chromosomes. Therefore the chromosomes align at metaphase but cannot be pulled apart, and anaphase is blocked. (b) Cancer cells divide much more frequently than most normal adult somatic cells: the therapeutic window exploits the higher proportion of cells in M phase in tumour tissue. (c) Bone marrow suppression (agranulocytosis: loss of white blood cells, increasing infection risk); hair loss (alopecia: follicular cells are rapidly dividing); mucositis (intestinal lining damage); peripheral neuropathy (affects neurons whose cytoskeleton relies on microtubules). Any one is sufficient.',
+          '(a) Taxol stabilises microtubules and prevents their depolymerisation, which is required for anaphase movement of chromosomes. Therefore the chromosomes align at metaphase but cannot be pulled apart, and anaphase is blocked. (b) Cancer cells divide much more frequently than most normal adult somatic cells: the therapeutic window exploits the higher proportion of cells in M phase in tumour tissue. (c) Bone marrow suppression (fewer white blood cells, especially neutrophils, raising infection risk); hair loss (alopecia: follicle cells divide rapidly); mucositis (damage to the rapidly renewed gut lining). Any one is sufficient. (Peripheral neuropathy also occurs, but it comes from Taxol’s effect on the microtubules of non-dividing nerve cells, so it does not answer this part.)',
         ],
         ans: '',
       },
@@ -304,7 +304,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[NEET-style] Distinguish between a proto-oncogene and an oncogene.',
-            a: 'A proto-oncogene is a normal gene that promotes controlled cell division (e.g., cyclin D, Ras, HER2). An oncogene is a mutated or amplified proto-oncogene that drives uncontrolled proliferation: it is dominant at the cellular level (one activated copy can transform a cell).',
+            a: 'A proto-oncogene is a normal gene that promotes controlled cell division (e.g., cyclin D, Ras, HER2). An oncogene is a mutated or amplified proto-oncogene that drives uncontrolled proliferation: it acts dominantly at the cellular level (one activated copy is enough to give the growth-promoting effect), though a cancer needs changes in several genes.',
           },
           {
             q: '[CUET-style] Name two tumour suppressor genes and their normal function.',
@@ -400,7 +400,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'Worked representative',
-        q: 'A stage of mitosis is shown in the diagram. Nuclear envelope reforms and the Golgi complex reforms. The stage is:<br><b>(a)</b> Late prophase<br><b>(b)</b> Cytokinesis<br><b>(c)</b> Telophase<br><b>(d)</b> Metaphase',
+        q: 'In a stage of mitosis, the nuclear envelope and the Golgi complex are re-forming. The stage is:<br><b>(a)</b> Late prophase<br><b>(b)</b> Cytokinesis<br><b>(c)</b> Telophase<br><b>(d)</b> Metaphase',
         steps: [
           'The nuclear envelope re-forming and organelles reappearing are the hallmarks of telophase: the reversal of prophase events. Metaphase shows the envelope already gone; prophase shows it disappearing; cytokinesis involves the cytoplasm dividing, not the nucleus reforming.',
         ],
@@ -455,7 +455,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>7. Cytokinesis Direction Swap</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A plant-versus-animal cytokinesis question. Options pair furrow details with plant contexts or vice versa.<br><b>Approach:</b> The two mechanisms are always opposite in direction:<br>• <b>Animal:</b> Cleavage furrow; plasma membrane pinches from <b>outside inward</b> (wall → centre). <b>Centripetal.</b><br>• <b>Plant:</b> Cell plate; new membrane and wall form from <b>centre outward</b> (centre → wall). <b>Centrifugal.</b>',
+        html: '<b>What it looks like:</b> A plant-versus-animal cytokinesis question. Options pair furrow details with plant contexts or vice versa.<br><b>Approach:</b> The two mechanisms are always opposite in direction:<br>• <b>Animal:</b> Cleavage furrow; plasma membrane pinches from <b>outside inward</b> (periphery → centre). <b>Centripetal.</b><br>• <b>Plant:</b> Cell plate; new membrane and wall form from <b>centre outward</b> (centre → wall). <b>Centrifugal.</b>',
       },
       {
         t: 'ex',
@@ -520,13 +520,13 @@ export const TOPICS: Topic[] = [
           ],
           [
             '<b>Kinetochore direction</b>',
-            'Options describe the kinetochore as attaching spindle fibres to chromatids or to the chromosome arms: both wrong.',
+            'Options describe spindle fibres as attaching along the chromosome arms, or the kinetochore as lying away from the centromere: both wrong.',
             'Kinetochores are protein structures at the centromere, one on each sister chromatid, where spindle microtubules attach. Spindle fibres do not attach along the chromosome arms.',
           ],
           [
             '<b>Cell plate direction</b>',
-            'Plant cytokinesis options sometimes describe “wall to centre” (animal furrow) to trap students who ignore the kingdom context.',
-            'Plant cell plate = centre → walls (centrifugal). Animal cleavage furrow = wall → centre (centripetal). One word decides the answer.',
+            'Plant cytokinesis options sometimes describe “wall to centre” (the wrong direction for the plate) to trap students who ignore the kingdom context.',
+            'Plant cell plate = centre → walls (centrifugal). Animal cleavage furrow = periphery → centre (centripetal). One word decides the answer.',
           ],
           [
             '<b>Interkinesis ≠ Interphase</b>',

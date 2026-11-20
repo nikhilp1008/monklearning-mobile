@@ -132,7 +132,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>2. Barrier methods: a physical wall.</b> Condoms (male) and femidoms (female) are thin latex/rubber sheaths that stop ejaculated semen from entering the female tract; the same physical seal also blocks pathogen exchange, giving condoms (male and female) their added protection against STIs. Diaphragms, cervical caps, and vaults are reusable rubber barriers that a woman places to cover the cervix. <b>Spermicidal</b> creams, jellies, and foams are chemicals that immobilise/kill sperm and are used alongside barriers to raise their effectiveness, not as a stand-alone method.',
+        html: '<b>2. Barrier methods: a physical wall.</b> Condoms (male) and femidoms (female) are thin latex/rubber sheaths that stop ejaculated semen from entering the female tract; the same physical seal also blocks pathogen exchange, giving condoms (male and female) their added protection against STIs. Diaphragms, cervical caps, and vaults are reusable rubber barriers that a woman places to cover the cervix. <b>Spermicidal</b> creams, jellies, and foams are chemicals that immobilise/kill sperm and are used alongside barriers to raise their effectiveness; used alone they are much less reliable.',
       },
       {
         t: 'p',
@@ -332,7 +332,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Numbers to lock',
-            note: 'fertile window ≈ days <b>10–17</b>; lactational amenorrhea ≈ <b>6 months</b>; combined pills <b>21 + 7</b> day cycle; emergency contraception within <b>72 h</b>; sterilisation failure <b>< 1%</b>.',
+            note: 'fertile window ≈ days <b>10–17</b>; lactational amenorrhea ≈ <b>6 months</b>; combined pills <b>21 + 7</b> day cycle; emergency contraception within <b>72 h</b>; sterilisation failure <b>under 1%</b>.',
           },
           {
             f: 'IUD mechanisms',
@@ -373,7 +373,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Think about it this way…</b> The same body fluids and the same intimate contact that can create a pregnancy can also carry a pathogen. The protection logic therefore overlaps with contraception at exactly one point: the <b>condom</b> (male or female), the one contraceptive that also lowers the risk of infection. Every other preventive rule for STDs is behavioural: avoid sex with unknown or multiple partners, insist on hygienic practices, do not share needles, and at the first sign of doubt see a qualified doctor early.',
+        html: '<b>Think about it this way…</b> The same body fluids and the same intimate contact that can create a pregnancy can also carry a pathogen. The protection logic therefore overlaps with contraception at exactly one point: the <b>condom</b> (male or female), the one contraceptive that also lowers the risk of infection. Most other preventive rules for STDs are behavioural: avoid sex with unknown or multiple partners, insist on hygienic practices, do not share needles, and at the first sign of doubt see a qualified doctor early.',
       },
       {
         t: 'p',
@@ -381,7 +381,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b> Not every STD is curable: most can be cured if caught early, but <b>hepatitis-B, genital herpes, and HIV/AIDS are not completely curable</b>, a favourite exam trap. Equally, not every STD stays confined to the reproductive tract: <b>AIDS and hepatitis-B spread through sexual contact but are systemic, blood-borne infections</b>. NCERT uses STI, STD, VD and RTI together, so treat “STD but not confined to the sex organs” as the book’s refinement, not a separate NCERT category. And ART is not a guaranteed cure: it is an assistance, advised only after specialised diagnosis fails to correct the underlying problem.',
+        html: '<b>Limiting conditions & assumptions.</b> Not every STD is curable: most can be cured if caught early, but <b>hepatitis-B, genital herpes, and HIV/AIDS are not completely curable</b>, a frequent exam trap. Equally, not every STD stays confined to the reproductive tract: <b>AIDS and hepatitis-B spread through sexual contact but are systemic, blood-borne infections</b>. NCERT uses STI, STD, VD and RTI together, so treat “STD but not confined to the sex organs” as the book’s refinement, not a separate NCERT category. And ART is not a guaranteed cure: it is an assistance, advised only after specialised diagnosis fails to correct the underlying problem.',
       },
 
       { t: 'part', title: 'Key concepts, definitions and diagnostic indicators' },
@@ -474,7 +474,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>B. Why the book singles out AIDS and hepatitis-B.</b> An RTI is, by definition, an infection located in the reproductive tract. Most STDs (gonorrhoea, syphilis, genital herpes, chlamydiasis, trichomoniasis) do infect the reproductive organs, so they are RTIs. But <b>AIDS and hepatitis-B,</b> though spread through sexual contact (among other routes), are <b>systemic/blood-borne</b> infections that do not stay confined to the sex organs. NCERT uses STI, STD, VD and RTI together, so this is the book’s refinement, not a separate NCERT category.',
+        html: '<b>B. Why the book singles out AIDS and hepatitis-B.</b> Most STDs (gonorrhoea, genital herpes, chlamydiasis, trichomoniasis) mainly affect the reproductive organs. But <b>AIDS and hepatitis-B,</b> though spread through sexual contact (among other routes), are <b>systemic/blood-borne</b> infections that do not stay confined to the sex organs (untreated syphilis also spreads through the body in its later stages). NCERT uses STI, STD, VD and RTI together, so this is the book’s refinement, not a separate NCERT category.',
       },
       {
         t: 'p',
@@ -486,7 +486,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>E. Why GIFT uses the tube, not the uterus.</b> A natural student question: why not just drop the gametes into the uterus? Because <b>fertilisation naturally occurs in the fallopian tube</b> (at the ampullary–isthmic junction), and GIFT mimics that natural site: the gametes are placed in the tube so that fertilisation proceeds in vivo. The uterus is the site of implantation, not of fertilisation.',
+        html: '<b>E. Why GIFT uses the tube, not the uterus.</b> A natural student question: why not just drop the gametes into the uterus? Because <b>fertilisation naturally occurs in the fallopian tube</b> (in its ampullary region, at the ampullary–isthmic junction), and GIFT mimics that natural site: the gametes are placed in the tube so that fertilisation proceeds in vivo. The uterus is the site of implantation, not of fertilisation.',
       },
       { t: 'fig', id: 'b12-03-fig-3.4' },
 
@@ -496,7 +496,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board level | 2–3 marks',
         q: '<b>(match + name)</b> Name the causative organism of each: (i) syphilis, (ii) trichomoniasis, (iii) genital warts. For each, state whether the pathogen is a bacterium, virus, or protozoan.',
         steps: [
-          '<b>Reasoning & model answer.</b> (i) Syphilis → <i>Treponema pallidum</i> → <b>bacterium</b>. (ii) Trichomoniasis → <i>Trichomonas vaginalis</i> → <b>protozoan</b>. (iii) Genital warts → Human Papilloma Virus (HPV) → <b>virus</b>. <b>Tip:</b> examiners award the “type” mark separately: never skip it. Memorise trichomoniasis as the <b>odd one out</b> (the only protozoan in the list).',
+          '<b>Reasoning & model answer.</b> (i) Syphilis → <i>Treponema pallidum</i> → <b>bacterium</b>. (ii) Trichomoniasis → <i>Trichomonas vaginalis</i> → <b>protozoan</b>. (iii) Genital warts → Human Papilloma Virus (HPV) → <b>virus</b>. <b>Tip:</b> a board answer often gives the “type” a separate mark: never skip it. Memorise trichomoniasis as the <b>odd one out</b> (the only protozoan in the list).',
         ],
         ans: '',
       },
@@ -505,7 +505,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET / NEET speed-trap level',
         q: '<b>(eliminate the sex-organ infections)</b> Which one of the following spreads through sexual contact but is a systemic (not sex-organ-confined) infection? <b>(a)</b> Gonorrhoea <b>(b)</b> Genital herpes <b>(c)</b> AIDS <b>(d)</b> Chlamydiasis',
         steps: [
-          '<b>Reasoning.</b> Re-read the stem: it is asking for an STD that is <b>not</b> an RTI. Gonorrhoea, herpes, and chlamydiasis all reside in the reproductive tract → eliminated. <b>AIDS</b> (HIV) is a systemic infection transmitted sexually but not localised to the sex organs.',
+          '<b>Reasoning.</b> Re-read the stem: it asks for an STD whose main disease is not confined to the reproductive tract. Gonorrhoea, herpes and chlamydiasis mainly affect the reproductive tract → eliminated. <b>AIDS</b> (HIV) is a systemic infection transmitted sexually.',
           '<b>Speed cue:</b> the book’s “systemic STD” pair is <b>AIDS + hepatitis-B</b>: spot either and pick it.',
         ],
         ans: '(c)',
@@ -597,7 +597,7 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'fallopian tube',
-            nudge: '<b>(a)</b> is the destination for ≤8 blastomeres (ZIFT): the most common trap, picked by students who reverse the rule.',
+            nudge: '<b>(a)</b> is the destination for ≤8 blastomeres (ZIFT): a common trap, picked by students who reverse the rule.',
           },
           { label: 'cervix', nudge: '<b>(b)</b> and <b>(d)</b> are not transfer sites in ART.' },
           { label: 'uterus', nudge: null },

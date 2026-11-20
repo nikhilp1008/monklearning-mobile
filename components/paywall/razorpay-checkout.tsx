@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
@@ -36,6 +36,8 @@ import {
   type Order,
 } from '@/lib/payments';
 import { ob, obFont } from '@/constants/onboarding';
+
+import { TurningRing } from './light';
 
 /**
  * PAYING FOR A PASS: ONE HOOK, ONE SHEET.
@@ -259,11 +261,21 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
    *  sheet, and the first never finished. */
   const inFlight = useRef(false);
   /**
-   * The sheet has closed and the app is asking the server what happened. The
-   * screen shows the confirming page for exactly this stretch: it used to be a
-   * greyed-out button and nothing else for up to half a minute.
+   * The sheet has closed, or the student is back from their UPI app, and the app
+   * is asking the server what happened. The screen shows the confirming page for
+   * exactly this stretch: it used to be a greyed-out button and nothing else for
+   * up to half a minute.
+   *
+   *   'paid'      money has moved; the pass is being read back.
+   *   'checking'  back from a UPI app with no word either way (19 Nov 2026).
+   *               This wait was the price list with a spinner in one row for up
+   *               to 20 seconds: a second, undesigned loading state. It is the
+   *               same confirming page now, worded for not knowing yet.
    */
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<false | 'paid' | 'checking'>(false);
+  /** Ends the 'checking' wait early: the student says they did not pay. */
+  const stopLooking = useRef<(() => void) | null>(null);
+  const stopConfirming = useCallback(() => stopLooking.current?.(), []);
 
   const pay = useCallback(
     async (
@@ -382,24 +394,34 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
         if (event.type === 'settled') {
           // The server already says this order is paid: no verify to make, only
           // the pass to read back. The confirming page covers that one call.
-          setConfirming(true);
+          setConfirming('paid');
           const pass = await waitForPass(before, 4, 700);
           if (pass) return { status: 'paid', pass, amountPaise: order.amount };
           return { status: 'pending' };
         }
 
         if (event.type !== 'success') {
-          // Quietly: the student may well not have paid, so no "confirming"
-          // page — the screen is back at once and only its Pay button waits.
           // CLOSED IS NOT CANCELLED UNTIL THE SERVER SAYS SO. A student who
           // approves a UPI request in their UPI app and then closes this sheet
           // has paid; so has one whose bank page finished after the sheet
           // stopped listening. Ask before saying anything.
-          const outcome = upiApp
-            ? await orderPaidSoon(order.order_id, UPI_EXIT_LOOKS, UPI_EXIT_GAP_MS)
-            : await orderPaidSoon(order.order_id);
+          //
+          // After Razorpay's own sheet this is quiet and quick (the student
+          // closed it; most did not pay). After a UPI app it can take 20
+          // seconds, and the student has just come back from paying, so the
+          // confirming page is up for it, with a way to say "I didn't pay".
+          if (upiApp) setConfirming('checking');
+          const saidNotPaid = new Promise<'unknown'>((resolve) => {
+            stopLooking.current = () => resolve('unknown');
+          });
+          const look = async () =>
+            upiApp
+              ? await orderPaidSoon(order.order_id, UPI_EXIT_LOOKS, UPI_EXIT_GAP_MS)
+              : await orderPaidSoon(order.order_id);
+          const outcome = await Promise.race([look(), saidNotPaid]);
+          stopLooking.current = null;
           if (outcome === 'paid') {
-            setConfirming(true);
+            setConfirming('paid');
             const arrived = await waitForPass(before, 4, 700);
             if (arrived) return { status: 'paid', pass: arrived, amountPaise: order.amount };
             return { status: 'pending' };
@@ -412,7 +434,7 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
           return { status: 'cancelled', unsure };
         }
 
-        setConfirming(true);
+        setConfirming('paid');
         // Money has moved from here on. Nothing below may say "failed" unless the
         // server has said the payment itself is bad, AND no pass arrived anyway
         // (Razorpay also tells the server, which can grant it on its own).
@@ -431,6 +453,7 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
         return { status: 'pending' };
       } finally {
         inFlight.current = false;
+        stopLooking.current = null;
         setConfirming(false);
       }
     },
@@ -498,7 +521,7 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
 
         // Google Play. Money has moved from here on: nothing below says "failed"
         // unless the server has said the purchase itself is bad.
-        setConfirming(true);
+        setConfirming('paid');
         // Retries Google-unreachable and no-signal answers itself (see confirmPlayPurchase).
         // A purchase that is not confirmed stays unfinished on purpose: recovery
         // verifies it on the next visit, and Google refunds it after 3 days if never.
@@ -557,7 +580,7 @@ export function usePassCheckout(hookOpts: { onRecovered?: () => void } = {}) {
     />
   ) : null;
 
-  return { startCheckout, recover, checkout, confirming };
+  return { startCheckout, recover, checkout, confirming, stopConfirming };
 }
 
 function CheckoutSheet({
@@ -711,7 +734,8 @@ function SheetBody({
         />
         {loading ? (
           <View style={styles.loading} pointerEvents="none">
-            <ActivityIndicator color={ob.ink} />
+            {/* The confirming page's own ring, so a wait looks the same before the payment as after it. */}
+            <TurningRing size={44} />
           </View>
         ) : null}
       </View>

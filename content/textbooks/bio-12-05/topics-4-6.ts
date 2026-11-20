@@ -33,7 +33,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Here’s the puzzle the cell must solve. A codon (a triplet of bases like AUG) has no chemical resemblance to the amino acid it stands for. There is nothing about the shape of “A-U-G” that naturally grabs a methionine. So the cell needs a go-between: a molecule with a “reading end” that recognises the codon and a “carrying end” that holds the matching amino acid. That adapter is <b>tRNA</b>, exactly as Francis Crick predicted before anyone had seen one. (Curiously, tRNA had already been spotted in the cell and named <b>soluble RNA (sRNA)</b> before the genetic code was worked out; only later was its role as the code-reading adapter recognised.)',
+        html: 'Here’s the puzzle the cell must solve. A codon (a triplet of bases like AUG) has no chemical resemblance to the amino acid it stands for. There is nothing about the shape of “A-U-G” that naturally grabs a methionine. So the cell needs a go-between: a molecule with a “reading end” that recognises the codon and a “carrying end” that holds the matching amino acid. That adapter is <b>tRNA</b>, exactly as Francis Crick predicted before its role was known. (Curiously, tRNA had already been spotted in the cell and named <b>soluble RNA (sRNA)</b> before the genetic code was worked out; only later was its role as the code-reading adapter recognised.)',
       },
       {
         t: 'p',
@@ -147,7 +147,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET · assertion–reason',
         q: '<b>Assertion (A):</b> The ribosome can be regarded as a ribozyme. <b>Reason (R):</b> The 23S rRNA of the bacterial large subunit catalyses peptide-bond formation.<br><b>(a)</b> Both A and R true, R is the correct explanation of A<br><b>(b)</b> Both A and R true, R is not the correct explanation<br><b>(c)</b> A true, R false<br><b>(d)</b> A false, R true',
         steps: [
-          'A ribozyme is an RNA that acts as an enzyme; the ribosome qualifies precisely because its rRNA, not a protein, carries out catalysis. R is the direct justification for A. Students who choose <b>(c)</b> wrongly assume a protein enzyme forms the peptide bond: a common misconception this question targets.',
+          'A ribozyme is an RNA that acts as an enzyme; the ribosome qualifies precisely because its rRNA, not a protein, carries out catalysis. R is the direct justification for A. Students who choose <b>(c)</b> accept that the ribosome is a ribozyme but doubt that the 23S rRNA is the catalyst: a common misconception this question targets.',
         ],
         ans: '(a)',
       },
@@ -310,7 +310,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The deeper idea is that <b>the substrate switches on the enzymes that digest it.</b> Lactose is both the food and the signal that says “make the tools to eat me.” This kind of substrate-controlled cluster of genes, discovered by <b>Jacob and Monod in 1961</b>, is called an <b>operon</b>, and it remains the textbook model of how genes are controlled.',
+        html: 'The deeper idea is that <b>the substrate switches on the enzymes that digest it.</b> Lactose is both the food and the signal that says “make the tools to eat me.” A cluster of genes switched together in this way is called an <b>operon</b>; the operon model, proposed by <b>Jacob and Monod in 1961</b> for <i>lac</i>, remains the textbook model of how genes are controlled.',
       },
       {
         t: 'p',
@@ -544,7 +544,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The HGP, launched in <b>1990</b>, was a mega-project to determine the sequence of all ~3 billion base pairs of human DNA and to identify all its genes. A surprising headline result: humans have only about <b>30,000 genes</b>, far fewer than the 80,000–140,000 once guessed, and not many more than a worm. Much of our genome doesn’t code for protein at all.',
+        html: 'The HGP, launched in <b>1990</b>, was a mega-project to determine the sequence of all ~3 billion base pairs of human DNA and to identify all its genes. A surprising headline result: humans have only about <b>30,000 or 20,000–25,000 genes</b> (the book’s figure or NCERT’s goal figure), far fewer than the 80,000–140,000 once guessed, and not many more than a worm. Much of our genome doesn’t code for protein at all.',
       },
       {
         t: 'p',
@@ -558,7 +558,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key definitions, structures and diagnostic features' },
       {
         t: 'p',
-        html: '<b>Human Genome Project: salient features</b> (high-frequency exam facts; the book’s estimate from past papers, not official figures):<br>• Launched in <b>1990</b>; aimed to sequence the entire human genome (~<b>3 billion</b> or <b>3164.7 million base pairs</b>).<br>• Estimated <b>~30,000 genes</b>: far fewer than earlier guesses of 80,000–140,000.<br>• <b>Chromosome 1</b> has the <b>most</b> genes (2968); the <b>Y chromosome</b> has the <b>fewest</b> (231).<br>• <b>99.9%</b> of nucleotide bases are exactly the same in all people.<br>• About <b>1.4 million</b> locations of single-base DNA differences (<b>SNPs</b>) were identified.<br>• Sequencing used the method developed by <b>Frederick Sanger</b>; closely tied to the new field of <b>bioinformatics</b>.<br>• Also sequenced <b>model organisms</b>: <i>E. coli</i>, yeast (<i>Saccharomyces cerevisiae</i>), roundworm, mouse.<br>• The project was completed in <b>2003</b>.<br>(NCERT’s figure of about 30,000 genes: the current estimate of protein-coding genes is about 20,000, so a question may print either; answer with the number the question’s own text gives.)',
+        html: '<b>Human Genome Project: salient features</b> (high-frequency exam facts; the book’s estimate from past papers, not official figures):<br>• Launched in <b>1990</b>; aimed to sequence the entire human genome (~<b>3 billion</b> or <b>3164.7 million base pairs</b>).<br>• Estimated <b>~30,000 or 20,000–25,000 genes</b>: far fewer than earlier guesses of 80,000–140,000.<br>• <b>Chromosome 1</b> has the <b>most</b> genes (2968); the <b>Y chromosome</b> has the <b>fewest</b> (231).<br>• <b>99.9%</b> of nucleotide bases are exactly the same in all people.<br>• About <b>1.4 million</b> locations of single-base DNA differences (<b>SNPs</b>) were identified.<br>• Sequencing used the method developed by <b>Frederick Sanger</b>; closely tied to the new field of <b>bioinformatics</b>.<br>• Also sequenced <b>model organisms</b>: <i>E. coli</i>, yeast (<i>Saccharomyces cerevisiae</i>), roundworm, mouse.<br>• The project was completed in <b>2003</b>.<br>(NCERT gives about 30,000 genes among the salient features and approximately 20,000–25,000 in the list of HGP goals; the current estimate of protein-coding genes is about 20,000. In an MCQ, choose whichever of these figures the options offer.)',
       },
       {
         t: 'p',
@@ -578,7 +578,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>DNA fingerprinting: the essentials:</b><br>• Also called <b>DNA typing / DNA profiling</b>.<br>• Identifies differences in specific <b>repetitive (non-coding)</b> DNA regions unique to each individual.<br>• Uses <b>VNTRs</b> (a class of minisatellite satellite DNA) as probes; these show a <b>high degree of polymorphism</b>.<br>• Discovered by <b>Alec Jeffreys</b> (1985); in India, pioneered by <b>Lalji Singh</b> (CCMB, Hyderabad).',
+        html: '<b>DNA fingerprinting: the essentials:</b><br>• Also called <b>DNA typing / DNA profiling</b>.<br>• Identifies differences in specific <b>repetitive (non-coding)</b> DNA regions unique to each individual.<br>• Uses <b>VNTRs</b> (a class of minisatellite satellite DNA) as probes; these show a <b>high degree of polymorphism</b>.<br>• Discovered by <b>Alec Jeffreys</b> (1984, published 1985); in India, pioneered by <b>Lalji Singh</b> (CCMB, Hyderabad).',
       },
       { t: 'fig', id: 'b12-05-fig-5.8' },
 
@@ -622,7 +622,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board · 5 marks',
         q: 'List any five salient features of the Human Genome Project.',
         steps: [
-          '<b>Model answer.</b> (i) The human genome contains about <b>3 billion (3164.7 million) base pairs</b>. (ii) It has an estimated <b>~30,000 genes</b>, far fewer than the earlier estimate of 80,000–140,000. (iii) <b>Chromosome 1 has the most genes (2968)</b> and the <b>Y chromosome the fewest (231)</b>. (iv) <b>99.9%</b> of nucleotide bases are identical in all humans. (v) About <b>1.4 million SNP</b> locations (single-base variations) were identified, useful for finding disease-associated sequences and tracing human history.',
+          '<b>Model answer.</b> (i) The human genome contains about <b>3 billion (3164.7 million) base pairs</b>. (ii) It has an estimated <b>~30,000 or 20,000–25,000 genes</b>, far fewer than the earlier estimate of 80,000–140,000. (iii) <b>Chromosome 1 has the most genes (2968)</b> and the <b>Y chromosome the fewest (231)</b>. (iv) <b>99.9%</b> of nucleotide bases are identical in all humans. (v) About <b>1.4 million SNP</b> locations (single-base variations) were identified, useful for finding disease-associated sequences and tracing human history.',
         ],
         ans: '',
       },
@@ -660,7 +660,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[CBSE] State any three goals of the Human Genome Project.',
-            a: 'Any three of: identify all ~30,000 genes; determine the sequence of the 3 billion bp; store data in databases; improve analysis tools; transfer technologies; address ELSI.',
+            a: 'Any three of: identify all the genes in human DNA (NCERT: approximately 20,000–25,000); determine the sequence of the 3 billion bp; store data in databases; improve analysis tools; transfer technologies; address ELSI.',
           },
           {
             q: '[CUET] Expand VNTR and SNP.',
@@ -719,7 +719,7 @@ export const TOPICS: Topic[] = [
           { label: '80,000–140,000', nudge: '<b>(d)</b> was the earlier (incorrect) estimate that HGP overturned.' },
         ],
         correct: 2,
-        solution: '~30,000.',
+        solution: '~30,000 (NCERT also gives approximately 20,000–25,000 in its list of HGP goals).',
       },
       {
         t: 'mcq',
@@ -741,7 +741,7 @@ export const TOPICS: Topic[] = [
           '<b>Confusing the “3 billion” (base pairs) with “30,000” (genes) and “1.4 million” (SNPs).</b> Keep them separate: <b>bp ≈ 3 billion, genes ≈ 30,000, SNPs ≈ 1.4 million.</b>',
           '<b>Crediting Lalji Singh with inventing DNA fingerprinting.</b> <b>Alec Jeffreys</b> developed it; <b>Lalji Singh</b> pioneered it in <b>India</b>.',
           '<b>Thinking fingerprinting reads genes.</b> It reads <b>non-coding repetitive VNTRs</b>, where variation is high.',
-          '<b>Mixing up chromosome extremes.</b> <b>Chromosome 1 = most genes; Y = fewest.</b> Chromosome 1 has the most genes and the Y chromosome the fewest. This counts genes; do not use it to rank the chromosomes by size.',
+          '<b>Mixing up chromosome extremes.</b> <b>Chromosome 1 = most genes; Y = fewest.</b> This counts genes; do not use it to rank the chromosomes by size.',
         ],
       },
       {
@@ -760,7 +760,7 @@ export const TOPICS: Topic[] = [
           { f: 'HGP goals', note: 'identify genes, sequence 3 bn bp, databases, analysis tools, tech transfer, ELSI.' },
           {
             f: 'DNA fingerprinting',
-            note: 'identifies individuals via VNTRs (polymorphic, non-coding repetitive DNA). Discovered by Alec Jeffreys (1985); India: Lalji Singh.',
+            note: 'identifies individuals via VNTRs (polymorphic, non-coding repetitive DNA). Discovered by Alec Jeffreys (1984, published 1985); India: Lalji Singh.',
           },
           {
             f: 'Steps',

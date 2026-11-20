@@ -1,0 +1,59 @@
+# Notes final6 (shots-1{1,2,3}-final6)
+- c11 p003-01..09 read. p003-06/08/09: final "=" still touches fraction bar of (A + B + C)/3 -> STILL (topics-00-01.ts). Rest clean.
+- c11 p020-01/02 "Angle between two lines" formula card: |b1||b2| denominator still TOUCHES numerator |a1a2 + b1b2 + c1c2| of the "=" row below (zoomed). STILL (math-12-11/topics-02-03.ts ~l.253).
+- p020-03 Cartesian lines two rows: gap present, OK.
+- p020-04..08 clean (Δ under |b1×b2| tight not touching; table fractions sit on own row under label, minor/old).
+- c11 p047-03 Angle-bisector card: denominator √(a1²+b1²+c1²) still TOUCHES numerator a2x+b2y+c2z+d2 below. STILL (math-12-11 topics-04-05.ts).
+- p047-01/02 Line meeting a plane card: "b·n = 0 ⇒ lies in plane (point satisfies" / "plane)" word alone on line in box. minor NEW (or old).
+- p047-04/05 clean.
+- c11 p048-06/07 Theorem 3 proof: row "|P2/|n2||, i.e." sits directly on row "P1/|n1| = ± P2/|n2|": |n2| denominator TOUCHES P1 numerator. STILL (math-12-11 topics-04-05.ts, Theorem 3 proof). (p048 now 8 shots; was p048-09 in final5.)
+- p048-01..08 otherwise clean.
+- p077-01..11: card1 answer "in some ratio" / "λ : 1." short line (minor); card2 "(3, 6).)" short last line (minor); otherwise clean. p077-05..09 identical (one shot).
+- p077-13/14 card 4: 'The plane bisecting' together on line 1 -> FIXED. Answer clean.
+- p077-15..21 cards 4-6 clean, maths ok. minor: card 6/8 extra gap (~1 line) between the full-width options line and the answer box (exact-fit last line).
+- p077-22..31 cards 7-8 clean, maths checked. minor: card 8 question options "(c) ... plane OQS" / "is 3/√2." and "(d) ... line RS" / "is √30/2." ("is" carried to its own short line with the fraction) minor.
+- Ch 11 DONE (p003, p020, p047, p048, p077).
+- c12 p029-01..03: "P1, …, Pn" and "V1, …, Vn" whole on one line -> FIXED. minor: "by Lemma" / "2." (number alone on line) p029-03 Theorem 1.
+- p029-04..06 clean (diagram ok).
+- c12 p032-01/02: 'V1, …, Vn' whole -> FIXED. step 2 'The maximum occurs at Vk' short line then 'if and only if' (looks like set <br>, minor). clean otherwise.
+- p032-03/04 clean. Ch 12 DONE.
+- c13 p004 card 3 step 1: "P(3rd is boy | first two are girls) = 7/10" whole on one line -> FIXED.
+- c13 p004-08/09 card 4 step 5: "P(both) +" STILL alone on a short line, then "P(exactly one) + P(neither)" -> STILL (math-12-12/topics-01-02.ts).
+- p004 cards 1,2 clean. Maths ok.
+  NOTE: source math-12-13/topics-01-02.ts:331 has 'P(both) + P(exactly one) +<br>P(neither)' but shot shows 'P(both) +' / 'P(exactly one) + P(neither)': the render does not match the source (stale bundle?).
+- c13 p013-02 card 2 options "(b) ≈ 16%  (c) ≈ 50%" on one line -> FIXED.
+- p013-03 card 3 step 2: "P(W) = 1/3(3/10 + 0 + 6/10)": the "(" crammed against 1/3's denominator and the 3/10 (fraction-bracket touching), minor NEW.
+- card 1 clean.
+- p013 card 4 step 2 "P(D) = 0.012 + 0.010 + 0.012 = 0.034." one line -> FIXED. Card 4 clean.
+- coverage gap: p013 card 3 shot only once (p013-03), step 3 (Bayes for box C) + answer not captured.
+- c13 p020-01/02 distribution table: STILL stacked row-cards "X = x1" / "p1" ...; NO P(X) label on any row; row 3 broken ("X" left, "…" floating mid-right, then "…" below). STILL.
+- p020-03 formula cards clean.
+  NOTE: source math-12-13/topics-03-04.ts:157 has head [X, pr(X), ''] (P(X) label intended) yet render shows no P(X): render/source mismatch again (renderer drops 3-col head on narrow width, or stale bundle).
+- p020-04..07 clean.
+- c13 p043 card 2 step 6: no line starts with "+" (OK). BUT "at" ends line 1 / "least one = …" on line 2: "at least one" label STILL split (source glue not reflected?).
+- p043 card 1 clean; card 1 step 4 shot 01 bottom cut (scroll), p043 card 1 steps 5+/answer not captured (coverage gap).
+  CAUSE: extras-a-e.ts:249 glues 'at⍽least⍽one⍽=⍽13/12⍽−⍽3/8⍽+⍽1/24⍽=' as one run: too long, Android breaks inside it after 'at'. Fix: normal space before 'at' is there; make the space after '=' (before 13/12) or after 'least one =' a normal space.
+- c13 p047 card 1 clean (math ok). coverage gap: p047 card 2 (step 7 'exactly one') not captured.
+- c13 p048 cards 1-3 clean; card 2 answer "at least one = 1 − 1/3 + 0 = 2/3" label whole -> FIXED. card 3 gaps = paragraph splits (accepted). maths ok.
+- p048 card 4 clean. card 5: no extra gap above answer box -> FIXED; "conditional probability" whole -> FIXED. maths 5/6 ok.
+- c13 p052-02 card 1/4 answer: empty space ~2 lines inside the answer box below the last line 'one clean reading almost resets the damage.' NEW (real-ish: big gap in block). maths ok.
+- p052 cards 2-3 clean (paragraph gaps accepted); card 3 '1/2(1/10 + 3/5)' bracket crammed on 1/2 (minor, same as p013 card 3). maths ok.
+- p052 card 4: no extra gap above answer box -> FIXED; 'P(D | ++) = 324/423' whole on its own line -> FIXED. maths ok.
+- p065 card 1 clean, maths ok.
+- p065 card 2 clean (set line break before '=' accepted style; 'P(A ∩ B) = P(A) + P(B) −' ends with operator OK). p065 only 7 shots: cards 3-10 NOT captured (card 10 fault unverifiable from p065).
+- r13-p004 card 1, card 2 clean (maths ok).
+- r13-p004 card 3 step 1 'P(3rd is boy | first two are girls) = 7/10' whole -> FIXED. clean.
+- r13-p004 card 4 step 5: STILL 'P(both) +' alone / 'P(exactly one) + P(neither)' / '= 1/8 + 1/2 + 3/8 = 1,'. Rendered line breaks don't match the source's <br> placement (source wants break after 2nd '+'). Rest clean, maths ok.
+- r13-p013 card 1 clean (minor: '(' crammed against 1/2 in step 2, same renderer trait).
+- r13-p013 card 2 options '(b) ≈ 16%  (c) ≈ 50%' FIXED; answer clean. card 3 step 1 likelihood rows gap accepted; step 2 '1/3(3/10' bracket crammed (minor).
+- r13-p013 card 3 rest + answer clean (2/3 ok). card 4 step 2 '0.012 + 0.010 + 0.012 = 0.034.' FIXED; card 4 clean, maths ok.
+- r13-p043 card 1 clean (math ok). card 2: step 6 no line starts with '+' (OK); 'at' / 'least one = …' STILL split (extras-a-e.ts:249). Rest clean, maths ok.
+- r13-p047 card 1 clean, maths ok.
+- r13-p047 card 2 step 7: 'exactly' ends line / 'one = 3 · 1/5 · (4/5)² = 48/125' -> 'exactly one' label STILL split (extras-a-e.ts). Steps 3-7 maths ok.
+- r13-p063 card 1 clean (maths 26/31 ok; answer box slightly tall, minor).
+- r13-p063 card 2: 'P(A ∩ B) = P(A)(1 − P(B)))' whole -> FIXED; 'But P(E1)P(E2)P(E3) …' together -> FIXED. maths ok.
+- r13-p063 card 3 clean, maths 459 ok.
+- r13-p063 card 4 clean, maths 32/49 ok.
+- r13-p063 card 5 clean, maths 23/36 ok.
+- r13-p063 card 6: STILL 'P(first success on trial' / 'n) = q^(n−1)p.' and 'P(r-th success on' / 'trial n) = …' (NB before italic n not holding; extra-p.ts). maths 5/11 ok. minor: '(5/6 · 1/6)' bracket crammed.
+- CHAIN-DONE seen; all 61 + 11 + 108 files read (identical md5 duplicates skipped).

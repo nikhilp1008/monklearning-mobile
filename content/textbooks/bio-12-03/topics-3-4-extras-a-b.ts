@@ -101,7 +101,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Scale (NCERT-illustrative figures):</b> the world population was around <b>2 billion (2000 million) in 1900</b> and rose to about <b>6 billion by 2000</b>; India’s grew from roughly <b>350 million at independence (1947)</b> to <b>over 1 billion by 2000.</b>',
+        html: '<b>Scale (NCERT-illustrative figures):</b> the world population was around <b>2 billion (2000 million) in 1900</b> and rose to about <b>6 billion by 2000</b>; India’s grew from roughly <b>350 million at independence (1947)</b> to <b>about 1 billion by 2000</b> (NCERT: close to the billion mark).',
       },
 
       { t: 'part', title: 'Mechanisms and procedures' },
@@ -192,7 +192,7 @@ export const TOPICS: Topic[] = [
             a: 'Useful to detect genetic/chromosomal disorders (e.g., Down syndrome) from amniotic fluid; banned for prenatal sex-determination because of misuse leading to female foeticide.',
           },
           {
-            q: '[NEET: assertion-reason] A: Sex education in schools is recommended. R: It provides correct information and dispels myths about sex-related aspects. Choose the correct relation. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
+            q: '[NEET: assertion-reason] A: Sex education in schools is recommended. R: It provides correct information and dispels myths about sex-related aspects. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
             a: '(a): both true and R correctly explains A.',
           },
         ],
@@ -343,11 +343,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Safety window (the NCERT medical fact, high-yield):</b><br>• Relatively safe in the <b>FIRST TRIMESTER (up to ~12 weeks).</b><br>• <b>Riskier in the SECOND TRIMESTER</b>, because the foetus is by then intimately associated with maternal tissue.',
+        html: '<b>Safety window (the NCERT medical fact, high-yield):</b><br>• Relatively safe in the <b>FIRST TRIMESTER (up to ~12 weeks).</b><br>• <b>Riskier in the SECOND TRIMESTER</b> (NCERT); the usual explanation, beyond NCERT, is that the foetus is by then intimately associated with maternal tissue.',
       },
       {
         t: 'p',
-        html: '<b>Legal framework in India (legal limits differ from medical safety):</b><br>• Abortion was <b>legalised by the MTP Act, 1971.</b><br>• Amended by the <b>MTP (Amendment) Act, 2021</b> (in force from 24 September 2021), which <b>raised the upper gestational limit from 20 to 24 weeks</b> for special categories of women.<br>• <b>Up to 20 weeks:</b> opinion of <b>one</b> registered medical practitioner (RMP).<br>• <b>20–24 weeks:</b> opinion of <b>two</b> RMPs, for <b>special categories</b> (survivors of rape/incest, minors, women whose marital status changed during pregnancy, differently-abled and other vulnerable women).<br>• <b>Beyond 24 weeks:</b> permitted for <b>substantial foetal abnormality</b>, on the decision of a <b>state-level Medical Board</b> (and, at any stage, when termination is immediately necessary to save the woman’s life).<br>• The Amendment also allows <b>unmarried women</b> to seek MTP (e.g., on the ground of contraceptive failure) and adds a <b>confidentiality clause.</b>',
+        html: '<b>Legal framework in India (legal limits differ from medical safety):</b><br>• Abortion was <b>legalised by the MTP Act, 1971.</b><br>• Amended by the <b>MTP (Amendment) Act, 2021</b> (in force from 24 September 2021), which <b>raised the upper gestational limit from 20 to 24 weeks</b> for special categories of women.<br>• <b>Up to 20 weeks:</b> opinion of <b>one</b> registered medical practitioner (RMP).<br>• <b>20–24 weeks:</b> opinion of <b>two</b> RMPs, for <b>special categories</b> (survivors of rape/incest, minors, women whose marital status changed during pregnancy, differently-abled and other vulnerable women).<br>• <b>Beyond 24 weeks:</b> permitted for <b>substantial foetal abnormality</b>, on the decision of a <b>state-level Medical Board</b> (and, at any stage, when termination is immediately necessary to save the woman’s life).<br>• The Amendment also allows <b>unmarried women</b> to seek MTP (e.g., on the ground of contraceptive failure) and adds a <b>confidentiality clause.</b><br>• <b>NCERT’s version:</b> NCERT describes the law as the MTP (Amendment) Act, 2017, with the older split: up to <b>12 weeks</b> on the opinion of <b>one</b> RMP, and from 12 to <b>24 weeks</b> on the opinion of <b>two</b> RMPs. For an NCERT-based question on how many practitioners are needed, use 12 and 24 weeks; the 20-week one-RMP limit above is the current law (2021).',
       },
       {
         t: 'p',
@@ -377,7 +377,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>D. What the 2021 Amendment changed, and why.</b> The original 1971 Act capped termination at 20 weeks and, on the contraceptive-failure ground, covered only married women. Among the 2021 reforms were three that matter for exams. The <b>upper limit rose from 20 to 24 weeks</b> for special categories of women, a change that matters most for rape survivors and for women whose foetal abnormalities are detected only in the second trimester. It also let one practitioner decide up to 20 weeks (the 1971 Act needed two opinions after 12 weeks). The <b>married-only clause was dropped</b>, so unmarried women may now seek MTP on the ground of contraceptive failure. And a <b>confidentiality clause</b> was added to protect the woman’s identity. Beyond 24 weeks, termination is permitted for <b>substantial foetal abnormality</b>, decided by a state <b>Medical Board</b> (and, at any stage, when termination is immediately necessary to save the woman’s life). For exams, keep two layers separate: the medical-safety fact (relatively safe in the first trimester) and this legal framework (1971 Act, 2021 Amendment, the 20-week and 24-week structure).',
+        html: '<b>D. What the 2021 Amendment changed, and why.</b> The original 1971 Act capped termination at 20 weeks and, on the contraceptive-failure ground, covered only married women. Among the 2021 reforms were four that matter for exams. The <b>upper limit rose from 20 to 24 weeks</b> for special categories of women, a change that matters most for rape survivors and for women whose foetal abnormalities are detected only in the second trimester. It also let one practitioner decide up to 20 weeks (the 1971 Act needed two opinions after 12 weeks). The <b>married-only clause was dropped</b>, so unmarried women may now seek MTP on the ground of contraceptive failure. And a <b>confidentiality clause</b> was added to protect the woman’s identity. Beyond 24 weeks, termination is permitted for <b>substantial foetal abnormality</b>, decided by a state <b>Medical Board</b> (and, at any stage, when termination is immediately necessary to save the woman’s life). For exams, keep two layers separate: the medical-safety fact (relatively safe in the first trimester) and this legal framework (1971 Act, 2021 Amendment, the 20-week and 24-week structure). NCERT states the older split (one RMP up to 12 weeks, two RMPs from 12 to 24 weeks); use it for an NCERT-based question on the number of practitioners.',
       },
       { t: 'fig', id: 'b12-03-fig-3.6' },
 
@@ -439,7 +439,7 @@ export const TOPICS: Topic[] = [
             a: 'Use: safely ends unwanted/harmful pregnancies (e.g., contraceptive failure, rape, danger to mother). Misuse: sex-selective abortion of female foetuses (female foeticide).',
           },
           {
-            q: '[NEET: assertion-reason] A: MTP must be performed only by registered medical practitioners. R: Unsafe abortions by unqualified persons can cause serious maternal harm. Choose the correct relation. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
+            q: '[NEET: assertion-reason] A: MTP must be performed only by registered medical practitioners. R: Unsafe abortions by unqualified persons can cause serious maternal harm. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
             a: '(a): both true and R correctly explains A.',
           },
         ],
@@ -500,14 +500,14 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Calling MTP a contraceptive.</b> It ends a pregnancy; contraceptives prevent one. This distinction is examined directly.',
-          '<b>Confusing the medical-safety figure (12 weeks) with the legal limit (20 and 24 weeks).</b> Both exist; quote the right one for the question: NCERT’s “relatively safe” answer is the <b>first trimester (~12 weeks).</b>',
+          '<b>Confusing the medical-safety figure (12 weeks) with the legal limits.</b> Both exist; quote the right one for the question: NCERT’s “relatively safe” answer is the <b>first trimester (~12 weeks).</b> For the legal rule NCERT gives one RMP up to 12 weeks and two RMPs up to 24 weeks; the current law (2021) gives one RMP up to 20 weeks.',
           '<b>Forgetting the year split.</b> MTP legalised <b>1971</b>; family planning <b>1951</b>; sex-determination ban (PCPNDT) <b>1994</b>.',
           '<b>Ignoring the misuse angle.</b> MTP’s dark side is <b>sex-selective female foeticide</b>, a frequent assertion–reason theme (the book’s estimate from past papers, not official figures).',
         ],
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (for speed):</b> If a stem stresses biological safety, answer <b>first trimester (about 12 weeks)</b> and cite the foetus–maternal-tissue reason; if it stresses who/when is it legal, switch to the 1971-Act / 20–24-week framework. Decide which axis the question is testing before choosing.',
+        html: '<b>Pro-Tip (for speed):</b> If a stem stresses biological safety, answer <b>first trimester (about 12 weeks)</b> and cite the foetus–maternal-tissue reason; if it stresses who/when is it legal, switch to the 1971-Act / 20–24-week framework (NCERT’s own legal split is 1 RMP up to 12 weeks, 2 RMPs 12–24 weeks). Decide which axis the question is testing before choosing.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -518,7 +518,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>NOT a contraceptive</b>', note: 'it ends an established pregnancy.' },
           { f: '<b>Safe window (medical)</b>', note: '<b>first trimester, ~12 weeks</b>; riskier later (foetus intimately associated with maternal tissue).' },
           { f: '<b>Scale</b>', note: '<b>~45–50 million/yr</b> worldwide (~<frac><num>1</num><den>5</den></frac> of conceived pregnancies).' },
-          { f: '<b>Legal</b>', note: '<b>MTP Act 1971; MTP (Amendment) Act 2021</b> → up to <b>20 wks (1 doctor)</b>, <b>20–24 wks (2 doctors, special categories)</b>, <b>>24 wks via Medical Board</b> for foetal abnormality (or at any stage to save the woman’s life).' },
+          { f: '<b>Legal</b>', note: '<b>MTP Act 1971; MTP (Amendment) Act 2021</b> → up to <b>20 wks (1 doctor)</b>, <b>20–24 wks (2 doctors, special categories)</b>, <b>>24 wks via Medical Board</b> for foetal abnormality (or at any stage to save the woman’s life). NCERT: 1 RMP up to 12 wks, 2 RMPs 12–24 wks.' },
           { f: '<b>Reasons</b>', note: 'unwanted pregnancy (rape, contraceptive failure), danger to mother/foetus, foetal abnormality. Must use <b>qualified personnel.</b>' },
           { f: '<b>Misuse</b>', note: 'sex-selective <b>female foeticide</b> (linked to illegal sex-determination).' },
         ],
@@ -613,10 +613,10 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] A woman uses emergency contraception 24 hours after coitus. Why might it still fail to prevent pregnancy?',
-            a: 'If ovulation and fertilisation have already occurred before the pill is taken, emergency contraception cannot prevent the establishment of pregnancy: it has no post-fertilisation effect.',
+            a: 'If ovulation and fertilisation have already occurred before the pill is taken, the emergency pill cannot prevent the establishment of pregnancy: it has no post-fertilisation effect.',
           },
           {
-            q: '[NEET: assertion-reason] A: The copper-IUD is considered a highly effective emergency contraceptive. R: The copper ions it releases suppress sperm motility and fertilising capacity. Choose the correct relation. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
+            q: '[NEET: assertion-reason] A: The copper-IUD is considered a highly effective emergency contraceptive. R: The copper ions it releases suppress sperm motility and fertilising capacity. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
             a: '(a): both true and R correctly explains A.',
           },
         ],
@@ -634,7 +634,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives the ART definitions, the blastomere rule and the logic of where each technique acts, but not the full problem-to-technique table in one place. A question can be framed this way: given a couple’s specific problem, which ART is appropriate? The decision tree rests on the three questions below.',
+        html: 'The chapter gives the ART definitions, the blastomere rule, a one-line cue for each technique and the ART decision map (Figure 3.3). This section sets them out as one problem-to-technique table and adds the reasoning behind each choice. A question can be framed this way: given a couple’s specific problem, which ART is appropriate? The decision tree rests on the three questions below.',
       },
 
       { t: 'part', title: 'Method' },

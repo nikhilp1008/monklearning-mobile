@@ -354,9 +354,9 @@ export function PaywallSuccess({
       sub={isPlan ? 'Pick a chapter and the class begins.' : `${PASS_NAME[kind]} of live classes, doubts and practice. Pick a chapter and the class begins.`}
       rows={[
         [isPlan ? 'Plan' : 'Pass', isPlan ? `${PASS_NAME[kind]} · 1 month` : PASS_NAME[kind]],
-        ['Exam', exam ? EXAMS[exam].name : '—'],
-        ['Active till', activeTill(kind, endsAt)],
         ['Paid', rupees(paid)],
+        ['Active till', activeTill(kind, endsAt)],
+        ['Exam', exam ? EXAMS[exam].name : '—'],
       ]}
       buttonLabel="Start learning"
       onPress={onDone}

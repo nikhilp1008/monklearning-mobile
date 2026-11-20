@@ -46,8 +46,8 @@
  *   book’s chapter references in the economic table are not used;
  * - Spirogyra: NCERT classes it as isogamous (non-flagellated gametes of similar
  *   size); “physiological anisogamy” is given only as the further observation
- *   that one gamete behaves as male; Eudorina is the usual NCERT anisogamy
- *   example;
+ *   that one gamete behaves as male; NCERT’s anisogamy example is species of
+ *   Chlamydomonas;
  * - the Selaginella male gametophyte is “retained within the microspore wall,
  *   never free-living”; oogamy is not said to be found in all animals;
  * - the book’s Archetype 4 rule “if A is false, mark (c) or (d)” is not used
@@ -144,7 +144,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 1,
     kind: 'mixup',
     q: 'Haplontic, diplontic or haplo-diplontic: which algae follow which?',
-    a: 'Ask which phase is the dominant, free-living body. Haplontic: the gametophyte (<i>n</i>) dominates, and the zygote is the only diploid cell, dividing by meiosis at once; <i>Volvox</i>, <i>Spirogyra</i>, <i>Chlamydomonas</i> (many algae). Diplontic: the sporophyte (2<i>n</i>) dominates and the haploid phase is reduced to the gametes alone (<i>Fucus</i>) or to a few cells (seed plants); <i>Fucus</i>, and the seed plants. Haplo-diplontic: gametophyte and sporophyte are both multicellular; <i>Ectocarpus</i>, <i>Polysiphonia</i> and the kelps (<i>Laminaria</i>). Among the brown algae, then, <i>Ectocarpus</i> and <i>Fucus</i> differ',
+    a: 'Ask which phase is the dominant, free-living body. Haplontic: the gametophyte (<i>n</i>) dominates, and the zygote is the only diploid cell, dividing by meiosis at once; <i>Volvox</i>, <i>Spirogyra</i>, some <i>Chlamydomonas</i> (many green algae). Diplontic: the sporophyte (2<i>n</i>) dominates and the haploid phase is reduced to the gametes alone (<i>Fucus</i>) or to a few cells (seed plants); <i>Fucus</i>, and the seed plants. Haplo-diplontic: gametophyte and sporophyte are both multicellular; <i>Ectocarpus</i>, <i>Polysiphonia</i> and the kelps (<i>Laminaria</i>). Among the brown algae, then, <i>Ectocarpus</i> and <i>Fucus</i> differ',
     why: 'Students flip haplontic and diplontic under time pressure: haploid dominant, haplontic.',
     say: null,
   },
@@ -220,7 +220,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 3,
     kind: 'remember',
     q: 'Why are gymnosperms so named, and which plants are they?',
-    a: 'Gymnos (naked) plus sperma (seed): the seeds are not enclosed in an ovary or fruit but lie exposed on the cone scales; there are cones, no flowers and no fruits. They are seed-bearing vascular plants, about 900 living species, typically woody trees and shrubs with a tap root, dominant in cold, high-altitude and temperate regions. The conifers (<i>Pinus</i>, <i>Cedrus</i>) are the largest group, with the cycads (<i>Cycas</i>), <i>Ginkgo</i>, a single surviving species, and <i>Gnetum</i>: not every gymnosperm is a conifer. The dominant body is the sporophyte (2<i>n</i>), and the gametophytes are not free-living',
+    a: 'Gymnos (naked) plus sperma (seed): the seeds are not enclosed in an ovary or fruit but lie exposed on the cone scales; there are cones, no flowers and no fruits. They are seed-bearing vascular plants, about 900 living species (the book’s figure; current counts run nearer 1,000), typically woody trees and shrubs with a tap root, dominant in cold, high-altitude and temperate regions. The conifers (<i>Pinus</i>, <i>Cedrus</i>) are the largest group, with the cycads (<i>Cycas</i>), <i>Ginkgo</i>, a single surviving species, and <i>Gnetum</i>: not every gymnosperm is a conifer. The dominant body is the sporophyte (2<i>n</i>), and the gametophytes are not free-living',
     why: 'Naked seeds, no fruit, is the defining feature of the whole group.',
     say: 'Gymno = naked (no fruit).',
   },
@@ -315,7 +315,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'What is alternation of generations, and what links the two phases?',
     a: 'Every plant cycles between a haploid gametophyte (<i>n</i>), the gamete-producing phase, and a diploid sporophyte (2<i>n</i>), the spore-producing phase. Fertilisation takes it from haploid to diploid and meiosis from diploid back to haploid, like batons passed in a relay. The phases are defined by ploidy and function, not size, so a reduced gametophyte is still a gametophyte; what differs between groups is which phase dominates, the free-living, longer-lived body. From the algae to the angiosperms the sporophyte progressively takes over while the gametophyte shrinks',
-    why: 'Meiosis happens once per cycle; where it happens is what separates the three patterns.',
+    why: 'Meiosis happens once per cycle; where it happens separates the three patterns, with the seed plants the exception (diplontic, though their meiosis forms spores).',
     say: null,
   },
   // pp. 184–185, 187–188
@@ -323,7 +323,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 5,
     kind: 'remember',
     q: 'How do you tell the three life-cycle patterns apart from where meiosis happens?',
-    a: 'Zygotic meiosis is haplontic: the zygote is the only diploid cell and divides by meiosis at once, so the gametophyte dominates (<i>Volvox</i>, <i>Spirogyra</i>, <i>Chlamydomonas</i>). Gametic meiosis is diplontic: meiosis forms the gametes, so the sporophyte dominates (<i>Fucus</i>). Seed plants are also called diplontic (sporophyte dominant) by NCERT’s convention, though in them meiosis forms spores, and the haploid phase is a few cells. Sporic meiosis is haplo-diplontic: meiosis forms spores and both phases are multicellular, the gametophyte larger in bryophytes and the sporophyte larger in pteridophytes (<i>Ectocarpus</i>, <i>Polysiphonia</i> and the kelps as well)',
+    a: 'Zygotic meiosis is haplontic: the zygote is the only diploid cell and divides by meiosis at once, so the gametophyte dominates (<i>Volvox</i>, <i>Spirogyra</i>, some <i>Chlamydomonas</i>). Gametic meiosis is diplontic: meiosis forms the gametes, so the sporophyte dominates (<i>Fucus</i>). Seed plants are also called diplontic (sporophyte dominant) by NCERT’s convention, though in them meiosis forms spores, and the haploid phase is a few cells. Sporic meiosis is haplo-diplontic: meiosis forms spores and both phases are multicellular, the gametophyte larger in bryophytes and the sporophyte larger in pteridophytes (<i>Ectocarpus</i>, <i>Polysiphonia</i> and the kelps as well)',
     why: 'Strictly, meiosis in seed plants forms spores, and <i>Fucus</i> is the clear case of gametic meiosis.',
     say: 'meiosis site → Zygotic-haplontic, Gametic-diplontic, Sporic-haplo-diplontic (Z-G-S).',
   },
@@ -341,7 +341,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 5,
     kind: 'mistake',
     q: 'Are ferns diplontic?',
-    a: 'No. Ferns are sporophyte-dominant but have a free-living gametophyte, the prothallus, so they are haplo-diplontic. By NCERT’s convention the diplontic plants are the seed plants, whose gametophytes are microscopic and never free-living, with <i>Fucus</i> a clear case among the algae',
+    a: 'No. Ferns are sporophyte-dominant but have a free-living gametophyte, the prothallus, so they are haplo-diplontic. By NCERT’s convention the diplontic plants are the seed plants, whose gametophytes are much reduced and never free-living, with <i>Fucus</i> a clear case among the algae',
     why: 'The distractor works because a fern looks like a dominant sporophyte.',
     say: null,
   },
@@ -350,7 +350,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 5,
     kind: 'shortcut',
     q: 'A life-cycle question: which two steps answer it?',
-    a: 'First, where is meiosis? That fixes the pattern. Second, the pattern fixes the dominant phase: haplontic the gametophyte, diplontic the sporophyte, haplo-diplontic needs the group checked. An alga whose zygote is the only diploid cell and undergoes meiosis on germination is haplontic, with the gametophyte dominant, for example <i>Spirogyra</i>',
+    a: 'First, where is meiosis? That fixes the pattern, except in the seed plants, which are diplontic by NCERT’s convention although their meiosis forms spores. Second, the pattern fixes the dominant phase: haplontic the gametophyte, diplontic the sporophyte, haplo-diplontic needs the group checked. An alga whose zygote is the only diploid cell and undergoes meiosis on germination is haplontic, with the gametophyte dominant, for example <i>Spirogyra</i>',
     why: 'This two-step route beats memorising every example.',
     say: null,
   },
@@ -361,7 +361,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 6,
     kind: 'remember',
     q: 'What are isogamy, anisogamy and oogamy, and which algae show each?',
-    a: 'Isogamy: fusion of morphologically similar gametes, usually flagellated, between “+” and “−” mating types (a physiological, not a morphological, difference); <i>Chlamydomonas</i>, <i>Ulothrix</i>, and <i>Spirogyra</i> (non-flagellated gametes of similar size). Anisogamy: both gametes motile but unlike in size, the smaller male and the larger female; <i>Eudorina</i> is the usual NCERT example, and some <i>Chlamydomonas</i> species. Oogamy: a large, non-motile egg fuses with a small, motile antherozoid; <i>Volvox</i> (oospheres and antherozoids from cells of the colony, fertilisation inside it), <i>Fucus</i> (each oogonium releases eight eggs into seawater, antheridia many antherozoids), <i>Chara</i> (a flask-shaped oogonium with one egg, and an antheridium with biciliate antherozoids)',
+    a: 'Isogamy: fusion of morphologically similar gametes, usually flagellated, between “+” and “−” mating types (a physiological, not a morphological, difference); <i>Chlamydomonas</i>, <i>Ulothrix</i>, and <i>Spirogyra</i> (non-flagellated gametes of similar size). Anisogamy: both gametes motile but unlike in size, the smaller male and the larger female; some <i>Chlamydomonas</i> species (NCERT’s example). Oogamy: a large, non-motile egg fuses with a small, motile antherozoid; <i>Volvox</i> (oospheres and antherozoids from cells of the colony, fertilisation inside it), <i>Fucus</i> (each oogonium releases eight eggs into seawater, antheridia many antherozoids), <i>Chara</i> (a flask-shaped oogonium with one egg, and an antheridium with biciliate antherozoids)',
     why: 'Anisogamy is the intermediate condition between isogamy and oogamy.',
     say: null,
   },
@@ -381,7 +381,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'remember',
     q: 'What is a sorus, and how are the sporangia of a true fern arranged?',
-    a: 'In true ferns (<i>Dryopteris</i>, <i>Pteris</i>, <i>Adiantum</i>) the sporangia are grouped into sori, clusters on the underside of the frond, each covered by a protective flap, the indusium, which guards the immature sporangia against desiccation. In <i>Dryopteris</i> the sori are circular under a reniform (kidney-shaped) indusium; in <i>Adiantum</i> the sori are linear, covered by the folded-back margin of the pinnule, a false indusium. Each sporangium has a bilipped capsule with an annulus that breaks open at the stomium to release the spores',
+    a: 'In true ferns (<i>Dryopteris</i>, <i>Pteris</i>, <i>Adiantum</i>) the sporangia are grouped into sori, clusters on the underside of the frond, in many ferns each covered by a protective flap, the indusium, which guards the immature sporangia against desiccation. In <i>Dryopteris</i> the sori are circular under a reniform (kidney-shaped) indusium; in <i>Adiantum</i> the sori are linear, covered by the folded-back margin of the pinnule, a false indusium. Each sporangium is a stalked capsule with an incomplete ring of thick-walled cells, the annulus, which on drying tears the capsule open at the thin-walled stomium to release the spores',
     why: 'A sorus is the site where spores are produced by meiosis.',
     say: null,
   },
@@ -390,7 +390,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 7,
     kind: 'remember',
     q: 'Why is heterospory in <i>Selaginella</i> the precursor of the seed habit?',
-    a: 'Microspores, small and many, grow into male gametophytes that are retained within the microspore wall, never free-living, each releasing many antherozoids. Megaspores are large and few, a tetrad of four from each megaspore mother cell in <i>Selaginella</i>, retained in the megasporangium on the parent sporophyte, where the female gametophyte makes archegonia. An antherozoid still swims through a film of water to the egg, and the embryo, with a suspensor that pushes it into the gametophyte tissue, develops on the parent. This retained, provisioned embryo is the seed-habit precursor, though not a true seed: there is no seed coat from the integuments',
+    a: 'Microspores, small and many, grow into male gametophytes that are retained within the microspore wall, never free-living, each releasing many antherozoids. Megaspores are large and few, a tetrad of four from each megaspore mother cell in <i>Selaginella</i>, retained in the megasporangium on the parent sporophyte for a variable period, where the female gametophyte makes archegonia. An antherozoid still swims through a film of water to the egg, and the embryo, with a suspensor that pushes it into the gametophyte tissue, develops on the parent. This retained, provisioned embryo is the seed-habit precursor, though not a true seed: there is no seed coat from the integuments',
     why: 'Homospory differs: in <i>Dryopteris</i> one spore type gives a free-living prothallus that bears both antheridia and archegonia.',
     say: null,
   },
@@ -462,7 +462,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'How do the five plant groups compare on dominant phase, vascular tissue, seeds and endosperm?',
     a: 'Dominant phase: the gametophyte in bryophytes; the sporophyte in pteridophytes, gymnosperms and angiosperms. Life cycle: bryophytes and pteridophytes haplo-diplontic, gymnosperms and angiosperms diplontic (NCERT’s convention); the algae show all three patterns. Vascular tissue: absent in algae and bryophytes, present in the other three. Seeds: absent in the first three groups, naked in gymnosperms (cones), enclosed in a fruit in angiosperms (flowers). Double fertilisation: only angiosperms. Endosperm: gymnosperms haploid and before fertilisation, angiosperms triploid and after. Water is needed for fertilisation in bryophytes and pteridophytes, not from outside in the seed plants (the motile sperm of <i>Cycas</i> and <i>Ginkgo</i> swim in the ovule’s own fluid)',
-    why: 'The gametophytes of the seed plants, the pollen grain and the embryo sac, are never free-living.',
+    why: 'The gametophytes of the seed plants (the pollen grain, and the female gametophyte inside the ovule, the embryo sac in angiosperms) are never free-living.',
     say: null,
   },
   // p. 208

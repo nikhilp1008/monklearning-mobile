@@ -194,8 +194,10 @@ function drawProk(s: Sketch, cx: number, cy: number, tags: boolean, nucLabel = '
   const ribo: P[] = [[cx - 64, cy - 16], [cx - 40, cy - 30], [cx - 6, cy - 34], [cx + 28, cy - 30], [cx + 56, cy - 22], [cx + 64, cy + 4], [cx + 40, cy + 26], [cx - 4, cy + 30], [cx - 56, cy + 18], [cx - 44, cy + 32]];
   ribo.forEach(([x, y]) => s.dot(x, y, 2.6));
   ring(s, cx + 28, cy + 30, 7);
-  const mes = onEll(cx, cy, R.mem[0], R.mem[1], 55);
-  ring(s, mes.p[0] - mes.n[0] * 5, mes.p[1] - mes.n[1] * 5, 6);
+  // the mesosome: an inward fold of the plasma membrane (it starts and ends on the membrane)
+  const mes = onEll(cx, cy, R.mem[0], R.mem[1], 55), mA = onEll(cx, cy, R.mem[0], R.mem[1], 49), mB = onEll(cx, cy, R.mem[0], R.mem[1], 61);
+  const mTip: P = [mes.p[0] - mes.n[0] * 14, mes.p[1] - mes.n[1] * 14];
+  curve(s, [mA.p, [mA.p[0] - mA.n[0] * 8, mA.p[1] - mA.n[1] * 8], mTip, [mB.p[0] - mB.n[0] * 8, mB.p[1] - mB.n[1] * 8], mB.p]);
   // flagellum: a wave from the right of the cell
   const fl = onEll(cx, cy, R.wall[0], R.wall[1], -8).p;
   curve(s, [fl, [fl[0] + 20, fl[1] - 12], [fl[0] + 40, fl[1] + 4], [fl[0] + 58, fl[1] - 10]], { color: C.slate, w: 2 });
@@ -213,7 +215,7 @@ function drawProk(s: Sketch, cx: number, cy: number, tags: boolean, nucLabel = '
   tg(s, 6, 238, 'Pili', pilTip[0], pilTip[1]);
   tgr(s, W - 6, 86, '70S ribosomes', cx + 56, cy - 22);
   tgr(s, W - 6, 186, 'Flagellum', fl[0] + 40, fl[1] + 4);
-  tgr(s, W - 6, 250, 'Mesosome', mes.p[0] - mes.n[0] * 5 + 4.2, mes.p[1] - mes.n[1] * 5 + 4.2, { bare: true });
+  tgr(s, W - 6, 250, 'Mesosome', mTip[0], mTip[1], { bare: true });
   tg(s, 150, 236, 'Plasmid', cx + 28, cy + 37);
   tg(s, 60, 284, nucLabel, cx - 39, cy + 4, { hi: true });
 }
@@ -241,7 +243,7 @@ function drawEuk(s: Sketch, cx: number, cy: number, tags: boolean) {
   tgr(s, W - 6, 148, '80S ribosomes', cx + 62, cy - 14);
   tg(s, 6, 186, 'Lysosome', cx - 82, cy + 12);
   tg(s, 6, 268, 'Mitochondrion', cx - 62, cy + 56);
-  tgr(s, W - 6, 280, 'Golgi apparatus', cx + 46, cy + 56);
+  tgr(s, W - 6, 280, 'Golgi apparatus', cx + 47, cy + 29);
 }
 function draw22(c: { chip: string }): Sketch {
   const prok = c.chip === 'Prokaryotic cell';
@@ -350,13 +352,13 @@ function draw25(): Sketch {
   hy([[TRUNK, NODES[2]], [130, 84], TIPS[4]]); hy([[TRUNK, NODES[2]], [232, 84], TIPS[5]]);
   TIPS.forEach(([x, y]) => ring(s, x, y, 8));
   box(s, 'substrate', [30, SUB_TOP, 330, 300]);
-  lab(s, 180, 289, 'substrate', { size: 11, color: C.slate, within: 'substrate' });
+  lab(s, 100, 289, 'substrate', { size: 11, color: C.slate, within: 'substrate' });
   lab(s, 194, 246, 'mycelium', { size: 11, anchor: 'start', color: C.slate });
   lab(s, 194, 259, '(network of hyphae)', { size: 11, anchor: 'start', color: C.slate });
   tg(s, 6, 66, 'sporangium', TIPS[4][0] - 6, TIPS[4][1] + 6);
   tg(s, 258, 68, 'hypha', 214, 100, { hi: true });
   // the arrow to the inset
-  s.vec(180, 304, 180, 326, { color: C.slate, w: 1.6, dash: true }); keep(s, [[180, 304], [180, 326]]);
+  s.vec(180, 270, 180, 326, { color: C.slate, w: 1.6, dash: true }); keep(s, [[180, 270], [180, 326]]);
   // the inset
   box(s, 'inset', [8, 330, 352, 556]);
   lab(s, 180, 352, 'Hypha magnified', { size: 13, bold: true, within: 'inset' });

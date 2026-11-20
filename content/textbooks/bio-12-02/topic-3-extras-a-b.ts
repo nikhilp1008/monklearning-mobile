@@ -31,7 +31,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A consistently high-yield closing arc of the chapter. <b>CBSE Boards</b> ask the early-development sequence, placenta functions, and parturition mechanism (2–5 marks). <b>NEET</b> often asks the morula-vs-blastocyst distinction, the placental hormones (hCG/hPL/relaxin), germ-layer derivatives, and assertion–reason on the oxytocin feedback loop. <b>CUET</b> tests definitions and the development timeline. The whole arc, fusion to birth, is a favourite source of sequence-ordering questions. (All frequency and mark statements in this box are the book’s estimate from past papers, not official figures.)',
+        html: '<b>Exam Relevance:</b> A high-yield closing arc of the chapter. <b>CBSE Boards</b> ask the early-development sequence, placenta functions, and parturition mechanism (2–5 marks). <b>NEET</b> often asks the morula-vs-blastocyst distinction, the pregnancy hormones (hCG/hPL/relaxin), germ-layer derivatives, and assertion–reason on the oxytocin feedback loop. <b>CUET</b> tests definitions and the development timeline. The whole arc, fusion to birth, is a common source of sequence-ordering questions. (All frequency and mark statements in this box are the book’s estimate from past papers, not official figures.)',
       },
       {
         t: 'p',
@@ -51,7 +51,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b> Every timing here (gestation ≈ 9 months, trimester milestones) is a typical average, not a guarantee. In nature fertilisation occurs only in the female tract (in vitro fertilisation is the exception), and only in a short window around ovulation. And note the deliberate paradox of <b>cleavage</b>: divisions increase cell number while total size stays roughly constant: students who expect the morula to be “bigger” because it has “more cells” walk into the classic trap.',
+        html: '<b>Limiting conditions & assumptions.</b> Every timing here (gestation ≈ 9 months, trimester milestones) is a typical average, not a guarantee. In the body, fertilisation occurs only in the female tract (in vitro fertilisation, in a dish, is the laboratory exception), and only in a short window around ovulation. And note the deliberate paradox of <b>cleavage</b>: divisions increase cell number while total size stays roughly constant: students who expect the morula to be “bigger” because it has “more cells” walk into the classic trap.',
       },
 
       { t: 'part', title: 'Key definitions, stages and hormones' },
@@ -114,7 +114,7 @@ export const TOPICS: Topic[] = [
           ['Oxytocin', 'Maternal posterior pituitary', 'Drives uterine contractions at parturition (positive feedback)'],
         ],
       },
-      { t: 'p', html: '(hCG and hPL are made by the placenta <b>only in pregnancy</b> (hCG also by rare tumours); relaxin rises in late pregnancy and is made by the ovary (the corpus luteum makes it in the luteal phase too).)' },
+      { t: 'p', html: '(NCERT: hCG, hPL and relaxin are produced in women only during pregnancy. Strictly, hCG is also made by some rare tumours, and the corpus luteum makes a little relaxin in the luteal phase of an ordinary cycle.)' },
 
       { t: 'part', title: 'Key processes and sequences' },
       { t: 'p', html: '<b>Fertilisation (the meeting)</b>' },
@@ -167,7 +167,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Foetal timeline, by trimester.</b> Development is conventionally divided into three roughly three-month <b>trimesters</b>. In the <b>first trimester</b> the embryo changes fastest: the <b>foetal heart forms after about one month</b> (the heartbeat is the first sign of a growing foetus; it can be detected after about five to six weeks by ultrasound), <b>limbs and digits</b> appear by the end of the second month, and <b>most major organ systems</b> are laid down by about 12 weeks. In the <b>second trimester</b> the body becomes covered with fine hair, the <b>eyelids separate and eyelashes form</b> by about 24 weeks, and the <b>first foetal movements</b> are felt around the fifth month. By the end of the <b>third trimester</b>, roughly nine months in all, the foetus is fully developed and ready for delivery.',
+        html: '<b>Foetal timeline, by trimester.</b> Development is conventionally divided into three roughly three-month <b>trimesters</b>. In the <b>first trimester</b> the embryo changes fastest: the <b>foetal heart forms after about one month</b> (the heartbeat is the first sign of a growing foetus; NCERT says it may be noticed by listening carefully to the heart sound through a stethoscope, though in practice an ultrasound picks it up first, from about six weeks), <b>limbs and digits</b> appear by the end of the second month, and <b>most major organ systems</b> are laid down by about 12 weeks. In the <b>second trimester</b> the body becomes covered with fine hair, the <b>eyelids separate and eyelashes form</b> by about 24 weeks, and the <b>first foetal movements</b> are felt around the fifth month. By the end of the <b>third trimester</b>, roughly nine months in all, the foetus is fully developed and ready for delivery.',
       },
       { t: 'p', html: '<b>Parturition (birth)</b>' },
       {
@@ -326,7 +326,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>Lactation:</b> first milk = <b>colostrum</b>, antibody-rich (IgA) → passive immunity for the newborn.', note: '' },
         ],
         aids: [
-          '<b>Mnemonic (hormones of pregnancy):</b> “CHaPLeR”: hCG, hPL, Relaxin are the hormones that rise in pregnancy (relaxin also from the corpus luteum).',
+          '<b>Mnemonic (hormones of pregnancy):</b> “CHaPLeR”: hCG, hPL, Relaxin, the hormones NCERT gives as produced only in pregnancy (relaxin also comes from the ovary).',
         ],
       },
     ],
@@ -346,7 +346,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'When natural conception fails, assisted reproductive technologies (ART) can help. NEET and CUET ask for the full names, procedural steps, and clinical indications of four ART methods (IVF, GIFT, ZIFT, and ICSI), as well as the landmark of the first successful human IVF birth (the book’s estimate from past papers, not official figures).',
+        html: 'When natural conception fails, assisted reproductive technologies (ART) can help. NEET and CUET ask (the book’s estimate from past papers, not official figures) for the full names, procedural steps, and clinical indications of four ART methods (IVF, GIFT, ZIFT, and ICSI), as well as the landmark of the first successful human IVF birth.',
       },
 
       { t: 'part', title: 'Method' },
@@ -410,7 +410,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] When is GIFT an appropriate choice instead of IVF? Name one prerequisite condition.',
-            a: 'GIFT suits a woman who cannot produce ova but has a healthy Fallopian tube (NCERT: ovum from a donor); prerequisite: at least one functional tube.',
+            a: 'GIFT suits a woman with at least one healthy Fallopian tube when the sperm are adequate, for example a woman who cannot produce ova and receives a donor ovum (NCERT’s account); prerequisite: at least one functional tube.',
           },
           {
             q: '[NEET] Which ART technique would you recommend for a couple where the male has zero sperm count (azoospermia) but testicular biopsy shows normal spermatogenesis? Give one reason.',

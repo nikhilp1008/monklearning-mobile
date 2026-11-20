@@ -32,7 +32,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'What the Examination Requires' },
       {
         t: 'p',
-        html: 'NEET asks the RAAS cascade by sequence: angiotensinogen → (renin) → angiotensin I → (ACE) → angiotensin II → aldosterone. You must also name the converting enzyme (ACE), know that angiotensin II is the active pressor form, and understand the clinical link to ACE inhibitor drugs. (This is the book’s view of what the exam asks, from past papers, not an official figure.)',
+        html: 'NEET asks the RAAS cascade by sequence: angiotensinogen → (renin) → angiotensin I → (ACE) → angiotensin II → aldosterone. You must also name the converting enzyme (ACE), know that angiotensin II is the active pressor form, and understand the clinical link to ACE inhibitor drugs. (This is the book’s view of what the exam asks.)',
       },
 
       { t: 'part', title: 'Method: The RAAS Cascade' },
@@ -131,7 +131,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'What the Examination Requires' },
       {
         t: 'p',
-        html: 'NEET asks for the three calcium-regulating hormones: PTH, calcitonin, and calcitriol (1,25-dihydroxyvitamin D / active vitamin D). You must know the activation steps (liver → kidney), the organ actions of each, and why deficiency of vitamin D causes rickets and osteomalacia. (This is the book’s view of what the exam asks, from past papers, not an official figure.)',
+        html: 'NEET asks for the three calcium-regulating hormones: PTH, calcitonin, and calcitriol (1,25-dihydroxyvitamin D / active vitamin D). You must know the activation steps (liver → kidney), the organ actions of each, and why deficiency of vitamin D causes rickets and osteomalacia. (This is the book’s view of what the exam asks.) This part goes beyond NCERT Class 11 Biology; treat it as extension material.',
       },
 
       { t: 'part', title: 'Method: The Three Calcium-Regulating Hormones' },
@@ -145,7 +145,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Hormone 3: Calcitriol (1,25-dihydroxyvitamin D, a steroid hormone)</b><br>Made and put to work in three steps, starting from dietary vitamin D or from vitamin D made in the skin by UV light acting on 7-dehydrocholesterol:<br>1. <b>Skin/liver:</b> Vitamin D<sub>3</sub> → 25-hydroxyvitamin D (calcidiol) [25-OH-D<sub>3</sub>], major circulating form.<br>2. <b>Kidney (proximal tubule):</b> 25-OH-D<sub>3</sub> → 1,25-dihydroxyvitamin D (calcitriol) by 1α-hydroxylase. This step is stimulated by PTH and low phosphate, and inhibited by high phosphate and FGF23.<br>3. <b>Target tissues</b> (intestine, bone, kidney): calcitriol acts on nuclear VDR receptors to increase intestinal calcium and phosphate absorption. In bone, calcitriol promotes mineralization and, together with PTH, bone remodelling.',
+        html: '<b>Hormone 3: Calcitriol (1,25-dihydroxyvitamin D, a steroid hormone)</b><br>Made and put to work in three steps, starting from dietary vitamin D or from vitamin D made in the skin by UV light acting on 7-dehydrocholesterol:<br>1. <b>Skin/liver:</b> Vitamin D<sub>3</sub> (made in the skin or taken in the diet; the 25-hydroxylation itself is done in the liver) → 25-hydroxyvitamin D (calcidiol) [25-OH-D<sub>3</sub>], major circulating form.<br>2. <b>Kidney (proximal tubule):</b> 25-OH-D<sub>3</sub> → 1,25-dihydroxyvitamin D (calcitriol) by 1α-hydroxylase. This step is stimulated by PTH and low phosphate, and inhibited by high phosphate and FGF23.<br>3. <b>Target tissues</b> (intestine, bone, kidney): calcitriol acts on nuclear VDR receptors to increase intestinal calcium and phosphate absorption. In bone, calcitriol promotes mineralization and, together with PTH, bone remodelling.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -161,9 +161,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'CBSE',
-        q: '<b>Comparing the Three Calcium Hormones.</b> Complete the table. Columns: Hormone, Secreted by, Stimulus, Main target organ, Effect on blood Ca<sup>2+</sup>.<br>PTH: Secreted by ?, Stimulus ?, Main target organ ?, Effect on blood Ca<sup>2+</sup> ?<br>Calcitonin: Secreted by ?, Stimulus ?, Main target organ ?, Effect on blood Ca<sup>2+</sup> ?<br>Calcitriol: Secreted by ?, Stimulus ?, Main target organ ?, Effect on blood Ca<sup>2+</sup> ?',
+        q: '<b>Comparing the Three Calcium Hormones.</b> Complete the table. Columns: Hormone, Secreted by, Stimulus, Main target organ, Effect on blood Ca<sup>2+</sup>.<br>PTH: Secreted by: ?; Stimulus: ?; Main target organ: ?; Effect on blood Ca<sup>2+</sup>: ?<br>Calcitonin: Secreted by: ?; Stimulus: ?; Main target organ: ?; Effect on blood Ca<sup>2+</sup>: ?<br>Calcitriol: Secreted by: ?; Stimulus: ?; Main target organ: ?; Effect on blood Ca<sup>2+</sup>: ?',
         steps: [
-          '<b>Answer:</b><br><b>PTH:</b> Secreted by Parathyroid chief cells, Stimulus Low plasma Ca<sup>2+</sup>, Main target organ Bone, kidney, Effect on blood Ca<sup>2+</sup> Raises Ca<sup>2+</sup><br><b>Calcitonin:</b> Secreted by Thyroid C cells (parafollicular), Stimulus High plasma Ca<sup>2+</sup>, Main target organ Bone, Effect on blood Ca<sup>2+</sup> Lowers Ca<sup>2+</sup><br><b>Calcitriol:</b> Secreted by Kidney (activated from vitamin D), Stimulus PTH; low phosphate, Main target organ Intestine, Effect on blood Ca<sup>2+</sup> Raises Ca<sup>2+</sup>',
+          '<b>Answer:</b><br><b>PTH:</b> Secreted by: parathyroid chief cells; Stimulus: low plasma Ca<sup>2+</sup>; Main target organ: bone, kidney; Effect on blood Ca<sup>2+</sup>: raises Ca<sup>2+</sup><br><b>Calcitonin:</b> Secreted by: thyroid C cells (parafollicular); Stimulus: high plasma Ca<sup>2+</sup>; Main target organ: bone; Effect on blood Ca<sup>2+</sup>: lowers Ca<sup>2+</sup><br><b>Calcitriol:</b> Secreted by: kidney (activated from vitamin D); Stimulus: PTH, low phosphate; Main target organ: intestine; Effect on blood Ca<sup>2+</sup>: raises Ca<sup>2+</sup>',
         ],
         ans: '',
       },
@@ -178,7 +178,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] A patient has chronic kidney disease and develops bone pain. Explain the link using the calcium homeostasis pathway.',
-            a: 'In chronic kidney disease, the kidney fails to produce 1α-hydroxylase → reduced calcitriol synthesis → reduced intestinal calcium absorption → hypocalcaemia. Low calcium (and high phosphate) stimulates the parathyroids, which enlarge and become overactive (secondary hyperparathyroidism) → secondary hyperparathyroidism → increased bone resorption → bone pain and renal osteodystrophy.',
+            a: 'In chronic kidney disease, the kidney fails to produce 1α-hydroxylase → reduced calcitriol synthesis → reduced intestinal calcium absorption → hypocalcaemia. Low calcium (and high phosphate) stimulates the parathyroids, which enlarge and become overactive → secondary hyperparathyroidism → increased bone resorption → bone pain and renal osteodystrophy.',
           },
           {
             q: '[NEET] What is the role of the liver in vitamin D activation?',
@@ -213,7 +213,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'What the Examination Requires' },
       {
         t: 'p',
-        html: 'NEET asks the G<sub>s</sub>-protein mechanism (receptor → G<sub>s</sub> → adenylyl cyclase → cAMP → PKA) as a named cascade and distinguishes it from the G<sub>q</sub> pathway (IP<sub>3</sub>/DAG). You must know that one hormone-receptor binding event activates many G-proteins, each activating one adenylyl cyclase, each producing many cAMP molecules: the basis of signal amplification. (This is the book’s view of what the exam asks, from past papers, not an official figure.) This part goes beyond NCERT Class 11 Biology; treat it as extension material.',
+        html: 'NEET asks the G<sub>s</sub>-protein mechanism (receptor → G<sub>s</sub> → adenylyl cyclase → cAMP → PKA) as a named cascade and distinguishes it from the G<sub>q</sub> pathway (IP<sub>3</sub>/DAG). You must know that one hormone-receptor binding event activates many G-proteins, each activating one adenylyl cyclase, each producing many cAMP molecules: the basis of signal amplification. (This is the book’s view of what the exam asks.) This part goes beyond NCERT Class 11 Biology; treat it as extension material.',
       },
 
       { t: 'part', title: 'Method: The Gs-cAMP-PKA Pathway' },
@@ -223,7 +223,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Step 2: G-protein activation.</b> The receptor is constitutively associated with a G-protein, which is a heterotrimer of α, β and γ subunits. When the hormone binds, the receptor changes conformation and acts as a guanine nucleotide exchange factor (GEF), displacing GDP from the α-subunit and allowing GTP to bind. The α-GTP subunit dissociates from the βγ complex.',
+        html: '<b>Step 2: G-protein activation.</b> The receptor is constitutively associated with a G-protein (in the usual model the G-protein couples to the receptor as the hormone binds), which is a heterotrimer of α, β and γ subunits. When the hormone binds, the receptor changes conformation and acts as a guanine nucleotide exchange factor (GEF), displacing GDP from the α-subunit and allowing GTP to bind. The α-GTP subunit dissociates from the βγ complex.',
       },
       {
         t: 'p',
@@ -243,7 +243,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The G<sub>q</sub> pathway (for comparison).</b> Some receptors (e.g., α<sub>1</sub>-adrenergic, TRH, GnRH) activate G<sub>q</sub> → phospholipase C (PLC) → PIP<sub>2</sub> → IP<sub>3</sub> (releases Ca<sup>2+</sup> from ER) + DAG (activates PKC). The chapter mentions Ca<sup>2+</sup> as a second messenger; this is the pathway that generates it.',
+        html: '<b>The G<sub>q</sub> pathway (for comparison).</b> Some receptors (e.g., α<sub>1</sub>-adrenergic, TRH, GnRH) activate G<sub>q</sub> → phospholipase C (PLC) → PIP<sub>2</sub> → IP<sub>3</sub> (releases Ca<sup>2+</sup> from ER) + DAG (activates PKC). The chapter mentions Ca<sup>2+</sup> as a second messenger; this is the main hormone pathway that generates it (Ca<sup>2+</sup> also enters through membrane channels).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -284,7 +284,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Explain why one glucagon molecule can cause the release of many glucose molecules from a hepatocyte.',
-            a: 'Signal amplification at multiple steps: (i) one glucagon receptor activates many G<sub>s</sub> proteins; (ii) each α<sub>s</sub>-GTP activates one adenylyl cyclase molecule, but each adenylyl cyclase produces many cAMP molecules; (iii) the many cAMP molecules bind the regulatory subunits of PKA (four cAMP free the catalytic subunits of each PKA), so each active adenylyl cyclase switches on many PKA molecules; (iv) each activated PKA phosphorylates many target enzymes (phosphorylase kinase and glycogen phosphorylase); (v) each active glycogen phosphorylase releases many glucose molecules by cleaving the glycogen polymer. The cascade greatly amplifies the initial signal.',
+            a: 'Signal amplification at multiple steps: (i) one glucagon receptor activates many G<sub>s</sub> proteins; (ii) each α<sub>s</sub>-GTP activates one adenylyl cyclase molecule, but each adenylyl cyclase produces many cAMP molecules; (iii) the many cAMP molecules bind the regulatory subunits of PKA (four cAMP free the catalytic subunits of each PKA), so each active adenylyl cyclase switches on many PKA molecules; (iv) each activated PKA phosphorylates many phosphorylase kinase molecules, and each phosphorylase kinase activates many glycogen phosphorylase molecules; (v) each active glycogen phosphorylase releases many glucose molecules by cleaving the glycogen polymer. The cascade greatly amplifies the initial signal.',
           },
           {
             q: '[NEET high-difficulty] Cholera toxin causes continuous ADP-ribosylation of the G<sub>s</sub> α-subunit, locking it in the active (GTP-bound) state. Predict the cellular consequence and relate it to diarrhoea.',
@@ -311,7 +311,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'What the Examination Requires' },
       {
         t: 'p',
-        html: 'NEET asks for the glucose-raising (counter-regulatory) hormones (glucagon, epinephrine, cortisol (the main glucocorticoid) and GH) and their mechanisms. You must also know the principle of the counter-regulatory response: during fasting or stress, these hormones act together to prevent hypoglycaemia, and they antagonize insulin’s actions. (This is the book’s view of what the exam asks, from past papers, not an official figure.) This part goes beyond NCERT Class 11 Biology; treat it as extension material.',
+        html: 'NEET asks for the glucose-raising (counter-regulatory) hormones (glucagon, epinephrine, cortisol (the main glucocorticoid) and GH) and their mechanisms. You must also know the principle of the counter-regulatory response: during fasting or stress, these hormones act together to prevent hypoglycaemia, and they antagonize insulin’s actions. (This is the book’s view of what the exam asks.) This part goes beyond NCERT Class 11 Biology; treat it as extension material.',
       },
 
       { t: 'part', title: 'Method: The Four Main Counter-Regulatory Hormones' },
@@ -406,21 +406,21 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'What the Examination Requires' },
       {
         t: 'p',
-        html: 'NEET asks for autocrine, paracrine, and endocrine signaling as distinct types, and tests prostaglandins as the key local hormones. You must know that prostaglandins are eicosanoids derived from arachidonic acid, and that aspirin inhibits prostaglandin synthesis by blocking cyclooxygenase (COX). (This is the book’s view of what the exam asks, from past papers, not an official figure.) This part goes beyond NCERT Class 11 Biology; treat it as extension material.',
+        html: 'NEET asks for autocrine, paracrine, and endocrine signaling as distinct types, and tests prostaglandins as the key local hormones. You must know that prostaglandins are eicosanoids derived from arachidonic acid, and that aspirin inhibits prostaglandin synthesis by blocking cyclooxygenase (COX). (This is the book’s view of what the exam asks.) This part goes beyond NCERT Class 11 Biology; treat it as extension material.',
       },
 
       { t: 'part', title: 'Method: Types of Cellular Communication' },
       {
         t: 'p',
-        html: '<b>Endocrine:</b> hormone travels through blood to act on a distant target. Example: insulin from pancreatic β-cells acts on liver, muscle, and adipose tissue.<br><br><b>Paracrine:</b> hormone acts on neighboring cells within the same tissue, without entering the blood. The signal is local diffusion. Example: histamine released from mast cells acts on nearby blood vessels (vasodilation) and sensory nerve endings (pain, itching). Another: somatostatin secreted by δ-cells in the islets inhibits glucagon and insulin secretion in adjacent cells, a local negative feedback within the islet.<br><br><b>Autocrine:</b> cell secretes a signal that acts on itself (same cell type). Example: interleukin-2 (IL-2) secreted by a T-cell binds IL-2 receptors on that same T-cell, driving its own proliferation. Tumour cells often secrete growth factors that act on themselves (autocrine growth loops), promoting uncontrolled division.<br><br><b>Juxtacrine:</b> direct cell-to-cell contact via membrane-bound ligands on one cell binding receptors on the adjacent cell. No diffusion. Important in development and immune synapse.',
+        html: '<b>Endocrine:</b> hormone travels through blood to act on a distant target. Example: insulin from pancreatic β-cells acts on liver, muscle, and adipose tissue.<br><br><b>Paracrine:</b> hormone acts on neighboring cells within the same tissue (more generally, on nearby cells, which need not be the same tissue), without entering the blood. The signal is local diffusion. Example: histamine released from mast cells acts on nearby blood vessels (vasodilation) and sensory nerve endings (pain, itching). Another: somatostatin secreted by δ-cells in the islets inhibits glucagon and insulin secretion in adjacent cells, a local negative feedback within the islet.<br><br><b>Autocrine:</b> cell secretes a signal that acts on itself (same cell type). Example: interleukin-2 (IL-2) secreted by a T-cell binds IL-2 receptors on that same T-cell, driving its own proliferation. Tumour cells often secrete growth factors that act on themselves (autocrine growth loops), promoting uncontrolled division.<br><br><b>Juxtacrine:</b> direct cell-to-cell contact via membrane-bound ligands on one cell binding receptors on the adjacent cell. No diffusion. Important in development and immune synapse.',
       },
       {
         t: 'p',
-        html: '<b>Prostaglandins as local hormones.</b> Prostaglandins are eicosanoids made from arachidonic acid (a 20-carbon polyunsaturated fatty acid, membrane phospholipid) via the cyclooxygenase (COX) pathway. They act locally (paracrine/autocrine) on nearby cells.',
+        html: '<b>Prostaglandins as local hormones.</b> Prostaglandins are eicosanoids made from arachidonic acid (a 20-carbon polyunsaturated fatty acid, membrane phospholipid; the acid is released from membrane phospholipids, it is not itself a phospholipid) via the cyclooxygenase (COX) pathway. They act locally (paracrine/autocrine) on nearby cells.',
       },
       {
         t: 'p',
-        html: 'Key actions the book says NEET tests:<br>• PGE<sub>2</sub>: vasodilation, protects gastric mucosa, mediates fever (pyrogens lead to more PGE<sub>2</sub> in the hypothalamus → raises set-point).<br>• PGF<sub>2α</sub>: bronchoconstriction; in uterus, causes contraction (used to induce labour).<br>• TXA<sub>2</sub> (thromboxane A<sub>2</sub>): platelet aggregation, vasoconstriction → promotes clot formation.<br>• PGI<sub>2</sub> (prostacyclin): vasodilation, inhibits platelet aggregation → prevents clotting.',
+        html: 'Key actions the book says NEET tests:<br>• PGE<sub>2</sub>: vasodilation, protects gastric mucosa, mediates fever (pyrogens lead to more PGE<sub>2</sub> in the hypothalamus → raises set-point).<br>• PGF<sub>2α</sub>: bronchoconstriction; in uterus, causes contraction (used to induce labour; clinically it is PGE<sub>2</sub> that is mainly used for this).<br>• TXA<sub>2</sub> (thromboxane A<sub>2</sub>): platelet aggregation, vasoconstriction → promotes clot formation.<br>• PGI<sub>2</sub> (prostacyclin): vasodilation, inhibits platelet aggregation → prevents clotting.',
       },
       {
         t: 'p',

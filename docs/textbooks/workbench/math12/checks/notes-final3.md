@@ -1,0 +1,94 @@
+# notes-final3 (Ch 11 + Ch 12 final3 re-shoot)
+## Ch 11
+- card001: STILL — PQ = √((x2−x1)² + (y2−y1)² / "+ (z2 − z1)²)" second line starts with "+" inside √( ).
+- card002-006: ok
+- card007-016: ok (card014 lines starting "=" are set display lines, not wraps)
+- card017: STILL — |b1×b2| = √((b1c2 − b2c1)² / "+ (c1a2 − c2a1)² + (a1b2 − a2b1)²)" second line starts with "+" inside √( ).
+- card018: ok
+- card019-036: ok. (card030 "Distance" line shows the bare fraction with no "D =" in front: minor, maybe intended; card033 "= ±" at line end is accepted)
+- card037-044: ok
+- p002-01/02: STILL — Distance box: "PQ = √((x2 − x1)² + (y2 − y1)²" / "+ (z2 − z1)²)" line starts with "+" inside √( ).
+- p002-03/04: ok
+- p002-05..10: ok. Minor possible NEW: p002-07 "Collinearity of three points: either" line breaks early (room for "the" left on the line) - looks like a set break after the label; low priority.
+- p003-01..07: ok
+- p003-08/09: STILL — "...the distance to it" / "is" (alone) / "√((x − x)² + ...) = √(y² + z²):" — "is" sits alone on a line before the long expression.
+- p003-11/13: NEW minor — "... + A) =" then fraction (A + B + C)/3: the "=" is jammed against the fraction (no space after "=").
+- p003-14: ok (tall lines = inline fraction, accepted)
+- p010-01..06: ok
+- p010-07: STILL — gap between "...any distance in the fixed direction." and "It is worth pausing..." is ~1.7x the other paragraph gaps on the page (166px vs ~100px line-to-line).
+- p010-08..13: ok
+- p012-01: ok
+- p012-02..09: ok (p012-04/06 "sin²α + sin²β + sin²γ = 3 −" / "(l² + m² + n²) = 2." breaks after "−": end-of-line operator, borderline; noted only)
+- p012-10 (= the p012-08/09 item): STILL — "where PQ = √((x2 − x1)² + (y2 − y1)²" / "+ (z2 − z1)²)." line starts with "+" inside √( ).
+- p012-11..15: ok (p012-11 repeat of the √ "+" fault)
+- p020-01: STILL — Angle between two lines box: denominator "|b1||b2|" of first fraction sits right on top of numerator "|a1a2 + b1b2 + c1c2|" of next line's fraction (touching).
+- p020-02: same as p020-01 (STILL touching).
+- p020-03/04: NEW-ish — "For lines (x−x1)/a1 = ..." then "and (x−x2)/a2 = ...": the denominators a1,b1,c1 of the first line nearly touch the numerators x−x2, y−y2, z−z2 of the second line (very tight, same family as p020-01).
+- p020-04/05: also "d = |Δ| / |b1 × b2|" denominator sits right on top of the determinant's top row (tight/touching).
+- p020-04/05: STILL — "|b1 × b2| = √((b1c2 − b2c1)²" / "+ (c1a2 − c2a1)² + (a1b2 − a2b1)²)" line starts with "+" inside √( ).
+- p020-06/07: ok
+- p020-08..11: ok
+- p021-01/02: ok
+- p021-03..06: ok
+- p021-07/08: STILL — "√((b1c2 − b2c1)² + (c1a2 − c2a1)²" / "+ (a1b2 − a2b1)²)." line starts with "+" inside √( ).
+- p021-09/10: ok
+- p037-01: FIXED (the three bullets now evenly spaced to each other); minor: first bullet sits tight under "Three things appear the instant you do:" with no gap while the bullets have paragraph gaps between them (intro-to-list, probably acceptable).
+- p037-02: ok
+- p037-03..09: ok
+- p037-10/11: ok
+- p038-01..03: ok
+- p038-04: STILL — "(x−x1)/a = (y−y1)/b = (z−z1)/c = −t (foot), = −2t" / "(image)." alone on its own line.
+- p038-05..07: ok (apart from the "(image)." repeat)
+- p039-01: STILL — "and" alone on a line between "λ0 = AP·b/|b|²," and "PF = |AP×b|/|b|." Also "F = a + λ0 b with" / "λ0 = ..." lines short (each math piece on its own line).
+- p039-02/03: STILL — "Proof. A general point on the line is a + λb," / "so" (alone) / "FP = ...".  "i.e. FP·b = 0:" now sits on a line with "the line," = ok.
+- p039-04/05: STILL — "a(x1 − sa) + ... + d = 0," / "i.e." (alone) / "(ax1 + by1 + cz1 + d) − s(a²+b²+c²) = 0," / "giving" (alone) / "s = t = ...". Also "any point on it is" short line before "P − sn = ...".
+- p039-06..09: ok
+- p039-10/11: ok
+- p047-01: ok
+- p047-02/03: NEW — "Line meeting a plane" box: "Intersects: b·n = Aa + Bb +" / "Cc ≠ 0" short expression torn across lines (the "+" end is allowed but "Cc ≠ 0" left alone on a line).
+- p047-04: ok (repeat of Cc ≠ 0)
+- p047-05/06/07: STILL — Angle-bisector box: first fraction's denominator "√(a1² + b1² + c1²)" sits directly on the second fraction's numerator "a2x + b2y + c2z + d2" (touching; the "+" signs of the numerator overlap the bottom of the √ line).
+- p047-08: ok
+- p047-09/10: ok
+- p048-01: ok
+- p048-02/03: STILL — "i.e." alone on a line between "A(x1 + aλ) + ... + D = 0," and "(Ax1 + By1 + Cz1 + D) + λ(Aa + Bb + Cc) = 0,". Also "point gives" short line.
+- p048-03: NEW minor — "unique λ = −K/(b·n):" the fraction is tiny and the ":" is jammed against it; ok-ish.
+- p048-04..07: ok (diagram fine)
+- p048-08 (=p048-09 item): STILL — "|P1/|n1|| = |P2/|n2||, i.e." line's denominators |n1|,|n2| touch the next line's numerators P1, P2 of "P1/|n1| = ± P2/|n2|." (stacked fractions touching). Also "if and only if" and "P_i = 0 is" and "equal:" each sit alone on short lines.
+- p048-09: same touching fractions as p048-08 (STILL).
+- p048-10..12: ok ("Intersection:" short label line, "image line is" short line before expression: minor)
+- p050-01: STILL — question wraps early: "[JEE Main] Find the point" / "of intersection of the" / "line (x−1)/2 = ... and the plane" — first two lines break with lots of room left.
+- p050-02..06: ok (maths checked: (3,1,0); parallel; (2,3,7), 16)
+- p050-07..10: ok (maths checked: x−2y+z=0; bisectors x+35y−10z=156, 25x+17y+62z=78 correct)
+- p077-01: ok
+- p077-02..05: ok (maths: λ=1/2, y=−2, z=6; AD ratios ok)
+- p077-05..09: byte-identical (5 shots of card 2/8 answer, page did not scroll): the rest of the 2/8 answer below "Equal inclination ⇒" is never captured. Shoot artefact or page stuck; flag for re-shoot.
+- p077-10: NEW — card 3/8 question wraps early before the answer is opened ("Find the" / "foot of the perpendicular from" / "P(4, 2, 3) to the line through"), but wraps normally in p077-11 once the answer is shown ("Find the foot" / "of the perpendicular from P(4, 2, 3)"). Same early-wrap family as p050-01.
+- p077-11: ok
+- p077-13/14: STILL — card 4/8: blank gap of about one line (~140px vs ~75px on 3/8) between "(c) (4, 0, −1) (d) (0, 1, −1)" and "Check answer"; same gap above the answer box in p077-14.
+- p077-16..18: ok (5/8 maths checked, x − y − z = 0)
+- p077-19: NEW — card 6/8 question wraps early: "[JEE Main – Medium] The" / "plane bisecting the angle" ("plane" would fit; 5/8 fits the longer "Equation" on the same line). Same early-wrap family as p050-01 / p077-10.
+- p077-20: ok (6/8 answer)
+- p077-22: ok
+- p077-23: NEW — 7/8 answer: "Distance = √((−10)² +" / "(−10)² + (−10)²) = 10√3." expression split inside √( ) (break after "+" so no leading "+", but torn inside the bracket). Maths ok.
+- p077-25..28: ok (8/8 question; tall lines from inline fractions = accepted)
+- p077-29/30: ok (8/8 answer, maths checked)
+## Ch 12
+- p014-01: ok
+- p014-02: STILL — answer box: "200x +" / "100y ≤ 5000 ⇒ 2x + y ≤ 50;" — "200x + 100y" torn across lines, "200x +" alone on its line with room left.
+- p014-03/04: ok
+- p014-05..08: ok
+- p014-09..11: ok; minor NEW: 5/5 question "costs ₹2000/" / "trip." unit torn at the slash (₹1000/trip on the line above stays whole).
+- p029-01: ok
+- p029-02/03: STILL — "and rearranging gives λ(aq_x + bq_y) + (1 −" / "λ)(ar_x + br_y). ■" — "(1 − λ)" torn across lines. Also (minor) "P = (λq_x + (1 − λ)r_x," / "λq_y + (1 − λ)r_y), so" coordinate pair split at the comma inside its bracket.
+- p029-04: ok
+- p029-05..08: ok (diagram fine)
+- p032-01/02: STILL — step 2: "The maximum occurs at Vk if and" / "only if" (alone) / "Z(Vk) ≥ Z(Vj) for every j."
+- p032-02/03: STILL — step 4: "is sought, becomes a tie-edge" / "exactly when" (alone) / "−p/q = m, i.e. p/q = −m." Also "rearranges to" short line before the fraction (p032-03), same family.
+- p032-04/05: ok
+- r12-p013-card1-01..03: ok (maths ok: 6800 at (20,40))
+- r12-p013-card1-04: STILL — corner row "(20, 40) → 1200 + 5600 = 6800" / "← Maximum" — "← Maximum" starts its own line.
+- r12-p013-card1-05/06: STILL "← Maximum" alone on line (answer box fine).
+- r12-p013-card2-01/02: card set NOT ADVANCING — "card 2" shots still show counter 1/4 with the same printing-press example as card 1 (log: "part 13: no card counter on screen"). Likely shoot tap missed; card 2 itself was never captured.
+- r12-p013-card2-03..06: all show card 1/4 again (same content, "← Maximum" alone again). Card 2 not captured.
+## DONE: CHAIN-DONE seen; all files read (ch11 205 + ch12 31; byte-identical repeats skipped).

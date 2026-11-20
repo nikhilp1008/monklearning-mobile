@@ -477,9 +477,14 @@ function draw106(): Sketch {
     box(s, u.name, [40, u.y, 346, u.y + u.h]);
     arrow(s, [24, cy], [40, cy]);
     ml(s, 228, u.y + (u.h === 78 ? 17 : u.h === 56 ? 19 : 20), u.lines, { size: 11, within: u.name, step: 13 });
-    if (i === 2) { // sheep
-      ell(s, 70, cy, 15, 8, { w: 1.5 }); ell(s, 90, cy - 6, 5, 4, { w: 1.5 });
-      [-8, 0, 8].forEach((dx) => path(s, [[70 + dx, cy + 8], [70 + dx, cy + 18]], { w: 1.5 }));
+    if (i === 2) { // cow (Rosie) above, sheep (alpha-1-antitrypsin) below
+      const cc = cy - 17;
+      ell(s, 70, cc, 15, 7, { w: 1.5 }); ell(s, 90, cc - 4, 5, 4, { w: 1.5 });
+      path(s, [[88, cc - 8], [86, cc - 12]], { w: 1.5 }); path(s, [[93, cc - 8], [95, cc - 12]], { w: 1.5 });
+      [-8, 8].forEach((dx) => path(s, [[70 + dx, cc + 7], [70 + dx, cc + 14]], { w: 1.5 }));
+      const sc = cy + 15;
+      ell(s, 70, sc, 15, 7, { w: 1.5 }); ell(s, 90, sc - 5, 5, 4, { w: 1.5 });
+      [-8, 0, 8].forEach((dx) => path(s, [[70 + dx, sc + 7], [70 + dx, sc + 14]], { w: 1.5 }));
     } else {
       mouse(s, 70, cy);
       const ax = 98;

@@ -99,7 +99,7 @@ export const TOPICS: Topic[] = [
         t: 'p',
         html: 'This is why, under the microscope, an apomictic embryo sac can look perfectly ordinary yet its cells are diploid, the give-away that meiosis was skipped. The NCERT Exemplar turns this into a reasoning question: an apomictic embryo sac appears normal but contains diploid cells: explain. The answer follows directly from the logic above: the megaspore mother cell bypassed the reductional (meiotic) division, so the embryo sac it produced retained the full diploid set even though its overall structure developed normally.',
       },
-      { t: 'p', html: '<b>3.2 Routes to apomictic seeds (beyond NCERT: NEET-advanced)</b>' },
+      { t: 'p', html: '<b>3.2 Routes to apomictic seeds (the names are beyond NCERT: NEET-advanced; NCERT describes the unreduced-egg and nucellar routes without naming them)</b>' },
       {
         t: 'p',
         html: 'Apomixis (in the broad sense) splits into <b>vegetative reproduction</b> and <b>agamospermy</b> (seed-forming apomixis). Winkler’s original, broad sense of the word also counted vegetative reproduction; in NCERT and in most exam answers apomixis means asexual seed formation (agamospermy). Within agamospermy:<br>• <b>Diplospory</b>: the megaspore mother cell itself becomes the (diploid) embryo sac.<br>• <b>Apospory</b>: a neighbouring somatic cell forms an extra (diploid) embryo sac.<br>• <b>Adventive embryony</b>: embryos bud directly from diploid nucellar/integumentary cells, with no embryo sac stage (the nucellar cells may protrude into the sac cavity but form no egg) (the <i>Citrus</i> route).',
@@ -116,7 +116,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The commercially important type is <b>nucellar polyembryony</b>: maternal nucellar tissue produces extra embryos that are genetically uniform clones of the parent. This matters because:<br>• the seedlings breed <b>true to type</b>, preserving an elite variety;<br>• <b>nucellar embryos are superior to plants raised by ordinary vegetative propagation</b>, they tend to be <b>disease-free</b> and retain their vigour for a long time (usually virus-free, though not immune to disease).',
+        html: 'The commercially important type is <b>nucellar polyembryony</b>: maternal nucellar tissue produces extra embryos that are genetically uniform clones of the parent. This matters because:<br>• the seedlings breed <b>true to type</b>, preserving an elite variety;<br>• <b>nucellar embryos are often described as superior to plants raised by ordinary vegetative propagation</b>: they tend to be <b>disease-free</b> and retain their vigour for a long time (usually virus-free, though not immune to disease).',
       },
       {
         t: 'p',
@@ -198,7 +198,7 @@ export const TOPICS: Topic[] = [
             a: 'They are genetically uniform clones of the parent (true-breeding) and tend to be <b>disease-free</b> and to retain their vigour for a long time.',
           },
           {
-            q: '[NEET · Assertion–Reason] A: An apomictic embryo sac may appear normal yet contain diploid cells. R: In apomixis the megaspore mother cell develops into the embryo sac without undergoing meiosis. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
+            q: '[NEET · Assertion–Reason] A: An apomictic embryo sac may appear normal yet contain diploid cells. R: In diplospory, the megaspore mother cell develops into the embryo sac without undergoing meiosis. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
             a: '<b>(a)</b>: both true and R correctly explains A (skipping meiosis leaves the embryo sac diploid).',
           },
         ],
@@ -314,10 +314,10 @@ export const TOPICS: Topic[] = [
           },
           {
             f: '<b>Nucellar embryony</b>',
-            note: 'embryos from <b>diploid maternal nucellar tissue</b> → clones; nucellar seedlings tend to be <b>disease-free</b> (usually virus-free) and are called <b>superior to vegetative propagation</b> in NCERT, so they are valued as true-to-type planting stock and rootstocks.',
+            note: 'embryos from <b>diploid maternal nucellar tissue</b> → clones; nucellar seedlings tend to be <b>disease-free</b> (usually virus-free) and are often described as <b>superior to plants raised by vegetative propagation</b>, so they are valued as true-to-type planting stock and rootstocks.',
           },
           {
-            f: '<b>Apomixis routes (beyond NCERT)</b>',
+            f: '<b>Apomixis routes (names beyond NCERT)</b>',
             note: 'agamospermy → <b>diplospory</b> (MMC → 2<i>n</i> embryo sac), <b>apospory</b> (outside cell → embryo sac), <b>adventive embryony</b> (nucellar cell → embryo, bypasses sac).',
           },
           {
@@ -358,7 +358,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The ABA/GA biochemical switch at germination.</b> The standard teaching (NCERT Class 11, plant growth regulators) is that ABA enforces dormancy and GA breaks it; the mechanism is testable:<br>1. <b>Dry seed:</b> high ABA maintains dormancy, suppresses metabolic activity and prevents premature germination.<br>2. <b>Imbibition:</b> water uptake begins; ABA levels start to fall if conditions are favourable, and gibberellin synthesis begins in the embryo.<br>3. <b>GA synthesis:</b> the embryo produces GA which diffuses to the aleurone layer (in cereals).<br>4. <b>Aleurone response:</b> GA triggers transcription of genes encoding alpha-amylase and other hydrolytic enzymes.<br>5. <b>Starch hydrolysis:</b> alpha-amylase breaks stored starch into sugars in the endosperm.<br>6. <b>Nutrient supply:</b> sugars reach the embryo; the radicle protrudes: germination is complete.<br>7. <b>Meanwhile, ABA antagonism:</b> ABA blocks GA signalling at the aleurone layer, preventing alpha-amylase gene expression.',
+        html: '<b>The ABA/GA biochemical switch at germination.</b> The standard teaching (NCERT Class 11, plant growth regulators) is that ABA induces seed dormancy, inhibits germination and acts as an antagonist to GAs (that GA breaks dormancy goes beyond NCERT, which credits ethylene with breaking seed dormancy); the mechanism is testable:<br>1. <b>Dry seed:</b> high ABA maintains dormancy, suppresses metabolic activity and prevents premature germination.<br>2. <b>Imbibition:</b> water uptake begins; ABA levels start to fall if conditions are favourable, and gibberellin synthesis begins in the embryo.<br>3. <b>GA synthesis:</b> the embryo produces GA which diffuses to the aleurone layer (in cereals).<br>4. <b>Aleurone response:</b> GA triggers transcription of genes encoding alpha-amylase and other hydrolytic enzymes.<br>5. <b>Starch hydrolysis:</b> alpha-amylase breaks stored starch into sugars in the endosperm.<br>6. <b>Nutrient supply:</b> sugars reach the embryo; the radicle protrudes: germination is complete.<br>7. <b>Meanwhile, ABA antagonism:</b> ABA blocks GA signalling at the aleurone layer, preventing alpha-amylase gene expression.',
       },
       {
         t: 'p',
@@ -389,7 +389,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board',
         q: '<b>Identifying Dormancy Type and Breaking Method.</b> Seeds of a hard-seeded legume such as <i>Cassia</i> have a hard, waxy testa that prevents water entry for several weeks after harvest. When a farmer soaks the seeds in warm water for 24 hours before sowing, germination is rapid. Identify the type of dormancy and the method used to break it.',
         steps: [
-          'The hard coat physically blocks water entry: this is physical dormancy. Soaking in warm water softens the testa, allowing imbibition. This is pre-soaking in warm water (a hot-water soak), a method distinct from scarification, which damages the coat mechanically or chemically. Mechanical scarification (nicking the coat with sandpaper) would achieve the same result.',
+          'The hard coat physically blocks water entry: this is physical dormancy. Soaking in warm water softens the testa, allowing imbibition. This is pre-soaking in warm water (a hot-water soak), a method distinct from scarification, which damages the coat mechanically or chemically (some texts count a hot-water soak as a third kind of scarification, beside the mechanical and chemical kinds). Mechanical scarification (nicking the coat with sandpaper) would achieve the same result.',
         ],
         ans: 'Physical dormancy; broken by softening the testa through pre-soaking in warm water (a hot-water soak).',
       },
@@ -398,9 +398,9 @@ export const TOPICS: Topic[] = [
         tag: 'NEET',
         q: '<b>Hormonal Mechanism in Cereal Germination.</b> During germination of a barley grain, name: (i) the hormone that stimulates alpha-amylase synthesis in the aleurone layer, (ii) the layer in which this occurs, and (iii) the hormone that antagonises this action to maintain dormancy.',
         steps: [
-          '(i) Gibberellin (specifically GA<sub>3</sub>) is synthesised by the embryo and acts on the aleurone layer.<br>(ii) The aleurone layer is the outermost cell layer of the endosperm in cereal grains, surrounding the starchy endosperm.<br>(iii) Abscisic acid (ABA) antagonises by blocking GA signalling and preventing alpha-amylase gene expression, maintaining dormancy in dry or unfavourable conditions.',
+          '(i) Gibberellin (GA; in barley mainly GA<sub>1</sub>, while GA<sub>3</sub>, gibberellic acid, is the form applied in malting) is synthesised by the embryo and acts on the aleurone layer.<br>(ii) The aleurone layer is the outermost cell layer of the endosperm in cereal grains, surrounding the starchy endosperm.<br>(iii) Abscisic acid (ABA) antagonises by blocking GA signalling and preventing alpha-amylase gene expression, maintaining dormancy in dry or unfavourable conditions.',
         ],
-        ans: '(i) Gibberellin (GA<sub>3</sub>); (ii) aleurone layer; (iii) ABA antagonises.',
+        ans: '(i) Gibberellin (GA); (ii) aleurone layer; (iii) ABA antagonises.',
       },
       {
         t: 'ex',
@@ -445,7 +445,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] What is meant by scarification? Name one method of scarification used for hard-seeded legumes.',
-            a: 'Scarification is any treatment that damages or softens the hard seed coat to allow water entry. Methods: mechanical (scratching/sanding the coat) or chemical (soaking in concentrated H<sub>2</sub>SO<sub>4</sub>). Soaking in warm water (a hot-water soak) softens the coat too, but it is classed separately from scarification.',
+            a: 'Scarification is any treatment that damages or softens the hard seed coat to allow water entry. Methods: mechanical (scratching/sanding the coat) or chemical (soaking in concentrated H<sub>2</sub>SO<sub>4</sub>). Soaking in warm water (a hot-water soak) softens the coat too, but it is classed separately from scarification (some texts count it as a third kind of scarification).',
           },
           {
             q: '[NEET] Seeds of winter wheat stored in dry conditions for six months germinate faster than freshly harvested seeds. Name the phenomenon and explain it in terms of hormone changes.',
@@ -474,7 +474,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter introduces self-incompatibility (SI) as an outbreeding device but does not explain how it works genetically, how the two types differ, or what the <i>S</i>-allele system means in practice. These details are frequently tested in CUET matching questions and NEET assertion–reason items (the book’s estimate from past papers, not official figures).',
+        html: 'The chapter introduces self-incompatibility (SI) as an outbreeding device but does not explain how it works genetically, how the two types differ, or what the <i>S</i>-allele system means in practice. These details go beyond the NCERT text; they appear in some CUET matching and assertion–reason items (the book’s estimate from past papers, not official figures).',
       },
 
       { t: 'part', title: 'Method' },
@@ -533,7 +533,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET · Assertion–Reason',
-        q: '<b>SI and Genetic Variation.</b> Assertion (A): Self-incompatibility ensures that a plant’s own pollen cannot fertilise its ovules. Reason (R): In gametophytic SI, the S-RNase mechanism destroys the RNA of pollen tubes that carry a matching <i>S</i>-allele. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
+        q: '<b>SI and Genetic Variation.</b> Assertion (A): In gametophytic self-incompatibility, a plant’s own pollen normally cannot fertilise its ovules. Reason (R): In gametophytic SI, the S-RNase mechanism destroys the RNA of pollen tubes that carry a matching <i>S</i>-allele. Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
         steps: [
           'A is true: SI prevents self-fertilisation (the plant’s own pollen is rejected). R is also true: in gametophytic SI, the style’s S-RNase enters and degrades the RNA of self-pollen tubes, halting growth. R correctly explains A by giving the molecular basis of the block. Both are true and the reason is the correct explanation.',
         ],
@@ -562,7 +562,7 @@ export const TOPICS: Topic[] = [
             a: 'The compatibility of a pollen grain in gametophytic SI is determined by its own (haploid) <i>S</i>-allele. If the pollen’s <i>S</i>-allele matches either of the pistil’s <i>S</i>-alleles, S-RNase from the style enters the pollen tube, degrades its RNA, and halts growth.',
           },
           {
-            q: '[CUET] Name the family in which gametophytic SI is found and the family in which sporophytic SI is found.',
+            q: '[CUET] Name one family in which gametophytic SI is found and one in which sporophytic SI is found.',
             a: 'Gametophytic SI: Solanaceae (<i>Petunia</i>, <i>Nicotiana</i>). Sporophytic SI: Brassicaceae (<i>Brassica</i>, <i>Raphanus</i>).',
           },
           {

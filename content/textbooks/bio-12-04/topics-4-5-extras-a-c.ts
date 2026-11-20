@@ -38,7 +38,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: `<b>Exam Relevance:</b> NEET asks 1–2 questions yearly, most often the contrast between polygenic inheritance, multiple allelism, and pleiotropy, plus the “number of phenotypic classes” calculation. CUET tests the one-line definitions and the skin-colour example. CBSE Boards may set a 2–3 mark question distinguishing polygenic inheritance from pleiotropy or explaining continuous variation. ${SHARE}`,
+        html: `<b>Exam Relevance:</b> NEET often asks about the contrast between polygenic inheritance, multiple allelism, and pleiotropy, and about the “number of phenotypic classes” calculation. CUET tests the one-line definitions and the skin-colour example. CBSE Boards may set a 2–3 mark question distinguishing polygenic inheritance from pleiotropy or explaining continuous variation. ${SHARE}`,
       },
       {
         t: 'p',
@@ -62,7 +62,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'It is worth separating polygenic inheritance from <b>incomplete dominance</b>, which it superficially resembles (both give an “intermediate” F<sub>1</sub>). In incomplete dominance, the intermediate arises from a single gene whose heterozygote is blended; in polygenic inheritance, the intermediate arises from the additive dosage of many genes.',
+        html: 'It is worth separating polygenic inheritance from <b>incomplete dominance</b>, which it superficially resembles (both give an “intermediate” F<sub>1</sub>). In incomplete dominance, the intermediate arises from a single gene whose heterozygote is intermediate; in polygenic inheritance, the intermediate arises from the additive dosage of many genes.',
       },
       {
         t: 'p',
@@ -82,14 +82,14 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting Conditions & Assumptions.</b> (1) Polygenic models assume each contributing gene has a roughly equal and additive effect and that the genes assort independently; real traits often have unequal contributions and gene interactions. (2) The environment strongly modifies the phenotype (nutrition affects height; sun exposure affects skin tone), so genotype alone does not fix the outcome: this is why continuous traits seldom give clean Mendelian ratios. (3) The “three genes for skin colour” figure is a teaching model; the true number of genes is larger. (As an aside, gene interactions such as epistasis are further deviations, but they lie beyond this chapter’s core scope.)',
+        html: '<b>Limiting Conditions & Assumptions.</b> (1) Polygenic models assume each contributing gene has a roughly equal and additive effect and that the genes assort independently; real traits often have unequal contributions and gene interactions. (2) The environment strongly modifies the phenotype (nutrition affects height; sun exposure affects skin tone), so genotype alone does not fix the outcome: this is why continuous traits seldom give clean Mendelian ratios. (3) The “three genes for skin colour” figure is a teaching model; the true number of genes is larger. (As an aside, gene interactions such as epistasis are further deviations; they go beyond the NCERT core and are worked in Additional topic A.)',
       },
 
       { t: 'part', title: 'Key definitions and genetic terminology' },
       {
         t: 'def',
         term: 'Polygenic inheritance',
-        html: 'a mode of inheritance in which a single trait is controlled by two or more genes (usually several), each contributing a small additive effect.',
+        html: 'a mode of inheritance in which a single trait is controlled by several genes (NCERT: generally three or more; the two-gene model used below is a simpler teaching case), each contributing a small additive effect.',
       },
       {
         t: 'def',
@@ -142,7 +142,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Spelled out for the three-gene cross, the F<sub>2</sub> frequencies of offspring carrying 0, 1, 2, 3, 4, 5 and 6 dominant alleles follow the binomial coefficients of (<i>a</i> + <i>b</i>)<sup>6</sup>:<br><br>1 ∶ 6 ∶ 15 ∶ 20 ∶ 15 ∶ 6 ∶ 1 (out of 64).<br><br>',
+        html: 'Spelled out for the three-gene cross, the F<sub>2</sub> frequencies of offspring carrying 0, 1, 2, 3, 4, 5 and 6 dominant alleles follow the binomial coefficients of (<i>a</i> + <i>b</i>)<sup>6</sup>:<br><br>1 ∶ 6 ∶ 15 ∶ 20 ∶ 15 ∶ 6 ∶ 1 (out of 64).',
       },
       {
         t: 'p',
@@ -204,7 +204,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET / NEET Speed Trap',
         q: '<b>Frequency of an extreme.</b> In the same three-gene skin-colour cross <i>AaBbCc</i> × <i>AaBbCc</i>, what fraction of the children are expected to be the darkest possible shade (<i>AABBCC</i>)?',
         steps: [
-          `<b>Speed logic:</b> each gene must independently be homozygous dominant. P(<i>AA</i>) = ${QUARTER} for each gene, so across three genes:<br><br>(${QUARTER})<sup>3</sup> = ${fr(1, 64)}.<br><br>`,
+          `<b>Speed logic:</b> each gene must independently be homozygous dominant. P(<i>AA</i>) = ${QUARTER} for each gene, so across three genes:<br><br>(${QUARTER})<sup>3</sup> = ${fr(1, 64)}.`,
           `<b>Trap:</b> students often answer ${fr(1, 8)} (using ${HALF} per gene), but the darkest shade needs two dominant alleles per gene (<i>AA</i>), which is ${QUARTER} each, not ${HALF}.`,
         ],
         ans: '',
@@ -214,7 +214,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET',
         q: '<b>Probability of an intermediate shade.</b> For the cross <i>AaBbCc</i> × <i>AaBbCc</i>, what is the probability that a child carries exactly <b>three</b> dominant alleles (a mid-range shade)?',
         steps: [
-          `<b>Logic:</b> there are 2<i>n</i> = 6 allele slots, each dominant with probability ${HALF}. The number of dominant alleles follows a binomial distribution:<br><br><i>P</i>(3) = ${fr(bin('6', '3'), '2<sup>6</sup>')} = ${fr(20, 64)} = ${fr(5, 16)}.<br><br>`,
+          `<b>Logic:</b> there are 2<i>n</i> = 6 allele slots, each dominant with probability ${HALF}. The number of dominant alleles follows a binomial distribution:<br><br><i>P</i>(3) = ${fr(bin('6', '3'), '2<sup>6</sup>')} = ${fr(20, 64)} = ${fr(5, 16)}.`,
           'This is the single most common class, which is exactly why intermediate shades are the most frequent and the distribution is bell-shaped.',
         ],
         ans: '',
@@ -224,7 +224,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: '<b>Two-gene polygenic ratio + pleiotropy contrast.</b> (a) For a two-gene polygenic trait (a two-gene model), a cross <i>AaBb</i> × <i>AaBb</i> is made. State the ratio of the phenotypic classes (by number of dominant alleles). (b) Explain in one line why this is not pleiotropy.',
         steps: [
-          `(a) With <i>n</i> = 2, there are 2<i>n</i> + 1 = 5 classes, in the binomial ratio of ${bin('4', '<i>k</i>')} for <i>k</i> = 0, 1, 2, 3, 4:<br><br>1 ∶ 4 ∶ 6 ∶ 4 ∶ 1 (out of 16).<br><br>So 1 darkest ∶ 4 ∶ 6 (most common, intermediate) ∶ 4 ∶ 1 lightest.`,
+          `(a) With <i>n</i> = 2, there are 2<i>n</i> + 1 = 5 classes, in the binomial ratio of ${bin('4', '<i>k</i>')} for <i>k</i> = 0, 1, 2, 3, 4:<br><br>1 ∶ 4 ∶ 6 ∶ 4 ∶ 1 (out of 16).<br><br>So 1 lightest ∶ 4 ∶ 6 (most common, intermediate) ∶ 4 ∶ 1 darkest.`,
           '(b) This is polygenic inheritance because two genes act together on one trait. Pleiotropy would be the opposite: one gene affecting several traits, which is not what is happening here.',
         ],
         ans: '',
@@ -236,7 +236,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[CBSE] Define polygenic inheritance and give one example in humans.',
-            a: 'A trait controlled by two or more (usually several) additive genes; e.g. human skin colour (or height)',
+            a: 'A trait controlled by three or more additive genes (NCERT’s wording; problems also use a two-gene model); e.g. human skin colour (or height)',
           },
           {
             q: '[CUET] What term describes a single gene that produces multiple phenotypic effects?',
@@ -363,7 +363,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: `<b>Exam Relevance:</b> NEET regularly sets 1–2 questions: classifying a mutation (point vs frameshift), the reading-frame / codon-alteration numerical, and the structural chromosomal aberrations. CUET tests definitions and mutagen types. CBSE Boards may ask a 1–2 mark question defining mutation or naming the types of chromosomal aberrations. It also underpins the sickle-cell mechanism and the chromosomal disorders studied separately. ${SHARE}`,
+        html: `<b>Exam Relevance:</b> NEET regularly asks about classifying a mutation (point vs frameshift), the reading-frame / codon-alteration numerical, and the structural chromosomal aberrations. CUET tests definitions and mutagen types. CBSE Boards may ask a 1–2 mark question defining mutation or naming the types of chromosomal aberrations. It also underpins the sickle-cell mechanism and the chromosomal disorders studied separately. ${SHARE}`,
       },
       {
         t: 'p',
@@ -408,8 +408,8 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'def',
-        term: 'Gene (point) mutation',
-        html: 'a change in the DNA sequence of a single gene.<br>– <b>Substitution / point mutation:</b> one base pair is replaced by another (a transition if a purine is replaced by a purine or a pyrimidine by a pyrimidine; a transversion if a purine is swapped for a pyrimidine or vice versa).<br>– <b>Frameshift mutation:</b> insertion or deletion of base pairs that shifts the reading frame.',
+        term: 'Gene mutation',
+        html: 'a change in the DNA sequence of a single gene.<br>– <b>Point (substitution) mutation:</b> one base pair is replaced by another (a transition if a purine is replaced by a purine or a pyrimidine by a pyrimidine; a transversion if a purine is swapped for a pyrimidine or vice versa).<br>– <b>Frameshift mutation:</b> insertion or deletion of base pairs that shifts the reading frame.',
       },
       {
         t: 'def',
@@ -696,7 +696,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `This section takes six patterns further than the main topics: epistasis and the derived dihybrid ratios (9 ∶ 3 ∶ 4, 9 ∶ 7, 12 ∶ 3 ∶ 1, 15 ∶ 1; these are beyond the NCERT text, and 13 ∶ 3 is only named) that NEET tests regularly ${LABEL}; worked pedigree examples with genotypes assigned, distinguishing autosomal from X-linked inheritance (Topic 03 introduces pedigree analysis); extended blood-group problems including the Bombay phenotype and Rh factor; cytoplasmic (mitochondrial) inheritance; the Hardy-Weinberg equation for allele-frequency problems; and three-point test-cross gene ordering with counts (Topic 02 gives the distance method). Each of the first six gives the method, worked examples using NCERT-compatible organisms, and practice questions with full answers. The last, Additional topic G, summarises what NEET asks from this chapter.`,
+        html: `This section takes six patterns further than the main topics: epistasis and the derived dihybrid ratios (9 ∶ 3 ∶ 4, 9 ∶ 7, 12 ∶ 3 ∶ 1 and 15 ∶ 1, worked below; these are beyond the NCERT text, and a fifth, 13 ∶ 3, is explained briefly in Additional topic G) that NEET tests regularly ${LABEL}; worked pedigree examples with genotypes assigned, distinguishing autosomal from X-linked inheritance (Topic 03 introduces pedigree analysis); extended blood-group problems including the Bombay phenotype and Rh factor; cytoplasmic (mitochondrial) inheritance; the Hardy-Weinberg equation for allele-frequency problems; and three-point test-cross gene ordering with counts (Topic 02 gives the distance method). Each of the first six gives the method, worked examples using NCERT-compatible organisms, and practice questions with full answers. The last, Additional topic G, summarises what NEET asks from this chapter.`,
       },
       {
         t: 'p',
@@ -724,13 +724,13 @@ export const TOPICS: Topic[] = [
             '9 ∶ 7',
             'Complementary genes',
             'Both genes must contribute at least one dominant allele for the trait to appear; otherwise the phenotype is the same',
-            'Two independent pathways must both be “on”',
+            'Two steps of one pathway must both work',
           ],
           [
             '12 ∶ 3 ∶ 1',
             'Dominant epistasis',
             'A dominant allele at the epistatic gene (A_) masks the second gene regardless of its genotype',
-            'One phenotype combines two of the four genotypic classes (9 + 3 = 12)',
+            'One phenotype combines two of the four phenotypic classes of 9 ∶ 3 ∶ 3 ∶ 1 (9 + 3 = 12)',
           ],
           [
             '15 ∶ 1',
@@ -755,7 +755,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET',
-        q: '<b>Recessive Epistasis in a Model Plant.</b> In a model plant (a squash-like pattern, not the real colour genetics of squash), gene <i>C</i> allows pigment to form (<i>C</i> = pigment, <i>c</i> = no pigment) and gene <i>Z</i> decides the colour of the pigment (<i>Z</i> = yellow, <i>z</i> = green). When <i>C</i> is homozygous recessive (<i>cc</i>), no pigment forms and the squash is white regardless of <i>Z</i>. Cross <i>CcZz</i> × <i>CcZz</i> and predict the phenotypic ratio.',
+        q: '<b>Recessive Epistasis in a Model Plant.</b> In a model plant (a squash-like pattern, not the real colour genetics of squash), gene <i>C</i> allows pigment to form (<i>C</i> = pigment, <i>c</i> = no pigment) and gene <i>Z</i> decides the colour of the pigment (<i>Z</i> = yellow, <i>z</i> = green). When <i>C</i> is homozygous recessive (<i>cc</i>), no pigment forms and the plant is white regardless of <i>Z</i>. Cross <i>CcZz</i> × <i>CcZz</i> and predict the phenotypic ratio.',
         steps: [
           '<b>Step 1:</b> write the F<sub>2</sub> classes from the 16 dihybrid combinations:',
           'The 9 ∶ 3 ∶ 3 ∶ 1 breakdown gives <i>C</i>_<i>Z</i>_ = 9 (yellow), <i>C</i>_<i>zz</i> = 3 (green), <i>ccZ</i>_ = 3 (white), <i>cczz</i> = 1 (white).',
@@ -767,7 +767,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET',
-        q: '<b>Complementary Genes: Sweet Pea Flower Colour.</b> In sweet pea (<i>Lathyrus odoratus</i>), flower colour requires at least one dominant allele at gene <i>C</i> and at gene <i>P</i> simultaneously: two independent biosynthetic steps. A cross <i>CcPp</i> × <i>CcPp</i> yields what phenotypic ratio?',
+        q: '<b>Complementary Genes: Sweet Pea Flower Colour.</b> In sweet pea (<i>Lathyrus odoratus</i>), flower colour requires at least one dominant allele at gene <i>C</i> and at gene <i>P</i> simultaneously: two steps of one biosynthetic pathway. A cross <i>CcPp</i> × <i>CcPp</i> yields what phenotypic ratio?',
         steps: [
           '<b>Step 1:</b> the standard 9 ∶ 3 ∶ 3 ∶ 1 breakdown: <i>C</i>_<i>P</i>_ = 9 (coloured), <i>C</i>_<i>pp</i> = 3 (white), <i>ccP</i>_ = 3 (white), <i>ccpp</i> = 1 (white).',
           '<b>Step 2:</b> any genotype lacking a dominant allele at either gene (<i>cc</i> or <i>pp</i>) is white. The three white classes total 3 + 3 + 1 = 7.',
@@ -787,8 +787,8 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET High-Difficulty',
-        q: '<b>Duplicate Genes: Shepherd’s Purse.</b> In <i>Capsella</i> (shepherd’s purse), capsule shape is governed by two genes that each produce the same effect: a dominant allele at either gene gives a triangular capsule. Only <i>aabb</i> gives a round capsule. Cross <i>AaBb</i> × <i>AaBb</i>.',
-        steps: ['All genotypes except <i>aabb</i> (1) give triangular. So triangular ∶ round ='],
+        q: '<b>Duplicate Genes: Shepherd’s Purse.</b> In <i>Capsella</i> (shepherd’s purse), capsule shape is governed by two genes that each produce the same effect: a dominant allele at either gene gives a triangular capsule. Only <i>aabb</i> gives an ovoid (top-shaped) capsule. Cross <i>AaBb</i> × <i>AaBb</i>.',
+        steps: ['All genotypes except <i>aabb</i> (1) give triangular. So triangular ∶ ovoid ='],
         ans: '15 ∶ 1.',
       },
 

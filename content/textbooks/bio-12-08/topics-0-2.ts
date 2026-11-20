@@ -99,7 +99,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Start with warm milk.</b> Milk is warmed (not scalded) to a temperature comfortable for bacterial growth. <b>Why:</b> most curd bacteria multiply fastest in gentle warmth, so warmth speeds setting.',
           '<b>Add a starter (inoculum).</b> A small amount of previously made curd is stirred in. <b>Why:</b> that spoonful carries live <i>Lactobacillus</i>; we are seeding the milk with the exact organism we want to dominate, before any random spoilage microbe gets a foothold.',
-          '<b>The bacteria multiply and ferment lactose.</b> <i>Lactobacillus</i> consumes the milk sugar (lactose) and excretes lactic acid.<br>Lactose →<sup><i>Lactobacillus</i></sup> Lactic acid',
+          '<b>The bacteria multiply and ferment lactose.</b> <i>Lactobacillus</i> consumes the milk sugar (lactose) and excretes lactic acid.<br>Lactose → Lactic acid (by <i>Lactobacillus</i>)',
           '<b>Acid coagulates the milk protein.</b> As lactic acid accumulates, the pH falls. The milk protein casein loses its solubility at this lower pH and coagulates (clots), turning fluid milk into a soft semi-solid: curd. <b>Why:</b> protein structure depends on its chemical environment; acidify it and it aggregates.',
           '<b>Bonus effects.</b> The acidic environment checks the growth of disease-causing microbes (a natural preservation effect), and the LAB raise the vitamin B<sub>12</sub> content, making curd more nutritious than the milk it came from.',
         ],
@@ -216,7 +216,7 @@ export const TOPICS: Topic[] = [
         q: 'Swiss cheese and Roquefort cheese differ in their characteristic features because:',
         opts: [
           { label: 'both are ripened by the same bacterium', nudge: '<b>(a)</b> false: different organisms, and from different kingdoms.' },
-          { label: 'Swiss cheese is made by a fungus and Roquefort by a bacterium', nudge: '<b>(b)</b> is the exact reversal, the classic distractor. It swaps the kingdoms.' },
+          { label: 'Swiss cheese is made by a fungus and Roquefort by a bacterium', nudge: '<b>(b)</b> is the exact reversal, the reversed distractor. It swaps the kingdoms.' },
           { label: 'Swiss cheese holes come from CO<sub>2</sub> by a bacterium, while Roquefort flavour comes from a fungus', nudge: null },
           { label: 'neither involves any microorganism', nudge: '<b>(d)</b> false: cheese is a flagship example of microbes in food.' },
         ],
@@ -267,7 +267,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'snapshot',
         rows: [
-          { f: 'Curd', note: '<i>Lactobacillus</i> (LAB) → lactose to lactic acid → coagulates casein → sets curd. Bonus: ↑ vitamin B<sub>12</sub>, checks harmful microbes.<br>Lactose →<sup><i>Lactobacillus</i></sup> Lactic acid ⇒ casein coagulates' },
+          { f: 'Curd', note: '<i>Lactobacillus</i> (LAB) → lactose to lactic acid → coagulates casein → sets curd. Bonus: ↑ vitamin B<sub>12</sub>, checks harmful microbes.<br>Lactose → Lactic acid (by <i>Lactobacillus</i>) ⇒ casein coagulates' },
           { f: 'Bread dough', note: '<i>Saccharomyces cerevisiae</i> (baker’s yeast) → CO<sub>2</sub> → dough rises (leavening). Idli/dosa batter is fermented by bacteria (CO<sub>2</sub>).' },
           { f: 'Toddy', note: 'fermented sap of palms (traditional southern Indian drink).' },
           { f: 'Swiss cheese', note: 'big holes = large CO<sub>2</sub> from <i>Propionibacterium sharmanii</i> (bacterium).' },
@@ -310,7 +310,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting Conditions & Assumptions.</b><br>• <b>Antibiotics work on microbes, not viruses.</b> They target bacterial/fungal structures and processes. Taking an antibiotic for a viral cold does nothing useful and breeds resistance: a favourite conceptual trap.<br>• <b>Distillation is the dividing line for beverages.</b> Wine and beer are produced without distillation (lower alcohol); whisky, brandy, and rum are produced with distillation of the fermented broth (higher alcohol). Mixing these up is a classic error.<br>• <b>Specificity of strain matters.</b> It is not “any fungus makes citric acid”; it is specifically <i>Aspergillus niger</i>. The exact organism is the examinable fact.<br>• <b>Scale changes the engineering, not the biology.</b> The microbe behaves the same; what industry adds is sterile control, aeration, and large vessels. The chemistry students must know is the small-scale principle.',
+        html: '<b>Limiting Conditions & Assumptions.</b><br>• <b>Antibiotics act on bacteria (and some on fungi), not on viruses.</b> They target bacterial/fungal structures and processes. Taking an antibiotic for a viral cold does nothing useful and breeds resistance: a common conceptual trap.<br>• <b>Distillation is the dividing line for beverages.</b> Wine and beer are produced without distillation (lower alcohol); whisky, brandy, and rum are produced with distillation of the fermented broth (higher alcohol). Mixing these up costs marks.<br>• <b>Specificity of strain matters.</b> It is not “any fungus makes citric acid”; it is specifically <i>Aspergillus niger</i>. The exact organism is the examinable fact.<br>• <b>Scale changes the engineering, not the biology.</b> The microbe behaves the same; what industry adds is sterile control, aeration, and large vessels. The chemistry students must know is the small-scale principle.',
       },
 
       { t: 'part', title: 'Classification framework and diagnostic features' },
@@ -531,7 +531,7 @@ export const TOPICS: Topic[] = [
           '<b>Pitfall 1: Swapping the two fungi.</b> <i>Aspergillus niger</i> = citric acid; <i>Monascus purpureus</i> = statins. Do not interchange.',
           '<b>Pitfall 2: Distillation confusion.</b> Wine and beer = without distillation; whisky/brandy/rum = with. A mark if memorised, a mark lost if guessed.',
           '<b>Pitfall 3: “Antibiotics kill viruses.”</b> They do not. Antibiotics act on microbes (chiefly bacteria/fungi); viral illnesses need other measures.',
-          '<b>Pitfall 4: Forgetting the enzyme jobs.</b> Lipase → detergents; pectinase/protease → juice clarification; streptokinase → clot buster. These three enzyme uses are often tested.',
+          '<b>Pitfall 4: Forgetting the enzyme jobs.</b> Lipase → detergents; pectinase/protease → juice clarification; streptokinase → clot buster. These three enzyme uses are worth learning.',
         ],
       },
       {

@@ -278,7 +278,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Formally, <b>algae are chlorophyll-bearing, simple, thalloid, autotrophic, and largely aquatic organisms.</b> Let us unpack that, because each word is doing real work:<br>• Chlorophyll-bearing & autotrophic: every alga contains chlorophyll <i>a</i> and makes its own food by photosynthesis. They are producers, the bottom rung of nearly every aquatic food chain.<br>• Thalloid: the body is a <b>thallus</b>; there is no true root, stem, or leaf, and no vascular tissue. A <i>Spirogyra</i> filament floating in a village pond is just a chain of similar cells; it has not “decided” to become roots or shoots yet.<br>• Largely aquatic: fresh water, brackish water, the sea, but also moist stones, soils, and wood. Some live in surprising partnerships: with fungi as <b>lichens</b>, and even in the fur of the <b>sloth bear</b>.',
+        html: 'Formally, <b>algae are chlorophyll-bearing, simple, thalloid, autotrophic, and largely aquatic organisms.</b> Let us unpack that, because each word is doing real work:<br>• Chlorophyll-bearing & autotrophic: every alga contains chlorophyll <i>a</i> and makes its own food by photosynthesis. They are producers, the bottom rung of nearly every aquatic food chain.<br>• Thalloid: the body is a <b>thallus</b>; there is no true root, stem, or leaf, and no vascular tissue. A <i>Spirogyra</i> filament floating in a village pond is just a chain of similar cells; it has not “decided” to become roots or shoots yet.<br>• Largely aquatic: fresh water, brackish water, the sea, but also moist stones, soils, and wood. Some live in surprising partnerships: with fungi as <b>lichens</b>, and even in the fur of the <b>sloth bear</b> (NCERT’s example; the alga best known for this grows in the fur of the tree sloth).',
       },
       {
         t: 'p',
@@ -390,7 +390,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Pattern B: Diplontic.</b> The mirror image. The dominant, free-living phase is the <b>diploid sporophyte (2<i>n</i>)</b>; the haploid phase is reduced to the gametes alone or to a few cells. Among algae, <b><i>Fucus</i> (a brown alga)</b> follows this pattern (meiosis forms the gametes), and so do seed plants (where meiosis forms spores, which grow into the few-celled gametophytes), which is why this pattern is worth knowing well.',
+        html: '<b>Pattern B: Diplontic.</b> The mirror image. The dominant, free-living phase is the <b>diploid sporophyte (2<i>n</i>)</b>; the haploid phase is reduced to the gametes alone or to a few cells. Among algae, <b><i>Fucus</i> (a brown alga)</b> follows this pattern (meiosis forms the gametes), and so do seed plants (where meiosis forms spores, which grow into much-reduced gametophytes), which is why this pattern is worth knowing well.',
       },
       {
         t: 'p',
@@ -399,12 +399,12 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-03-fig-3.2' },
       {
         t: 'p',
-        html: '• <b>Haplontic:</b> <i>Volvox</i>, <i>Spirogyra</i>, <i>Chlamydomonas</i> (many algae).<br>• <b>Diplontic:</b> <i>Fucus</i>; seed plants (gymnosperms + angiosperms).<br>• <b>Haplo-diplontic:</b> <i>Ectocarpus</i>, <i>Polysiphonia</i>, kelps; bryophytes; pteridophytes.',
+        html: '• <b>Haplontic:</b> <i>Volvox</i>, <i>Spirogyra</i>, some <i>Chlamydomonas</i> (many green algae).<br>• <b>Diplontic:</b> <i>Fucus</i>; seed plants (gymnosperms + angiosperms).<br>• <b>Haplo-diplontic:</b> <i>Ectocarpus</i>, <i>Polysiphonia</i>, kelps; bryophytes; pteridophytes.',
       },
       { t: 'p', html: '<b>3.3 Economic importance (high-yield CBSE/CUET facts)</b>' },
       {
         t: 'p',
-        html: '• <b>Food:</b> <i>Chlorella</i> (a unicellular green alga) and <i>Spirulina</i> (a filamentous cyanobacterium, listed with the algae in NCERT) are protein-rich food supplements; <i>Porphyra</i>, <i>Laminaria</i>, and <i>Sargassum</i> are eaten in several countries.<br>• <b>Hydrocolloids: algin</b> (from brown algae) and <b>carrageen</b> (from red algae) are commercially important water-holding substances.<br>• <b>Agar:</b> obtained from <i>Gracilaria</i> and <i>Gelidium</i> (red algae); used to <b>culture microbes</b> and to make <b>ice creams and jellies</b>.<br>• <b>Reef building:</b> some calcareous red algae deposit calcium carbonate and contribute to <b>coral reefs and limestone</b>.',
+        html: '• <b>Food:</b> <i>Chlorella</i> (a unicellular green alga; NCERT’s example) and <i>Spirulina</i> (a filamentous cyanobacterium, not named in NCERT) are protein-rich food supplements; <i>Porphyra</i>, <i>Laminaria</i>, and <i>Sargassum</i> are eaten in several countries.<br>• <b>Hydrocolloids: algin</b> (from brown algae) and <b>carrageen</b> (from red algae) are commercially important water-holding substances.<br>• <b>Agar:</b> obtained from <i>Gracilaria</i> and <i>Gelidium</i> (red algae); used to <b>culture microbes</b> and to make <b>ice creams and jellies</b>.<br>• <b>Reef building:</b> some calcareous red algae deposit calcium carbonate and contribute to <b>coral reefs and limestone</b>.',
       },
 
       { t: 'part', title: 'Worked questions' },
@@ -574,7 +574,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Swapping stored foods.</b> The single most common slip: assigning laminarin/mannitol to red algae or floridean starch to brown. Lock it as a chant: <b>green = starch, brown = mannitol/laminarin, red = floridean starch.</b>',
+          '<b>Swapping stored foods.</b> A common slip: assigning laminarin/mannitol to red algae or floridean starch to brown. Lock it as a chant: <b>green = starch, brown = mannitol/laminarin, red = floridean starch.</b>',
           '<b>Treating colour and habitat as hard rules.</b> “Brownish, so Phaeophyceae” and “freshwater, so green” both fail on exceptions. Decide on <b>pigment name + stored food</b> first; use colour/habitat only as a tie-breaker.',
           '<b>Reversing the dominant phase in life cycles.</b> Haplontic = gametophyte dominant; diplontic = sporophyte dominant. Students flip these under time pressure. Mnemonic: <b>“Hap-loid → Haplontic dominant.”</b>',
           '<b>Missing the negative word.</b> In “which is NOT” / “incorrectly matched” items, the facts in the options are often individually correct, which is the trap. Circle “NOT” before reading options.',
@@ -691,7 +691,7 @@ export const TOPICS: Topic[] = [
           [
             'Gametophyte',
             'Dominant, free-living, photosynthetic',
-            '<b>Prothallus</b>: small, short-lived, free-living',
+            '<b>Prothallus</b>: small, short-lived, free-living (in homosporous ferns)',
           ],
           [
             'Sex organs',
@@ -734,7 +734,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Key pteridophyte terms:</b>' },
       {
         t: 'p',
-        html: '• <b>Sporophyll</b>: a leaf that bears <b>sporangia</b> (the spore-producing organs).<br>• <b>Microphyll / macrophyll</b>: small leaves (as in <i>Selaginella</i>) vs large leaves (as in ferns).<br>• <b>Prothallus</b>: the small, free-living, photosynthetic <b>gametophyte</b> that a spore germinates into.<br>• <b>Homosporous</b> vs <b>heterosporous</b>: producing one kind of spore vs two kinds (micro + mega). <i>Selaginella</i> and <i>Salvinia</i> are classic <b>heterosporous</b> examples.',
+        html: '• <b>Sporophyll</b>: a leaf that bears <b>sporangia</b> (the spore-producing organs).<br>• <b>Microphyll / macrophyll</b>: small leaves (as in <i>Selaginella</i>) vs large leaves (as in ferns).<br>• <b>Prothallus</b>: the small, free-living, photosynthetic <b>gametophyte</b> of a homosporous fern, into which a spore germinates.<br>• <b>Homosporous</b> vs <b>heterosporous</b>: producing one kind of spore vs two kinds (micro + mega). <i>Selaginella</i> and <i>Salvinia</i> are classic <b>heterosporous</b> examples.',
       },
       { t: 'fig', id: 'b11-03-fig-3.3' },
 
@@ -943,7 +943,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Reversing the dominant generation.</b> The single biggest error: saying the moss body is a sporophyte or the fern body is a gametophyte. Chant it: <b>“Bryo = gametophyte; Pterido = sporophyte.”</b>',
+          '<b>Reversing the dominant generation.</b> A common error: saying the moss body is a sporophyte or the fern body is a gametophyte. Chant it: <b>“Bryo = gametophyte; Pterido = sporophyte.”</b>',
           '<b>Crossing protonema with prothallus.</b> Protonema is the <b>moss</b> (bryophyte) filamentous stage; prothallus is the <b>fern</b> (pteridophyte) gametophyte. Same “pro-” prefix, opposite groups.',
           '<b>“Spore makes the big plant.”</b> A spore germinates into the <b>gametophyte</b> (prothallus/protonema), never directly into the dominant sporophyte.',
           '<b>Using “needs water for fertilization” to tell them apart.</b> Both groups need water for the swimming antherozoid: it’s a shared trait, not a discriminator. Decide on <b>vascular tissue / dominant generation</b> instead.',

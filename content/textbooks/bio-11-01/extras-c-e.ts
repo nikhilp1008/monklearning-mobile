@@ -28,7 +28,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'Topic 01 introduces identification as the first step of taxonomy: determining that a given organism corresponds to an already-known, correctly described organism. The chapter gives no method for doing this. The dichotomous key is the standard tool, and NEET occasionally asks about taxonomic keys and the term “couplet” (NCERT lists the key as a taxonomic aid).',
+        html: 'Topic 01 introduces identification as the first step of taxonomy: determining that a given organism corresponds to an already-known, correctly described organism. The chapter gives no method for doing this. The dichotomous key is the standard tool, and NEET occasionally asks about taxonomic keys and the term “couplet” (older NCERT editions listed the key among taxonomical aids).',
       },
 
       { t: 'part', title: 'Dichotomous Keys: Concept and Construction' },
@@ -45,7 +45,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET level',
-        q: '<b>Using a Provided Key.</b> A plant herbarium sheet lists four species with these characters:<br><br>| <i>Azadirachta indica</i> (neem) | <i>Ocimum sanctum</i> (tulsi) | <i>Mangifera indica</i> (mango) | <i>Coriandrum sativum</i> (coriander)<br>Leaf arrangement | Alternate | Opposite | Alternate | Alternate<br>Leaf type | Pinnately compound | Simple | Simple | Pinnately compound<br>Fruit type | Drupe | Nutlets | Drupe | Schizocarp<br>Inflorescence | Panicle | Raceme | Panicle | Umbel<br><br>Use the following dichotomous key (it separates all four species) to identify species P and Q:<br><br><b>Couplet 1:</b> (a) Leaves opposite … <i>Ocimum sanctum</i><br>(b) Leaves alternate … go to 2<br><b>Couplet 2:</b> (a) Fruit a drupe … go to 3<br>(b) Fruit a schizocarp … <i>Coriandrum sativum</i><br><b>Couplet 3:</b> (a) Leaves simple … <i>Mangifera indica</i><br>(b) Leaves pinnately compound … <i>Azadirachta indica</i><br><br><b>Identify P and Q</b> given:<br>P: Leaves alternate, simple, fruit a drupe, inflorescence a panicle.<br>Q: Leaves alternate, pinnately compound, fruit a drupe.',
+        q: '<b>Using a Provided Key.</b> A plant herbarium sheet lists four species with these characters:<br><br>| <i>Azadirachta indica</i> (neem) | <i>Ocimum sanctum</i> (tulsi) | <i>Mangifera indica</i> (mango) | <i>Coriandrum sativum</i> (coriander)<br>Leaf arrangement | Alternate | Opposite | Alternate | Alternate<br>Leaf type | Pinnately compound | Simple | Simple | Pinnately compound<br>Fruit type | Drupe | Nutlets | Drupe | Schizocarp<br>Inflorescence | Panicle | Verticillaster | Panicle | Umbel<br><br>Use the following dichotomous key (it separates all four species) to identify species P and Q:<br><br><b>Couplet 1:</b> (a) Leaves opposite … <i>Ocimum sanctum</i><br>(b) Leaves alternate … go to 2<br><b>Couplet 2:</b> (a) Fruit a drupe … go to 3<br>(b) Fruit a schizocarp … <i>Coriandrum sativum</i><br><b>Couplet 3:</b> (a) Leaves simple … <i>Mangifera indica</i><br>(b) Leaves pinnately compound … <i>Azadirachta indica</i><br><br><b>Identify P and Q</b> given:<br>P: Leaves alternate, simple, fruit a drupe, inflorescence a panicle.<br>Q: Leaves alternate, pinnately compound, fruit a drupe.',
         steps: [
           '<b>Step-by-step for P.</b><br>• Couplet 1: leaves alternate → go to 2.<br>• Couplet 2: fruit a drupe → go to 3.<br>• Couplet 3: leaves simple → <i>Mangifera indica</i> (mango).',
           '<b>Step-by-step for Q.</b><br>• Couplet 1: leaves alternate → go to 2.<br>• Couplet 2: fruit a drupe → go to 3.<br>• Couplet 3: leaves pinnately compound → <i>Azadirachta indica</i> (neem).',
@@ -109,7 +109,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'Topic 01 mentions classification systems but names only three (artificial, natural, phylogenetic) without giving the five-kingdom table. Topic 02 begins the hierarchy at species, giving the seven categories but never showing how the major kingdoms (Monera, Protista, Fungi, Plantae, Animalia) sit within it. NEET asks for the five-kingdom criteria and kingdom assignments for individual organisms (bacteria, fungi, algae, moss, fern, gymnosperm, angiosperm) frequently (the book’s estimate from past papers, not official figures). This additional topic fills the table.',
+        html: 'Topic 01 mentions classification systems but names only three (artificial, natural, phylogenetic) without giving the five-kingdom table. Topic 02 begins the hierarchy at species, giving the seven categories but never showing how the major kingdoms (Monera, Protista, Fungi, Plantae, Animalia) sit within it. NEET often asks for the five-kingdom criteria and kingdom assignments for individual organisms (bacteria, fungi, algae, moss, fern, gymnosperm, angiosperm). This additional topic fills the table.',
       },
 
       { t: 'part', title: 'Whittaker’s Five-Kingdom System' },
@@ -153,11 +153,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The six-kingdom update: Carl Woese.</b> From 1977 Carl Woese (with George Fox) analysed 16S rRNA, which splits Monera into two kingdoms, giving the six kingdoms commonly credited to Woese in NEET material (in 1990 Woese went further and proposed three domains: Archaea, Bacteria, Eukarya).<br>• <b>Archaebacteria</b> (Archaea): Ancient bacteria; different membrane lipids (ether linkages, branched-chain), peptidoglycan absent; live in extreme environments (methanogens, halophiles, thermophiles).<br>• <b>Eubacteria</b> (Bacteria): “True” bacteria; membrane lipids with ester linkages, peptidoglycan present; include cyanobacteria.',
+        html: '<b>The six-kingdom update: Carl Woese.</b> From 1977 Carl Woese (with George Fox) analysed 16S rRNA, which splits Monera into two kingdoms, giving the six kingdoms commonly credited to Woese in NEET material (in 1990 Woese went further and proposed three domains: Archaea, Bacteria, Eukarya).<br>• <b>Archaebacteria</b> (Archaea): Ancient bacteria; different membrane lipids (ether linkages, branched-chain), peptidoglycan absent; live in harsh habitats such as salty areas (halophiles) and hot springs (thermoacidophiles), and in marshes and the gut of ruminants (methanogens).<br>• <b>Eubacteria</b> (Bacteria): “True” bacteria; membrane lipids with ester linkages, peptidoglycan present; include cyanobacteria.',
       },
       {
         t: 'p',
-        html: 'Both are prokaryotic kingdoms. The five-kingdom system treats both as Monera; the six-kingdom system separates them. NCERT Class 11 teaches Whittaker’s five kingdoms and names Archaebacteria and Eubacteria within Monera; the six-kingdom label and Woese’s name are extra, but they appear in statement items.',
+        html: 'Both are prokaryotic kingdoms. The five-kingdom system treats both as Monera; the six-kingdom system separates them. NCERT Class 11 teaches Whittaker’s five kingdoms and names Archaebacteria and Eubacteria within Monera, and mentions in one sentence that the three-domain system gives a six-kingdom classification; Woese’s name is extra, but it appears in statement items.',
       },
       { t: 'p', html: '<b>Kingdom assignments for examinable organisms.</b>' },
       {
@@ -178,7 +178,7 @@ export const TOPICS: Topic[] = [
           ['<i>Euglena</i>', 'Protista', 'Eukaryotic, photosynthetic + heterotrophic (mixotroph)'],
           ['<i>Penicillium</i>', 'Fungi', 'Eukaryotic, multicellular, chitin cell wall, absorptive heterotrophic'],
           ['<i>Agaricus</i> (mushroom)', 'Fungi', 'Eukaryotic, multicellular, chitin cell wall'],
-          ['<i>Saccharomyces</i> (yeast)', 'Fungi', 'Eukaryotic, unicellular, chitin cell wall'],
+          ['<i>Saccharomyces</i> (yeast)', 'Fungi', 'Eukaryotic, unicellular, cell wall of glucans and mannans with some chitin'],
           [
             '<i>Spirogyra</i>',
             'Plantae',
@@ -254,7 +254,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] State the basis of separating Monera into Archaebacteria and Eubacteria in the six-kingdom system.',
-            a: 'Archaebacteria and Eubacteria are separated based on differences in cell wall composition (Archaebacteria lack peptidoglycan), membrane lipid structure (ether linkages in Archaea vs ester in Bacteria), and 16S rRNA sequence analysis showing they are phylogenetically as distant from each other as either is from eukaryotes.',
+            a: 'Archaebacteria and Eubacteria are separated based on differences in cell wall composition (Archaebacteria lack peptidoglycan), membrane lipid structure (ether linkages in Archaea vs ester in Bacteria), and 16S rRNA sequence analysis showing two deeply separate prokaryotic lineages (archaea are in fact closer to eukaryotes than to bacteria).',
           },
           {
             q: '[NEET high-difficulty] Classify the following organisms to kingdom level: (a) <i>Nostoc</i>, (b) <i>Amoeba</i>, (c) <i>Penicillium</i>, (d) <i>Dryopteris</i> (fern), (e) <i>Homo sapiens</i>.',
@@ -299,7 +299,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The “defining property of life” question: asking which of growth, reproduction, metabolism or consciousness actually defines living organisms, has appeared in several cycles (the book’s estimate from past papers, not official figures). NCERT identifies <b>consciousness</b> (response to stimuli) as the defining property, and also treats metabolism as a defining feature of all living organisms without exception, while growth and reproduction are the traps.',
+        html: 'The “defining property of life” question, asking which of growth, reproduction, metabolism or consciousness actually defines living organisms, is a recurring NEET item. NCERT identifies <b>consciousness</b> (response to stimuli) as the defining property, and also treats metabolism as a defining feature of all living organisms without exception, while growth and reproduction are the traps.',
       },
 
       { t: 'part', title: 'The Recurring Archetypes' },
@@ -310,7 +310,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Only metabolism and consciousness survive both. When the options include consciousness, pick it as “the defining property”: this is the NCERT position (metabolism is the other genuine definer).',
+        html: 'Metabolism, cellular organisation and consciousness survive both. When the options include consciousness, pick it as “the defining property”: this is the NCERT position (metabolism is the other genuine definer).',
       },
       {
         t: 'ex',
@@ -353,9 +353,9 @@ export const TOPICS: Topic[] = [
         q: 'A student writes the scientific name of mango as “mangifera INDICA Linn.” Identify the errors and give the correct form.',
         steps: [
           'Errors:<br>• Genus “mangifera” must begin with a capital letter → <i>Mangifera</i>.<br>• Specific epithet “INDICA” must be lowercase → <i>indica</i>.<br>• Both words must be italicised in print.',
-          'Correct printed form: <i>Mangifera indica</i> Linn.<br>Correct handwritten form: <i>Mangifera indica</i> (two separate underlines).',
+          'Correct printed form: <i>Mangifera indica</i> Linn.<br>Correct handwritten form: Mangifera indica (each word underlined separately).',
         ],
-        ans: 'Correct form is <i>Mangifera indica</i> Linn. (printed) or <i>Mangifera indica</i> (handwritten).',
+        ans: 'Correct form is <i>Mangifera indica</i> Linn. (printed) or Mangifera indica, each word underlined (handwritten).',
       },
 
       { t: 'p', html: '<b>Archetype 4: Match-the-column (taxonomic order / family / class)</b>' },
@@ -450,7 +450,7 @@ export const TOPICS: Topic[] = [
           [
             '<b>Order ends with “-ales”</b>',
             'Students forget the plant-order suffix or confuse it with the plant-family suffix -aceae.',
-            'In plants, order -ales and family -aceae (animal orders have no fixed ending; animal families commonly end -idae). Separate them.',
+            'In plants, order -ales and family -aceae (animal orders have no fixed ending; animal family names end in -idae). Separate them.',
           ],
           [
             '<b>Family-Order swap in hierarchy</b>',
@@ -512,14 +512,14 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 3: Multi-step Reasoning] Two organisms, X and Y, are placed in the same class but different orders. Which of the following must they also share?<br>(i) Kingdom<br>(ii) Phylum<br>(iii) Species<br>(iv) Genus<br>Options:<br>(a) (i) and (ii) only<br>(b) (i), (ii) and (iii) only<br>(c) (i), (ii) and (iv) only<br>(d) (i) only',
-            a: 'Option <b>(a) (i) and (ii) only</b>.<br><b>Reasoning:</b> By the containment (nesting-doll) principle, sharing a lower category guarantees sharing all higher categories. The sequence is: Species → Genus → Family → Order → Class → Phylum → Kingdom.<br>• Same class → must share: Phylum (above class) and Kingdom (above phylum).<br>• They need not share Species (different orders, different lineages).<br>• They need not share Genus (genus is below class in the hierarchy).<br><b>Answer: (a)</b>',
+            a: 'Option <b>(a) (i) and (ii) only</b>.<br><b>Reasoning:</b> By the containment (nesting-doll) principle, sharing a lower category guarantees sharing all higher categories. The sequence is: Species → Genus → Family → Order → Class → Phylum → Kingdom.<br>• Same class → must share: Phylum (above class) and Kingdom (above phylum).<br>• They cannot share Genus or Species: both lie below Order, and X and Y are in different orders.<br><b>Answer: (a)</b>',
           },
           {
             q: '[Level 3: Multi-step Reasoning] Which of the following statements regarding growth in living organisms is incorrect?<br>(a) In plants, growth by cell division occurs continuously throughout their life span.<br>(b) Increase in body mass is considered as growth.<br>(c) Growth by cell division occurs continuously throughout their life span in animals.<br>(d) Increase in mass and number of individuals is a characteristic feature of growth.',
             a: 'Option <b>(c)</b>.<br><b>Reasoning:</b><br>• (a) Correct: NCERT states plant growth is continuous.<br>• (b) Correct: increase in biomass is a measure of growth.<br>• (c) <b>Incorrect</b>: animal growth is limited to a certain age (cells still divide in some tissues for replacement).<br>• (d) Correct: the twin characteristics of growth are increase in mass and increase in number of individuals.',
           },
           {
-            q: '[Level 3: Multi-step Reasoning] The famous botanical garden ‘Kew’ is located in:<br>1. England<br>2. Lucknow<br>3. Berlin<br>4. Australia',
+            q: '[Level 1: Direct Recall] The famous botanical garden ‘Kew’ is located in:<br>1. England<br>2. Lucknow<br>3. Berlin<br>4. Australia',
             a: 'Option <b>(1) England</b>.<br><b>Reasoning:</b> The Royal Botanic Gardens, Kew (commonly called Kew Gardens) is located in Richmond, London, England. It is one of the oldest and most important botanical research institutions in the world. Lucknow houses the National Botanical Garden (India); Berlin has the Botanical Garden and Botanical Museum Berlin-Dahlem; Australia has the Royal Botanic Gardens, Melbourne and Sydney, but not Kew.',
           },
         ],

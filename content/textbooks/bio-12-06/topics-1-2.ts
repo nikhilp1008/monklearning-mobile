@@ -83,7 +83,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Evidences for Evolution:</b> the second half of this topic. NCERT groups them into these classes:',
+        html: '<b>Evidences for Evolution:</b> the second half of this topic. They are usually grouped into these classes:',
       },
       {
         t: 'table',
@@ -394,7 +394,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Darwin’s theory had a famous gap: he had no idea how variation arose or how it was passed on (genetics didn’t exist yet). That gap was addressed in two steps: first by <b>Hugo de Vries</b>, who showed that heritable variation arises by sudden large mutations (<b>saltation</b>), and finally by the <b>Modern Synthetic Theory</b>, which married Darwin’s natural selection to Mendelian genetics. The modern view: variation arises by mutation and recombination; natural selection, gene flow and genetic drift change its frequency; reproductive isolation splits populations into species.',
+        html: 'Darwin’s theory had a famous gap: he had no idea how variation arose or how it was passed on (genetics didn’t exist yet). That gap was addressed in two steps: first by <b>Hugo de Vries</b>, who proposed, from his work on the evening primrose, that new heritable variation arises by sudden large mutations (<b>saltation</b>), and finally by the <b>Modern Synthetic Theory</b>, which married Darwin’s natural selection to Mendelian genetics. The modern view: variation arises by mutation and recombination; natural selection, gene flow and genetic drift change its frequency; reproductive isolation splits populations into species.',
       },
       {
         t: 'p',
@@ -508,7 +508,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Precision note (for the careful student):</b> mutation and recombination mainly supply variation; strictly, recombination reshuffles existing alleles and does not by itself change allele frequencies. NCERT lists all five as factors affecting equilibrium, and that is the exam-expected answer, but selection and drift are the forces that actually change frequencies.',
+        html: '<b>Precision note (for the careful student):</b> mutation and recombination mainly supply variation; strictly, recombination reshuffles existing alleles and does not by itself change allele frequencies. NCERT lists all five as factors affecting equilibrium, and that is the exam-expected answer, but the forces that actually change allele frequencies are selection, drift and gene flow, with mutation acting only very slowly.',
       },
       {
         t: 'p',

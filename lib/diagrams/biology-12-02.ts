@@ -419,7 +419,7 @@ const OOG: { name: string; val: string; ploidy: '2n' | 'n' }[] = [
   { name: 'Secondary oocyte + 1st polar body', val: '<i>n</i> (arrested at metaphase II)', ploidy: 'n' },
   { name: 'Ovum + 2nd polar body', val: '<i>n</i> (only if a sperm enters)', ploidy: 'n' },
 ];
-const OOG_STEPS: string[][] = [['Mitosis (before birth)'], ['Meiosis I (unequal; completed in the', 'Graafian follicle, at puberty onward)'], ['Meiosis II (unequal)']];
+const OOG_STEPS: string[][] = [['Mitosis (before birth)'], ['Meiosis I (unequal; completed in the', 'tertiary follicle, from puberty onward)'], ['Meiosis II (unequal)']];
 const OB = { x0: 120, x1: 352, h: 38, pitch: 90, y0: 30 };
 const obRect = (i: number): Rect => [OB.x0, OB.y0 + i * OB.pitch, OB.x1, OB.y0 + i * OB.pitch + OB.h];
 function draw25(): Sketch {

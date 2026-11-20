@@ -43,7 +43,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The chapter gives the per-turn and per-glucose counts, 3 ATP and 2 NADPH, 18 ATP and 12 NADPH, but does not trace why ATP outnumbers NADPH, and does not train the worded problems that scale them. Every NEET numerical on the Calvin cycle is a multiple or a fraction of these two numbers. This section builds the counting logic from the three phases and trains speed at extracting the relevant pair from a worded problem.',
+        html: 'The chapter gives the per-turn and per-glucose counts (3 ATP and 2 NADPH; 18 ATP and 12 NADPH), the cost of each phase, and one scaled example (50 glucose). A Calvin-cycle numerical is usually a multiple or a fraction of these two numbers. This section builds the counting logic from the three phases and trains speed at extracting the relevant pair from a worded problem.',
       },
 
       { t: 'part', title: 'Method' },
@@ -55,7 +55,7 @@ export const TOPICS: Topic[] = [
           '<b>Per one glucose made (6 turns):</b> Multiply per-turn costs by 6. Total: <b>18 ATP + 12 NADPH</b>.',
           '<b>The ratio:</b> ATP ∶ NADPH = 3 ∶ 2, or numerically 18 ∶ 12. Never swap these. The larger number is always ATP.',
           '<b>For worded problems:</b> Extract how many CO<sub>2</sub> molecules are fixed or how many glucose molecules are made, then scale accordingly. If the question asks for “ATP needed to produce 5 molecules of glucose,” multiply 18 × 5.',
-          '<b>NADPH source:</b> Each NADPH comes from the light reaction (non-cyclic photophosphorylation). Reducing NADP<sup>+</sup> to NADPH takes 2 electrons, and in the Z-scheme each electron is lifted once at PS II and once at PS I. So one NADPH needs 2 photons at PS I (and 2 at PS II, 4 in all), and 12 NADPH need 24 photons at PS I and 48 photons in total. This photon count is rarely asked in NEET numericals, but it follows directly from the Z-scheme.',
+          '<b>NADPH source:</b> Each NADPH comes from the light reaction (non-cyclic photophosphorylation). Reducing NADP<sup>+</sup> to NADPH takes 2 electrons, and in the Z-scheme each electron is lifted once at PS II and once at PS I. So one NADPH needs 2 photons at PS I (and 2 at PS II, 4 in all), and 12 NADPH need 24 photons at PS I and 48 photons in total. This photon count is seldom needed in NEET numericals, but it follows directly from the Z-scheme.',
         ],
       },
 
@@ -75,7 +75,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board',
         q: '<b>Scaling to Glucose.</b> Write the overall balanced equation for glucose synthesis via the Calvin cycle, including ATP and NADPH as reactants and ADP/NADP<sup>+</sup> as products.',
         steps: [
-          'This is the atom-balanced form of the Calvin cycle: the 12 NADPH and 12 H<sup>+</sup> supply the 24 hydrogen atoms that end up in glucose (12) and in the 6 H<sub>2</sub>O released (12). The chapter writes the shorter form 6CO<sub>2</sub> + 18ATP + 12NADPH → glucose + 18ADP + 12NADP<sup>+</sup> (+ 18P<sub>i</sub>), which leaves out the H<sup>+</sup> and H<sub>2</sub>O; that shorter form is the one to quote when a question asks only for the ATP and NADPH counts. The chapter’s overall photosynthetic equation (6CO<sub>2</sub> + 12H<sub>2</sub>O → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O) adds the light reaction; this equation shows the currency, ATP and NADPH, spent inside the carbon-fixation factory.',
+          'This is the atom-balanced form of the Calvin cycle: the 12 NADPH and 12 H<sup>+</sup> supply the 24 hydrogen atoms that end up in glucose (12) and in the 6 H<sub>2</sub>O released (12). The chapter (Topic 03) gives this same balanced form; its cheat sheet also gives the short count, 6 CO<sub>2</sub> + 18 ATP + 12 NADPH per glucose, which is the one to quote when a question asks only for the ATP and NADPH counts. The chapter’s overall photosynthetic equation (6CO<sub>2</sub> + 12H<sub>2</sub>O → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O) adds the light reaction; this equation shows the currency, ATP and NADPH, spent inside the carbon-fixation factory.',
         ],
         ans: '6CO<sub>2</sub> + 18ATP + 12NADPH + 12H<sup>+</sup> → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 18ADP + 12NADP<sup>+</sup> + 18P<sub>i</sub> + 6H<sub>2</sub>O',
       },
@@ -139,7 +139,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter names the Hatch–Slack pathway, identifies PEP carboxylase and OAA, and describes Kranz anatomy. What it omits: (i) the distinct biochemical shuttles that carry the 4-carbon acid from mesophyll to bundle sheath (malate and aspartate forms, with three decarboxylation types), (ii) which cell type performs which half-reaction in each shuttle, (iii) the CAM pathway, which the chapter mentions in one line (steps separated in time), with its night and day steps, and (iv) the precise ATP cost of the C<sub>4</sub> detour, which the chapter mentions qualitatively but never quantifies. These distinctions appear in NEET high-difficulty options.',
+        html: 'The chapter names the Hatch–Slack pathway, identifies PEP carboxylase and OAA, and describes Kranz anatomy. What it omits: (i) the distinct biochemical shuttles that carry the 4-carbon acid from mesophyll to bundle sheath (malate and aspartate forms, with three decarboxylation types), (ii) which cell type performs which half-reaction in each shuttle, (iii) the CAM pathway in more detail: the chapter gives it one line (fixation at night, Calvin cycle by day); this section adds the stomatal timing, malate storage in the vacuole and examples, and (iv) the precise ATP cost of the C<sub>4</sub> detour, which the chapter mentions qualitatively but never quantifies. NEET-style high-difficulty options can turn on these distinctions.',
       },
 
       { t: 'part', title: 'Method' },
@@ -162,7 +162,7 @@ export const TOPICS: Topic[] = [
           [
             'Bundle sheath reaction',
             'Malic enzyme decarboxylates malate → CO<sub>2</sub> + pyruvate',
-            'Aspartate is converted back to OAA, which is decarboxylated either by NAD-malic enzyme (NAD-ME type) or by PEP carboxykinase (PEP-CK type, CO<sub>2</sub> + PEP)',
+            'Aspartate is converted back to OAA. In NAD-ME plants the OAA is reduced to malate in the mitochondria, and NAD-malic enzyme decarboxylates the malate (CO<sub>2</sub> + pyruvate); in PEP-CK plants PEP carboxykinase decarboxylates the OAA in the cytosol (CO<sub>2</sub> + PEP)',
           ],
           ['CO<sub>2</sub> release site', 'Bundle sheath chloroplast', 'Bundle sheath mitochondria (NAD-ME) or cytosol (PEP-CK)'],
           [
@@ -261,7 +261,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter names photorespiration, identifies RuBisCO’s oxygenase activity, and states that it spans three organelles. What it omits: (i) the step-by-step path through each organelle with its intermediates (glycolate, glyoxylate, glycine, serine, glycerate), (ii) the name and role of each intermediate enzyme, (iii) the quantified energy cost in ATP and fixed carbon, and (iv) the reason C<sub>4</sub> plants suppress it, and the extent to which the suppression is not absolute. NEET assertion–reason questions hinge on these fine points.',
+        html: 'The chapter names photorespiration, identifies RuBisCO’s oxygenase activity, and states that it spans three organelles. What it omits: (i) the step-by-step path through each organelle with its intermediates (glycolate, glyoxylate, glycine, serine, glycerate), (ii) the name and role of each intermediate enzyme, (iii) the quantified energy cost in ATP and fixed carbon, and (iv) how far the suppression in C<sub>4</sub> plants goes: the chapter gives the reason (a high CO<sub>2</sub> concentration around RuBisCO in the bundle sheath) but not that a little photorespiration remains. NEET-style assertion–reason questions can turn on these points.',
       },
 
       { t: 'part', title: 'Method' },
@@ -297,7 +297,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET',
         q: '<b>Tracing the Pathway.</b> Name the three organelles involved in photorespiration in the correct order, and state which organelle releases the CO<sub>2</sub>.',
         steps: [
-          '<b>Check against the chapter:</b> the chapter names the three organelles and says CO<sub>2</sub> is released in the mitochondrion. This answer adds the order and the glycine step.',
+          '<b>Check against the chapter:</b> the chapter names the three organelles and says CO<sub>2</sub> is released in the mitochondrion. This answer adds the return trip through the peroxisome to the chloroplast, and the glycine step.',
         ],
         ans: 'Chloroplast → Peroxisome → Mitochondrion → (back to) Peroxisome → Chloroplast. The CO<sub>2</sub> is released in the <b>mitochondrion</b> during the oxidation of glycine to serine.',
       },
@@ -353,23 +353,23 @@ export const TOPICS: Topic[] = [
     n: 'D',
     title: 'C3, C4, and CAM: A Systematic Comparison with Environmental Context',
     extra: true,
-    kalam: 'The CO2 compensation point is the atmospheric CO2 concentration at which photosynthetic CO2 uptake exactly equals respiratory CO2 release.',
+    kalam: 'The CO2 compensation point is the CO2 concentration at which a leaf’s net CO2 exchange is zero.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter provides a comparison table (Topic 04) covering acceptor, first product, fixing enzyme, Kranz anatomy, the sites of photosynthesis and photorespiration, and examples. What it omits: (i) temperature optima and why they differ, (ii) quantum yield (photosynthetic efficiency), (iii) a fuller crop list with the pathway type of each, (iv) plants that switch pathways, and (v) the CO<sub>2</sub> compensation point, the concentration at which net CO<sub>2</sub> exchange is zero. These form the basis of high-difficulty NEET and CUET questions.',
+        html: 'The chapter provides a comparison table (Topic 04) covering acceptor, first product, fixing enzyme, sites of photosynthesis, Kranz anatomy, how much photorespiration occurs, and examples. What it omits: (i) the temperature optima as numbers, and why they differ, (ii) quantum yield (photosynthetic efficiency), (iii) a fuller crop list with the pathway type of each, (iv) plants that switch pathways, and (v) the CO<sub>2</sub> compensation point, the concentration at which net CO<sub>2</sub> exchange is zero. These form the basis of high-difficulty NEET and CUET questions.',
       },
 
       { t: 'part', title: 'Method' },
       { t: 'p', html: '<b>Temperature optima and the basis of the difference.</b>' },
       {
         t: 'p',
-        html: 'C<sub>3</sub> plants: optimum temperature 20–25 °C. Photorespiration rises with temperature (partly because CO<sub>2</sub> becomes less soluble than O<sub>2</sub> as water warms, so the <frac><num>CO<sub>2</sub></num><den>O<sub>2</sub></den></frac> ratio at RuBisCO falls). Above 30 °C, C<sub>3</sub> plants lose significant carbon.',
+        html: 'C<sub>3</sub> plants: optimum temperature 20–25 °C. Photorespiration rises with temperature (partly because the solubility of CO<sub>2</sub> in water falls faster than that of O<sub>2</sub> as it warms, so the <frac><num>CO<sub>2</sub></num><den>O<sub>2</sub></den></frac> ratio at RuBisCO falls, and partly because RuBisCO itself favours O<sub>2</sub> more at higher temperature). Above 30 °C, C<sub>3</sub> plants lose significant carbon.',
       },
       {
         t: 'p',
-        html: 'C<sub>4</sub> plants: optimum temperature 30–45 °C. Because photorespiration is suppressed by the high CO<sub>2</sub> concentration around RuBisCO, temperature does not increase photorespiration. Higher temperature actually favours C<sub>4</sub> plants by accelerating the PEP carboxylase reaction.',
+        html: 'C<sub>4</sub> plants: optimum temperature 30–45 °C. Because photorespiration is suppressed by the high CO<sub>2</sub> concentration around RuBisCO, a rise in temperature raises it far less than in C<sub>3</sub> plants, so C<sub>4</sub> plants keep photosynthesising efficiently when it is hot.',
       },
       {
         t: 'p',
@@ -383,7 +383,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Mixed-pathway plants.</b>' },
       {
         t: 'p',
-        html: 'Some plants use both C<sub>3</sub> and C<sub>4</sub> or switch between them:<br>• <b><i>Portulaca</i> (purslane):</b> Normally a C<sub>4</sub> plant; under drought stress it can switch toward CAM (facultative CAM).<br>• <b><i>Kalanchoe</i> (including <i>Bryophyllum</i>):</b> Under normal conditions CAM, but can show C<sub>3</sub>-like traits under constant temperature and water abundance.',
+        html: 'Some plants run more than one pathway or switch between them:<br>• <b><i>Portulaca</i> (purslane):</b> Normally a C<sub>4</sub> plant; under drought stress it can switch toward CAM (facultative CAM).<br>• <b><i>Kalanchoe</i> (including <i>Bryophyllum</i>):</b> Under normal conditions CAM, but can show C<sub>3</sub>-like traits under constant temperature and water abundance.',
       },
       { t: 'p', html: '<b>Quantum yield (brief).</b>' },
       {
@@ -456,7 +456,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter does not cover the Hill reaction, although it is the classic experimental evidence that the light reaction works on its own in isolated chloroplasts; this section defines it, writes its equation and explains how it is used experimentally. NEET occasionally asks for the Hill reagent or the stoichiometry of oxygen release, and the concept directly explains why the light reaction can be studied in isolation from the Calvin cycle.',
+        html: 'The chapter does not cover the Hill reaction, although it is the classic experimental evidence that the light reaction works on its own in isolated chloroplasts; this section defines it, writes its equation and explains how it is used experimentally. NEET-style questions may ask for the Hill reagent or the stoichiometry of oxygen release, and the concept directly explains why the light reaction can be studied in isolation from the Calvin cycle.',
       },
 
       { t: 'part', title: 'Method' },
@@ -509,7 +509,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[CUET] Who demonstrated the Hill reaction, and what does it prove about the site of water splitting?',
+            q: '[CUET] Who demonstrated the Hill reaction, and what does it show about the site of water splitting?',
             a: 'Robert Hill (1937); it shows that water splitting (and thus O<sub>2</sub> evolution) occurs in the thylakoid membranes of the chloroplast, independent of the Calvin cycle in the stroma.',
           },
           {
@@ -539,14 +539,14 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter states Blackman’s law (Topic 04) and gives the monsoon illustration with rice. What it omits: (i) the precise definition and typical values of the light compensation point and saturation point, (ii) the CO<sub>2</sub> compensation point already covered in Additional topic D, (iii) the water-stress connection (stomatal closure → CO<sub>2</sub> limitation → photosynthesis falls) and the hormone and guard-cell mechanism behind that stomatal closure (abscisic acid), and (iv) working through the field example with numbers. These applications appear in NEET assertion–reason questions and CUET short-answer items.',
+        html: 'The chapter states Blackman’s law (Topic 04) and gives the monsoon illustration with rice. What it omits: (i) the precise definition and typical values of the light compensation point and saturation point, (ii) the CO<sub>2</sub> compensation point already covered in Additional topic D, (iii) the hormone and guard-cell mechanism (abscisic acid) behind the stomatal closure under water stress that the chapter mentions, and (iv) working through the field example with numbers. These applications appear in NEET assertion–reason questions and CUET short-answer items.',
       },
 
       { t: 'part', title: 'Method' },
       { t: 'p', html: '<b>Three compensation and saturation points (defined before using them).</b>' },
       {
         t: 'p',
-        html: '• <b>Light compensation point (LCP):</b> Light intensity at which photosynthetic CO<sub>2</sub> uptake equals respiratory CO<sub>2</sub> release; net photosynthesis = 0. Below this, the plant loses carbon. At the LCP the plant is exactly breaking even; above it the plant gains carbon.<br>• <b>Light saturation point (LSP):</b> Light intensity beyond which photosynthetic rate stops increasing, even if light rises further. The rate is now limited by another factor (CO<sub>2</sub>, temperature, or enzymes). Illustrative figure for the C<sub>3</sub> LSP: ≈ 500–800 μmol photons m<sup>−2</sup> s<sup>−1</sup>.<br>• <b>CO<sub>2</sub> compensation point (Γ):</b> Defined in Additional topic D. C<sub>3</sub> Γ ≈ 50 ppm; C<sub>4</sub> Γ ≈ 5–10 ppm.',
+        html: '• <b>Light compensation point (LCP):</b> Light intensity at which photosynthetic CO<sub>2</sub> uptake equals respiratory CO<sub>2</sub> release; net photosynthesis = 0. Below this, the plant loses carbon. At the LCP the plant is exactly breaking even; above it the plant gains carbon.<br>• <b>Light saturation point (LSP):</b> Light intensity beyond which photosynthetic rate stops increasing, even if light rises further. The rate is now limited by another factor (CO<sub>2</sub>, temperature, or enzymes). Illustrative figure for the C<sub>3</sub> LSP: ≈ 500–800 μmol photons m<sup>−2</sup> s<sup>−1</sup>. NCERT gives a rounder figure, light saturation at about 10 per cent of full sunlight; sunlit crop leaves often saturate higher, as in the illustrative figures here.<br>• <b>CO<sub>2</sub> compensation point (Γ):</b> Defined in Additional topic D. C<sub>3</sub> Γ ≈ 50 ppm; C<sub>4</sub> Γ ≈ 5–10 ppm.',
       },
       { t: 'p', html: '<b>Water stress and the stomatal relay.</b>' },
       {
@@ -647,7 +647,7 @@ export const TOPICS: Topic[] = [
           { f: 'CO<sub>2</sub> compensation point', note: 'C<sub>3</sub> ≈ 50 ppm; C<sub>4</sub> ≈ 5–10 ppm.' },
           {
             f: 'Hill reaction (Hill, 1937)',
-            note: 'Isolated chloroplasts + light + electron acceptor (DCPIP) → O<sub>2</sub> evolution. Proves water splitting is a thylakoid function. 2 DCPIP reduced per O<sub>2</sub> evolved.',
+            note: 'Isolated chloroplasts + light + electron acceptor (DCPIP) → O<sub>2</sub> evolution. Shows that water splitting is a thylakoid function. 2 DCPIP reduced per O<sub>2</sub> evolved.',
           },
           {
             f: 'Blackman’s law',
@@ -814,7 +814,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'Worked representative',
-        q: '<b>Reconstructed example (re-solved):</b> Assertion (A): Under hot, bright, dry conditions, C<sub>4</sub> plants outperform C<sub>3</sub> plants.<br>Reason (R): C<sub>4</sub> plants concentrate CO<sub>2</sub> around RuBisCO in the bundle sheath, suppressing photorespiration.<br>(a) Both A and R are true and R explains A<br>(b) Both A and R are true but R does not explain A<br>(c) A is true but R is false<br>(d) Both A and R are false',
+        q: '<b>Reconstructed example (re-solved):</b> Assertion (A): Under hot, bright, dry conditions, C<sub>4</sub> plants outperform C<sub>3</sub> plants.<br>Reason (R): C<sub>4</sub> plants concentrate CO<sub>2</sub> around RuBisCO in the bundle sheath, suppressing photorespiration.<br>(a) Both A and R are true and R explains A<br>(b) Both A and R are true but R does not explain A<br>(c) A is true but R is false<br>(d) A is false but R is true',
         steps: [
           'A is true: C<sub>4</sub> crops (maize, sugarcane) yield more than C<sub>3</sub> crops (rice, wheat) under heat and bright light.',
           'R is true: the C<sub>4</sub> pump (PEPcase in mesophyll → OAA → bundle sheath decarboxylation) does raise CO<sub>2</sub> around RuBisCO, suppressing the oxygenase reaction.',
@@ -831,8 +831,8 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>“Oxygen comes from CO<sub>2</sub>”</b><br>A very commonly tested misconception. The equation’s correct form, 6CO<sub>2</sub> + 12H<sub>2</sub>O → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O, is the built-in giveaway: writing 12 H<sub>2</sub>O on the left, 6 of which reappear on the right, shows that the O<sub>2</sub> comes from water. Any option suggesting CO<sub>2</sub> as the oxygen source is a trap.',
-          '<b>PS I and PS II functions reversed</b><br>PS II splits water and releases O<sub>2</sub>; PS I reduces NADP<sup>+</sup>. The trap: students hear “PS I” and assume it acts first. In fact PS II acts first (it splits water and passes electrons on to PS I); PS I only receives them. Never swap the jobs.',
+          '<b>“Oxygen comes from CO<sub>2</sub>”</b><br>A very commonly tested misconception. The equation’s correct form, 6CO<sub>2</sub> + 12H<sub>2</sub>O → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> + 6H<sub>2</sub>O, is the built-in giveaway: the 6 O<sub>2</sub> released hold 12 oxygen atoms, exactly the oxygen of the 12 H<sub>2</sub>O on the left, while the 6 H<sub>2</sub>O on the right are newly formed and take their oxygen from CO<sub>2</sub>. Any option suggesting CO<sub>2</sub> as the oxygen source is a trap.',
+          '<b>PS I and PS II functions reversed</b><br>PS II splits water and releases O<sub>2</sub>; PS I reduces NADP<sup>+</sup>. The trap: students hear “PS I” and assume it acts first. In fact PS II acts first (it splits water and passes electrons on to PS I); PS I receives them and passes them on to NADP<sup>+</sup>. Never swap the jobs.',
           '<b>ATP ∶ NADPH numbers inverted (18 ∶ 12 → 12 ∶ 18)</b><br>Per glucose: 18 ATP is the larger number, 12 NADPH is the smaller. Swapping them is a very common numeric error.',
           '<b>C<sub>3</sub> and C<sub>4</sub> product/acceptor confusion</b><br>• C<sub>3</sub> first product: 3-PGA (3 carbons)<br>• C<sub>4</sub> first product: OAA (4 carbons)<br>The name “C<sub>3</sub> pathway” and “C<sub>4</sub> pathway” refers to the product’s carbon count, not the acceptor’s. Mixing these gives a common distractor in C<sub>4</sub> questions.',
           '<b>Dark reaction placed in the grana</b><br>The Calvin cycle runs in the stroma; the light reaction runs on thylakoid membranes (grana). Putting carbon fixation in the grana is a persistent trap in statement-based questions.',
@@ -879,8 +879,8 @@ export const TOPICS: Topic[] = [
             a: '<b>(c)</b><br>In a sealed space, photosynthesis continuously removes CO<sub>2</sub> from the air. Once CO<sub>2</sub> is depleted, it becomes the limiting factor (Blackman’s law), and further light or water cannot raise the rate.',
           },
           {
-            q: '[Hard] Assertion: Isolated thylakoids placed in the dark can still synthesise ATP if their lumen is made acidic and the surrounding medium is alkaline.<br>Reason: In chemiosmosis, the energy for ATP synthesis is stored in the trans-thylakoid proton gradient, not directly in light.<br>(a) Both A and R are true and R explains A<br>(b) Both A and R are true but R does not explain A<br>(c) A is true but R is false<br>(d) Both A and R are false',
-            a: '<b>(a)</b><br>Both statements are true. The artificially imposed H<sup>+</sup> gradient (acidic lumen → alkaline stroma) drives protons out through ATP synthase in the dark, proving that energy resides in the gradient itself. This is the experimental proof of Mitchell’s chemiosmotic hypothesis.',
+            q: '[Hard] Assertion: Isolated thylakoids placed in the dark can still synthesise ATP if their lumen is made acidic and the surrounding medium is alkaline.<br>Reason: In chemiosmosis, the energy for ATP synthesis is stored in the trans-thylakoid proton gradient, not directly in light.<br>(a) Both A and R are true and R explains A<br>(b) Both A and R are true but R does not explain A<br>(c) A is true but R is false<br>(d) A is false but R is true',
+            a: '<b>(a)</b><br>Both statements are true. The artificially imposed H<sup>+</sup> gradient (acidic lumen → alkaline stroma) drives protons out through ATP synthase in the dark, proving that energy resides in the gradient itself. This is classic experimental support for Mitchell’s chemiosmotic hypothesis.',
           },
           {
             q: '[Hard] The first stable product of CO<sub>2</sub> fixation in C<sub>4</sub> plants is oxaloacetic acid (OAA, 4 carbons). Which of the following correctly identifies the primary CO<sub>2</sub> acceptor and the cell type where initial fixation occurs?<br>(a) RuBP, bundle sheath cells<br>(b) PEP, mesophyll cells<br>(c) RuBP, mesophyll cells<br>(d) PEP, bundle sheath cells',
@@ -900,7 +900,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Three Facts to Lock In' },
       {
         t: 'p',
-        html: '1. Per CO<sub>2</sub> fixed, the Calvin cycle costs 3 ATP ∶ 2 NADPH (18 ATP ∶ 12 NADPH per glucose). NEET asks the per-CO<sub>2</sub> ratio directly, and the usual wrong answer is the inverted 2 ∶ 3.<br>2. H<sup>+</sup> accumulates in the thylakoid lumen, not in the stroma. Water is split on the lumen side, plastoquinone carries H<sup>+</sup> into the lumen, and NADP<sup>+</sup> reduction removes H<sup>+</sup> from the stroma; ATP synthase then lets H<sup>+</sup> flow from the lumen back to the stroma.<br>3. Absorption spectrum versus action spectrum. The absorption spectrum shows how much light a pigment absorbs at each wavelength; the action spectrum shows how fast photosynthesis runs at each wavelength. The two overlap closely, but they are different graphs.',
+        html: '1. Per CO<sub>2</sub> fixed, the Calvin cycle costs 3 ATP ∶ 2 NADPH (18 ATP ∶ 12 NADPH per glucose). NEET-style questions ask the per-CO<sub>2</sub> ratio directly, and the usual wrong answer is the inverted 2 ∶ 3.<br>2. H<sup>+</sup> accumulates in the thylakoid lumen, not in the stroma. Water is split on the lumen side, plastoquinone carries H<sup>+</sup> into the lumen, and NADP<sup>+</sup> reduction removes H<sup>+</sup> from the stroma; ATP synthase then lets H<sup>+</sup> flow from the lumen back to the stroma.<br>3. Absorption spectrum versus action spectrum. The absorption spectrum shows how much light a pigment absorbs at each wavelength; the action spectrum shows how fast photosynthesis runs at each wavelength. The two overlap closely, but they are different graphs.',
       },
     ],
   },

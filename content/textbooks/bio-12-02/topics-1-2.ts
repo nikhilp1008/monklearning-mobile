@@ -24,7 +24,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This is the foundation of one of the highest-weight units in Class 12 Biology. In CBSE Boards it shows up as 1–3 mark labelled-diagram and “name the structure/give its function” questions. In NEET it is a reliable 2–4 question zone, almost always testing NCERT lines verbatim and assertion–reason pairs. CUET asks direct factual recall. (JEE does not test Biology.) Master the names, locations, and one defining feature of every structure here: almost everything later in the chapter hangs off this anatomy. (All frequency and mark statements in this box are the book’s estimate from past papers, not official figures.)',
+        html: '<b>Exam Relevance:</b> This is the foundation of an important unit in Class 12 Biology. In CBSE Boards it shows up as 1–3 mark labelled-diagram and “name the structure/give its function” questions. In NEET it usually draws a few questions, often testing NCERT lines closely and assertion–reason pairs. CUET asks direct factual recall. (JEE does not test Biology.) Master the names, locations, and one defining feature of every structure here: almost everything later in the chapter hangs off this anatomy. (All frequency and mark statements in this box are the book’s estimate from past papers, not official figures.)',
       },
       {
         t: 'p',
@@ -217,7 +217,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET high-difficulty] Explain why the word “ampulla” can refer to two anatomically unrelated structures in human reproduction, naming both and their locations.',
-            a: 'One ampulla is the wide middle region of the Fallopian tube (near the fertilisation site); the other is the widened part of the mammary duct before the lactiferous duct: same name, different system.',
+            a: 'One ampulla is the wide middle region of the Fallopian tube (where fertilisation usually happens, at its junction with the isthmus); the other is the widened part of the mammary duct before the lactiferous duct: same name, different system.',
           },
         ],
       },
@@ -369,7 +369,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> One of the densest, highest-yield zones of Class 12 Biology. CBSE Boards favour the spermatogenesis/oogenesis flow charts, the four menstrual phases, and “which hormone does what” questions (2–5 marks). NEET often asks about this: chromosome numbers at each stage, the LH-surge/ovulation link, source-of-each-hormone, and assertion–reason traps are perennial. CUET tests direct recall of stages and definitions. Get the sequences and the hormone sources automatic and a large block of marks becomes free. (All frequency and mark statements in this box are the book’s estimate from past papers, not official figures.)',
+        html: '<b>Exam Relevance:</b> One of the denser, high-yield zones of Class 12 Biology. CBSE Boards favour the spermatogenesis/oogenesis flow charts, the four menstrual phases, and “which hormone does what” questions (2–5 marks). NEET often asks about this: chromosome numbers at each stage, the LH-surge/ovulation link, source-of-each-hormone, and assertion–reason traps recur. CUET tests direct recall of stages and definitions. Get the sequences and the hormone sources automatic and a good share of marks becomes easier. (All frequency and mark statements in this box are the book’s estimate from past papers, not official figures.)',
       },
       {
         t: 'p',
@@ -453,11 +453,11 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Oogenesis (begins before birth, finishes in installments)</b>' },
       {
         t: 'p',
-        html: 'Oogenesis is initiated during embryonic development: millions of gamete mother cells (oogonia) form in the foetal ovary, and no more are made after birth. The oogonia begin meiosis but arrest at prophase I, becoming primary oocytes, held in suspended animation, sometimes for decades. The numbers then fall steeply: about one to two million primary oocytes (primary follicles) are present in the two ovaries together at birth; by puberty only about 60,000–80,000 are left in each ovary, and across an entire reproductive lifetime only about 400 are ever actually ovulated: the vast majority simply degenerate. This brutal attrition is worth remembering, because it is the biological reason a finite, non-renewable “egg reserve” exists at all, in sharp contrast to the male’s lifelong, renewable sperm production.',
+        html: 'Oogenesis is initiated during embryonic development: a couple of million gamete mother cells (oogonia) are formed within each foetal ovary (NCERT), and no more are made after birth. The oogonia begin meiosis but arrest at prophase I, becoming primary oocytes, held in suspended animation, sometimes for decades. The numbers then fall steeply: about one to two million primary oocytes (primary follicles) are present in the two ovaries together at birth (a figure beyond NCERT); by puberty only about 60,000–80,000 are left in each ovary, and across an entire reproductive lifetime only about 400 are ever actually ovulated: the vast majority simply degenerate. This brutal attrition is worth remembering, because it is the biological reason a finite, non-renewable “egg reserve” exists at all, in sharp contrast to the male’s lifelong, renewable sperm production.',
       },
       {
         t: 'p',
-        html: 'Each primary oocyte is wrapped by granulosa cells to form a primary follicle; added granulosa layers plus a theca layer make a secondary follicle; a fluid-filled antrum appears, giving a tertiary follicle, which matures into a Graafian follicle. Within it, the primary oocyte finally completes its first meiotic division: an unequal split yielding one large secondary oocyte (keeping almost all the cytoplasm) and a tiny first polar body. (NCERT places this in the tertiary follicle; it is completed under the LH surge just before ovulation.) A glycoprotein coat, the zona pellucida, forms around the oocyte. The Graafian follicle then ruptures (ovulation, under the LH surge), releasing the secondary oocyte. The second meiotic division does not finish unless and until a sperm enters: it remains arrested at metaphase II.',
+        html: 'Each primary oocyte is wrapped by granulosa cells to form a primary follicle; added granulosa layers plus a theca layer make a secondary follicle; a fluid-filled antrum appears, giving a tertiary follicle, which matures into a Graafian follicle. Within the tertiary follicle, the primary oocyte finally completes its first meiotic division: an unequal split yielding one large secondary oocyte (keeping almost all the cytoplasm) and a tiny first polar body. (It is completed under the LH surge just before ovulation.) A glycoprotein coat, the zona pellucida, forms around the oocyte. The Graafian follicle then ruptures (ovulation, under the LH surge), releasing the secondary oocyte. The second meiotic division does not finish unless and until a sperm enters: it remains arrested at metaphase II.',
       },
       {
         t: 'p',
@@ -519,7 +519,7 @@ export const TOPICS: Topic[] = [
           '<b>Reasoning.</b> Compare the two lines carefully.',
           '• <b>Spermatocyte:</b> correct in number: one primary spermatocyte → four functional sperms (meiosis is symmetric here).',
           '• <b>Oocyte:</b> wrong. Meiosis in the female is unequal: one primary oocyte → one functional ovum + (up to three) non-functional polar bodies. Almost all cytoplasm is retained by the ovum.',
-          '• <b>Timing error (often missed):</b> the oocyte’s meiosis is not even completed on schedule: meiosis I finishes only at the Graafian stage, and meiosis II only on fertilisation, whereas the spermatocyte completes both divisions in sequence.',
+          '• <b>Timing error (often missed):</b> the oocyte’s meiosis is not even completed on schedule: meiosis I finishes only in the large follicle just before ovulation (NCERT: the tertiary follicle), and meiosis II only on fertilisation, whereas the spermatocyte completes both divisions in sequence.',
         ],
         ans: 'Male: 1 → 4 sperms (correct). Female: 1 → 1 ovum + polar bodies (not 4), with meiosis II delayed until a sperm enters.',
       },
@@ -546,7 +546,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET high-difficulty] Explain why oogenesis is described as beginning before birth yet not finishing until possibly decades later.',
-            a: 'Oogonia enter meiosis in the foetal ovary but arrest at prophase I as primary oocytes; meiosis I completes only at the Graafian stage after puberty, and meiosis II only at fertilisation, so the process spans from embryonic life to (potentially) adulthood.',
+            a: 'Oogonia enter meiosis in the foetal ovary but arrest at prophase I as primary oocytes; meiosis I completes only in the large (tertiary) follicle just before ovulation, after puberty, and meiosis II only at fertilisation, so the process spans from embryonic life to (potentially) adulthood.',
           },
         ],
       },
@@ -654,7 +654,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Oogenesis timing',
-            note: 'starts in the foetus (arrest at prophase I); meiosis I completes at the Graafian stage; meiosis II only at fertilisation.',
+            note: 'starts in the foetus (arrest at prophase I); meiosis I completes in the large (tertiary, then Graafian) follicle just before ovulation; meiosis II only at fertilisation.',
           },
           {
             f: 'Follicle build-up',

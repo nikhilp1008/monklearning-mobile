@@ -43,7 +43,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The demographic transition model (beyond NCERT; the chapter describes only the imbalance between falling death rate and high birth rate).</b> The demographic transition model describes this imbalance in stages:',
+        html: '<b>The demographic transition model (beyond NCERT; the chapter gives only the causes: a rapid fall in death rate, MMR and IMR and more people of reproductive age).</b> The demographic transition model describes this imbalance in stages:',
       },
       {
         t: 'table',
@@ -155,7 +155,7 @@ export const TOPICS: Topic[] = [
           ['Chlamydiasis', 'Mucoid cervical discharge (often none); PID if untreated', 'Watery/burning urethral discharge', 'Most common bacterial STI; frequently asymptomatic'],
           ['Trichomoniasis', 'Frothy yellow-green vaginal discharge, itching', 'Often none; urethritis or prostatitis', 'Protozoan; pH of vagina altered'],
           ['Genital herpes', 'Painful vesicles/ulcers on genitals', 'Same', 'Virus (herpes simplex virus); lesions recur'],
-          ['Genital warts', 'Cauliflower-like growths on vulva/cervix', 'Genital warts', 'HPV (warts: types 6 and 11); other HPV types, mainly 16 and 18, are linked to cervical cancer'],
+          ['Genital warts', 'Cauliflower-like growths on vulva/cervix', 'Similar growths on the penis or around the anus', 'HPV (warts: types 6 and 11); other HPV types, mainly 16 and 18, are linked to cervical cancer'],
           ['Syphilis', 'Painless chancre (primary); rash (secondary)', 'Same', 'Primary, secondary and tertiary stages if untreated (with a symptom-free latent period between)'],
           ['HIV/AIDS', 'Often no symptoms for years (an early flu-like illness may occur); then opportunistic infections', 'Same', 'Retrovirus; window period about 2–12 weeks, depending on the test'],
           ['Hepatitis-B', 'Jaundice, liver disease', 'Same', 'Systemic (mainly liver); also spread by blood'],
@@ -163,7 +163,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The PID–infertility chain (linking the STD topic to the infertility topic).</b> Untreated gonorrhoea and chlamydiasis ascend the reproductive tract to cause Pelvic Inflammatory Disease (PID), inflammation of the uterus, fallopian tubes, and surrounding tissues. PID scars the fallopian tubes, causing tubal-factor infertility (the egg and sperm cannot meet even though both are functional). This is a major consequence of untreated STDs and the direct link between the STD material and the infertility material in the chapter. The chapter mentions “blocked fallopian tubes” as a cause of female infertility and notes that untreated STD scarring is often behind it, but does not give the step-by-step PID chain.',
+        html: '<b>The PID–infertility chain (linking the STD topic to the infertility topic).</b> Untreated gonorrhoea and chlamydiasis ascend the reproductive tract to cause Pelvic Inflammatory Disease (PID), inflammation of the uterus, fallopian tubes, and surrounding tissues. PID scars the fallopian tubes, causing tubal-factor infertility (the egg and sperm cannot meet even though both are functional). This is a major consequence of untreated STDs and the direct link between the STD material and the infertility material in the chapter. The chapter gives this chain in one sentence (an untreated STD ascends the tract, causes PID and scars the tubes); here it is set out step by step.',
       },
       {
         t: 'p',
@@ -249,7 +249,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Medical (pharmacological) MTP protocol.</b> First-trimester medical abortion uses two drugs in sequence:<br>1. <b>Mifepristone (RU-486):</b> An antiprogestogen. It blocks progesterone receptors at the uterine level, causing decidual breakdown, softening of the cervix, and detachment of the embryo from the uterine wall. It also sensitises the myometrium to prostaglandins.<br>2. <b>Misoprostol:</b> A prostaglandin E<sub>1</sub> analogue. Given 24–48 hours after mifepristone, it induces uterine contractions that expel the conceptus. Used up to 9 weeks of gestation (63 days) for medical abortion (the figure in current Indian rules; NCERT gives only the 12-week safety limit).<br>The combination is ~95% effective. Surgical methods (MVA: Manual Vacuum Aspiration, or D&C: Dilatation and Curettage) are used for later or more advanced pregnancies where medical abortion is less reliable.',
+        html: '<b>Medical (pharmacological) MTP protocol.</b> First-trimester medical abortion uses two drugs in sequence:<br>1. <b>Mifepristone (RU-486):</b> An antiprogestogen. It blocks progesterone receptors at the uterine level, causing decidual breakdown, softening of the cervix, and detachment of the embryo from the uterine wall. It also sensitises the myometrium to prostaglandins.<br>2. <b>Misoprostol:</b> A prostaglandin E<sub>1</sub> analogue. Given 24–48 hours after mifepristone, it induces uterine contractions that expel the conceptus. Used up to 9 weeks of gestation (63 days) for medical abortion (the limit approved in India; NCERT gives only the 12-week safety limit).<br>The combination is ~95% effective. Surgical methods (MVA: Manual Vacuum Aspiration, or D&C: Dilatation and Curettage) are used for later or more advanced pregnancies where medical abortion is less reliable.',
       },
       {
         t: 'p',
@@ -299,7 +299,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] Up to how many weeks of gestation is the mifepristone-misoprostol regimen approved for medical abortion in India?',
-            a: 'Up to 9 weeks (63 days), the figure in current Indian rules (NCERT gives only the 12-week safety limit). For more advanced pregnancies, surgical methods (MVA, D&C) are used.',
+            a: 'Up to 9 weeks (63 days), the limit approved in India (NCERT gives only the 12-week safety limit). For more advanced pregnancies, surgical methods (MVA, D&C) are used.',
           },
           {
             q: '[NEET] What is the primary mechanism by which progestogen-only pills (mini-pills) prevent pregnancy, even in women who continue to ovulate?',
@@ -327,7 +327,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[NEET] Emergency contraceptive pills should be taken within how many hours of unprotected coitus?',
-            a: '72 hours (3 days) at the outside (NCERT’s limit); the earlier the better.',
+            a: '72 hours (3 days) at the outside (NCERT’s limit); the earlier the better. (WHO guidance allows some emergency methods up to 5 days.)',
           },
           {
             q: '[CBSE] Name the ART technique in which a donor ovum and the husband’s sperm are placed in the wife’s fallopian tube.',
@@ -355,7 +355,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Why is the copper-IUD described as both an emergency contraceptive and a long-term contraceptive?',
-            a: 'When inserted within 72 hours of unprotected coitus it prevents pregnancy as emergency contraception (the copper ions suppress sperm motility and fertilising capacity). After the emergency use it remains in place as an ongoing contraceptive for 5–10 years, depending on the device.',
+            a: 'When inserted within 72 hours of unprotected coitus (NCERT’s limit; WHO allows up to 5 days) it prevents pregnancy as emergency contraception (the copper ions suppress sperm motility and fertilising capacity). After the emergency use it remains in place as an ongoing contraceptive for 5–10 years, depending on the device.',
           },
           {
             q: '[NEET] A couple presents with male-factor infertility: very few sperm and none can penetrate the ovum. Which ART technique is indicated?',
@@ -544,10 +544,10 @@ export const TOPICS: Topic[] = [
           [
             'Confusing medical safety window with legal limit for MTP',
             'Quote 20 weeks when the question asks for the safe window',
-            'Medical safety: first trimester (~12 weeks). Legal limits: 20 weeks (one RMP), up to 24 weeks for special categories (two RMPs).',
+            'Medical safety: first trimester (~12 weeks). Legal limits: 20 weeks (one RMP), up to 24 weeks for special categories (two RMPs). NCERT gives the older split: one RMP up to 12 weeks, two RMPs from 12 to 24 weeks.',
           ],
           [
-            'STD-but-not-RTI',
+            'STD not confined to the reproductive tract',
             'Think all STDs infect the reproductive tract',
             'AIDS and hepatitis-B are sexually transmitted but are systemic infections, not infections confined to the reproductive tract. (NCERT uses STD, STI, VD and RTI as names for the same group; this distinction is the book’s and matters only if an item asks it.)',
           ],

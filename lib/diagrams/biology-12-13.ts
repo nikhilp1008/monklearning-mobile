@@ -104,7 +104,7 @@ const pip = (p: P, poly: P[]) => {
 };
 
 /* ================= Figure 13.1 ================= */
-const CAP131 = 'Species–area relationship. Left: on arithmetic axes, species richness <i>S</i> rises steeply with area <i>A</i> and then more slowly, levelling off (a rectangular hyperbola; NCERT’s description, strictly a power law). Right: on log–log axes, log <i>S</i> plotted against log <i>A</i> is a straight line of slope <i>z</i> and intercept log <i>C</i>.';
+const CAP131 = 'Species–area relationship. Left: on arithmetic axes, species richness <i>S</i> rises steeply with area <i>A</i> and then ever more slowly (NCERT calls this curve a rectangular hyperbola; the dashed “plateau” is the book’s sketch, since the power law <i>S</i> = <i>C</i><i>A</i><sup><i>z</i></sup> has no ceiling). Right: on log–log axes, log <i>S</i> plotted against log <i>A</i> is a straight line of slope <i>z</i> and intercept log <i>C</i>.';
 /** The left panel's curve: a rectangular hyperbola with plateau 4.6, through S about 2.0 at A = 20 and 3.7 at A = 100. */
 const PLATEAU = 4.6, HALF = 25;
 const spArea = (a: number) => (PLATEAU * a) / (HALF + a);
@@ -397,7 +397,7 @@ function check135(): Check[] {
 const fig135: Diagram = { id: 'b12-13-fig-13.5', topic: 2, name: 'Global biodiversity pie chart', cases: [{ chip: 'Shares of all species', cap: CAP135 }], draw: draw135, check: check135 };
 
 /* ================= Figure 13.6 ================= */
-const CAP136 = 'Total biomass versus year in low-diversity and high-diversity plots (Tilman): more species gives steadier and more productive communities.';
+const CAP136 = 'Total biomass versus year in low-diversity and high-diversity plots (Tilman): more species gives steadier and more productive communities (illustrative values, not Tilman’s data).';
 /** Read from the page's vector data (to within 0.1 of a unit). */
 const LOW = [49, 63.4, 74.4, 67.8, 32, 18.7, 38.3, 51.5, 61, 73.5, 51.5, 29.9];
 const HIGH = [78.6, 76, 79.5, 84.2, 82.2, 83.7, 76.3, 70.8, 76.2, 69.4, 70.4, 68];

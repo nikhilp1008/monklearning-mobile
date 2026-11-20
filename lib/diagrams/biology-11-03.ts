@@ -23,7 +23,7 @@ import type { Check, Diagram } from '@/lib/diagrams/types';
  * antipodals at the chalazal end; archegonia near the notch, antheridia near the rhizoids; the male cones smaller than the
  * female cone; micropyle, nucellus and female gametophyte nested inside the ovule on an ovuliferous scale).
  * SCHEMATIC: all sizes, positions, outlines and leader-line angles (re-laid for a phone, one column; Fig 3.3 and 3.4 are
- * stacked where the book put them side by side), the blade's ripple and veins, the number of fronds, pinnae and sori,
+ * stacked where the book put them side by side), the blade's ripple, the number of fronds, pinnae and sori,
  * the heart's size, the branches, needles and cone scales of the pine, the cell and nucleus sizes of the embryo sac.
  * Colours are the app's style (no fills; one marigold highlight per drawing: the frond, the diploid phase, the sori,
  * the naked ovule, the egg cell), not the book's. A name the book prints with a bracket note (for example "Frond
@@ -131,9 +131,6 @@ function draw31(): Sketch {
   const yOf = (t: number) => LAM.top + t * (LAM.base - LAM.top);
   const left = ts.map((t): P => [LAM.cx - hwBlade(t), yOf(t)]), right = ts.map((t): P => [LAM.cx + hwBlade(t), yOf(t)]).reverse();
   path(s, [...left, ...right], { close: true, color: C.mari, w: 2.2 });
-  // midrib and four veins (grey, schematic)
-  path(s, ts.map((t): P => [LAM.cx + 2.5 * Math.sin(t * 5), yOf(t)]), { color: C.slate, w: 1.4 });
-  for (const k of [-0.62, -0.32, 0.32, 0.62]) path(s, ts.filter((t) => t > 0.06 && t < 0.97).map((t): P => [LAM.cx + k * hwBlade(t) * 0.8, yOf(t)]), { color: C.grey, w: 1.2 });
   // stipe: two edges
   const ys = Array.from({ length: 12 }, (_, i) => LAM.base + (i / 11) * (LAM.stipeEnd - LAM.base));
   path(s, ys.map((y): P => [stipeX(y) - 3.5, y]));
@@ -168,12 +165,12 @@ const fig31: Diagram = { id: 'b11-03-fig-3.1', topic: 1, name: 'Laminaria: holdf
 
 /* ================= Figure 3.2 ================= */
 const CAP32 = 'Life-cycle patterns, with examples: (A) haplontic, (B) diplontic and (C) haplo-diplontic. The haploid phase is n and the diploid phase is 2n.';
-const CAP32B = CAP32 + ' The gametic meiosis drawn here is that of <i>Fucus</i>; in seed plants, also called diplontic, meiosis forms spores, which grow into the few-celled gametophytes.';
+const CAP32B = CAP32 + ' The gametic meiosis drawn here is that of <i>Fucus</i>; in seed plants, also called diplontic, meiosis forms spores, which grow into much-reduced gametophytes.';
 type Phase = 'n' | '2n';
 /** What each panel shows: its multicellular bodies and its single-cell stages, by ploidy. */
 const PATTERNS: Record<string, { title: string; bodies: Phase[]; cells: Phase[]; eg: string[] }> = {
   A: { title: '(A) Haplontic', bodies: ['n'], cells: ['2n', 'n'], eg: ['<i>Volvox</i>, <i>Spirogyra</i>, <i>Chlamydomonas</i>'] },
-  B: { title: '(B) Diplontic', bodies: ['2n'], cells: ['n'], eg: ['<i>Fucus</i>'] },
+  B: { title: '(B) Diplontic', bodies: ['2n'], cells: ['n'], eg: ['<i>Fucus</i>; seed plants'] },
   C: { title: '(C) Haplo-diplontic', bodies: ['n', '2n'], cells: [], eg: ['<i>Ectocarpus</i>, <i>Polysiphonia</i>, kelps;', 'bryophytes; pteridophytes'] },
 };
 function body(s: Sketch, cx: number, cy: number, ph: Phase) {

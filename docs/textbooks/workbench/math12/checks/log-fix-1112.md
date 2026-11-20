@@ -1,0 +1,26 @@
+# Fix log 11/12 (round 4)
+- c12-c11-p020-01/02: topics-02-03.ts angle box main: `${COS_LINES}<br><br>=` -> `${COS_LINES}<br>=` (blank gap removed).
+- c12-c11-p020-03/04: topics-02-03.ts `Perpendicular: ${DR_DOT} =${NB}0` (0 glued).
+- c12-c11-p020-14..16: table cells `<br>${PARD}` / `<br>${SKEW}` -> `${NB}<br>...` (the empty first line looked collapsed on Android; NB line keeps its height so the fraction sits a line lower). Unverified on device.
+- r11-p040 card4 s3: topics-04-05.ts Image bracket -> ${glue('(2 − 1, 6 − 6, 10 − 3)')}.
+- r11-p049 card1 s1: parametric point bracket wrapped in glue().
+- r11-p049 card3 s1: each cross-product component glued (`${glue('2(2) − 3(1))')}`), breaks only at the commas.
+- r11-p049 card3 s2: `,<br>i.e.<br>11x` -> `,<br>i.e.${NB}11x`.
+- r11-p060 card1 s3: extras-a-e.ts closest points: `),<br>${P2} =` -> `), ${P2} =` (the line after the fraction triple left an empty line on Android; P2 now follows on the same line, wraps at the space). ⟹ arrows are the book's own (math12.txt has 122), left.
+- r11-p075 (extra-p.ts): A21 now `${va2}${NB}−${NB}${va1}` (fixes "(a2 −"/"a1)" in card1 s5 and wherever A21 is used); card1 s5 cross product `${pt(..)}${NB}×${NB}${pt(..)}`.
+- r11-p075 card2 s2: `=${NB}0<br>⇒ −3 − 3λ ...` (the all-glued line was longer than the card and Android tore it mid-bracket).
+- r11-p075 card2 s3: already ends on "= 0." in current source (shot was older); no change.
+- r11-p075 card3 s1: parametric point uses gpt(...).
+- r11-p075 card6 bullet: `× (${vP}${NB}−${NB}${va})`.
+- r11-p075 card7 s4: TEN_RT3 = `10√${WJ}3`; the step now `g(PQ = √(...))<br>= ${TEN_RT3}.` (the whole step was one glued run, too long).
+- en dashes: every " – " in Ch 11 source is the book's own prose dash (checked in math12.txt lines 39776/39798/39848/40051); no en dash used as a minus found. Left.
+- r11-p075 cards 1 and 3: `<br><br><b>Worked Example</b>` -> `<br><b>Worked Example</b>` (the blank line is fraction-lead tall in these two).
+- r12-p013 card1: topics-01-02.ts row `=${NB}<b>6800</b>${NB}←` -> `=${NB}<b>6800</b> ←${NB}Maximum`: the glued run '1200 + 5600 = 6800 ← Maximum' is wider than the card, so Android tore it after '='; now the row is '(20, 40) → 1200 + 5600 = 6800' with '← Maximum' wrapping as one piece.
+- Ch12 part 13 page 2: topics-01-02.ts 'same three questions' block split at its <br> into 4 blocks (intro, 1., 2., 3.); 'Limiting conditions & assumptions to watch' block split into heading + one block per bullet (each < 420 chars, so the paragraph splitter no longer cuts them unevenly).
+- Ch12 part 13 page 4 family table: Diet row story `minimum${NB}requirements` (its 2nd line 'powders to meet minimum' sat at the edge, Android measured one more line than it drew: the blank gap). Reading-tip '→ expect ≥' left to the renderer.
+- r12-p041 card1 s4 (extras-a-e.ts, Ch12): shoelace |…| had a <br> inside the bars; now one abs with each bracket glued (new helper `g` added to the file), breaks only at " + ".
+- r12-p041 card2 s2: header `binding${NB}cap${NB}→ integer` -> `binding${NB}cap →${NB}integer` (glued run was longer than the line; Android tore it).
+- r12-p042 card5 answer: products glued `${g('5 · 3 − 3 · 0 = 15')}`, `${abs(g('3 · 4 − 3 · 0'))}${NB}= 6` etc.
+- r12-p046 card3 answer: `${pt(4, 0)}${NB}✓ (`, `${pt(2, 3)}${NB}✓ (`, `${pt(0, 6)}${NB}× (`.
+- card003 legend (Ch12 extras-a-e.ts): `of${NB}the${NB}segment${NB}QR` so 'QR' takes words with it. Unverified (it already had segment${NB}QR, so the break may be at the italic span boundary).
+- Checks: jest 182 suites pass; the 1 failing suite is lib/__tests__/pcm-playback-queue-pause.test.ts (reads modules/pcm-player/ios/*.swift, absent from the scratch copy; not my file). tsc clean.

@@ -69,7 +69,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'def',
         term: 'Micromolecule vs macromolecule',
-        html: 'the book’s working dividing line is a molecular weight of about <b>1000 Da</b> (a convenience; NCERT puts macromolecules at generally 10,000 Da and above): below it, micromolecule (small biomolecule); in the acid-insoluble pool and above it, macromolecule/biomacromolecule.',
+        html: 'a working dividing line is a molecular weight of about <b>1000 Da</b> (this book’s own convenience, not a figure from NCERT): below it, micromolecule (small biomolecule); in the acid-insoluble pool and above it, macromolecule/biomacromolecule.',
       },
       {
         t: 'def',
@@ -121,7 +121,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-09-fig-9.1' },
       {
         t: 'p',
-        html: '<b>E. The inorganic and elemental picture.</b> Beyond the organic molecules, a cell holds inorganic constituents: water and ions. <b>Water is the single largest component</b> of any cell (≈ 70–90 % by mass) and the medium in which all biochemistry happens. Dissolved inorganic ions (sodium, potassium, calcium, magnesium, chloride, phosphate, bicarbonate) sit in the acid-soluble pool and drive nerve signalling, muscle contraction, pH buffering, and enzyme activation. At the elemental level, four elements dominate living matter: <b>oxygen, carbon, hydrogen and nitrogen</b>, with smaller amounts of sulphur, phosphorus, calcium and others. What sets life apart chemically is the enrichment of carbon and hydrogen relative to the non-living Earth’s crust: the signature of the carbon-skeleton chemistry on which every biomolecule is built.',
+        html: '<b>E. The inorganic and elemental picture.</b> Beyond the organic molecules, a cell holds inorganic constituents: water and ions. <b>Water is the single largest component</b> of an active cell (≈ 70–90 % by mass) and the medium in which all biochemistry happens. Dissolved inorganic ions (sodium, potassium, calcium, magnesium, chloride, phosphate, bicarbonate) sit in the acid-soluble pool and drive nerve signalling, muscle contraction, pH buffering, and enzyme activation. At the elemental level, four elements dominate living matter: <b>oxygen, carbon, hydrogen and nitrogen</b>, with smaller amounts of sulphur, phosphorus, calcium and others. What sets life apart chemically is the enrichment of carbon and hydrogen relative to the non-living Earth’s crust: the signature of the carbon-skeleton chemistry on which every biomolecule is built.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -199,7 +199,7 @@ export const TOPICS: Topic[] = [
           { label: '18–800 Da', nudge: null },
           {
             label: '1000–5000 Da',
-            nudge: '<b>(b)</b> is the borderline zone, not an acid-soluble range: chosen by students who confuse the two pools.',
+            nudge: '<b>(b)</b> lies above the acid-soluble range, which stops near 800 Da: chosen by students who confuse the two pools.',
           },
           {
             label: '10,000–50,000 Da',
@@ -329,7 +329,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This is high-yield territory. NEET reliably pulls 2–3 questions a year (the book’s estimate from past papers, not official figures) from biomolecule classification, amino acid types, and lipid/carbohydrate identification, often as assertion–reason or match-the-column. CBSE Boards ask 1–3 mark definitions and “distinguish between” questions. CUET leans on direct recall MCQs (essential vs non-essential, glycosidic vs peptide bond). Master the categories, not just the names.',
+        html: '<b>Exam Relevance:</b> This is high-yield territory. NEET regularly draws on this topic (the book’s estimate from past papers, not official figures) from biomolecule classification, amino acid types, and lipid/carbohydrate identification, often as assertion–reason or match-the-column. CBSE Boards ask 1–3 mark definitions and “distinguish between” questions. CUET leans on direct recall MCQs (essential vs non-essential, glycosidic vs peptide bond). Master the categories, not just the names.',
       },
       {
         t: 'p',
@@ -556,7 +556,7 @@ export const TOPICS: Topic[] = [
               '<b>(a)</b> glucose, glycine, ATP are primary metabolites (core metabolism): picked by students who think “important molecule = secondary.”',
           },
           { label: 'Morphine, quinine, abrin', nudge: null },
-          { label: 'Cellulose, starch, glycogen', nudge: '<b>(c)</b> starch and glycogen are primary storage carbohydrates, so the set is not “only secondary” (NCERT’s Table 9.1 also lists cellulose among the polymeric secondary metabolites; know both labels).' },
+          { label: 'Cellulose, starch, glycogen', nudge: '<b>(c)</b> starch and glycogen are primary storage carbohydrates, so the set is not “only secondary” (NCERT also lists cellulose among the polymeric secondary metabolites; know both labels).' },
           { label: 'Linoleic acid, lecithin, glycerol', nudge: '<b>(d)</b> lipids and their building blocks are primary metabolites.' },
         ],
         correct: 1,

@@ -35,7 +35,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Topic 02 names three types of sexual reproduction in algae (isogamous, anisogamous, oogamous), defines each in one line and gives one or two examples (<i>Chlamydomonas</i>; some <i>Chlamydomonas</i>; <i>Volvox</i> and <i>Fucus</i>). It does not show the cellular events, the further organisms (<i>Ulothrix</i>, <i>Chara</i>), conjugation in <i>Spirogyra</i>, or the NEET-style questions these distinctions generate. This additional topic supplies all four.',
+        html: 'Topic 02 names three types of sexual reproduction in algae (isogamous, anisogamous, oogamous), defines each in one line and gives one or two examples (<i>Chlamydomonas</i>; some <i>Chlamydomonas</i>; <i>Volvox</i> and <i>Fucus</i>). It does not show the cellular events, further examples of each type (<i>Ulothrix</i> for isogamy, <i>Chara</i> for oogamy), conjugation in <i>Spirogyra</i>, or the NEET-style questions these distinctions generate. This additional topic supplies all four.',
       },
 
       { t: 'part', title: 'Method' },
@@ -49,7 +49,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Anisogamy:</b> The two gametes differ in size (and sometimes motility), but both are motile. The smaller is the male; the larger is the female. This is the intermediate condition between isogamy and oogamy.<br>• <b><i>Chlamydomonas</i></b> (some species): shows anisogamy under certain conditions: smaller male gametes fuse with larger female gametes.',
+        html: '<b>Anisogamy:</b> The two gametes differ in size, and both are usually motile. The smaller is the male; the larger is the female. This is the intermediate condition between isogamy and oogamy.<br>• <b><i>Chlamydomonas</i></b> (some species): shows anisogamy under certain conditions: smaller male gametes fuse with larger female gametes.',
       },
       {
         t: 'p',
@@ -57,7 +57,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Conjugation: a special sexual process in <i>Spirogyra</i>.</b><br>Topic 02 mentions <i>Spirogyra</i> under Chlorophyceae but does not explain how it reproduces sexually. Conjugation is the answer, and it is a high-yield NEET item precisely because it is unusual: there is no motile gamete at all.',
+        html: '<b>Conjugation: a special sexual process in <i>Spirogyra</i>.</b><br>Topic 02 mentions <i>Spirogyra</i> under Chlorophyceae but does not explain how it reproduces sexually. Conjugation is the answer, and it is worth knowing well precisely because it is unusual: there is no motile gamete at all.',
       },
       {
         t: 'p',
@@ -140,15 +140,15 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Sorus structure in ferns.</b><br>In true ferns (Pteropsida: <i>Dryopteris</i>, <i>Pteris</i>, <i>Adiantum</i>), the sporangia are grouped into <b>sori</b>: discrete clusters on the underside of the frond. Each sorus is covered by a protective flap of tissue called the <b>indusium</b> (derived from the leaf tissue). The indusium protects the immature sporangia and prevents desiccation.<br>• In <b><i>Dryopteris</i></b>, the sori are circular and covered by a reniform (kidney-shaped) indusium.<br>• In <b><i>Adiantum</i></b> (maidenhair fern), the sori are linear and covered by the reflexed (folded-back) margin of the pinnule itself; this is called a <b>false indusium</b>.<br>• Inside each sorus, numerous sporangia develop. Each sporangium has a <b>bilipped (bivalved) capsule</b> with a vertical annulus (a band of thickened cells) that runs around the capsule and breaks open at the <b>stomium</b> to release the spores.',
+        html: '<b>Sorus structure in ferns.</b><br>In true ferns (Pteropsida: <i>Dryopteris</i>, <i>Pteris</i>, <i>Adiantum</i>), the sporangia are grouped into <b>sori</b>: discrete clusters on the underside of the frond. In many ferns each sorus is covered by a protective flap of tissue called the <b>indusium</b> (derived from the leaf tissue). The indusium protects the immature sporangia and prevents desiccation.<br>• In <b><i>Dryopteris</i></b>, the sori are circular and covered by a reniform (kidney-shaped) indusium.<br>• In <b><i>Adiantum</i></b> (maidenhair fern), the sori are linear and covered by the reflexed (folded-back) margin of the pinnule itself; this is called a <b>false indusium</b>.<br>• Inside each sorus, numerous sporangia develop. Each sporangium is a stalked, biconvex capsule. A vertical row of thick-walled cells, the <b>annulus</b>, runs about two-thirds of the way round it and ends at a patch of thin-walled cells, the <b>stomium</b>; as the annulus dries it pulls the capsule open at the stomium and flings out the spores.',
       },
       {
         t: 'p',
-        html: '<b>Heterospory: microspores and megaspores.</b><br>In heterosporous pteridophytes (<i>Selaginella</i>, <i>Salvinia</i>), two types of spores are produced:<br>• <b>Microspores</b> are small, produced in large numbers in <b>microsporangia</b> on microsporophylls. Each microspore germinates into a <b>male gametophyte</b> that is retained within the spore wall; it never becomes free-living. The male gametophyte releases <b>antherozoids</b>.<br>• <b>Megaspores</b> are large and few in number (in <i>Selaginella</i>, usually four per megasporangium), produced in <b>megasporangia</b> on megasporophylls. The megaspore is retained on the parent sporophyte. It germinates into the <b>female gametophyte</b> inside the spore wall. The female gametophyte produces <b>archegonia</b>. The egg is fertilised in place, and the embryo develops while attached to the parent; this is the seed-habit precursor condition.',
+        html: '<b>Heterospory: microspores and megaspores.</b><br>In heterosporous pteridophytes (<i>Selaginella</i>, <i>Salvinia</i>), two types of spores are produced:<br>• <b>Microspores</b> are small, produced in large numbers in <b>microsporangia</b> on microsporophylls. Each microspore germinates into a <b>male gametophyte</b> that is retained within the spore wall; it never becomes free-living. The male gametophyte releases <b>antherozoids</b>.<br>• <b>Megaspores</b> are large and few in number (in <i>Selaginella</i>, usually four per megasporangium), produced in <b>megasporangia</b> on megasporophylls. The megaspore is retained on the parent sporophyte for a variable period. It germinates into the <b>female gametophyte</b> inside the spore wall, and the female gametophyte produces <b>archegonia</b>. Where the megaspore is still on the parent at fertilisation, the embryo begins its development there; this is the seed-habit precursor condition.',
       },
       {
         t: 'p',
-        html: '<b>The <i>Selaginella</i> life cycle: worked step-by-step.</b><br><i>Selaginella</i> is a <b>lycopsid</b> (class Lycopsida). Its life cycle demonstrates heterospory and the seed-habit precursor.<br>1. <b>Sporophyte (2n):</b> The dominant plant body bears two types of strobili (cones): <b>strobili</b> containing microsporophylls and strobili containing megasporophylls. These may be on the same axis (mixed cone) or on separate branches.<br>2. <b>Microsporangia → Microspores:</b> Each microsporophyll bears a microsporangium. Inside, a microspore mother cell undergoes meiosis → four <b>microspores</b> (n). Each microspore is a <b>male gametophyte in miniature</b>. It germinates inside the spore wall: the spore coat ruptures, and a small <b>prothallial cell</b> and an <b>antheridial cell</b> are formed. The antheridial cell divides repeatedly to produce numerous <b>antherozoids</b> (biflagellate male gametes). The male gametophyte is highly reduced and stays within the microspore wall.<br>3. <b>Megasporangia → Megaspores:</b> On the megasporophyll, a megaspore mother cell undergoes meiosis → a tetrad of four <b>megaspores</b> (n); usually all four are functional (in a few species fewer). The megaspores are retained inside the megasporangium on the parent sporophyte. Inside, a megaspore germinates: the megaspore wall ruptures, and the <b>female gametophyte</b> grows out as a small cellular tissue. It produces <b>archegonia</b> (each with one egg). The gametophyte is <b>photosynthetic</b> initially, then becomes non-green.<br>4. <b>Fertilisation:</b> An antherozoid swims through a film of water (note: water is still required, as in all pteridophytes) to reach the archegonium. It fuses with the egg → <b>zygote (2n)</b>.<br>5. <b>Embryo development:</b> The zygote divides and develops into an <b>embryo</b> while still attached to the parent female gametophyte, which is in turn attached to the parent sporophyte. The embryo has a <b>suspensor</b> (a file of cells that pushes the embryo into the gametophyte tissue for nourishment) and develops a root, shoot, and cotyledon(s). This retained, provisioned, embryo-on-parent arrangement is the <b>seed-habit precursor condition</b>.<br>6. <b>Dispersal:</b> The megasporophyll (with the megasporangium containing the developing embryo) may be shed, or the sporangium may dehisce and release the megaspore with its embryo; this structure functions as a seed even though it is not a true seed (no seed coat from the integuments, though the spore wall is thickened).',
+        html: '<b>The <i>Selaginella</i> life cycle: worked step-by-step.</b><br><i>Selaginella</i> is a <b>lycopsid</b> (class Lycopsida). Its life cycle demonstrates heterospory and the seed-habit precursor.<br>1. <b>Sporophyte (2<i>n</i>):</b> The dominant plant body bears <b>strobili</b> (cones) at its branch tips. A strobilus usually carries both kinds of sporophyll, megasporophylls in its lower part and microsporophylls above; in some species they are in separate strobili.<br>2. <b>Microsporangia → Microspores:</b> Each microsporophyll bears a microsporangium. Inside, a microspore mother cell undergoes meiosis → four <b>microspores</b> (<i>n</i>). Each microspore gives rise to a <b>male gametophyte</b>, which develops inside the spore wall: a small <b>prothallial cell</b> and an <b>antheridial cell</b> are formed, and the antheridial cell divides repeatedly to produce numerous <b>antherozoids</b> (biflagellate male gametes), which escape when the spore wall ruptures. The male gametophyte is highly reduced and stays within the microspore wall.<br>3. <b>Megasporangia → Megaspores:</b> On the megasporophyll, a megaspore mother cell undergoes meiosis → a tetrad of four <b>megaspores</b> (<i>n</i>); usually all four are functional (in a few species fewer). The megaspores are retained inside the megasporangium on the parent sporophyte for a variable period. Inside, a megaspore germinates: the megaspore wall ruptures, and the <b>female gametophyte</b> grows out as a small cellular tissue. It produces <b>archegonia</b> (each with one egg). The female gametophyte is mostly non-green and lives on food stored in the megaspore; the part exposed where the spore wall ruptures may turn green.<br>4. <b>Fertilisation:</b> An antherozoid swims through a film of water (note: water is still required, as in all pteridophytes) to reach the archegonium. It fuses with the egg → <b>zygote (2<i>n</i>)</b>.<br>5. <b>Embryo development:</b> The zygote divides and develops into an <b>embryo</b> while still attached to the parent female gametophyte, which is in turn attached to the parent sporophyte. The embryo has a <b>suspensor</b> (a file of cells that pushes the embryo into the gametophyte tissue for nourishment) and develops a root, shoot, and cotyledon(s). This retained, provisioned, embryo-on-parent arrangement is the <b>seed-habit precursor condition</b>.<br>6. <b>Dispersal:</b> The megasporophyll (with the megasporangium containing the developing embryo) may be shed, or the sporangium may dehisce and release the megaspore with its embryo; this structure functions as a seed even though it is not a true seed (no seed coat from the integuments, though the spore wall is thickened).',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -157,7 +157,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Level',
         q: '<b>Microspore vs Megaspore Fate.</b> In <i>Selaginella</i>, a microspore germinates to form the male gametophyte. State (i) whether one microspore produces a single antherozoid or many, (ii) whether the male gametophyte is free-living or retained, and (iii) how many megaspores result from meiosis of one megaspore mother cell and whether they remain on the parent.',
         steps: [],
-        ans: '(i) Each microspore produces <b>numerous antherozoids</b> (biflagellate male gametes). (ii) The male gametophyte is <b>retained within the microspore wall, never free-living</b>. (iii) Meiosis of a megaspore mother cell gives a tetrad of <b>four megaspores</b>; in <i>Selaginella</i> usually all four are functional, and each is retained within the megasporangium on the parent sporophyte, where it gives rise to a female gametophyte.',
+        ans: '(i) Each microspore produces <b>numerous antherozoids</b> (biflagellate male gametes). (ii) The male gametophyte is <b>retained within the microspore wall, never free-living</b>. (iii) Meiosis of a megaspore mother cell gives a tetrad of <b>four megaspores</b>; in <i>Selaginella</i> usually all four are functional, and each is retained within the megasporangium on the parent sporophyte for a variable period, where it gives rise to a female gametophyte.',
       },
       {
         t: 'ex',
@@ -171,7 +171,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Level',
         q: '<b>Why Heterospory is Significant.</b> State two ways in which heterospory in <i>Selaginella</i> differs from homospory in <i>Dryopteris</i>, and explain why heterospory is considered a precursor to the seed habit.',
         steps: [
-          '<b>Differences:</b><br>1. <i>Dryopteris</i> produces one type of spore (homosporous); <i>Selaginella</i> produces two types: microspores and megaspores (heterosporous).<br>2. In <i>Dryopteris</i> the spores germinate into free-living prothalli that bear both antheridia and archegonia; in <i>Selaginella</i>, microspores give rise to male gametophytes (antheridia only) and megaspores give rise to female gametophytes (archegonia only); the female gametophyte is retained in the megaspore on the parent sporophyte, and the male gametophyte stays inside the microspore wall.',
+          '<b>Differences:</b><br>1. <i>Dryopteris</i> produces one type of spore (homosporous); <i>Selaginella</i> produces two types: microspores and megaspores (heterosporous).<br>2. In <i>Dryopteris</i> the spores germinate into free-living prothalli that bear both antheridia and archegonia; in <i>Selaginella</i>, microspores give rise to male gametophytes (antheridia only) and megaspores give rise to female gametophytes (archegonia only); the female gametophyte develops inside the megaspore, which stays on the parent sporophyte for a variable period, and the male gametophyte stays inside the microspore wall.',
           '<b>Significance:</b> The megaspore is retained on the parent sporophyte, and the female gametophyte develops in place and nourishes the embryo. This “keep the next generation at home and feed it” arrangement is the evolutionary forerunner of the seed. True seeds add a protective seed coat from the integuments, but the heterosporous pteridophyte condition already shows retention, nourishment, and embryo protection.',
         ],
         ans: '',
@@ -212,22 +212,22 @@ export const TOPICS: Topic[] = [
     title: 'Gymnosperm Reproduction: Pollination, Fertilisation, and Seed Formation',
     extra: true,
     kalam:
-      'Topic 04 states that gymnosperms bear naked seeds, no fruits, no double fertilisation and haploid endosperm, that pollination is by wind to the micropyle with a pollen tube carrying the male gamete, that Cycas keeps motile sperm, and that the ovule becomes a naked, winged seed.',
+      'Topic 04 states that gymnosperms bear naked seeds, no fruits, no double fertilisation and haploid endosperm, that pollination is by wind to the micropyle with a pollen tube carrying the male gamete, that Cycas keeps motile sperm, and that the ovule becomes a naked seed (winged in Pinus).',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'Topic 04 states that gymnosperms bear naked seeds, no fruits, no double fertilisation and haploid endosperm, that pollination is by wind to the micropyle with a pollen tube carrying the male gamete, that <i>Cycas</i> keeps motile sperm, and that the ovule becomes a naked, winged seed. It does not give the detail: the air sacs of the winged pollen and the pollination droplet, the two non-motile male cells and the fate of each, how the <i>Cycas</i> sperm swims to the egg, or the origin and ploidy of each part of the seed. This additional topic supplies that detail.',
+        html: 'Topic 04 states that gymnosperms bear naked seeds, no fruits, no double fertilisation and haploid endosperm, that pollination is by wind to the micropyle with a pollen tube carrying the male gamete, that <i>Cycas</i> keeps motile sperm, and that the ovule becomes a naked seed (winged in <i>Pinus</i>). It does not give the detail: the air sacs of the winged pollen and the pollination droplet, the two non-motile male cells and the fate of each, how the <i>Cycas</i> sperm swims to the egg, or the origin and ploidy of each part of the seed. This additional topic supplies that detail.',
       },
 
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Pollination in gymnosperms: wind pollination to the micropyle.</b><br>Conifers such as <i>Pinus</i> are wind-pollinated (anemophilous): there is no animal vector, no nectar and no flower. The steps:<br>1. The <b>male cone</b> (microsporangiate strobilus) bears numerous microsporophylls, each with two microsporangia on its lower surface.<br>2. Inside each microsporangium, microspore mother cells undergo meiosis → four <b>microspores</b> (n). Each microspore develops into a <b>pollen grain</b>.<br>3. The mature pollen grain in <i>Pinus</i> is <b>winged</b>: it has two balloon-like air sacs (wings) that aid buoyancy and wind dispersal. This is the “sulphur shower” in pine forests.<br>4. When the male cone matures, the microsporangia dehisce and release millions of pollen grains into the air.<br>5. Some pollen grains land on the <b>ovule</b> of a female cone. The ovule has a <b>micropyle</b>, a small opening in the integument, through which the pollen grain enters.<br>6. There is <b>no stigma, no style, no ovary</b>. The pollen lands directly on the nucellus (megasporangium) near the micropyle. A <b>pollination droplet</b> may exude from the micropyle and capture pollen.',
+        html: '<b>Pollination in gymnosperms: wind pollination to the micropyle.</b><br>Conifers such as <i>Pinus</i> are wind-pollinated (anemophilous): there is no animal vector, no nectar and no flower. The steps:<br>1. The <b>male cone</b> (microsporangiate strobilus) bears numerous microsporophylls, each with two microsporangia on its lower surface.<br>2. Inside each microsporangium, microspore mother cells undergo meiosis → four <b>microspores</b> (<i>n</i>). Each microspore develops into a <b>pollen grain</b>.<br>3. The mature pollen grain in <i>Pinus</i> is <b>winged</b>: it has two balloon-like air sacs (wings) that aid buoyancy and wind dispersal. This is the “sulphur shower” in pine forests.<br>4. When the male cone matures, the microsporangia dehisce and release millions of pollen grains into the air.<br>5. Some pollen grains land on the <b>ovule</b> of a female cone. The ovule has a <b>micropyle</b>, a small opening in the integument, through which the pollen grain enters.<br>6. There is <b>no stigma, no style, no ovary</b>. The pollen lands directly on the nucellus (megasporangium) near the micropyle. A <b>pollination droplet</b> may exude from the micropyle and capture pollen.',
       },
       {
         t: 'p',
-        html: '<b>Pollen tube growth and fertilisation in <i>Pinus</i>.</b><br>1. After pollination, the pollen grain germinates: the <b>vegetative cell</b> elongates to form the <b>pollen tube</b>. The <b>generative cell</b> divides into two <b>male cells (male gametes)</b>; these are non-motile.<br>2. The pollen tube grows through the nucellar tissue, toward the female gametophyte.<br>3. When the pollen tube tip reaches the archegonium, it discharges its two male cells into the cytoplasm of the egg cell.<br>4. <b>One male cell fuses with the egg nucleus</b> (syngamy) → diploid zygote.<br>5. The second male cell degenerates; there is no second fusion.<br>6. This is <b>single fertilisation</b>, not double fertilisation. The outcome is one zygote → one embryo.',
+        html: '<b>Pollen tube growth and fertilisation in <i>Pinus</i>.</b><br>1. After pollination, the pollen grain germinates: the <b>vegetative cell</b> elongates to form the <b>pollen tube</b>. The <b>generative cell</b> gives rise, through a body cell, to two <b>male cells (male gametes)</b>; these are non-motile.<br>2. The pollen tube grows through the nucellar tissue, toward the female gametophyte.<br>3. When the pollen tube tip reaches the archegonium, it discharges its two male cells into the cytoplasm of the egg cell.<br>4. <b>One male cell fuses with the egg nucleus</b> (syngamy) → diploid zygote.<br>5. The second male cell degenerates; there is no second fusion.<br>6. This is <b>single fertilisation</b>, not double fertilisation. The outcome is one zygote → one embryo.',
       },
       {
         t: 'p',
@@ -235,7 +235,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Seed formation on the cone scale.</b><br>1. After fertilisation, the zygote divides and develops into an embryo. The embryo has a <b>suspensor</b>, a <b>radicle</b> (future root), a <b>plumule</b> (future shoot), and <b>two to many cotyledons</b> (the embryo of <i>Pinus</i> is polycotyledonous).<br>2. Meanwhile, the <b>female gametophyte</b> (n) has been developing in the ovule and serves as the food-storing tissue: the <b>haploid endosperm</b>.<br>3. The <b>integuments</b> of the ovule harden to become the <b>seed coat</b>. In <i>Pinus</i>, the ovuliferous scale contributes to the seed wing.<br>4. The mature <b>seed</b> consists of: embryo (2n, with cotyledons), endosperm (n), and seed coat (2n, from integuments). The seed is <b>naked</b>: it sits exposed on the upper surface of the ovuliferous scale of the female cone.<br>5. The seed is dispersed (often by wind: the wing aids this) and germinates into a new sporophyte.',
+        html: '<b>Seed formation on the cone scale.</b><br>1. After fertilisation, the zygote divides and develops into an embryo. The embryo has a <b>suspensor</b>, a <b>radicle</b> (future root), a <b>plumule</b> (future shoot), and <b>two to many cotyledons</b> (the embryo of <i>Pinus</i> is polycotyledonous).<br>2. Meanwhile, the <b>female gametophyte</b> (<i>n</i>) has been developing in the ovule and serves as the food-storing tissue: the <b>haploid endosperm</b>.<br>3. The <b>integuments</b> of the ovule harden to become the <b>seed coat</b>. In <i>Pinus</i>, the ovuliferous scale contributes to the seed wing.<br>4. The mature <b>seed</b> consists of: embryo (2<i>n</i>, with cotyledons), endosperm (<i>n</i>), and seed coat (2<i>n</i>, from integuments). The seed is <b>naked</b>: it sits exposed on the upper surface of the ovuliferous scale of the female cone.<br>5. The seed is dispersed (often by wind: the wing aids this) and germinates into a new sporophyte.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -252,7 +252,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Why <i>Cycas</i> Sperm is Significant.</b> State two ways in which fertilisation in <i>Cycas</i> differs from fertilisation in <i>Pinus</i>. What does the presence of motile sperm indicate about <i>Cycas</i>’s evolutionary history?',
         steps: [
           '(i) In <i>Pinus</i>, the male gametes are <b>non-motile</b>: they are carried to the egg by the pollen tube. In <i>Cycas</i>, the male gametes are <b>multiflagellate and motile</b>: they swim through the archegonial fluid. (ii) In both, fertilisation is single (one male cell fuses with the egg), but in <i>Cycas</i> the sperm must actively swim to the egg.',
-          '<b>Evolutionary significance:</b> Motile flagellated sperm are a <b>primitive character</b> inherited from the aquatic ancestors of land plants (like pteridophytes). <i>Cycas</i> has retained this ancestral feature, while <i>Pinus</i> (and most other gymnosperms) have lost it and evolved the pollen-tube mechanism. This places <i>Cycas</i> lower on the gymnosperm evolutionary tree and shows that it keeps fern-like features such as motile sperm and circinate vernation.',
+          '<b>Evolutionary significance:</b> Motile flagellated sperm are a <b>primitive character</b> inherited from the ancestors of land plants and still seen in bryophytes and pteridophytes. <i>Cycas</i> (and <i>Ginkgo</i>) have retained this ancestral feature, while in <i>Pinus</i> (and most other gymnosperms) the pollen tube carries non-motile male cells to the egg. This places <i>Cycas</i> lower on the gymnosperm evolutionary tree and shows that it keeps fern-like features such as motile sperm and circinate vernation.',
         ],
         ans: '',
       },
@@ -261,7 +261,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board Level',
         q: '<b>Seed Structure in <i>Pinus</i>.</b> Draw a labelled diagram of a <i>Pinus</i> seed showing (i) seed coat, (ii) endosperm, and (iii) embryo. State the ploidy and origin of each part.',
         steps: [],
-        ans: '(i) <b>Seed coat</b>, ploidy: <b>diploid (2n)</b>; origin: the <b>integuments</b> of the ovule. (ii) <b>Endosperm</b>, ploidy: <b>haploid (n)</b>; origin: the <b>female gametophyte</b> tissue that formed <b>before fertilisation</b>. (iii) <b>Embryo</b>, ploidy: <b>diploid (2n)</b>; origin: the <b>zygote</b> (fusion of egg + male gamete) → divides mitotically to form the embryo with radicle, plumule, and cotyledons.',
+        ans: '(i) <b>Seed coat</b>, ploidy: <b>diploid (2<i>n</i>)</b>; origin: the <b>integuments</b> of the ovule. (ii) <b>Endosperm</b>, ploidy: <b>haploid (<i>n</i>)</b>; origin: the <b>female gametophyte</b> tissue that formed <b>before fertilisation</b>. (iii) <b>Embryo</b>, ploidy: <b>diploid (2<i>n</i>)</b>; origin: the <b>zygote</b> (fusion of egg + male gamete) → divides mitotically to form the embryo with radicle, plumule, and cotyledons.',
       },
 
       { t: 'part', title: 'Practice' },
@@ -286,7 +286,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] State the ploidy and origin of the endosperm in a gymnosperm seed.',
-            a: 'The endosperm is <b>haploid (n)</b> in origin and is the <b>female gametophyte tissue</b>. It forms <b>before fertilisation</b>: the female gametophyte develops from the megaspore in the ovule and stores food; it is not a product of fertilisation (unlike angiosperm endosperm).',
+            a: 'The endosperm is <b>haploid (<i>n</i>)</b> in origin and is the <b>female gametophyte tissue</b>. It forms <b>before fertilisation</b>: the female gametophyte develops from the megaspore in the ovule and stores food; it is not a product of fertilisation (unlike angiosperm endosperm).',
           },
         ],
       },
@@ -310,15 +310,15 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Microsporogenesis: pollen grain formation.</b><br>1. In the <b>anther</b> (microsporangium), a layer of hypodermal cells differentiates into <b>archesporial cells</b>.<br>2. Each archesporial cell divides to form a <b>primary parietal cell</b> (toward the periphery, giving the anther wall layers) and a <b>primary sporogenous cell</b> (toward the centre, giving the spore-producing tissue).<br>3. The primary sporogenous cells undergo mitotic divisions to form a mass of <b>sporogenous cells</b>.<br>4. Each sporogenous cell becomes a <b>microspore mother cell (pollen mother cell, PMC)</b>, a diploid (2n) cell.<br>5. Each PMC undergoes <b>meiosis I</b> → two <b>dyad cells</b> → <b>meiosis II</b> → a <b>tetrad of four haploid microspores</b>.<br>6. The four microspores separate. Each microspore is initially <b>tetrahedral</b> (pyramid-shaped).<br>7. The microspore undergoes a single mitotic division, <b>unequal mitosis</b>, producing two cells:<br>• A <b>small generative cell</b> (pressed against the spore wall): will later divide to form the two male gametes.<br>• A <b>large vegetative (tube) cell</b>: will form the pollen tube.<br>8. The mature <b>2-celled pollen grain</b> consists of: vegetative cell nucleus + generative cell. The generative cell later floats into the vegetative cell cytoplasm. At this stage the pollen is shed (in 2-celled condition in most angiosperms; some shed at 3-celled stage where the generative cell has already divided).',
+        html: '<b>Microsporogenesis: pollen grain formation.</b><br>1. In each <b>microsporangium</b> (pollen sac) of the anther, a layer of hypodermal cells differentiates into <b>archesporial cells</b>.<br>2. Each archesporial cell divides to form a <b>primary parietal cell</b> (toward the periphery, giving the anther wall layers) and a <b>primary sporogenous cell</b> (toward the centre, giving the spore-producing tissue).<br>3. The primary sporogenous cells undergo mitotic divisions to form a mass of <b>sporogenous cells</b>.<br>4. Each sporogenous cell becomes a <b>microspore mother cell (pollen mother cell, PMC)</b>, a diploid (2<i>n</i>) cell.<br>5. Each PMC undergoes <b>meiosis I</b> → two <b>dyad cells</b> → <b>meiosis II</b> → a <b>tetrad of four haploid microspores</b>.<br>6. The four microspores, usually arranged in a <b>tetrahedral</b> tetrad, separate.<br>7. The microspore undergoes a single mitotic division, <b>unequal mitosis</b>, producing two cells:<br>• A <b>small generative cell</b> (pressed against the spore wall): will later divide to form the two male gametes.<br>• A <b>large vegetative (tube) cell</b>: will form the pollen tube.<br>8. The mature <b>2-celled pollen grain</b> consists of: vegetative cell nucleus + generative cell. The generative cell later floats into the vegetative cell cytoplasm. At this stage the pollen is shed (in 2-celled condition in most angiosperms; some shed at 3-celled stage where the generative cell has already divided).',
       },
       {
         t: 'p',
-        html: '<b>Megasporogenesis: embryo sac formation.</b><br>1. In the <b>ovule</b> (megasporangium), a sub-epidermal cell becomes the <b>archesporial cell</b>. This may directly become the <b>megaspore mother cell (MMC)</b> or may divide to form a parietal cell + MMC.<br>2. The MMC is <b>diploid (2n)</b>. It undergoes <b>meiosis I</b> → two <b>dyad cells</b>. Meiosis II follows.<br>3. In the <b>monosporic (Polygonum) type</b> (the most common pattern in angiosperms):<br>• Both dyad cells undergo <b>meiosis II</b>, giving a linear tetrad of four megaspores.<br>• The three <b>micropylar</b> megaspores degenerate; only the <b>chalazal</b> megaspore is functional.<br>4. The <b>functional megaspore</b> (n) is the only survivor out of four. It lies at the <b>chalazal end</b> of the tetrad and is the embryo sac initial.<br>5. The functional megaspore undergoes <b>three mitotic divisions</b>:<br>• Division 1: two nuclei → one at micropylar end, one at chalazal end.<br>• Division 2: four nuclei: two move to each pole.<br>• Division 3: eight nuclei: four at each pole.<br>6. <b>Cellularisation:</b> one nucleus from each pole moves to the centre → <b>two polar nuclei</b> (in the central cell). At the micropylar pole, three cells form: <b>one egg cell + two synergid cells</b> (the egg apparatus). At the chalazal pole, three cells form: <b>three antipodal cells</b>. The central cell contains the two polar nuclei.<br>7. Result: <b>7 cells, 8 nuclei</b>: the mature embryo sac.',
+        html: '<b>Megasporogenesis: embryo sac formation.</b><br>1. In the <b>ovule</b> (megasporangium), a sub-epidermal cell becomes the <b>archesporial cell</b>. This may directly become the <b>megaspore mother cell (MMC)</b> or may divide to form a parietal cell + MMC.<br>2. The MMC is <b>diploid (2<i>n</i>)</b>. It undergoes <b>meiosis I</b> → two <b>dyad cells</b>. Meiosis II follows.<br>3. In the <b>monosporic (Polygonum) type</b> (the most common pattern in angiosperms):<br>• Both dyad cells undergo <b>meiosis II</b>, giving a linear tetrad of four megaspores.<br>• The three <b>micropylar</b> megaspores degenerate; only the <b>chalazal</b> megaspore is functional.<br>4. The <b>functional megaspore</b> (<i>n</i>) is the only survivor out of four. It lies at the <b>chalazal end</b> of the tetrad and is the embryo sac initial.<br>5. The functional megaspore undergoes <b>three mitotic divisions</b>:<br>• Division 1: two nuclei → one at micropylar end, one at chalazal end.<br>• Division 2: four nuclei: two move to each pole.<br>• Division 3: eight nuclei: four at each pole.<br>6. <b>Cellularisation:</b> one nucleus from each pole moves to the centre → <b>two polar nuclei</b> (in the central cell). At the micropylar pole, three cells form: <b>one egg cell + two synergid cells</b> (the egg apparatus). At the chalazal pole, three cells form: <b>three antipodal cells</b>. The central cell contains the two polar nuclei.<br>7. Result: <b>7 cells, 8 nuclei</b>: the mature embryo sac.',
       },
       {
         t: 'p',
-        html: '<b>Pollen tube growth to the embryo sac.</b><br>1. After pollination, the pollen grain germinates on the stigma: the <b>vegetative cell</b> elongates as a <b>pollen tube</b> down through the style.<br>2. The <b>generative cell</b> divides (if not already) to produce two <b>male gametes</b> (cells with male nuclei).<br>3. The pollen tube grows chemotropically (guided by chemical signals from the ovule) down the style, through the micropyle, into the <b>embryo sac</b>.<br>4. The pollen tube enters through the <b>synergid cell</b>: it discharges its contents (two male gametes + vegetative nucleus) into the synergid cytoplasm.<br>5. One male gamete moves to and fuses with the <b>egg nucleus</b> (syngamy → zygote, 2n). The other male gamete moves to and fuses with the <b>two polar nuclei</b> of the central cell (triple fusion → primary endosperm nucleus, 3n).<br>6. The receptive <b>synergid</b> degenerates after pollen tube discharge.',
+        html: '<b>Pollen tube growth to the embryo sac.</b><br>1. After pollination, the pollen grain germinates on the stigma: the <b>vegetative cell</b> elongates as a <b>pollen tube</b> down through the style.<br>2. The <b>generative cell</b> divides (if not already) to produce two <b>male gametes</b> (cells with male nuclei).<br>3. The pollen tube grows chemotropically (guided by chemical signals from the ovule) down the style, through the micropyle, into the <b>embryo sac</b>.<br>4. The pollen tube enters through the <b>synergid cell</b>: it discharges its contents (two male gametes + vegetative nucleus) into the synergid cytoplasm.<br>5. One male gamete moves to and fuses with the <b>egg nucleus</b> (syngamy → zygote, 2<i>n</i>). The other male gamete moves to and fuses with the <b>two polar nuclei</b> of the central cell (triple fusion → primary endosperm nucleus, 3<i>n</i>).<br>6. The receptive <b>synergid</b> degenerates after pollen tube discharge.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -327,7 +327,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Level',
         q: '<b>Microspore Mother Cell to Pollen Grain.</b> Starting from a microspore mother cell in an anther, describe the steps that lead to a mature 2-celled pollen grain. Name the type of cell division that forms the microspores and the type that forms the generative and vegetative cells.',
         steps: [
-          'Microspore mother cell (2n) → <b>meiosis</b> → tetrad of four haploid microspores.',
+          'Microspore mother cell (2<i>n</i>) → <b>meiosis</b> → tetrad of four haploid microspores.',
           'Microspores separate.',
           'Each microspore undergoes <b>one mitotic division</b> (unequal) → a small <b>generative cell</b> and a large <b>vegetative (tube) cell</b>.',
           'Result: mature <b>2-celled pollen grain</b> (vegetative cell + generative cell).',
@@ -348,8 +348,8 @@ export const TOPICS: Topic[] = [
         steps: [
           'Pollen tube enters the embryo sac through the <b>micropyle</b>, typically through the synergid cell.',
           'The pollen tube tip ruptures, releasing: <b>two male gametes</b> + the <b>vegetative (tube) nucleus</b>.',
-          'One male gamete moves to the egg cell and fuses with the egg nucleus: <b>syngamy → diploid zygote (2n)</b>.',
-          'The second male gamete moves to the central cell and fuses with the <b>two polar nuclei</b>: <b>triple fusion → triploid primary endosperm nucleus (3n)</b>.',
+          'One male gamete moves to the egg cell and fuses with the egg nucleus: <b>syngamy → diploid zygote (2<i>n</i>)</b>.',
+          'The second male gamete moves to the central cell and fuses with the <b>two polar nuclei</b>: <b>triple fusion → triploid primary endosperm nucleus (3<i>n</i>)</b>.',
           'The receptive <b>synergid</b> degenerates after pollen tube discharge.',
           'This entire process is called <b>double fertilisation</b> and is unique to angiosperms (NCERT treats the triple fusion giving triploid endosperm as unique to angiosperms).',
         ],
@@ -405,7 +405,7 @@ export const TOPICS: Topic[] = [
         head: ['Group', 'Organism', 'Product / Use', 'Chapter reference'],
         rows: [
           ['<b>Chlorophyceae (Green Algae)</b>', '<i>Chlorella</i>', 'Protein-rich food supplement; single-cell protein', 'Topic 02, section 3.3'],
-          ['<b>Cyanobacteria</b> (listed with the algae in NCERT)', '<i>Spirulina</i>', 'Protein-rich food supplement; single-cell protein', 'Topic 02, section 3.3'],
+          ['<b>Cyanobacteria</b>', '<i>Spirulina</i>', 'Protein-rich food supplement; single-cell protein', 'Topic 02, section 3.3'],
           ['<b>Rhodophyceae (Red Algae)</b>', '<i>Gracilaria</i>', 'Agar (culture medium for microbes; food industry for jellies and ice creams)', 'Topic 02, section 3.3'],
           ['<b>Rhodophyceae</b>', '<i>Gelidium</i>', 'Agar (alternative source)', 'Topic 02, section 3.3'],
           ['<b>Rhodophyceae</b>', 'Various (e.g., <i>Chondrus</i>)', '<b>Carrageen</b>: hydrocolloid used in food, pharmaceuticals', 'Topic 02, section 3.3'],
@@ -513,8 +513,8 @@ export const TOPICS: Topic[] = [
           ['Flowers / cones', 'Absent', 'Absent', 'Absent', 'Cones (strobili)', 'Flowers'],
           ['Water for fertilisation', 'Usually (gametes motile in most; non-motile in red algae and in <i>Spirogyra</i>)', 'Required', 'Required', 'Not required from outside (the motile sperm of <i>Cycas</i> and <i>Ginkgo</i> swim in the ovule’s own fluid)', 'Not required'],
           ['Double fertilisation', 'Absent', 'Absent', 'Absent', 'Absent', '<b>Present</b>'],
-          ['Endosperm', 'Absent', 'Absent', 'Absent', '<b>Haploid (n), pre-fertilisation</b>', '<b>Triploid (3n), post-fertilisation</b>'],
-          ['Free-living gametophyte', 'Usually yes', 'Gametophyte free-living', 'Prothallus free-living in homosporous ferns; retained in the spore wall in <i>Selaginella</i> and <i>Salvinia</i>', 'No (pollen grain, embryo sac)', 'No (pollen grain, embryo sac)'],
+          ['Endosperm', 'Absent', 'Absent', 'Absent', '<b>Haploid (<i>n</i>), pre-fertilisation</b>', '<b>Triploid (3<i>n</i>), post-fertilisation</b>'],
+          ['Free-living gametophyte', 'Usually yes', 'Gametophyte free-living', 'Prothallus free-living in homosporous ferns; retained in the spore wall in <i>Selaginella</i> and <i>Salvinia</i>', 'No (pollen grain; female gametophyte inside the ovule)', 'No (pollen grain, embryo sac)'],
         ],
       },
       {
@@ -523,7 +523,7 @@ export const TOPICS: Topic[] = [
         head: ['Feature', 'Chlorophyceae', 'Phaeophyceae', 'Rhodophyceae'],
         rows: [
           ['Common name', 'Green algae', 'Brown algae', 'Red algae'],
-          ['Major pigments', 'Chl a, b', 'Chl a, c + <b>fucoxanthin</b>', 'Chl a, d + <b>r-phycoerythrin</b>'],
+          ['Major pigments', 'Chl <i>a</i>, <i>b</i>', 'Chl <i>a</i>, <i>c</i> + <b>fucoxanthin</b>', 'Chl <i>a</i>, <i>d</i> + <b>r-phycoerythrin</b>'],
           ['Stored food', '<b>Starch</b> (around pyrenoid)', '<b>Mannitol, laminarin</b>', '<b>Floridean starch</b>'],
           ['Cell wall', 'Cellulose + pectose', 'Cellulose + algin', 'Cellulose + pectin + sulphated polysaccharides'],
           ['Flagella', '2–8, equal, apical', '2, unequal, lateral', '<b>Absent</b>'],
@@ -550,7 +550,7 @@ export const TOPICS: Topic[] = [
         rows: [
           ['Vascular tissue', '<b>Absent</b>', '<b>Present</b>'],
           ['True roots', 'Absent (rhizoids)', 'Present'],
-          ['Dominant plant body', '<b>Gametophyte (n)</b>', '<b>Sporophyte (2n)</b>'],
+          ['Dominant plant body', '<b>Gametophyte (<i>n</i>)</b>', '<b>Sporophyte (2<i>n</i>)</b>'],
           ['Sporophyte', 'Small, attached, dependent', 'Independent, dominant, free-living'],
           ['Gametophyte', 'Large, free-living, photosynthetic', 'Small prothallus, free-living in homosporous ferns; retained in the spore wall in <i>Selaginella</i> and <i>Salvinia</i>'],
           ['Sex organs', 'Antheridium + archegonium', 'Antheridium + archegonium'],
@@ -569,12 +569,12 @@ export const TOPICS: Topic[] = [
           ['Reproductive structure', '<b>Cones (strobili)</b>: no flowers', '<b>Flowers</b>'],
           ['Fruit', 'Absent', 'Present'],
           ['Double fertilisation', '<b>Absent</b> (single fertilisation)', '<b>Present</b>'],
-          ['Endosperm', '<b>Haploid (n), pre-fertilisation</b>', '<b>Triploid (3n), post-fertilisation</b>'],
+          ['Endosperm', '<b>Haploid (<i>n</i>), pre-fertilisation</b>', '<b>Triploid (3<i>n</i>), post-fertilisation</b>'],
           ['Female gametophyte', 'Retained in ovule; bears <b>archegonia</b>', 'Embryo sac; <b>no archegonia</b>'],
           ['Male gametophyte', 'Pollen grain (a few cells, highly reduced)', 'Pollen grain (2 or 3 cells)'],
-          ['Xylem', '<b>Tracheids only (vessels absent, apart from <i>Gnetum</i>)</b>', 'Vessels usually present'],
+          ['Xylem', '<b>Tracheids only (vessels absent, except in Gnetales)</b>', 'Vessels usually present'],
           ['Pollinating agent', 'Mostly wind', 'Wind, insects, animals, etc.'],
-          ['Endosperm origin', 'Female gametophyte (n)', 'Triple fusion product (3n)'],
+          ['Endosperm origin', 'Female gametophyte (<i>n</i>)', 'Triple fusion product (3<i>n</i>)'],
           ['Examples', '<i>Cycas</i>, <i>Pinus</i>, <i>Ginkgo</i>, <i>Sequoia</i>', 'Mango, wheat, sunflower'],
         ],
       },
@@ -599,14 +599,14 @@ export const TOPICS: Topic[] = [
         rows: [
           [
             '<b>Haplontic</b>',
-            'Gametophyte (n)',
+            'Gametophyte (<i>n</i>)',
             'Sporophyte = single-celled zygote',
             'Zygotic: the zygote divides by meiosis immediately',
-            '<i>Volvox</i>, <i>Spirogyra</i>, <i>Chlamydomonas</i>',
+            '<i>Volvox</i>, <i>Spirogyra</i>, some <i>Chlamydomonas</i>',
           ],
           [
             '<b>Diplontic</b>',
-            'Sporophyte (2n)',
+            'Sporophyte (2<i>n</i>)',
             'Gametophyte = gametes only (or a few cells)',
             'Gametic: meiosis forms the gametes (as in <i>Fucus</i>)',
             '<i>Fucus</i>; seed plants (NCERT convention, see the Note)',
@@ -648,7 +648,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Trap 5:</b> “Gymnosperm endosperm is triploid.” False. Gymnosperm endosperm is haploid (n) and forms before fertilisation (it IS the female gametophyte). Angiosperm endosperm is triploid (3n) and forms after fertilisation.',
+        html: '<b>Trap 5:</b> “Gymnosperm endosperm is triploid.” False. Gymnosperm endosperm is haploid (<i>n</i>) and forms before fertilisation (it IS the female gametophyte). Angiosperm endosperm is triploid (3<i>n</i>) and forms after fertilisation.',
       },
       {
         t: 'p',
@@ -678,7 +678,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Mixed Comparison.</b> A seedless plant has vascular tissue, produces two types of spores, and the female gametophyte is retained on the parent sporophyte. To which group does it belong, and does it have flowers, fruits, and double fertilisation?',
         steps: [
           'Group: <b>Pteridophytes</b> (specifically a heterosporous pteridophyte like <i>Selaginella</i> or <i>Salvinia</i>).',
-          'Flowers: <b>No</b> (cones, not flowers).',
+          'Flowers: <b>No</b> (<i>Selaginella</i> bears cones, not flowers).',
           'Fruits: <b>No</b> (no ovary).',
           'Double fertilisation: <b>No</b> (single fertilisation; no triple fusion).',
         ],
@@ -690,7 +690,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Life Cycle Identification.</b> A certain alga has a dominant, free-living haploid plant body. The diploid phase is represented by a single cell that undergoes meiosis immediately. Name the pattern and give two examples.',
         steps: [
           'Pattern: <b>Haplontic</b>.',
-          'Examples: <i>Volvox</i>, <i>Spirogyra</i>, <i>Chlamydomonas</i> (most algae).',
+          'Examples: <i>Volvox</i>, <i>Spirogyra</i>, some <i>Chlamydomonas</i> (many green algae).',
         ],
         ans: '',
       },
@@ -700,7 +700,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Comprehensive Comparison.</b> Prepare a comparative table of five features (vascular tissue, dominant phase, seeds, water for fertilisation, double fertilisation) across bryophytes, pteridophytes, gymnosperms, and angiosperms.',
         steps: [
           '<b>Vascular tissue:</b> Bryophytes: Absent; Pteridophytes: Present; Gymnosperms: Present; Angiosperms: Present.',
-          '<b>Dominant phase:</b> Bryophytes: Gametophyte (n); Pteridophytes: Sporophyte (2n); Gymnosperms: Sporophyte (2n); Angiosperms: Sporophyte (2n).',
+          '<b>Dominant phase:</b> Bryophytes: Gametophyte (<i>n</i>); Pteridophytes: Sporophyte (2<i>n</i>); Gymnosperms: Sporophyte (2<i>n</i>); Angiosperms: Sporophyte (2<i>n</i>).',
           '<b>Seeds:</b> Bryophytes: Absent; Pteridophytes: Absent; Gymnosperms: Naked; Angiosperms: In fruit.',
           '<b>Water for fertilisation:</b> Bryophytes: Required; Pteridophytes: Required; Gymnosperms: Not required; Angiosperms: Not required.',
           '<b>Double fertilisation:</b> Bryophytes: Absent; Pteridophytes: Absent; Gymnosperms: Absent; Angiosperms: Present.',
@@ -730,7 +730,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] Draw a table comparing the three life-cycle patterns with respect to (i) dominant phase, (ii) where meiosis occurs, and (iii) one example each.',
-            a: '<b>The three patterns compared:</b><br><b>Haplontic:</b> dominant phase Gametophyte (n); meiosis occurs in Zygote (zygotic meiosis); example <i>Spirogyra</i>.<br><b>Diplontic:</b> dominant phase Sporophyte (2n); meiosis occurs in Gamete mother cells (gametic meiosis, as in <i>Fucus</i>); example <i>Fucus</i>; seed plants (NCERT convention).<br><b>Haplo-diplontic:</b> dominant phase Both multicellular; meiosis occurs in Sporangia (sporic meiosis); example <i>Dryopteris</i> (sporophyte dominant).',
+            a: '<b>The three patterns compared:</b><br><b>Haplontic:</b> dominant phase Gametophyte (<i>n</i>); meiosis occurs in Zygote (zygotic meiosis); example <i>Spirogyra</i>.<br><b>Diplontic:</b> dominant phase Sporophyte (2<i>n</i>); meiosis occurs in Gamete mother cells (gametic meiosis, as in <i>Fucus</i>); example <i>Fucus</i>; seed plants (NCERT convention).<br><b>Haplo-diplontic:</b> dominant phase Both multicellular; meiosis occurs in Sporangia (sporic meiosis); example <i>Dryopteris</i> (sporophyte dominant).',
           },
         ],
       },
@@ -764,7 +764,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] State one difference between fertilisation in <i>Pinus</i> and fertilisation in an angiosperm.',
-            a: 'Any one: (i) <i>Pinus</i> shows <b>single fertilisation</b> (second male cell degenerates); angiosperm shows <b>double fertilisation</b> (second male cell undergoes triple fusion). (ii) <i>Pinus</i> pollen lands directly on the nucellus; angiosperm pollen lands on the stigma. (iii) Gymnosperm endosperm is haploid (n); angiosperm endosperm is triploid (3n).',
+            a: 'Any one: (i) <i>Pinus</i> shows <b>single fertilisation</b> (second male cell degenerates); angiosperm shows <b>double fertilisation</b> (second male cell undergoes triple fusion). (ii) <i>Pinus</i> pollen lands directly on the nucellus; angiosperm pollen lands on the stigma. (iii) Gymnosperm endosperm is haploid (<i>n</i>); angiosperm endosperm is triploid (3<i>n</i>).',
           },
           {
             q: '[NEET] From how many mitotic divisions does the embryo sac arise from the functional megaspore?',
@@ -839,7 +839,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 1: The Pigment/Food/Flagella Column Match</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> The stem names an alga or a class and asks for its stored food, major pigment, flagella number/position, or cell-wall composition. Alternatively it presents a feature and asks for the class.<br><b>The approach that cracks it:</b> Build the three-column table for Chlorophyceae, Phaeophyceae, and Rhodophyceae once and memorise it as a block. The most reliable discriminators are:<br>• <b>Stored food:</b> Starch → green; Mannitol/laminarin → brown; <b>Floridean starch → red</b> (most frequently tested; the book’s estimate from past papers, not official figures).<br>• <b>Flagella absent → red</b> (the only one of these three classes without flagella).<br>• <b>Fucoxanthin → brown; r-phycoerythrin → red.</b>',
+        html: '<b>What it looks like:</b> The stem names an alga or a class and asks for its stored food, major pigment, flagella number/position, or cell-wall composition. Alternatively it presents a feature and asks for the class.<br><b>The approach that cracks it:</b> Build the three-column table for Chlorophyceae, Phaeophyceae, and Rhodophyceae once and memorise it as a block. The most reliable discriminators are:<br>• <b>Stored food:</b> Starch → green; Mannitol/laminarin → brown; <b>Floridean starch → red</b> (frequently tested; the book’s estimate from past papers, not official figures).<br>• <b>Flagella absent → red</b> (the only one of these three classes without flagella).<br>• <b>Fucoxanthin → brown; r-phycoerythrin → red.</b>',
       },
       {
         t: 'ex',
@@ -854,14 +854,14 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 2: The Dominant-Generation / Life-Cycle Pattern Identification</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> The stem describes a plant’s life cycle (usually by naming an organism or stating where meiosis occurs) and asks for the pattern or which generation is dominant. Occasionally it reverses the question: gives the pattern and asks for the example.<br><b>The approach that cracks it:</b> Run the two-step decision tree:<br>1. <b>Where does meiosis occur?</b> Zygotic → haplontic. Gametic → diplontic. Sporic → haplo-diplontic.<br>2. <b>If haplo-diplontic, which group?</b> Bryophytes → gametophyte dominant. Pteridophytes → sporophyte dominant. <i>Ectocarpus</i>/kelps → both multicellular (haplo-diplontic).',
+        html: '<b>What it looks like:</b> The stem describes a plant’s life cycle (usually by naming an organism or stating where meiosis occurs) and asks for the pattern or which generation is dominant. Occasionally it reverses the question: gives the pattern and asks for the example.<br><b>The approach that cracks it:</b> Run the two-step decision tree:<br>1. <b>Where does meiosis occur?</b> Zygotic → haplontic. Gametic → diplontic. Sporic → haplo-diplontic. (Seed plants are the exception: diplontic by NCERT’s convention, though their meiosis forms spores.)<br>2. <b>If haplo-diplontic, which group?</b> Bryophytes → gametophyte dominant. Pteridophytes → sporophyte dominant. <i>Ectocarpus</i>/kelps → both multicellular (haplo-diplontic).',
       },
       {
         t: 'ex',
         tag: 'Worked representative',
         q: 'In a certain alga, the zygote is the only diploid cell and it undergoes meiosis on germination. The dominant, photosynthetic phase is the free-living gametophyte. Which life-cycle pattern is described?<br><b>(a)</b> Diplontic<br><b>(b)</b> Haplontic<br><b>(c)</b> Haplo-diplontic<br><b>(d)</b> Triphasic',
         steps: [
-          '<b>Working:</b> “Zygote is the only diploid cell” + “zygote undergoes meiosis on germination” = <b>zygotic meiosis</b>. This defines the <b>haplontic</b> pattern, in which the gametophyte (n) is the dominant free-living phase. Diplontic would have sporophyte dominant with only gametes as the haploid phase. Haplo-diplontic would have both generations multicellular (not the case here).',
+          '<b>Working:</b> “Zygote is the only diploid cell” + “zygote undergoes meiosis on germination” = <b>zygotic meiosis</b>. This defines the <b>haplontic</b> pattern, in which the gametophyte (<i>n</i>) is the dominant free-living phase. Diplontic would have sporophyte dominant with only gametes as the haploid phase. Haplo-diplontic would have both generations multicellular (not the case here).',
         ],
         ans: '(b)',
       },
@@ -878,7 +878,7 @@ export const TOPICS: Topic[] = [
         rows: [
           ['Seeds', 'Naked (no ovary)', 'Enclosed in fruit'],
           ['Fertilisation', 'Single', 'Double (syngamy + triple fusion)'],
-          ['Endosperm', 'Haploid (n), pre-fertilisation', 'Triploid (3n), post-fertilisation'],
+          ['Endosperm', 'Haploid (<i>n</i>), pre-fertilisation', 'Triploid (3<i>n</i>), post-fertilisation'],
           ['Archegonia', 'Present in female gametophyte', 'Absent'],
         ],
       },
@@ -887,7 +887,7 @@ export const TOPICS: Topic[] = [
         tag: 'Worked representative',
         q: 'A tall woody plant of cold mountainous regions bears two types of cones. Its xylem consists mainly of tracheids, and the seeds are exposed on the surface of cone scales. Which of the following is true about its reproductive process?<br><b>(a)</b> Double fertilisation occurs<br><b>(b)</b> The endosperm is triploid<br><b>(c)</b> The endosperm is haploid and forms before fertilisation<br><b>(d)</b> The female gametophyte is free-living',
         steps: [
-          '<b>Working:</b> “Two types of cones” + “xylem mainly of tracheids” + “naked seeds on cone scales” = <b>gymnosperm</b> (<i>Pinus</i>/<i>Cedrus</i>). Gymnosperms show <b>single fertilisation only</b> (no double fertilisation) → (a) false. Gymnosperm endosperm is <b>haploid (n)</b>, formed from the female gametophyte <b>before</b> fertilisation → (c) is correct. (b) is the angiosperm rule (3n, post-fertilisation). (d) is false because gymnosperm female gametophytes are retained within the ovule and are not free-living.',
+          '<b>Working:</b> “Two types of cones” + “xylem mainly of tracheids” + “naked seeds on cone scales” = <b>gymnosperm</b> (<i>Pinus</i>/<i>Cedrus</i>). Gymnosperms show <b>single fertilisation only</b> (no double fertilisation) → (a) false. Gymnosperm endosperm is <b>haploid (<i>n</i>)</b>, formed from the female gametophyte <b>before</b> fertilisation → (c) is correct. (b) is the angiosperm rule (3<i>n</i>, post-fertilisation). (d) is false because gymnosperm female gametophytes are retained within the ovule and are not free-living.',
         ],
         ans: '(c)',
       },
@@ -910,14 +910,14 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 5: The Multi-Statement “Which is/are Correct” (1-to-4 Items)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A stem lists 3–5 numbered statements and asks how many are correct, or to select the correct combination. This is the most common statement-type format in exam questions on this chapter (the book’s estimate from past papers, not official figures).<br><b>The approach that cracks it:</b> Treat each numbered statement as a True/False binary. Read only the statements relevant to your knowledge gaps; skip the ones you know cold. Watch for two specific traps:<br>• Statements about examples must match the named organism with the correct group (<i>Selaginella</i> → heterosporous, not a moss).<br>• Statements about pigments and stored food are high-error because the three-class table must be exact.',
+        html: '<b>What it looks like:</b> A stem lists 3–5 numbered statements and asks how many are correct, or to select the correct combination. This is a common statement-type format in exam questions on this chapter (the book’s estimate from past papers, not official figures).<br><b>The approach that cracks it:</b> Treat each numbered statement as a True/False binary. Mark every statement True or False, starting with the ones you know cold, and spend the time you save on the ones you are unsure of. Watch for two specific traps:<br>• Statements about examples must match the named organism with the correct group (<i>Selaginella</i> → heterosporous, not a moss).<br>• Statements about pigments and stored food are high-error because the three-class table must be exact.',
       },
       {
         t: 'ex',
         tag: 'Worked representative',
-        q: 'Which of the following statements with respect to the major pigments and stored food in the different groups of algae are correct?<br>(i) In Chlorophyceae, the stored food material is starch and the major pigments are chlorophyll-a and b.<br>(ii) In Phaeophyceae, laminarin is the stored food and the major pigments are chlorophyll-a and b.<br>(iii) In Rhodophyceae, floridean starch is the stored food and the major pigments are chlorophyll-a, d and phycoerythrin.<br><b>(a)</b> (i) is correct, (ii) and (iii) are incorrect<br><b>(b)</b> (i) and (ii) are correct, (iii) is incorrect<br><b>(c)</b> (i) and (iii) are correct, (ii) is incorrect<br><b>(d)</b> (iii) is correct, (i) and (ii) are incorrect',
+        q: 'Which of the following statements with respect to the major pigments and stored food in the different groups of algae are correct?<br>(i) In Chlorophyceae, the stored food material is starch and the major pigments are chlorophyll <i>a</i> and <i>b</i>.<br>(ii) In Phaeophyceae, laminarin is the stored food and the major pigments are chlorophyll <i>a</i> and <i>b</i>.<br>(iii) In Rhodophyceae, floridean starch is the stored food and the major pigments are chlorophyll <i>a</i>, <i>d</i> and phycoerythrin.<br><b>(a)</b> (i) is correct, (ii) and (iii) are incorrect<br><b>(b)</b> (i) and (ii) are correct, (iii) is incorrect<br><b>(c)</b> (i) and (iii) are correct, (ii) is incorrect<br><b>(d)</b> (iii) is correct, (i) and (ii) are incorrect',
         steps: [
-          '<b>Working:</b><br>• (i) Chlorophyceae: the stored food is starch and the major pigments are chlorophyll-a and b, so (i) is <b>correct</b>.<br>• (ii) Phaeophyceae: laminarin is indeed the stored food, but the major pigments are chlorophyll-a and <b>c</b> (plus fucoxanthin), not a and b, so (ii) is <b>incorrect</b>.<br>• (iii) Rhodophyceae: floridean starch is the stored food and the pigments are chlorophyll-a, d and phycoerythrin, so (iii) is <b>correct</b>.',
+          '<b>Working:</b><br>• (i) Chlorophyceae: the stored food is starch and the major pigments are chlorophyll <i>a</i> and <i>b</i>, so (i) is <b>correct</b>.<br>• (ii) Phaeophyceae: laminarin is indeed the stored food, but the major pigments are chlorophyll <i>a</i> and <i>c</i> (plus fucoxanthin), not <i>a</i> and <i>b</i>, so (ii) is <b>incorrect</b>.<br>• (iii) Rhodophyceae: floridean starch is the stored food and the pigments are chlorophyll <i>a</i>, <i>d</i> and phycoerythrin, so (iii) is <b>correct</b>.',
           'Only (i) and (iii) are correct.',
         ],
         ans: '(c)',
@@ -930,15 +930,15 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>1. The stored-food swap (green ↔ brown ↔ red)</b><br>The single most-tested fact is also the most-miscopied (the book’s estimate from past papers, not official figures). Starch belongs to <b>Chlorophyceae</b>. Mannitol and laminarin belong to <b>Phaeophyceae</b>. <b>Floridean starch</b> belongs to <b>Rhodophyceae</b>. Questions routinely put the wrong food next to the right organism, banking on rote error. The chant: “GS–BM–RF” (Green Starch, Brown Mannitol/laminarin, Red Floridean).',
+        html: '<b>1. The stored-food swap (green ↔ brown ↔ red)</b><br>It is a frequently tested fact, and an easy one to confuse (the book’s estimate from past papers, not official figures). Starch belongs to <b>Chlorophyceae</b>. Mannitol and laminarin belong to <b>Phaeophyceae</b>. <b>Floridean starch</b> belongs to <b>Rhodophyceae</b>. Questions routinely put the wrong food next to the right organism, banking on rote error. The chant: “GS–BM–RF” (Green Starch, Brown Mannitol/laminarin, Red Floridean).',
       },
       {
         t: 'p',
-        html: '<b>2. The gametophyte/sporophyte reversal in bryophytes vs pteridophytes</b><br>In bryophytes the <b>visible green plant is the gametophyte</b> (n); the sporophyte is a small dependent capsule. In pteridophytes the <b>visible fern is the sporophyte</b> (2n); the gametophyte is a tiny prothallus. Questions test exactly this inversion: they give the correct description of one group and ask you to name the other, or they give the wrong dominant generation as a distractor.',
+        html: '<b>2. The gametophyte/sporophyte reversal in bryophytes vs pteridophytes</b><br>In bryophytes the <b>visible green plant is the gametophyte</b> (<i>n</i>); the sporophyte is a small dependent capsule. In pteridophytes the <b>visible fern is the sporophyte</b> (2<i>n</i>); the gametophyte is a tiny prothallus. Questions test exactly this inversion: they give the correct description of one group and ask you to name the other, or they give the wrong dominant generation as a distractor.',
       },
       {
         t: 'p',
-        html: '<b>3. The endosperm timing and ploidy inversion (gymnosperm vs angiosperm)</b><br>Gymnosperm endosperm = <b>haploid (n), formed before fertilisation</b> (it is the female gametophyte). Angiosperm endosperm = <b>triploid (3n), formed after fertilisation</b> (product of triple fusion). These are exact opposites on both axes. Any question asking “which is true about gymnosperm/angiosperm endosperm?” will use the opposite group’s rule as a distractor.',
+        html: '<b>3. The endosperm timing and ploidy inversion (gymnosperm vs angiosperm)</b><br>Gymnosperm endosperm = <b>haploid (<i>n</i>), formed before fertilisation</b> (it is the female gametophyte). Angiosperm endosperm = <b>triploid (3<i>n</i>), formed after fertilisation</b> (product of triple fusion). These are exact opposites on both axes. Any question asking “which is true about gymnosperm/angiosperm endosperm?” will use the opposite group’s rule as a distractor.',
       },
       {
         t: 'p',
@@ -964,7 +964,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Question 3: Application (Medium)] Which of the following statements about bryophytes is correct?<br><b>(a)</b> The sporophyte is the dominant, free-living phase.<br><b>(b)</b> The main plant body is haploid.<br><b>(c)</b> They possess vascular tissue.<br><b>(d)</b> They produce seeds.',
-            a: '<b>Answer: (b)</b><br>In bryophytes the main plant body is the <b>haploid gametophyte</b> (n): green, photosynthetic, and free-living. The sporophyte is small, multicellular, and dependent on the gametophyte. Bryophytes are non-vascular (no xylem/phloem) and produce spores, not seeds.',
+            a: '<b>Answer: (b)</b><br>In bryophytes the main plant body is the <b>haploid gametophyte</b> (<i>n</i>): green, photosynthetic, and free-living. The sporophyte is small, multicellular, and dependent on the gametophyte. Bryophytes are non-vascular (no xylem/phloem) and produce spores, not seeds.',
           },
           {
             q: '[Question 4: Application (Medium)] A marine alga stores food as mannitol and laminarin, has a body differentiated into holdfast, stipe, and frond, and reproduces by oogamy. It belongs to:<br><b>(a)</b> Chlorophyceae<br><b>(b)</b> Phaeophyceae<br><b>(c)</b> Rhodophyceae<br><b>(d)</b> Both (a) and (b)',
@@ -972,7 +972,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Question 5: Application (Medium)] In pteridophytes, the prothallus represents the:<br><b>(a)</b> sporophyte, which is diploid<br><b>(b)</b> gametophyte, which is haploid<br><b>(c)</b> sporophyte, which is haploid<br><b>(d)</b> gametophyte, which is diploid',
-            a: '<b>Answer: (b)</b><br>The prothallus is the small, free-living, heart-shaped gametophyte (n) of a pteridophyte. It bears antheridia and archegonia on its underside. The dominant fern plant is the diploid sporophyte (2n).',
+            a: '<b>Answer: (b)</b><br>The prothallus is the small, free-living, heart-shaped gametophyte (<i>n</i>) of a pteridophyte. It bears antheridia and archegonia on its underside. The dominant fern plant is the diploid sporophyte (2<i>n</i>).',
           },
           {
             q: '[Question 6: Multi-statement (Medium-Hard)] Which of the following statements are correct?<br>(i) In gymnosperms, the male and female gametophytes do not have an independent free-living existence.<br>(ii) The multicellular female gametophyte is retained within the megasporangium.<br>(iii) Gymnosperms are heterosporous.<br><b>(a)</b> Only (i) and (ii)<br><b>(b)</b> Only (ii) and (iii)<br><b>(c)</b> Only (i) and (iii)<br><b>(d)</b> All (i), (ii) and (iii)',
@@ -988,7 +988,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Question 9: Integration (Hard)] A student states that double fertilisation occurs in gymnosperms. Which one of the following is the most precise correction?<br><b>(a)</b> Double fertilisation occurs only in angiosperms; gymnosperms show single fertilisation.<br><b>(b)</b> Double fertilisation occurs in both, but gymnosperm endosperm is triploid.<br><b>(c)</b> Double fertilisation occurs only in gymnosperms; angiosperms show single fertilisation.<br><b>(d)</b> Double fertilisation is absent in both groups.',
-            a: '<b>Answer: (a)</b><br>Double fertilisation (syngamy + triple fusion) is <b>unique to angiosperms</b> (NCERT treats the triple fusion giving triploid endosperm as unique to angiosperms). Gymnosperms show a single fertilisation event (male gamete + egg → zygote). The endosperm in gymnosperms is haploid (n), formed before fertilisation from the female gametophyte: the opposite of angiosperm triploid post-fertilisation endosperm. (c) reverses both groups; (b) wrongly gives gymnosperms double fertilisation; (d) is right for gymnosperms but wrong for angiosperms.',
+            a: '<b>Answer: (a)</b><br>Double fertilisation (syngamy + triple fusion) is <b>unique to angiosperms</b> (NCERT treats the triple fusion giving triploid endosperm as unique to angiosperms). Gymnosperms show a single fertilisation event (male gamete + egg → zygote). The endosperm in gymnosperms is haploid (<i>n</i>), formed before fertilisation from the female gametophyte: the opposite of angiosperm triploid post-fertilisation endosperm. (c) reverses both groups; (b) wrongly gives gymnosperms double fertilisation; (d) is right for gymnosperms but wrong for angiosperms.',
           },
           {
             q: '[Question 10: Higher-order (Hard)] The leaves in gymnosperms are well adapted to withstand extremes of temperature, humidity, and wind. Which feature contributes most to this adaptation?<br><b>(a)</b> Large surface area for photosynthesis<br><b>(b)</b> Needle-like shape, thick cuticle, and sunken stomata<br><b>(c)</b> Presence of stomata on both surfaces<br><b>(d)</b> Deciduous nature',

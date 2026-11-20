@@ -524,7 +524,7 @@ export const TOPICS: Topic[] = [
             a: '(b). A single base pair change (GAG → GTG on the coding (non-template) strand of the DNA, GAG → GUG in the mRNA, which changes the codon for glutamic acid to valine) is a point mutation. It alters one codon and one amino acid. It is not a frameshift (which requires insertion or deletion of bases not in multiples of three), not a chromosomal deletion, and not a polyploidy event.',
           },
           {
-            q: '[Evaluation (Hard)] Three genes give pairwise map distances: A–B = 5 cM, B–C = 15 cM, A–C = 10 cM. What is the linear order of these genes on the chromosome?<br><b>(a)</b> A–B–C<br><b>(b)</b> B–A–C<br><b>(c)</b> A–C–B<br><b>(d)</b> B–C–A',
+            q: '[Evaluation (Hard)] Three genes give pairwise map distances: A–B = 5 cM, B–C = 15 cM, A–C = 10 cM. What is the linear order of these genes on the chromosome?<br><b>(a)</b> A–B–C<br><b>(b)</b> B–A–C<br><b>(c)</b> A–C–B<br><b>(d)</b> The order cannot be found from these three distances',
             a: '(b). The largest distance (B–C = 15 cM) identifies B and C as the outermost genes. The gene missing from that pair is A, which must therefore lie between B and C. The order is B–A–C. (Check: A–B + A–C = 5 + 10 = 15 = B–C, confirming additivity.)',
           },
           {

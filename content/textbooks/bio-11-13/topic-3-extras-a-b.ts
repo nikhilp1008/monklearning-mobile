@@ -42,7 +42,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'On this basis flowering plants sort into three groups. <b>Short-day plants</b> flower when the day is shorter than a certain critical length (so they are really long-night plants); <b>long-day plants</b> flower when the day is longer than their critical length (really short-night plants); and <b>day-neutral plants</b> ignore day length altogether and flower whenever they are mature. The catch that traps students: “short” and “long” are relative to each plant’s own critical day length, not absolute hours: a so-called short-day plant might actually need more hours of light than a long-day plant.',
+        html: 'On this basis flowering plants sort into three groups. <b>Short-day plants</b> flower when the day is shorter than a certain critical length (so they are really long-night plants); <b>long-day plants</b> flower when the day is longer than their critical length (really short-night plants); and <b>day-neutral plants</b> ignore day length altogether and flower whenever they are mature. The catch that traps students: “short” and “long” are relative to each plant’s own critical day length, not absolute hours: a so-called short-day plant can flower under a longer day than some long-day plants need.',
       },
       {
         t: 'p',
@@ -71,7 +71,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Photoperiodic categories of flowering plants:</b>' },
       {
         t: 'p',
-        html: '• <b>Short-Day Plants (SDP):</b> (in obligate types) flower only when the day length is <b>less than</b> their critical day length, i.e. when the continuous dark (night) period <b>exceeds</b> a critical minimum. Because the dark period is decisive, they are equivalently <b>long-night plants</b>. <b>Examples:</b> chrysanthemum, <i>Xanthium</i> (cocklebur), rice, soybean (<i>Glycine max</i>), Maryland Mammoth tobacco.<br>• <b>Long-Day Plants (LDP):</b> (in obligate types) flower only when the day length is <b>more than</b> their critical day length, i.e. when the dark period is <b>shorter</b> than a critical maximum; equivalently <b>short-night plants</b>. <b>Examples:</b> spinach (<i>Spinacia</i>), radish, lettuce, wheat, sugar beet, spring barley (wheat, sugar beet and barley vary by variety), <i>Hyoscyamus niger</i> (henbane).<br>• <b>Day-Neutral Plants (DNP):</b> flower in essentially <b>any</b> photoperiod; flowering is independent of day length. <b>Examples:</b> tomato, cucumber, sunflower, cotton, maize.',
+        html: '• <b>Short-Day Plants (SDP):</b> (in obligate types) flower only when the day length is <b>less than</b> their critical day length, i.e. when the continuous dark (night) period <b>exceeds</b> a critical minimum. Because the dark period is decisive, they are equivalently <b>long-night plants</b>. <b>Examples:</b> chrysanthemum, <i>Xanthium</i> (cocklebur), rice, soybean (<i>Glycine max</i>), Maryland Mammoth tobacco.<br>• <b>Long-Day Plants (LDP):</b> (in obligate types) flower only when the day length is <b>more than</b> their critical day length, i.e. when the dark period is <b>shorter</b> than a critical maximum; equivalently <b>short-night plants</b>. <b>Examples:</b> spinach (<i>Spinacia</i>), radish, lettuce, wheat, sugar beet, spring barley (wheat, barley and sugar beet also appear below under vernalisation: their winter varieties need a cold spell first, then long days), <i>Hyoscyamus niger</i> (henbane).<br>• <b>Day-Neutral Plants (DNP):</b> flower in essentially <b>any</b> photoperiod; flowering is independent of day length. <b>Examples:</b> tomato, cucumber, sunflower, cotton, maize.',
       },
       {
         t: 'def',
@@ -119,7 +119,7 @@ export const TOPICS: Topic[] = [
           '<b>Perception</b> happens in the <b>leaf</b>, not the bud. The leaf, through its phytochrome, measures the length of the continuous dark period.',
           'If the photoperiod is inductive for that species, the leaf produces a flowering signal (<b>florigen</b>).',
           'The signal is <b>transported</b> from the leaf to the <b>shoot apical meristem</b>.',
-          'At the apex the signal <b>converts</b> the vegetative meristem into a floral meristem, and flowers develop. This is why a <b>defoliated plant cannot flower</b> however ideal the day length: with no leaves, step 1 is impossible, so no florigen is ever made. It is also why exposing even one leaf to the correct photoperiod can be enough to trigger flowering of the whole plant.',
+          'At the apex the signal <b>converts</b> the vegetative meristem into a floral meristem, and flowers develop. This is why a <b>defoliated photoperiod-sensitive plant cannot be induced to flower</b> however ideal the day length: with no leaves, step 1 is impossible, so no florigen is ever made. It is also why exposing even one leaf to the correct photoperiod can be enough to trigger flowering of the whole plant.',
         ],
       },
       {
@@ -173,7 +173,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET High-Difficulty / Assertion–Reason',
-        q: 'Assertion (A): A plant whose every leaf has been removed will not flower even under a fully inductive photoperiodic stimulus. Reason (R): The shoot apical meristem is the site that perceives the photoperiodic stimulus. Options: <b>(1)</b> Both A and R true, R correct explanation of A. <b>(2)</b> Both true, R not the correct explanation. <b>(3)</b> A true, R false. <b>(4)</b> A false, R true.',
+        q: 'Assertion (A): A photoperiod-sensitive plant whose every leaf has been removed will not flower even under a fully inductive photoperiod. Reason (R): The shoot apical meristem is the site that perceives the photoperiodic stimulus. Options: <b>(1)</b> Both A and R true, R correct explanation of A. <b>(2)</b> Both true, R not the correct explanation. <b>(3)</b> A true, R false. <b>(4)</b> A false, R true.',
         steps: [
           'A is <b>true</b>: without leaves there is no organ to perceive the photoperiod and no florigen is produced, so flowering cannot be triggered. R is <b>false</b>: the site of <b>perception</b> is the <b>leaf</b>, not the shoot apex (the apex is where flowers eventually <b>form</b>, but it does not perceive the light signal). A true, R false.',
           '(Trap: students who half-remember “apex → flowers” wrongly mark R true and pick option 1.)',
@@ -301,7 +301,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'This section extends Chapter 13 with five topics that examiners like to build questions on: (A) quantitative growth analysis, namely solving the growth equations for time and the two forms of relative growth rate; (B) the seed dormancy cycle, covering the types of dormancy, the ABA/GA antagonism at the biochemical level and practical dormancy-breaking methods; (C) how PGRs act at the cellular level, namely the gibberellin–alpha-amylase pathway, the ABA stomatal-closure cascade and the Richmond–Lang effect (enrichment beyond the NCERT text); (D) the phytochrome Pr/Pfr mechanism, the circadian-clock connection and photoperiodic timekeeping beyond the night-break experiment; and (E) nastic movements (nyctinasty and seismonasty) and the tropism/nastic distinction. Each additional topic adds one examinable layer; where it returns to something Topics 01 to 03 already teach, it builds on it (A and B also go beyond the NCERT text).',
+        html: 'This section extends Chapter 13 with five topics that examiners like to build questions on: (A) quantitative growth analysis, namely solving the growth equations for time and the two forms of relative growth rate; (B) the seed dormancy cycle, covering the types of dormancy, the ABA/GA antagonism at the biochemical level and practical dormancy-breaking methods; (C) how PGRs act at the cellular level, namely the gibberellin–alpha-amylase pathway, the ABA stomatal-closure cascade and the Richmond–Lang effect (enrichment beyond the NCERT text); (D) the phytochrome Pr/Pfr mechanism, the circadian-clock connection and photoperiodic timekeeping beyond the night-break experiment; and (E) nastic movements (nyctinasty and seismonasty) and the tropism/nastic distinction. Each additional topic adds one examinable layer; where it returns to something Topics 01 to 03 already teach, it builds on it (all five go beyond the NCERT text).',
       },
       {
         t: 'p',
@@ -435,7 +435,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'Topic 02 names dormancy as an effect of ABA, gibberellin and ethylene and states the ABA–gibberellin antagonism, but it does not give the types of dormancy, the germination mechanism or the breaking methods. This additional topic covers three further layers that exam questions draw on: the types of dormancy, the biochemical mechanism of ABA/GA antagonism during germination, and practical methods of overcoming dormancy in agriculture and horticulture.',
+        html: 'Topic 02 names dormancy as an effect of ABA, gibberellin and ethylene and states the ABA–gibberellin antagonism, but it does not give the types of dormancy or the germination mechanism, and it names breaking methods only in passing (gibberellin in Topic 02, stratification in a Topic 03 pitfall). This additional topic covers three further layers that exam questions draw on: the types of dormancy, the biochemical mechanism of ABA/GA antagonism during germination, and practical methods of overcoming dormancy in agriculture and horticulture.',
       },
 
       { t: 'part', title: 'Method' },
@@ -449,7 +449,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'proc',
-        title: 'This is the most testable mechanism:',
+        title: 'The mechanism, step by step:',
         steps: [
           'Dry seed: high ABA maintains dormancy, suppresses metabolic activity.',
           'Water uptake (imbibition): ABA levels begin to fall (and the seed also becomes more sensitive to GA); if conditions are favourable, gibberellin synthesis starts.',
@@ -492,7 +492,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET',
         q: '<b>Classifying Dormancy Type.</b> Seeds of <i>Lathyrus odoratus</i> (sweet pea) have a hard, waxy seed coat that prevents water entry for several weeks after seed shed. A student soaks the seeds in warm water for 24 hours, after which they germinate rapidly. Identify the type of dormancy and the method used.',
         steps: [
-          'The hard coat physically blocks water: this is physical dormancy. Soaking in warm water is not scarification, since the coat is not cut or abraded; it works because it softens the coat and makes it permeable, so water can enter (imbibition).',
+          'The hard coat physically blocks water: this is physical dormancy. Soaking in warm water softens the coat and makes it permeable, so water can enter (imbibition): a mild, heat-based form of scarification, which need not cut or abrade the coat.',
         ],
         ans: 'Physical dormancy; broken by soaking in warm water, which softens the hard seed coat so that water can enter.',
       },
@@ -510,9 +510,9 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: '<b>ABA/GA Ratio in Afterripening.</b> Seeds of wheat stored in dry conditions for several months after harvest germinate faster than freshly harvested seeds of the same batch. Explain this in terms of the ABA∶GA ratio and name the phenomenon.',
         steps: [
-          'Freshly harvested seeds have high ABA levels and a low GA∶ABA ratio: they are dormant. During dry storage (afterripening), ABA is gradually broken down and the GA∶ABA ratio rises. When sown, the seeds germinate readily. This is afterripening: the loss of physiological dormancy during dry storage.',
+          'Freshly harvested seeds have high ABA levels and a low GA∶ABA ratio: they are dormant. During dry storage (afterripening), ABA content falls and the seed becomes less sensitive to ABA, so the GA∶ABA balance shifts toward GA. When sown, the seeds germinate readily. This is afterripening: the loss of physiological dormancy during dry storage.',
         ],
-        ans: 'Afterripening; ABA is degraded during dry storage, raising the GA∶ABA ratio and breaking physiological dormancy.',
+        ans: 'Afterripening; during dry storage ABA content and ABA sensitivity fall, shifting the GA∶ABA balance toward GA and breaking physiological dormancy.',
       },
       {
         t: 'ex',
@@ -538,7 +538,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] Name the phenomenon by which seeds lose dormancy during dry storage. How does this affect the ABA∶GA ratio?',
-            a: 'Afterripening: during dry storage ABA is slowly catabolised, lowering ABA content and raising the GA∶ABA ratio, so the seed loses dormancy without any other treatment.',
+            a: 'Afterripening: during dry storage ABA content falls (and the seed becomes less sensitive to ABA), raising the GA∶ABA ratio, so the seed loses dormancy without any other treatment.',
           },
           {
             q: '[NEET] A gardener finds that seeds of a temperate fruit tree will not germinate even when provided with water, oxygen and warmth. What dormancy-breaking treatment should be applied and why?',
@@ -549,7 +549,7 @@ export const TOPICS: Topic[] = [
             a: '(i) Embryo absorbs water and begins GA synthesis. (ii) GA diffuses to the aleurone layer. (iii) GA binds to receptors in aleurone cells, triggering a signaling cascade. (iv) This activates transcription of alpha-amylase and protease genes. (v) Alpha-amylase hydrolyses stored starch in the endosperm. (vi) Sugars nourish the embryo, radicle protrudes. ABA blocks step (iii)–(iv) by antagonising GA signaling.',
           },
           {
-            q: '[CUET] Which PGR is used commercially to break dormancy in barley for the malting process, and which enzyme does it induce?',
+            q: '[CUET] Which PGR is used commercially to speed up malting of barley, and which enzyme does it induce?',
             a: 'Gibberellin (GA<sub>3</sub>) induces alpha-amylase synthesis in the aleurone layer: the basis of the malting process in barley for brewing.',
           },
         ],

@@ -44,11 +44,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'A crucial nuance: <b>most of these drugs have legitimate medicinal uses, and abuse is the misuse of that medicine.</b> <b>Morphine</b> is an excellent painkiller for post-surgery patients; <b>barbiturates and benzodiazepines</b> are genuine sedatives and tranquillisers, and <b>amphetamines</b> (stimulants) are also used as medicines, to help patients cope with conditions such as depression and insomnia. The molecule is not evil: the pattern of use is.',
+        html: 'A crucial nuance: <b>most of these drugs have legitimate medicinal uses, and abuse is the misuse of that medicine.</b> <b>Morphine</b> is an excellent painkiller for post-surgery patients; <b>barbiturates and benzodiazepines</b> are genuine sedatives and tranquillisers (used, for example, for anxiety and insomnia), and <b>amphetamines</b> are stimulants with medical uses of their own; NCERT groups barbiturates, amphetamines and benzodiazepines as medicines normally used to help patients cope with mental illnesses such as depression and insomnia, and describes morphine separately as a sedative and painkiller for surgery patients. The molecule is not evil: the pattern of use is.',
       },
       {
         t: 'p',
-        html: '<b>Why are adolescents especially drawn in?</b> The reasons are rarely chemical at first: they are emotional and social. NCERT highlights a cluster: natural <b>curiosity and the need for adventure, excitement and experimentation</b>; the desire to <b>escape from stress, frustration, anxiety or depression</b>, often arising from academic or personal pressure; and <b>peer pressure</b>, the wish to fit in or appear grown-up. Two background factors amplify all of these: <b>unstable or unsupportive family structures</b> and the <b>glamorisation of drugs and alcohol</b> in films, television and advertising, which makes experimentation seem normal. Recognising that the root is psychological and social explains why prevention focuses on counselling and support, not just on warning about the chemicals.',
+        html: '<b>Why are adolescents especially drawn in?</b> The reasons are rarely chemical at first: they are emotional and social. NCERT highlights a cluster: natural <b>curiosity and the need for adventure, excitement and experimentation</b>; the desire to <b>escape facing problems</b>, and stress from the pressure to excel in academics; and <b>peer pressure</b>, the wish to fit in or appear grown-up. Two background factors amplify all of these: <b>unstable or unsupportive family structures</b> and the <b>glamorisation of drugs and alcohol</b> in films, television and advertising, which makes experimentation seem normal. Recognising that the root is psychological and social explains why prevention focuses on counselling and support, not just on warning about the chemicals.',
       },
       {
         t: 'p',
@@ -181,9 +181,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET high-difficulty',
-        q: '<b>Multi-step reasoning.</b> A post-surgical patient is given morphine in hospital with no ill effect, yet the same molecule sold on the street as “smack” devastates users. Explain (i) the chemical relationship between morphine and smack, (ii) why the receptor it acts on makes it medically useful, and (iii) why repeated abuse leads to escalating doses.',
+        q: '<b>Multi-step reasoning.</b> A post-surgical patient is given morphine in hospital with no ill effect, yet a closely related drug made from it and sold on the street as “smack” devastates users. Explain (i) the chemical relationship between morphine and smack, (ii) why the receptor it acts on makes it medically useful, and (iii) why repeated abuse leads to escalating doses.',
         steps: [
-          '<b>Answer.</b> (i) <b>Smack (heroin) is diacetylmorphine</b>: morphine chemically modified by acetylation; morphine is an opioid from <i>Papaver somniferum</i>, and heroin is made from it. (ii) Morphine binds <b>opioid receptors in the CNS and gut</b>, depressing pain signalling, exactly the action a surgeon needs for controlled analgesia. (iii) With repeated abuse the opioid receptors <b>desensitise (tolerance)</b>, so the user must take progressively higher doses to obtain the same euphoria; meanwhile the body becomes <b>dependent</b>, so cessation triggers withdrawal, together driving dose escalation. The lesson: identical pharmacology becomes therapeutic or destructive depending on dose, control and intent, not on the molecule.',
+          '<b>Answer.</b> (i) <b>Smack (heroin) is diacetylmorphine</b>: morphine chemically modified by acetylation; morphine is an opioid from <i>Papaver somniferum</i>, and heroin is made from it. (ii) Morphine binds <b>opioid receptors in the CNS and gut</b>, depressing pain signalling, exactly the action a surgeon needs for controlled analgesia. (iii) With repeated abuse the opioid receptors <b>desensitise (tolerance)</b>, so the user must take progressively higher doses to obtain the same euphoria; meanwhile the body becomes <b>dependent</b>, so cessation triggers withdrawal, together driving dose escalation. The lesson: closely related pharmacology becomes therapeutic or destructive depending on dose, control and intent.',
         ],
         ans: '',
       },
@@ -303,7 +303,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>Alcohol</b>', note: 'ethanol; chronic → <b>cirrhosis</b> of liver.' },
           {
             f: '<b>Medicinal uses</b>',
-            note: 'morphine (post-surgery painkiller); barbiturates/benzodiazepines (sedatives for depression/insomnia); abused when misused.',
+            note: 'morphine (post-surgery painkiller); barbiturates/benzodiazepines (sedatives and tranquillisers); amphetamines (stimulants); NCERT groups barbiturates, amphetamines and benzodiazepines as medicines for coping with depression and insomnia (morphine separately as a painkiller); abused when misused.',
           },
           {
             f: '<b>Prevention/de-addiction</b>',
@@ -392,7 +392,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET',
         q: '<b>Contrast Type I and Type IV.</b> Distinguish between Type I and Type IV hypersensitivity under the headings: (a) cells involved, (b) antibody involvement, (c) time of onset.',
         steps: [
-          '<b>(a) Cells involved:</b> Type I: IgE-coated mast cells and basophils. Type IV: T-lymphocytes (specifically T<sub>H</sub>1 cells and macrophages).<br><b>(b) Antibody involvement:</b> Type I: Yes, IgE mediates the response. Type IV: No, antibody-independent.<br><b>(c) Time of onset:</b> Type I: Immediate (seconds to minutes). Type IV: Delayed (24–72 hours).',
+          '<b>(a) Cells involved:</b> Type I: IgE-coated mast cells and basophils. Type IV: T-lymphocytes (specifically T<sub>H</sub>1 cells), which recruit and activate macrophages.<br><b>(b) Antibody involvement:</b> Type I: Yes, IgE mediates the response. Type IV: No, antibody-independent.<br><b>(c) Time of onset:</b> Type I: Immediate (seconds to minutes). Type IV: Delayed (24–72 hours).',
         ],
         ans: 'See the comparison above.',
       },
@@ -642,7 +642,7 @@ export const TOPICS: Topic[] = [
           ['Prostate-specific antigen (PSA)', 'Prostate cancer', 'Elevated PSA prompts biopsy'],
           ['CA-125', 'Ovarian cancer', 'Used for monitoring treatment response'],
           ['Carcinoembryonic antigen (CEA)', 'Colorectal cancer', 'Also elevated in smokers'],
-          ['CA-19-9', 'Pancreatic cancer', '–'],
+          ['CA 19-9', 'Pancreatic cancer', '–'],
         ],
       },
       {

@@ -233,7 +233,7 @@ export const TOPICS: Topic[] = [
           { label: 'decomposer activity alone', nudge: '<b>(d)</b> confuses a decomposition driver with a productivity driver.' },
         ],
         correct: 2,
-        solution: 'NCERT names both nutrient availability and the plants’ photosynthetic capacity, with temperature/water/light as further factors.',
+        solution: 'NCERT names both nutrient availability and the plants’ photosynthetic capacity, along with the plant species present and a variety of environmental factors.',
       },
 
       { t: 'part', title: 'Common student pitfalls and pro-tips' },
@@ -533,7 +533,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Start at the source. The <b>Sun is the only energy source</b> for nearly all ecosystems (the lone exception being deep-sea hydrothermal vent communities). But producers do not get to use all of it. Of the total incident solar radiation, <b>less than 50% is Photosynthetically Active Radiation (PAR)</b>, the wavelengths plants can actually use, and of that PAR, green plants capture only about <b>2–10%</b> to run the entire living world. Everything that lives, lives off this thin sliver.',
+        html: 'Start at the source. The <b>Sun is the energy source</b> for nearly all ecosystems (the main exception being chemosynthetic communities, such as those at deep-sea hydrothermal vents). But producers do not get to use all of it. Of the total incident solar radiation, <b>less than 50% is Photosynthetically Active Radiation (PAR)</b>, the wavelengths plants can actually use, and of that PAR, green plants capture only about <b>2–10%</b> to run the entire living world. Everything that lives, lives off this thin sliver.',
       },
       {
         t: 'p',
@@ -767,7 +767,7 @@ export const TOPICS: Topic[] = [
         rows: [
           { f: 'Energy flow = one-way', note: 'Sun → producers → consumers → heat. Unidirectional, non-cyclic.' },
           { f: 'Sun’s budget', note: 'PAR < 50% of incident; producers capture ~2–10% of PAR.' },
-          { f: '10% law (Lindeman, 1942)', note: '<i>E</i><sub><i>n</i>+1</sub> ≈ 0.1 <i>E</i><sub><i>n</i></sub>; ~90% lost as heat → chains limited to ~4–5 levels.' },
+          { f: '10% law (Lindeman, 1942)', note: '<i>E</i><sub><i>n</i>+1</sub> ≈ 0.1 <i>E</i><sub><i>n</i></sub>; ~90% not passed on (mostly lost as heat) → chains usually ~4–5 levels.' },
           { f: 'Food chains', note: 'GFC (living producers; dominant in <b>aquatic</b>) vs DFC (dead matter; dominant in <b>terrestrial</b>); interlinked chains = food web.' },
           { f: 'Pyramids (Eltonian)', note: 'number, biomass, energy. <b>Energy = always upright</b>; number & biomass <b>can invert</b> (single tree → number; sea → biomass).' },
           { f: 'Pyramid blind spots', note: 'assumes a simple chain, ignores multi-level organisms, omits decomposers.' },

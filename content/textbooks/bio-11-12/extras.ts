@@ -30,7 +30,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter covers the four stages of aerobic respiration, the fermentation branch, the amphibolic nature of the pathway, and the respiratory quotient. Five patterns remain that a strong CBSE/NEET student must still master: the complete ATP balance sheet including the cytoplasmic NADH shuttle complication; precise carbon-tracking through every stage; RQ calculations for mixed substrates and non-standard equations; the alternative oxidase pathway of plants, which the chapter does not address; and integrated numericals that demand all three together. Each additional topic below supplies exactly one of these patterns: method first, then worked examples, then practice with full answers. Some of what follows revises the chapter in exam form; the rest is what the chapter leaves unexamined. (The fourth, the alternative oxidase, is enrichment beyond NCERT; see topic D.)',
+        html: 'The chapter covers the four stages of aerobic respiration, the fermentation branch, the amphibolic nature of the pathway, and the respiratory quotient. Five patterns remain that a strong CBSE/NEET student must still master: the complete ATP balance sheet including the cytoplasmic NADH shuttle complication; precise carbon-tracking through every stage; RQ calculations for mixed substrates and non-standard equations; the alternative oxidase pathway of plants, which the chapter does not address; and integrated numericals that combine ATP accounting, the amphibolic pathway and RQ in one problem. Each additional topic below supplies exactly one of these patterns: method first, then worked examples, then practice with full answers. Some of what follows revises the chapter in exam form; the rest is what the chapter leaves unexamined. (The fourth, the alternative oxidase, is enrichment beyond NCERT; see Additional topic D.)',
       },
       {
         t: 'p',
@@ -51,7 +51,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Step 2: Decide the fate of cytoplasmic NADH.</b><br>Two shuttle systems exist. Both transfer the reducing equivalents, but they deliver them to different mitochondrial carriers with different ATP yields.',
+        html: '<b>Step 2: Decide the fate of cytoplasmic NADH.</b><br>Two shuttle systems exist. Both transfer the reducing equivalents, but they deliver them to different mitochondrial carriers with different ATP yields. (These two shuttles are the standard animal case. Plant mitochondria also oxidise cytoplasmic NADH directly, with an enzyme on the outer face of the inner membrane that feeds ubiquinone, which likewise gives about 2 ATP per NADH. Exam answers use 38, or 36 with the 2-ATP route.)',
       },
       {
         t: 'table',
@@ -125,7 +125,7 @@ export const TOPICS: Topic[] = [
           'Difference = 38 − 2',
           'The aerobic pathway yields 19 times more ATP than anaerobic fermentation (38 ÷ 2). The energy stored in one glucose molecule is very largely inaccessible without oxygen: fermentation releases less than 7% of the energy in glucose, and not all of that is trapped as ATP.',
         ],
-        ans: '36 ATP difference; aerobic respiration yields 38 ATP while fermentation yields 2 ATP per glucose.',
+        ans: '36 ATP difference (idealised: 38 aerobic against 2 by fermentation; 34 if the muscle’s glycolytic NADH uses the glycerol-3-phosphate shuttle).',
       },
 
       { t: 'part', title: 'Practice' },
@@ -280,7 +280,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter gives the RQ values for pure substrates (carbohydrate = 1, protein about 0.8 to 0.9, fat about 0.7, organic acid > 1, anaerobic = infinity), reads the RQ of tripalmitin and of malic acid from their equations, and cautions that real tissues burn mixtures. It does not set out a step-by-step method for balancing an unbalanced equation before reading RQ, for naming the likely substrate from an in-between value, or for reasoning about mixed fuels in numbers. This additional topic supplies these.',
+        html: 'The chapter gives the RQ values for pure substrates (carbohydrate = 1, protein about 0.8 to 0.9, fat about 0.7, organic acid > 1, anaerobic = infinity), works the RQ of glucose and of tripalmitin from their equations, quotes malic acid at 1.33 and oxalic acid at 4, and cautions that real tissues burn mixtures. It does not set out a step-by-step method for balancing an unbalanced equation before reading RQ, for naming the likely substrate from an in-between value, or for reasoning about mixed fuels in numbers. This additional topic supplies these.',
       },
 
       { t: 'part', title: 'Method' },
@@ -296,7 +296,7 @@ export const TOPICS: Topic[] = [
         rows: [
           ['Exactly 1.0', 'Carbohydrate', 'Oxygen in the molecule balances the CO<sub>2</sub> produced'],
           ['about 0.7', 'Fat', 'Oxygen-poor, highly reduced → needs extra O<sub>2</sub>'],
-          ['about 0.8–0.9', 'Protein', 'Moderately reduced'],
+          ['about 0.8–0.9 (NCERT quotes about 0.9)', 'Protein', 'Moderately reduced'],
           ['> 1.0', 'Organic acid', 'Oxygen-rich, already partly oxidised → needs little O<sub>2</sub>'],
           ['Infinite', 'Anaerobic/fermentation', 'O<sub>2</sub> consumed = 0, CO<sub>2</sub> > 0'],
         ],
@@ -515,7 +515,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Comparative Pathway Analysis.</b> A researcher measures the RQ and ATP yield of a plant tissue under two conditions: (i) darkness with ample oxygen, and (ii) daylight with ample oxygen. Design an experiment to determine whether the tissue is photosynthesising, and predict the expected differences in RQ and ATP yield between the two conditions.',
         steps: [
           '<b>Experimental design:</b> Place identical tissue samples in separate, sealed respirometers. Condition (i): keep in complete darkness (no photosynthesis possible). Condition (ii): illuminate with visible light of appropriate intensity and quality (photosynthesis possible). Measure O<sub>2</sub> consumption and CO<sub>2</sub> evolution in both conditions using KOH to absorb CO<sub>2</sub> and measure the volume change, or using an oxygen electrode. Calculate RQ = <frac><num>V(CO<sub>2</sub>)</num><den>V(O<sub>2</sub>)</den></frac> for each condition.',
-          '<b>Predicted results:</b><br>• In darkness: only respiration occurs. RQ depends on the substrate but is finite. Net ATP per glucose = 38 (aerobic).<br>• In daylight: both photosynthesis and respiration occur simultaneously. The tissue takes in CO<sub>2</sub> for photosynthesis (reducing net CO<sub>2</sub> release) and may take in or produce O<sub>2</sub> depending on whether photosynthesis outpaces respiration. If photosynthesis dominates, the tissue takes up CO<sub>2</sub> and releases O<sub>2</sub>, so the ratio of net gas changes no longer measures respiratory RQ and is not interpretable. Run one respirometer with KOH (to read O<sub>2</sub> change) and one without (to read CO<sub>2</sub> change); use darkness for a true RQ. However, mitochondrial respiration continues, and its RQ remains unchanged. The net RQ measured reflects the difference between photosynthetic CO<sub>2</sub> consumption and respiratory CO<sub>2</sub> production. ATP yield from respiration itself is unchanged (38 per glucose oxidised), but the overall energy balance of the tissue includes the ATP generated by photosynthesis.',
+          '<b>Predicted results:</b><br>• In darkness: only respiration occurs. RQ depends on the substrate but is finite. Net ATP per glucose = 38 (aerobic).<br>• In daylight: both photosynthesis and respiration occur simultaneously. The tissue takes in CO<sub>2</sub> for photosynthesis (reducing net CO<sub>2</sub> release) and may take in or produce O<sub>2</sub> depending on whether photosynthesis outpaces respiration. If photosynthesis dominates, the tissue takes up CO<sub>2</sub> and releases O<sub>2</sub>, so the ratio of net gas changes no longer measures respiratory RQ and is not interpretable. However, mitochondrial respiration continues, and its RQ remains unchanged. The net RQ measured reflects the difference between photosynthetic CO<sub>2</sub> consumption and respiratory CO<sub>2</sub> production. ATP yield from respiration itself is unchanged (38 per glucose oxidised), but the overall energy balance of the tissue includes the ATP generated by photosynthesis. (Method note: one respirometer with KOH reads the O<sub>2</sub> taken up; one without KOH reads CO<sub>2</sub> released minus O<sub>2</sub> taken up, so the CO<sub>2</sub> is found by subtraction; use darkness for a true RQ.)',
         ],
         ans: 'Measure gas exchange in light vs dark; in darkness only respiration operates (finite RQ, 38 ATP/glucose); in light both pathways run, so the net gas ratio is not interpretable as a respiratory RQ, but the respiratory ATP yield remains 38 per glucose oxidised.',
       },
@@ -559,7 +559,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'The Distribution' },
       {
         t: 'p',
-        html: 'NEET examiners return to this chapter with regularity across four distinct zones. A reading of recent AIPMT and NEET papers gives the following approximate weighting (indicative only; the book’s estimate from past papers, not official figures; the ranges do not add to 100%):',
+        html: 'NEET examiners return to this chapter with regularity across four distinct zones. A reading of recent AIPMT and NEET papers gives the following approximate weighting (indicative only; the book’s estimate from past papers, not official figures):',
       },
       {
         t: 'table',
@@ -663,7 +663,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 5: Assertion–Reason: The Two-Statement Link</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> “Assertion (A): … Reason (R): …” with four answer choices in the usual order: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) A false, R true. (The wording of the last option can vary between papers: some print “Both A and R are false”, so always read the options given.)<br><b>The approach that cracks it:</b> Three rules under pressure:<br>1. <b>Judge A and R separately.</b> Each is simply true or false; decide both before thinking about the link.<br>2. <b>Check the causal direction.</b> Only if both are true, ask: does R actually explain A, or are they just two true facts?<br>3. <b>Watch for half-correct statements.</b> “Glycolysis produces CO<sub>2</sub>” is false: no CO<sub>2</sub> is released until the link reaction.',
+        html: '<b>What it looks like:</b> “Assertion (A): … Reason (R): …” with four answer choices in the usual order: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) A false, R true. (Older papers sometimes add or substitute “Both A and R are false”; always read the options given.)<br><b>The approach that cracks it:</b> Three rules under pressure:<br>1. <b>Judge A and R separately.</b> Each is simply true or false; decide both before thinking about the link.<br>2. <b>Check the causal direction.</b> Only if both are true, ask: does R actually explain A, or are they just two true facts?<br>3. <b>Watch for half-correct statements.</b> “Glycolysis produces CO<sub>2</sub>” is false: no CO<sub>2</sub> is released until the link reaction.',
       },
       {
         t: 'ex',
@@ -823,7 +823,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Three Habits That Win Marks' },
       {
         t: 'p',
-        html: '<b>1. Always subtract the 2 ATP invested in glycolysis.</b> NEET asks the net-gain question often. “Net gain” always means after subtraction: 4 gross − 2 invested = <b>2 ATP</b>. Make this a reflex before you look at the options.<br><br><b>2. Remember where succinate dehydrogenase sits.</b> Among the Krebs enzymes the chapter names, it is the one embedded in the inner mitochondrial membrane and doubles as ETS Complex II. Any option that places it in the matrix with the other Krebs enzymes is a trap.<br><br><b>3. Separate fermentation from anaerobic respiration.</b> In fermentation no O<sub>2</sub> is used, no ETS is involved, and ATP comes only from substrate-level phosphorylation. True anaerobic respiration, found in some bacteria, uses an ETS with an inorganic acceptor other than O<sub>2</sub> (for example nitrate or sulphate) and works normally. Do not treat the two terms as interchangeable when an option separates them.',
+        html: '<b>1. Always subtract the 2 ATP invested in glycolysis.</b> NEET asks the net-gain question often. “Net gain” always means after subtraction: 4 gross − 2 invested = <b>2 ATP</b>. Make this a reflex before you look at the options.<br><br><b>2. Remember where succinate dehydrogenase sits.</b> Among the Krebs enzymes the chapter names, it is the one embedded in the inner mitochondrial membrane and doubles as ETS Complex II. Any option that places it in the matrix with the other Krebs enzymes is a trap.<br><br><b>3. Separate fermentation from anaerobic respiration.</b> In fermentation no O<sub>2</sub> is used, no ETS is involved, and ATP comes only from substrate-level phosphorylation. True anaerobic respiration, found in some bacteria, uses an ETS with an inorganic acceptor other than O<sub>2</sub> (for example nitrate or sulphate), so it makes ATP by oxidative phosphorylation. At NCERT level “anaerobic respiration” in plants and muscle usually means fermentation; separate the two only when an option does. Do not treat the two terms as interchangeable when an option separates them.',
       },
     ],
   },

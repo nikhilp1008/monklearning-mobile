@@ -563,11 +563,11 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: 'Innate immunity rests on <b>four barrier types</b>, a common one-mark target:' },
       {
         t: 'p',
-        html: '• <b>Physical barriers</b>: the skin, and the mucus coating lining the respiratory, gastrointestinal and urogenital tracts, which physically block microbial entry.<br>• <b>Physiological barriers</b>: acid in the stomach, saliva in the mouth, tears from the eyes; their chemistry stops microbial growth.<br>• <b>Cellular barriers</b>: phagocytic leucocytes such as <b>neutrophils (PMNLs)</b> and <b>macrophages</b>, plus <b>natural killer (NK)</b> cells, which engulf and destroy intruders.<br>• <b>Cytokine barriers</b>: virus-infected cells secrete <b>interferons</b>, proteins that warn and protect neighbouring uninfected cells from further viral attack.',
+        html: '• <b>Physical barriers</b>: the skin, and the mucus coating lining the respiratory, gastrointestinal and urogenital tracts, which physically block microbial entry.<br>• <b>Physiological barriers</b>: acid in the stomach, saliva in the mouth, tears from the eyes; their chemistry stops microbial growth.<br>• <b>Cellular barriers</b>: phagocytic leucocytes such as <b>neutrophils (PMNLs)</b> and <b>macrophages</b>, plus <b>natural killer (NK)</b> cells, which together engulf or kill and destroy intruders (NK cells kill infected cells directly rather than engulfing them).<br>• <b>Cytokine barriers</b>: virus-infected cells secrete <b>interferons</b>, proteins that warn and protect neighbouring uninfected cells from further viral attack.',
       },
       {
         t: 'p',
-        html: 'A useful framing: innate immunity is the body’s standing “lines of defence”: the skin/mucosa form the first line, and the phagocytes, NK cells and interferons form the second line. If these non-specific defences do not clear the invader, the specific, memory-bearing acquired system takes over and builds on them.',
+        html: 'A useful framing: innate immunity is the body’s standing “lines of defence”: the skin and mucous membranes, with their secretions (stomach acid, saliva, tears), form the first line, and the phagocytes, NK cells and interferons form the second line. If these non-specific defences do not clear the invader, the specific, memory-bearing acquired system takes over and builds on them.',
       },
       {
         t: 'p',
@@ -594,7 +594,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Related immune phenomena</b>' },
       {
         t: 'p',
-        html: '• <b>Vaccination/Immunisation:</b> introduce a weakened/inactivated (attenuated) pathogen → body mounts a primary response and stores memory cells. For a quick need (tetanus, snakebite), inject pre-formed antibodies/antitoxin = <b>passive immunisation</b>. (Modern note: hepatitis-B vaccine is made by rDNA technology in yeast.)<br>• <b>Allergy:</b> an exaggerated immune response to harmless environmental allergens (pollen, dust, animal dander, drugs). Mast cells release histamine; IgE mediates it.<br>• <b>Autoimmunity:</b> the immune system fails to tell self from non-self and attacks the body’s own cells, e.g., rheumatoid arthritis.<br>• <b>Lymphoid organs:</b> <b>Primary</b> (where lymphocytes form/mature) = bone marrow and thymus (large at birth, shrinks after puberty). <b>Secondary</b> (where lymphocytes meet antigen) = spleen, lymph nodes, tonsils, appendix, Peyer’s patches, MALT (MALT ≈ 50% of the body’s lymphoid tissue).',
+        html: '• <b>Vaccination/Immunisation:</b> introduce a weakened (attenuated) or inactivated pathogen → body mounts a primary response and stores memory cells. For a quick need (tetanus, snakebite), inject pre-formed antibodies/antitoxin = <b>passive immunisation</b>. (Modern note: hepatitis-B vaccine is made by rDNA technology in yeast.)<br>• <b>Allergy:</b> an exaggerated immune response to harmless environmental allergens (pollen, dust, animal dander, drugs). Mast cells release histamine; IgE mediates it.<br>• <b>Autoimmunity:</b> the immune system fails to tell self from non-self and attacks the body’s own cells, e.g., rheumatoid arthritis.<br>• <b>Lymphoid organs:</b> <b>Primary</b> (where lymphocytes form/mature) = bone marrow and thymus (large at birth, shrinks after puberty). <b>Secondary</b> (where lymphocytes meet antigen) = spleen, lymph nodes, tonsils, appendix, Peyer’s patches, MALT (MALT ≈ 50% of the body’s lymphoid tissue).',
       },
       { t: 'p', html: '<b>AIDS at a glance</b>' },
       {
@@ -619,7 +619,7 @@ export const TOPICS: Topic[] = [
         head: ['Feature', 'Fact'],
         rows: [
           ['<b>Core defect</b>', 'Loss of contact inhibition → uncontrolled division → tumour'],
-          ['<b>Benign tumour</b>', 'Stays in original location; little harm'],
+          ['<b>Benign tumour</b>', 'Stays in original location; usually little harm'],
           ['<b>Malignant tumour</b>', 'Neoplastic cells; invade tissues; metastasis (spread via blood and lymph to distant sites)'],
           ['<b>Carcinogens: physical</b>', 'Ionizing (X-rays, γ-rays); non-ionizing (UV) → DNA damage'],
           ['<b>Carcinogens: chemical</b>', 'Cigarette smoke (e.g., benzopyrene) (lung cancer)'],

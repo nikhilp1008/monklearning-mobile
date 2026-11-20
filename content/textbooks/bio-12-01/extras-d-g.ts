@@ -25,7 +25,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `The chapter covers seed and fruit formation in detail and names dispersal only as one advantage of the seed (Topic 02), but it does not describe how seeds and fruits are dispersed away from the parent plant. Dispersal is a critical post-fertilisation event: it prevents seedling competition with the parent and allows colonisation of new habitats. CUET match questions and NEET diagram questions regularly test dispersal mechanisms ${EST}.`,
+        html: `The chapter covers seed and fruit formation in detail and names dispersal only as one advantage of the seed (Topic 02), but it does not describe how seeds and fruits are dispersed away from the parent plant. Dispersal is a critical post-fertilisation event: it prevents seedling competition with the parent and allows colonisation of new habitats. Dispersal mechanisms go beyond the NCERT text; they appear mainly in CUET-style matching questions (the book’s estimate from past papers, not official figures).`,
       },
 
       { t: 'part', title: 'Method' },
@@ -86,9 +86,9 @@ export const TOPICS: Topic[] = [
         tag: 'NEET',
         q: '<b>Matching Dispersal Type with Seed/Fruit Feature.</b> Fruits (achenes) of <i>Sonchus</i> (sow thistle) have a pappus of fine bristles. Fruits of <i>Acer</i> (maple) have a wing. Fruits of <i>Xanthium</i> (cocklebur) have hooked spines. Fruits of <i>Mangifera</i> (mango) are fleshy and edible. Classify each by dispersal mechanism.',
         steps: [
-          '<i>Sonchus</i> achenes have a pappus acting as a parachute: anemochory. <i>Acer</i> winged fruits (samaras): anemochory. <i>Xanthium</i> hooked spines: epizoochory (sticks to animal fur). <i>Mangifera</i> fleshy fruit: endozoochory (animals eat and disperse).',
+          '<i>Sonchus</i> achenes have a pappus acting as a parachute: anemochory. <i>Acer</i> winged fruits (samaras): anemochory. <i>Xanthium</i> hooked spines: epizoochory (sticks to animal fur). <i>Mangifera</i> fleshy fruit: zoochory (animals eat the pulp and carry or drop the large stone; small-seeded fruits such as guava are the clear cases of endozoochory).',
         ],
-        ans: '<i>Sonchus</i>: anemochory; <i>Acer</i>: anemochory; <i>Xanthium</i>: epizoochory; <i>Mangifera</i>: endozoochory.',
+        ans: '<i>Sonchus</i>: anemochory; <i>Acer</i>: anemochory; <i>Xanthium</i>: epizoochory; <i>Mangifera</i>: zoochory (fleshy fruit).',
       },
       {
         t: 'ex',
@@ -122,7 +122,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] Distinguish between endozoochory and epizoochory, giving one example of each.',
-            a: 'Endozoochory: seeds dispersed inside the body of an animal after it eats the fruit: the seeds pass through the digestive tract and are excreted (e.g. guava, tomato). Epizoochory: seeds/fruits cling to the outside of an animal’s body (e.g. <i>Xanthium</i> with hooks, Beggartick with spines).',
+            a: 'Endozoochory: seeds dispersed inside the body of an animal after it eats the fruit: the seeds pass through the digestive tract and are excreted (e.g. guava, tomato). Epizoochory: seeds/fruits cling to the outside of an animal’s body (e.g. <i>Xanthium</i> with hooks, <i>Bidens</i> (beggarticks) with barbed bristles).',
           },
         ],
       },
@@ -178,7 +178,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Diploid vs haploid outcome.</b> All three routes produce diploid embryos (because they arise without meiosis). This is why apomictic seedlings are clones: they carry the mother’s full diploid complement with no reduction and no mixing. The rare “non-recurrent apomixis” (a haploid egg develops without fertilisation) produces a haploid plant that cannot reproduce sexually: this is a dead end and is not the focus of the NCERT or examination.',
+        html: '<b>Diploid vs haploid outcome.</b> All three routes produce diploid embryos (because they arise without meiosis). This is why apomictic seedlings are clones: they carry the mother’s full diploid complement with no reduction and no mixing. The rare “non-recurrent apomixis” (a haploid egg develops without fertilisation) produces a haploid plant that is usually sterile: this is a dead end and is not the focus of the NCERT or examination.',
       },
       { t: 'p', html: '<b>Identifying the route from a description.</b> The question gives a scenario: apply this logic:' },
       {
@@ -407,7 +407,7 @@ export const TOPICS: Topic[] = [
         tag: 'Worked representative',
         q: 'In a T.S. of anther, the layers from outside to inside are:<br><b>(a)</b> sporogenous tissue, tapetum, middle layers, endothecium, epidermis<br><b>(b)</b> epidermis, middle layers, endothecium, tapetum, sporogenous tissue<br><b>(c)</b> epidermis, endothecium, middle layers, tapetum, sporogenous tissue<br><b>(d)</b> epidermis, endothecium, tapetum, middle layers, sporogenous tissue',
         steps: [
-          'Recalling the anther wall layers in order from the outermost surface inward:<br>1 = epidermis (outermost protective layer)<br>2 = endothecium (beneath epidermis; contributes to dehiscence)<br>3 = middle layers (1–2 cells thick; temporary)<br>4 = tapetum (innermost nutritive layer)<br>5 = sporogenous tissue (central mass of cells that become pollen mother cells)',
+          'Recalling the anther wall layers in order from the outermost surface inward:<br>1 = epidermis (outermost protective layer)<br>2 = endothecium (beneath epidermis; contributes to dehiscence)<br>3 = middle layers (usually 1–3 layers; they degenerate at maturity)<br>4 = tapetum (innermost nutritive layer)<br>5 = sporogenous tissue (central mass of cells that become pollen mother cells)',
           'Option (c) lists exactly this sequence: epidermis → endothecium → middle layers → tapetum → sporogenous tissue. (Option (a) is the reverse, inside-to-outside order.)',
         ],
         ans: '(c)',
@@ -478,7 +478,7 @@ export const TOPICS: Topic[] = [
           [
             '<b>Chasmogamous = requires pollinator</b>',
             'Chasmogamous means the flower opens and exposes its organs: it can still self-pollinate if anthers and stigma are close.',
-            'Cleistogamous = flowers stay closed (normally autogamous); chasmogamous = opens (may be self or cross)',
+            'Cleistogamous = never opens (invariably autogamous, as NCERT says); chasmogamous = opens (may be self or cross)',
           ],
           [
             '<b>Anther wall layer order</b>',
@@ -526,7 +526,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Hard: diagram identification + terminology] In a T.S. of a young anther, the innermost wall layer, which nourishes the sporogenous tissue, is the tapetum. The layer lying just beneath the epidermis, whose thickened walls bring about anther dehiscence, is the:<br><b>(a)</b> Epidermis<br><b>(b)</b> Endothecium<br><b>(c)</b> Middle layers<br><b>(d)</b> Connective',
-            a: '(b) Endothecium. The endothecium lies between the epidermis and the middle layers; its cells develop fibrous wall thickenings, which bring about anther dehiscence. The middle layers are 1–2 thin layers that usually collapse; the epidermis is the outermost protective layer.',
+            a: '(b) Endothecium. The endothecium lies between the epidermis and the middle layers; its cells develop fibrous wall thickenings, which bring about anther dehiscence. The middle layers are usually 1–3 thin layers that degenerate at maturity; the epidermis is the outermost protective layer.',
           },
           {
             q: '[Hard: complex statement evaluation] Consider the following:<br>(i) Geitonogamy is genetically equivalent to autogamy.<br>(ii) A dioecious plant cannot undergo either autogamy or geitonogamy.<br>(iii) Xenogamy is the type of pollination that brings genetically different pollen.<br>(iv) Self-incompatibility prevents only autogamy, not geitonogamy.<br>Which combination is correct?<br><b>(a)</b> (i), (ii) and (iii)<br><b>(b)</b> (ii), (iii) and (iv)<br><b>(c)</b> (i), (iii) and (iv)<br><b>(d)</b> All are correct',

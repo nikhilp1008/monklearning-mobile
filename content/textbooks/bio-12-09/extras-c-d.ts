@@ -122,7 +122,7 @@ export const TOPICS: Topic[] = [
         q: '<b>Ethical Concern.</b> India enacted the Biological Diversity Act, 2002. State one purpose of this Act and one example of a biological resource over which biopiracy disputes have arisen involving India.',
         steps: [
           '<b>Purpose:</b> To regulate access to India’s biological resources by foreign individuals or organisations, and to ensure fair sharing of benefits arising from their commercial utilisation with local communities and traditional knowledge holders.',
-          '<b>Example:</b> The neem (<i>Azadirachta indica</i>): a US company and the US government held a European patent on a neem-based fungicide, which Indian groups challenged on grounds of prior traditional knowledge (it was revoked in 2005). Similarly, basmati rice varieties and turmeric (<i>Curcuma longa</i>) have been the subject of patent disputes.',
+          '<b>Example:</b> The neem (<i>Azadirachta indica</i>): a US company and the US government held a European patent on a neem-based fungicide, which Indian groups challenged on grounds of prior traditional knowledge; the patent was revoked and the revocation upheld on appeal. Similarly, basmati rice varieties and turmeric (<i>Curcuma longa</i>) have been the subject of patent disputes.',
         ],
         ans: 'Purpose = regulating foreign access to biological resources and benefit sharing; example = neem or turmeric patent disputes.',
       },
@@ -386,7 +386,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[Q1: Easy (recall)] The first restriction endonuclease to be discovered was:<br>(a) EcoRI<br>(b) Hind II<br>(c) Hind III<br>(d) BamHI<br><b>Hint:</b> It was identified from <i>Haemophilus influenzae</i> before the EcoRI naming convention was even established.',
-            a: '(b): Hind II (Hamilton Smith, 1970) was the first type II restriction endonuclease characterized. EcoRI is the enzyme most often illustrated, which is why students confuse “famous” with “first.” NCERT calls Hind II the first restriction endonuclease; strictly it is the first type II enzyme characterised (Smith, 1970; Nobel Prize 1978 with Arber and Nathans).',
+            a: '(b): Hind II was the first type II restriction endonuclease characterised (Hamilton Smith, 1970; Nobel Prize 1978 with Arber and Nathans). NCERT calls it simply the first restriction endonuclease, so answer “Hind II.” EcoRI is the enzyme most often illustrated, which is why students confuse “famous” with “first.”',
           },
           {
             q: '[Q2: Easy (recall)] The enzyme used for joining two DNA fragments is:<br>(a) ligase<br>(b) restriction endonuclease<br>(c) DNA polymerase<br>(d) gyrase',

@@ -1205,7 +1205,7 @@ export const TOPICS: Topic[] = [
           { label: 'coplanar', nudge: null },
           {
             label: 'collinear',
-            nudge: '<b>(c)</b> collinear is stronger than required (collinear${NB}⇒${NB}coplanar, but coplanar does not need collinear).',
+            nudge: '<b>(c)</b> collinear is stronger than required (collinear\u00a0⇒\u00a0coplanar, but coplanar does not need collinear).',
           },
           { label: 'equal in magnitude', nudge: '<b>(d)</b> magnitude is irrelevant to coplanarity.' },
         ],

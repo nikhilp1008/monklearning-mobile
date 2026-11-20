@@ -28,7 +28,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Exam Relevance (whole chapter):</b> Chemical Coordination is one of the <b>highest-yield chapters for NEET</b> (typically 1–3 questions in recent papers; the book’s estimate from past papers, not official figures) and a reliable <b>CBSE</b> scorer (multiple 1–3 mark questions, often a gland/hormone/disorder match or a “mechanism of hormone action” short answer). <b>CUET</b> keeps it definitional. The recurring question types are: gland → hormone → target → disorder match-ups, assertion-reason on antagonistic hormone pairs (PTH/calcitonin, insulin/glucagon), and the protein-vs-steroid receptor mechanism.',
+        html: '<b>Exam Relevance (whole chapter):</b> Chemical Coordination is one of the <b>highest-yield chapters for NEET</b>, as the book puts it (typically 3–5 questions; the book’s estimate from past papers, not official figures) and a reliable <b>CBSE</b> scorer (multiple 1–3 mark questions, often a gland/hormone/disorder match or a “mechanism of hormone action” short answer). <b>CUET</b> keeps it definitional. The recurring question types are: gland → hormone → target → disorder match-ups, assertion-reason on antagonistic hormone pairs (PTH/calcitonin, insulin/glucagon), and the protein-vs-steroid receptor mechanism.',
       },
 
       { t: 'part', title: 'The big picture: two systems of coordination' },
@@ -258,23 +258,23 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Gland, hormone, action, disorder' },
       {
         t: 'table',
-        title: 'Gland → Hormone → Action → Disorder',
-        head: ['Gland', 'Hormone(s)', 'Key action', 'Disorder (excess / deficiency, in this order where both are given)'],
+        title: 'Gland → Hormone → Action → Disorder (excess, then deficiency, where both are given)',
+        head: ['Gland', 'Hormone(s)', 'Key action', 'Disorder'],
         rows: [
           [
             'Hypothalamus',
             'Releasing & inhibiting hormones; makes oxytocin, ADH',
             'Controls anterior pituitary; supplies posterior pituitary',
-            'none',
+            'not listed',
           ],
           ['Anterior pituitary', 'GH, PRL, TSH, ACTH, FSH, LH', 'Growth + control of other glands', 'GH: gigantism/acromegaly ; dwarfism'],
           ['Posterior pituitary', 'Oxytocin, ADH', 'Childbirth/milk; water retention', 'ADH deficiency: diabetes insipidus'],
-          ['Pineal', 'Melatonin', 'Diurnal rhythm, sleep–wake', 'none'],
+          ['Pineal', 'Melatonin', 'Diurnal rhythm, sleep–wake', 'not listed'],
           [
             'Thyroid',
             'T<sub>3</sub>/T<sub>4</sub> ; calcitonin',
             'BMR/metabolism ; lowers Ca<sup>2+</sup>',
-            'goitre, cretinism, myxoedema / Graves’',
+            'Graves’ / goitre, cretinism, myxoedema',
           ],
           ['Parathyroid', 'PTH', 'Raises blood Ca<sup>2+</sup>', 'osteitis fibrosa / tetany'],
           ['Thymus', 'Thymosin', 'T-lymphocyte differentiation', '(atrophies with age)'],
@@ -284,18 +284,18 @@ export const TOPICS: Topic[] = [
             'Na<sup>+</sup>/K<sup>+</sup>, glucose/anti-inflammatory, sex',
             'Cushing’s, Conn’s, virilism / Addison’s',
           ],
-          ['Adrenal medulla', 'Adrenaline, noradrenaline', 'Fight-or-flight', 'none'],
+          ['Adrenal medulla', 'Adrenaline, noradrenaline', 'Fight-or-flight', 'not listed'],
           [
             'Pancreas',
             'Insulin, glucagon, somatostatin',
             'Lower / raise blood glucose',
             'diabetes mellitus (insulin deficiency)',
           ],
-          ['Testis', 'Testosterone ; inhibin', 'Male characters ; FSH feedback', 'none'],
-          ['Ovary', 'Estrogen ; progesterone', 'Female characters ; pregnancy', 'none'],
-          ['Heart', 'ANF', 'Lowers blood pressure', 'none'],
-          ['Kidney', 'Erythropoietin ; renin', 'RBC formation ; BP/RAAS', 'none'],
-          ['GI tract', 'Gastrin, secretin, CCK, GIP', 'Digestive secretions', 'none'],
+          ['Testis', 'Testosterone ; inhibin', 'Male characters ; FSH feedback', 'not listed'],
+          ['Ovary', 'Estrogen ; progesterone', 'Female characters ; pregnancy', 'not listed'],
+          ['Heart', 'ANF', 'Lowers blood pressure', 'not listed'],
+          ['Kidney', 'Erythropoietin ; renin', 'RBC formation ; BP/RAAS', 'not listed'],
+          ['GI tract', 'Gastrin, secretin, CCK, GIP', 'Digestive secretions', 'not listed'],
         ],
       },
       { t: 'part', title: 'Antagonistic pairs to memorise' },
@@ -352,7 +352,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'CUET, match',
-        q: 'Match each hormone (P to S) with its gland and action (1 to 4). P. Aldosterone–(3) adrenal cortex/Na<sup>+</sup>-K<sup>+</sup> ; Q. Thymosin–(4) thymus/T-cells ; R. Calcitonin–(1) thyroid C-cells/lowers Ca<sup>2+</sup> ; S. Glucagon–(2) α-cells/raises glucose.',
+        q: 'Match each hormone with its gland and action. Hormones: P. Aldosterone; Q. Thymosin; R. Calcitonin; S. Glucagon. Gland/action: (1) thyroid C-cells/lowers Ca<sup>2+</sup>; (2) α-cells/raises glucose; (3) adrenal cortex/Na<sup>+</sup>-K<sup>+</sup>; (4) thymus/T-cells.',
         steps: [],
         ans: 'P-3, Q-4, R-1, S-2.',
       },
@@ -496,7 +496,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'What the chapter states' },
       {
         t: 'p',
-        html: 'The chapter identifies the hypothalamus as the link between nervous and endocrine systems and names the anterior pituitary hormones (FLAT PiG). It states that the hypothalamus controls the anterior pituitary through releasing and inhibiting hormones carried by the hypophyseal portal system. The chapter traces the thyroid axis (TRH → TSH → T<sub>3</sub>/T<sub>4</sub>, with negative feedback on the hypothalamus and the pituitary) and outlines the gonadal axis (GnRH → FSH/LH → sex steroids, with inhibin feeding back). For the adrenal-cortex axis it names only ACTH and not CRH, and it uses the term “tropic hormone” without defining it.',
+        html: 'The chapter identifies the hypothalamus as the link between nervous and endocrine systems and names the anterior pituitary hormones (FLAT PiG). It states that the hypothalamus controls the anterior pituitary through releasing and inhibiting hormones carried by the hypophyseal portal system. The chapter traces the thyroid axis (TRH → TSH → T<sub>3</sub>/T<sub>4</sub>, with negative feedback on the hypothalamus and the pituitary) and outlines the gonadal axis (GnRH → FSH/LH → sex steroids, with inhibin feeding back). For the adrenal-cortex axis it names only ACTH and not CRH, and it uses the term “trophic hormone” without defining it.',
       },
 
       { t: 'part', title: 'What the examination requires' },
@@ -531,7 +531,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Clinical note.</b> Primary hypothyroidism (thyroid failure) → high TSH (loss of negative feedback on pituitary) → low T<sub>3</sub>/T<sub>4</sub>. Secondary hypothyroidism (pituitary failure) → low TSH → low T<sub>3</sub>/T<sub>4</sub>. The TSH level distinguishes the level of the defect, a point often tested in NEET clinical scenarios (the book’s estimate from past papers, not official figures).',
+        html: '<b>Clinical note.</b> Primary hypothyroidism (thyroid failure) → high TSH (loss of negative feedback on pituitary) → low T<sub>3</sub>/T<sub>4</sub>. Secondary hypothyroidism (pituitary failure) → low TSH → low T<sub>3</sub>/T<sub>4</sub>. The TSH level distinguishes the level of the defect, a point the book says is often tested.',
       },
 
       { t: 'part', title: 'Axis 2: The Adrenal Axis (CRH–ACTH–Cortisol)' },
@@ -559,7 +559,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Feedback.</b> In males, testosterone and inhibin (from Sertoli cells) both suppress the axis: testosterone acts on the hypothalamus to reduce GnRH pulse frequency, while inhibin selectively suppresses FSH. In females, feedback switches: estrogen from the developing follicle suppresses FSH/LH until the LH surge at mid-cycle; after ovulation, progesterone from the corpus luteum suppresses both.',
+        html: '<b>Feedback.</b> In males, testosterone and inhibin (from Sertoli cells) both suppress the axis: testosterone acts on the hypothalamus to reduce GnRH pulse frequency, while inhibin selectively suppresses FSH. In females, feedback switches: estrogen from the developing follicle suppresses FSH/LH until, at mid-cycle, high estrogen switches to positive feedback and triggers the LH surge; after ovulation, progesterone from the corpus luteum suppresses both.',
       },
 
       { t: 'part', title: 'Worked examples' },

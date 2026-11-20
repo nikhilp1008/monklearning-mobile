@@ -27,7 +27,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'This section extends Chapter 6 with six topics that NEET and CBSE questions often draw on (by the book’s estimate, not official figures): the embryological origin of the tissue systems from the three primary meristems; the stomatal apparatus, its types and the stomatal index; the full range of vascular bundle types, including amphicribral and amphivasal forms; anomalous secondary growth in certain monocots; the commercial products that come from particular plant tissues; and an integrated cross-organ identification ladder that replaces rote memorisation. A final section, Additional topic G, shows how NEET frames questions from this chapter. Each additional topic is built on the diagnostic features the chapter already provides.<br><br>The chapter introduces the three tissue systems (epidermal, ground, vascular) as finished products and lists their components. It does not trace those components back to their embryological source; the one trace is its remark that the intrafascicular cambium is leftover procambium. Every tissue in the primary plant body arises from one of three primary meristems: the <b>protoderm</b> gives the epidermal system, the <b>ground meristem</b> gives the ground tissue system, and the <b>procambium</b> gives the vascular tissue system. Standard plant-anatomy texts give this sequence, and the pairing has been tested in NEET.',
+        html: 'This section extends Chapter 6 with six topics that NEET and CBSE questions often draw on (by the book’s estimate, not official figures): the embryological origin of the tissue systems from the three primary meristems; the stomatal apparatus, its types and the stomatal index; the full range of vascular bundle types, including amphicribral and amphivasal forms; anomalous secondary growth in certain monocots; the commercial products that come from particular plant tissues; and an integrated cross-organ identification ladder that replaces rote memorisation. A final section, Additional topic G, shows how NEET frames questions from this chapter. Each additional topic is built on the diagnostic features the chapter already provides.<br><br>The chapter introduces the three tissue systems (epidermal, ground, vascular) as finished products and lists their components. It does not trace those components back to their embryological source, beyond two remarks in Topic 04: that the intrafascicular cambium is leftover procambium, and that the procambium gives the primary vascular tissue. Every tissue in the primary plant body arises from one of three primary meristems: the <b>protoderm</b> gives the epidermal system, the <b>ground meristem</b> gives the ground tissue system, and the <b>procambium</b> gives the vascular tissue system. Standard plant-anatomy texts give this sequence, and it is a common exam pairing (the book’s estimate, not official).',
       },
 
       { t: 'part', title: 'Method' },
@@ -112,7 +112,7 @@ export const TOPICS: Topic[] = [
     n: 'B',
     title: 'Stomatal Apparatus: Types and Stomatal Index',
     extra: true,
-    kalam: 'The index measures the proportion of epidermal tissue that is stomatal.',
+    kalam: 'The index gives the percentage of stomata among all the epidermal units counted (stomata plus epidermal cells).',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -160,7 +160,7 @@ export const TOPICS: Topic[] = [
           '<i>S</i> = number of stomata per unit area',
           '<i>E</i> = number of epidermal cells (including subsidiary cells) in the same unit area',
         ],
-        note: 'The index measures the proportion of epidermal tissue that is stomatal.',
+        note: 'The index gives the percentage of stomata among all the epidermal units counted (stomata plus epidermal cells).',
       },
       {
         t: 'p',
@@ -176,7 +176,7 @@ export const TOPICS: Topic[] = [
           '<b>Reasoning.</b> Apply the formula directly: <i>SI</i> = <frac><num><i>S</i></num><den><i>E</i> + <i>S</i></den></frac> × 100. Substituting: <i>S</i> = 24, <i>E</i> = 76.',
           '<i>SI</i> = <frac><num>24</num><den>24 + 76</den></frac> × 100 = <frac><num>24</num><den>100</den></frac> × 100',
         ],
-        ans: 'Stomatal index = 24%. This value indicates that approximately one-quarter of the epidermal tissue in this leaf is stomatal.',
+        ans: 'Stomatal index = 24%: about one in four of the epidermal units counted is a stoma.',
       },
       {
         t: 'ex',
@@ -236,7 +236,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter names radial bundles (root) and conjoint bundles (stem/leaf), distinguishes open from closed, and identifies collateral arrangement. It also mentions bicollateral bundles. Two further geometries that NEET has tested are named in one line in Topic 03 but not developed: <b>amphicribral</b> bundles (phloem surrounding xylem) and <b>amphivasal</b> bundles (xylem surrounding phloem), both found in certain plant groups. This additional topic also works through the <i>Cucurbita</i> example that boards favour for bicollateral bundles.',
+        html: 'The chapter names radial bundles (root) and conjoint bundles (stem/leaf), distinguishes open from closed, and identifies collateral arrangement. It also mentions bicollateral bundles. Two further geometries that exams test (the book’s estimate, not official) are named in one line in Topic 03 but not developed: <b>amphicribral</b> bundles (phloem surrounding xylem) and <b>amphivasal</b> bundles (xylem surrounding phloem), both found in certain plant groups. This additional topic also works through the <i>Cucurbita</i> example that boards favour for bicollateral bundles.',
       },
 
       { t: 'part', title: 'Method' },
@@ -279,9 +279,9 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board Level',
         q: '<b>Bicollateral Bundle in a Pumpkin Stem.</b> Name the type of vascular bundle found in the stem of <i>Cucurbita</i> (pumpkin) and describe the arrangement of xylem and phloem within it.',
         steps: [
-          '<b>Reasoning.</b> <i>Cucurbita</i> stems are the standard textbook example of bicollateral bundles. In a bicollateral bundle, the xylem occupies the centre and a band of phloem lies on both its inner (adaxial) and outer (abaxial) faces. This is in contrast to the standard collateral bundle of dicot stems, which has phloem only on the outer face. The inner phloem is typically discontinuous or patchy.',
+          '<b>Reasoning.</b> <i>Cucurbita</i> stems are the standard textbook example of bicollateral bundles. In a bicollateral bundle, the xylem occupies the centre and a band of phloem lies on both its inner (adaxial) and outer (abaxial) faces. This is in contrast to the standard collateral bundle of dicot stems, which has phloem only on the outer face. The inner phloem is usually smaller than the outer phloem.',
         ],
-        ans: 'Bicollateral vascular bundle. Xylem forms a central strand; a band of phloem lies on the outer face (as in a normal collateral bundle), and a second, often discontinuous band of phloem lies on the inner face, adjacent to the pith.',
+        ans: 'Bicollateral vascular bundle. Xylem forms a central strand with a cap of phloem on its outer face (as in a normal collateral bundle) and a second, smaller cap of phloem on its inner face, next to the pith; a strip of cambium lies between the xylem and the outer phloem, and often a less active one between the xylem and the inner phloem.',
       },
 
       { t: 'part', title: 'Practice' },
@@ -302,7 +302,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CBSE] Name the plant in which bicollateral bundles are typically studied, and state the arrangement of tissues around the central xylem in such a bundle.',
-            a: '<i>Cucurbita</i> (pumpkin) or any other member of Cucurbitaceae (bicollateral bundles also occur in some Solanaceae and Convolvulaceae). Around the central xylem strand: outer phloem (continuous), inner phloem (discontinuous/patchy, facing the pith), with a cambium between xylem and outer phloem.',
+            a: '<i>Cucurbita</i> (pumpkin) or any other member of Cucurbitaceae (bicollateral bundles also occur in some Solanaceae and Convolvulaceae). Around the central xylem strand: outer phloem with a cambium strip between it and the xylem, and inner phloem (smaller, facing the pith), often with a second, less active cambium strip.',
           },
           {
             q: '[NEET, High Difficulty] (i) In a transverse section of a <i>Dracaena</i> stem, a vascular bundle shows xylem forming a complete ring around centrally located phloem. (ii) In a transverse section of a fern rhizome, a bundle shows phloem forming a complete ring around centrally located xylem. Classify both bundle types and state the plant group or genus in which each is found.',
@@ -323,28 +323,28 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter states clearly that monocots generally lack secondary growth because their vascular bundles are closed (no cambium). The exception, certain monocots that thicken by a different mechanism, is only mentioned there (<i>Dracaena</i> is named in Topic 04); it is still a frequent NEET question (the book’s estimate, not official).',
+        html: 'The chapter states clearly that monocots generally lack secondary growth because their vascular bundles are closed (no cambium). The exception, certain monocots that thicken by a different mechanism, is only mentioned there (<i>Dracaena</i> is named in Topic 04). It lies beyond NCERT, but it explains the one well-known exception to the rule, so it is worked through here.',
       },
 
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Anomalous secondary growth (monocot exception mechanism).</b><br>Normal monocot stems (e.g., maize, wheat): closed, scattered bundles; no cambium; no secondary growth.<br>Anomalous monocot secondary growth (e.g., <i>Dracaena</i>, <i>Yucca</i>, <i>Agave</i>, <i>Aloe</i>): these monocots produce secondary tissue by a different cambium, typically a <b>cortical cambium</b> or <b>parenchymatous cambium</b> arising in the ground tissue, that produces vascular bundles (xylem and phloem) in an anomalous (non-ring) arrangement.',
+        html: '<b>Anomalous secondary growth (monocot exception mechanism).</b><br>Normal monocot stems (e.g., maize): closed, scattered bundles; no cambium; no secondary growth.<br>Anomalous monocot secondary growth (e.g., <i>Dracaena</i>, <i>Yucca</i>, <i>Agave</i>, <i>Aloe</i>): these monocots produce secondary tissue by a different cambium, typically a <b>cortical cambium</b> or <b>parenchymatous cambium</b> arising in the ground tissue, that produces vascular bundles (xylem and phloem) in an anomalous (non-ring) arrangement.',
       },
       {
         t: 'table',
         title: 'Key contrast with dicot secondary growth',
-        head: ['Feature', 'Dicot Secondary Growth', 'Dracaena-type Anomalous Growth'],
+        head: ['Feature', 'Dicot Secondary Growth', '<i>Dracaena</i>-type Anomalous Growth'],
         rows: [
           ['Cambium origin', 'Vascular cambium (intrafascicular + interfascicular)', 'Cortical/parenchymatous cambium'],
           ['Bundle arrangement', 'Rings of wood (concentric rings)', 'Scattered bundles (no ring formation)'],
-          ['Vascular bundles', 'Secondary xylem and secondary phloem added by a continuous cambial cylinder', 'New bundles form scattered in ground tissue'],
+          ['Vascular bundles', 'Secondary xylem and secondary phloem added by a continuous cambial cylinder', 'New bundles cut off inward, embedded in conjunctive tissue (no rings of wood)'],
           ['Cambium position', 'Between xylem and phloem in bundles', 'In cortex, outside existing bundles'],
         ],
       },
       {
         t: 'p',
-        html: '<b>Note.</b> The NCERT rule is that monocots lack secondary growth. <i>Dracaena</i> is a rare exception beyond NCERT, described in standard plant-anatomy texts. The mechanism differs fundamentally: instead of a vascular cambium that adds rings of secondary xylem, a separate cambium produces new vascular bundles scattered throughout the ground tissue.',
+        html: '<b>Note.</b> The NCERT rule is that monocots lack secondary growth. <i>Dracaena</i> is a rare exception beyond NCERT, described in standard plant-anatomy texts. The mechanism differs fundamentally: instead of a vascular cambium that adds rings of secondary xylem, a separate cambium outside the primary bundles cuts off new vascular bundles, embedded in conjunctive tissue, mainly toward the inside.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -353,7 +353,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Level',
         q: '<b>Assertion–Reason on Monocot Secondary Growth.</b> Assertion (A): <i>Dracaena</i>, a monocot, shows secondary growth even though monocots generally lack cambium in their vascular bundles. Reason (R): <i>Dracaena</i> produces a cortical cambium that generates new vascular bundles scattered in the ground tissue, unlike the vascular cambium of dicots that produces concentric rings.<br>(a) Both A and R true, R is the correct explanation of A<br>(b) Both A and R true, R is not the correct explanation of A<br>(c) A true, R false<br>(d) A false, R true',
         steps: [
-          '<b>Reasoning.</b> A is true: <i>Dracaena</i> (a monocot) does show secondary growth. R is true: the mechanism is a cortical cambium that produces scattered bundles, not the vascular cambium ring that produces concentric wood. And R is precisely the mechanism: the different cambium type explains why the secondary growth of <i>Dracaena</i> looks different from dicot wood (scattered bundles vs concentric rings).',
+          '<b>Reasoning.</b> A is true: <i>Dracaena</i> (a monocot) does show secondary growth. R is true: the mechanism is a cortical cambium that produces new bundles in conjunctive tissue, not the vascular cambium ring that produces concentric wood. And R is precisely the mechanism: the different cambium type explains why the secondary growth of <i>Dracaena</i> looks different from dicot wood (scattered bundles vs concentric rings).',
         ],
         ans: '(a). The “anomalous” descriptor refers to the non-standard mechanism, not to any false statement.',
       },
@@ -362,7 +362,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET Level',
         q: '<b>Distinguishing Dicot Wood from Anomalous Monocot Wood.</b> State one anatomical feature that would distinguish a transverse section of dicot wood from that of a monocot showing anomalous secondary growth.',
         steps: [
-          '<b>Reasoning.</b> In dicot wood (from a vascular cambium ring), secondary xylem is deposited in concentric annual rings. In <i>Dracaena</i>-type anomalous wood (from a cortical cambium), new vascular bundles are produced scattered throughout the ground tissue: they do not form concentric rings. The presence or absence of concentric ring organisation in the secondary tissue is the distinguishing feature.',
+          '<b>Reasoning.</b> In dicot wood (from a vascular cambium ring), secondary xylem is deposited in concentric annual rings. In <i>Dracaena</i>-type anomalous wood (from a cortical cambium), new vascular bundles are produced embedded in a zone of conjunctive tissue inside the cambium: they do not form concentric rings. The presence or absence of concentric ring organisation in the secondary tissue is the distinguishing feature.',
         ],
         ans: 'Concentric annual rings of secondary xylem are present in dicot wood (from vascular cambium ring) but absent in anomalous monocot wood (from cortical cambium), where vascular bundles remain scattered.',
       },
@@ -381,11 +381,11 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] What is the arrangement of vascular bundles in anomalous secondary growth of monocots?',
-            a: 'Scattered: new vascular bundles are produced in the ground tissue by the cortical cambium, remaining distributed rather than forming a continuous cylindrical ring.',
+            a: 'Scattered (the book’s answer): new vascular bundles are produced by the cortical cambium, remaining distributed rather than forming a continuous cylindrical ring. They lie embedded in a zone of conjunctive tissue inside the cambium, not in concentric rings.',
           },
           {
             q: '[NEET, High Difficulty] A student observes a transverse section of a monocot stem showing secondary growth. The secondary tissue shows scattered vascular bundles rather than concentric rings. Identify the growth type and name the plant genus most likely being observed, giving one anatomical reason why this is not typical dicot secondary growth.',
-            a: 'Anomalous secondary growth in monocots (<i>Dracaena</i>-type). Plant genus: <i>Dracaena</i>. Reason: in dicot secondary growth, the vascular cambium produces concentric rings of secondary xylem (wood). In <i>Dracaena</i>, the cortical cambium produces vascular bundles scattered throughout the ground tissue, so no concentric rings form. This is a fundamentally different anatomical mechanism despite both producing increased girth.',
+            a: 'Anomalous secondary growth in monocots (<i>Dracaena</i>-type). Plant genus: <i>Dracaena</i>. Reason: in dicot secondary growth, the vascular cambium produces concentric rings of secondary xylem (wood). In <i>Dracaena</i>, the cortical cambium produces vascular bundles embedded in a zone of conjunctive tissue inside the cambium, so no concentric rings form. This is a fundamentally different anatomical mechanism despite both producing increased girth.',
           },
         ],
       },
@@ -442,7 +442,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Reasoning.</b> Cork stopper → phellem of the cork oak <i>Quercus suber</i>, which is the outer product of the phellogen in periderm → ii. Jute → phloem fibres (bast fibres) of <i>Corchorus</i> → i. Guava pulp sclereids → stone cells, which are sclereids (short, isodiametric, dead, thick-walled) → iii. Timber → secondary xylem, the product of vascular cambium on its inner face → iv.',
         ],
-        ans: 'A-ii, B-i, C-iii, D-iv. Common trap: confusing phloem fibres (jute) with sclerenchyma fibres from stem tissue: both are dead and lignified, but jute specifically comes from phloem.',
+        ans: 'A-ii, B-i, C-iii, D-iv. Common trap: confusing phloem (bast) fibres such as jute with sclerenchyma fibres from other tissues, such as coir from the coconut husk: both are dead and lignified, but jute specifically comes from phloem.',
       },
       {
         t: 'ex',
@@ -493,7 +493,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter provides individual decision procedures for root, stem, and leaf. NEET and CUET often combine these into a single unknown section that must be identified using a prioritised decision ladder. This additional topic integrates the procedures into one universal identification framework with worked examples covering transitional and ambiguous cases.',
+        html: 'The chapter gives decision procedures for root, stem and leaf, and its Topic 03 Pro-Tip already resolves a section in two questions. NEET and CUET often set a single unknown section (the book’s estimate, not official). This additional topic sets the procedures out as one numbered ladder, with worked examples covering transitional and ambiguous cases.',
       },
 
       { t: 'part', title: 'Method' },
@@ -523,7 +523,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Reasoning.</b> Apply Step 1: conjoint bundles → stem or leaf. Step 3: scattered bundles in stem → monocot stem (dicot stems have bundles in a ring). No cambium → closed bundles (monocot characteristic). Undifferentiated ground tissue → monocot stem. The combination of conjoint + scattered + closed + undifferentiated ground tissue is the classic pattern of a monocot stem.',
         ],
-        ans: 'Monocot stem (e.g., maize, wheat, grasses). This is the textbook anatomy of a monocot stem, as described in the chapter’s treatment of tissue systems.',
+        ans: 'Monocot stem (e.g., maize). This is the textbook anatomy of a monocot stem, as described in the chapter’s treatment of tissue systems.',
       },
       {
         t: 'ex',
@@ -547,7 +547,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET High-Difficulty',
         q: '<b>Integrated Identification with Tissue Diagnosis.</b> A transverse section shows radial vascular bundles with eight xylem groups and a large pith. State the organ and plant group. If you also observe that the innermost cortical layer has Casparian thickenings and passage cells, name that layer and state its function.',
         steps: [
-          '<b>Reasoning.</b> Radial bundles → root (Step 1). Eight xylem groups → polyarch (more than six) → monocot root (Step 2). Large pith confirms monocot. The innermost cortical layer with Casparian strips and passage cells is the <b>endodermis</b>: its Casparian thickenings (suberin bands on radial and transverse walls) regulate water and mineral entry into the stele, and the passage cells allow selective transport without crossing the Casparian strip.',
+          '<b>Reasoning.</b> Radial bundles → root (Step 1). Eight xylem groups → polyarch (more than six) → monocot root (Step 2). Large pith confirms monocot. The innermost cortical layer with Casparian strips and passage cells is the <b>endodermis</b>: its Casparian thickenings (suberin bands on radial and transverse walls; NCERT’s text says tangential as well as radial walls, so answer an NCERT-worded question in those words) regulate water and mineral entry into the stele, and the passage cells, which stay thin-walled without the later suberin layers, still let water and minerals pass into the stele through their living cytoplasm.',
         ],
         ans: 'Organ: monocot root. Plant group: monocotyledon. The innermost cortical layer is the <b>endodermis</b>; its function is to control the passage of water and dissolved minerals between the cortex and the vascular cylinder, with the Casparian strips preventing apoplastic flow and passage cells allowing regulated transport.',
       },
@@ -557,8 +557,8 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[CUET] State the two most decisive anatomical features that distinguish a dicot root from a monocot stem.',
-            a: 'Bundle geometry (radial in root, conjoint in stem) and xylem group number (di/tetrarch vs polyarch for roots; ring vs scattered for stems). These are the two most decisive attributes.',
+            q: '[CUET] State two anatomical features that distinguish a dicot root from a monocot stem.',
+            a: 'Bundle geometry (radial in the dicot root; conjoint, collateral and closed in the monocot stem) and the position of the protoxylem (exarch in the root, endarch in the stem). The layout also differs: 2–4 xylem groups around a small or absent pith in the root against many bundles scattered through undifferentiated ground tissue in the stem.',
           },
           {
             q: '[CBSE] In a transverse section of a leaf, mesophyll is differentiated into palisade and spongy layers, and stomata are observed mainly on the lower epidermis. Identify the leaf type.',
@@ -570,7 +570,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] State one anatomical feature that would distinguish the endodermis in a root from the endodermis in a stem of a dicot.',
-            a: 'In a dicot root, the endodermis is the innermost cortical layer with Casparian thickenings and passage cells. In a dicot stem, the endodermis (the starch sheath) stores starch and has no Casparian strips. The presence of Casparian strips and passage cells is therefore diagnostic of the root endodermis.',
+            a: 'In a dicot root, the endodermis is the innermost cortical layer with Casparian thickenings and passage cells. In a dicot stem, the endodermis (the starch sheath) stores starch and usually lacks Casparian strips. The presence of Casparian strips and passage cells is therefore diagnostic of the root endodermis.',
           },
           {
             q: '[NEET, High Difficulty] Design a decision ladder (maximum five questions) that could identify any of the following: dicot root, monocot root, dicot stem, monocot stem, dicot leaf, monocot leaf, using only anatomical features from this chapter. State the questions in order and the organ that each answer leads to.',
@@ -660,14 +660,14 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 3: Assertion–Reason (Mechanism Chains)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Two statements, A and R, with answer options (a) Both true, R explains A; (b) Both true, R does not explain A; (c) A true, R false; (d) A false, R true.<br><b>Approach that cracks it:</b> Judge A and R separately. If A is true and R is false, the answer is (c); if A is false and R is true, it is (d). If both are true, check whether the causal link holds: (a) if R explains A, (b) if not. The chapter’s differentiation framework (Framework A of Topic 01) supplies the causal chain for the assertion–reason questions in this chapter.',
+        html: '<b>What it looks like:</b> Two statements, A and R, with answer options (a) Both true, R explains A; (b) Both true, R does not explain A; (c) A true, R false; (d) A false, R true.<br><b>Approach that cracks it:</b> Judge A and R separately. If A is true and R is false, the answer is (c); if A is false and R is true, it is (d). If both are true, check whether the causal link holds: (a) if R explains A, (b) if not. The chapter’s frameworks supply the causal chains: for example the differentiation framework (Framework A of Topic 01) for living versus dead tissues, and the unequal activity of the cambium (Topic 04) for thin phloem.',
       },
       {
         t: 'ex',
         tag: 'Worked representative',
         q: '<b>Worked example (NEET-style):</b><br><b>Assertion (A):</b> Vessels are more efficient for water conduction than tracheids.<br><b>Reason (R):</b> Vessels are dead and lignified.',
         steps: [
-          'R is true: vessels are dead and lignified.',
+          'A is true: the open, continuous lumen of a vessel conducts water faster than a chain of tracheids. R is true: vessels are dead and lignified.',
           'But R does <b>not</b> explain why vessels are more efficient. Efficiency comes from the open, continuous lumen (fused vessel elements) versus the pit-permeated walls of tracheids. Being dead and lignified is a precondition, not the mechanism. So both are true but R is not the correct explanation of A.',
         ],
         ans: '(b).',
@@ -676,7 +676,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Archetype 4: Match-the-Column (Paired-Feature Grids)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Column I lists tissues, cells, or anatomical terms; Column II lists their defining features. Four A–D items must be matched to I–IV.<br><b>Approach that cracks it:</b> Memorise the <b>uniqueness facts</b>: each term has a feature the others do not share:<br>• Sclereid → isodiametric, narrow lumen, stone cells (guava/pear pulp)<br>• Sieve tube element → living, anucleate, stacked pipes<br>• Companion cell → living, retains nucleus, controls neighbour<br>• Xylem fibre → obliterated lumen, dead<br>• Vessel → fused open tube (characteristic of angiosperms)<br>• Tracheid → tapering ends, pits (found in all vascular plants; in most gymnosperms the only conducting element)<br>When two options both seem plausible (e.g. a sieve tube element and a companion cell are both living), resolve by the <b>exclusion fact</b>: the descriptor the others do not share.',
+        html: '<b>What it looks like:</b> Column I lists tissues, cells, or anatomical terms; Column II lists their defining features. Four A–D items must be matched to I–IV.<br><b>Approach that cracks it:</b> Memorise the <b>uniqueness facts</b>: each term has a feature the others do not share:<br>• Sclereid → isodiametric, narrow lumen, stone cells (guava/pear pulp)<br>• Sieve tube element → living, anucleate, stacked pipes<br>• Companion cell → living, retains nucleus, controls neighbour<br>• Xylem fibre → obliterated lumen, dead<br>• Vessel → fused open tube (characteristic of angiosperms)<br>• Tracheid → tapering ends, pits (found in all vascular plants; in most gymnosperms the only water-conducting element)<br>When two options both seem plausible (e.g. a sieve tube element and a companion cell are both living), resolve by the <b>exclusion fact</b>: the descriptor the others do not share.',
       },
       {
         t: 'ex',

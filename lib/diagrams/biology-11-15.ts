@@ -313,7 +313,7 @@ function check153(): Check[] {
 const fig153: Diagram = { id: 'b11-15-fig-15.3', topic: 0, name: 'ABO compatibility', cases: [{ chip: 'ABO wheel', cap: CAP153 }], draw: draw153, check: check153 };
 
 /* ================= Figure 15.4 ================= */
-const CAP154 = 'Human heart in frontal section (schematic): four chambers, the four valves, great vessels and the nodal pathway SA node, AV node, bundle of His, Purkinje fibres. Blue = deoxygenated, red = oxygenated blood.';
+const CAP154 = 'Human heart in frontal section (schematic): four chambers, the four valves, great vessels and the nodal pathway SA node, AV node, bundle of His, Purkinje fibres. Dashed outline = deoxygenated, solid outline = oxygenated blood.';
 /** The plate's own coordinates (200 dpi crop of p. 900) scaled by 0.33 onto the phone. */
 const K = 0.33, OX = 140, OY = 80;
 const T = (px: number, py: number): P => [OX + K * (px - 368), OY + K * (py - 243)];
@@ -363,7 +363,7 @@ function draw154(c: { mode: Mode }): Sketch {
   } else {
     s.tag(6, 124, 'SA node', SA[0], SA[1], { hi: true });
     s.tag(6, 176, 'AV node', AV[0], AV[1], { hi: true });
-    s.tag(100, 334, 'Bundle of His', T(649, 866)[0], T(649, 866)[1], { hi: true });
+    s.tag(100, 334, 'Bundle of His', T(700, 740)[0], T(700, 740)[1], { hi: true });
     s.tag(233, 334, 'Purkinje fibres', PURK_L[3][0], PURK_L[3][1], { hi: true });
   }
   legend(s, 380);
@@ -468,7 +468,7 @@ const CAP156 = 'A normal ECG: P wave (atrial depolarisation), QRS complex (ventr
 const X0 = 60, PXS = 360, YZ = 150, PYM = 80;
 const Xt = (t: number) => X0 + t * PXS, Yv = (v: number) => YZ - v * PYM;
 /** The book's named points of the trace (seconds, mV); between them the trace is smooth, straight through the QRS. */
-const KNOTS: [number, number][] = [[0, 0], [0.05, 0], [0.085, 0.1], [0.12, 0.15], [0.155, 0.1], [0.19, 0.005], [0.2, 0], [0.215, -0.1], [0.23, 0], [0.243, 1.0], [0.262, 0], [0.283, -0.25], [0.3, 0], [0.34, 0.02], [0.38, 0], [0.42, 0.17], [0.47, 0.25], [0.52, 0.15], [0.55, 0], [0.8, 0]];
+const KNOTS: [number, number][] = [[0, 0], [0.05, 0], [0.12, 0.15], [0.2, 0], [0.215, -0.1], [0.23, 0], [0.243, 1.0], [0.262, 0], [0.283, -0.25], [0.3, 0], [0.34, 0.02], [0.38, 0], [0.47, 0.25], [0.55, 0], [0.8, 0]];
 function ecg(t: number): number {
   for (let i = 0; i < KNOTS.length - 1; i++) {
     const [a, va] = KNOTS[i], [b, vb] = KNOTS[i + 1];
@@ -526,7 +526,7 @@ const fig156: Diagram = { id: 'b11-15-fig-15.6', topic: 2, name: 'A normal ECG',
 
 /* ================= Figure 15.7 ================= */
 const CAP157 = 'Healthy coronary artery (a) and an atherosclerotic coronary artery (b) whose lumen is narrowed by a plaque of fat, cholesterol and calcium, which can cause angina when oxygen supply is inadequate.';
-const R_WALL = 86, R_LUMEN_A = 64.5, R_PLAQUE = 69, R_LUMEN_B = 27, CORE = { r0: 40, r1: 53, a0: -140, a1: -40 }, CAP_R = 58;
+const R_WALL = 86, R_LUMEN_A = 64.5, R_PLAQUE = 69, R_LUMEN_B = 27, CORE = { r0: 40, r1: 53, a0: -140, a1: -40 }, CAP_R = 33.5;
 const DEPOSITS: P[] = [[-45, 26], [-13, 54], [38, 41]];
 function draw157(c: { part: 'a' | 'b' }): Sketch {
   const a = c.part === 'a', s = new Sketch(W, 292), cx = a ? 180 : 118, cy = 156;
@@ -568,7 +568,7 @@ function check157(c: { part: 'a' | 'b' }): Check[] {
   return [
     ['Panel (b) has the same wall as (a), with a plaque inside it that leaves only a narrow lumen (about 0.31 of the wall radius), far smaller than the open lumen of (a)', R_PLAQUE < R_WALL && R_LUMEN_B < R_PLAQUE && Math.abs(ratioB - 0.31) < 0.01 && R_LUMEN_B < R_LUMEN_A / 2],
     [`The narrowed lumen carries only ${r1((area(R_LUMEN_B) / area(R_LUMEN_A)) * 100)} % of the open lumen's cross-section (about 1 in 6), which is why supply can fall short and cause angina`, area(R_LUMEN_B) / area(R_LUMEN_A) < 0.2],
-    ['The lipid core lies inside the plaque, between the narrowed lumen and the wall, under the fibrous cap, which is drawn just outside it', CORE.r0 > R_LUMEN_B && CORE.r1 < R_PLAQUE && CAP_R > CORE.r1 && CAP_R < R_PLAQUE],
+    ['The lipid core lies inside the plaque, between the narrowed lumen and the wall, with the fibrous cap drawn between it and the narrowed lumen (the cap covers the core on the blood side)', CORE.r0 > R_LUMEN_B && CORE.r1 < R_PLAQUE && CAP_R > R_LUMEN_B && CAP_R < CORE.r0],
     ['The three Ca2+ deposits lie in the plaque, clear of the lumen and the core', insideAnnulus && DEPOSITS.length === 3 && DEPOSITS.every(([dx, dy]) => { const a = (Math.atan2(dy, dx) * 180) / Math.PI; return a > 0 || a < CORE.a0; })],
     ['The book\'s names are on it: (b) Atherosclerotic Artery, Lipid core, Fibrous cap, Ca2+ deposit, Narrowed lumen, Blood flow, Angina', ['(b) Atherosclerotic', 'Artery', 'Ca2+ deposit', '↓ Blood flow → Angina'].every((t) => has(s, t)) && ['Lipid core', 'Fibrous cap', 'Narrowed lumen'].every((t) => tagged(s, t))],
     ['The narrowed lumen (the thing the figure is about) is the one marigold highlight: its outline and its own tag', count(s, MARI) === 3],

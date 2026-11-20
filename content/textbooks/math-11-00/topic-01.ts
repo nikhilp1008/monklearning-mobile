@@ -11,7 +11,9 @@ import type { Topic } from '@/lib/textbooks';
  */
 const fr = (a: string, b: string) => `<frac><num>${a}</num><den>${b}</den></frac>`;
 /** A no-break space: keeps a short expression on one line. */
-const NB = ' ';
+const NB = '\u00a0';
+/** A word joiner: no line break at this point, and no space drawn. */
+const WJ = '\u2060';
 /** The combining overline: one after every character under a bar (bar notation). */
 const BAR = '̅';
 const ESTIMATE = '(the book’s estimate from past papers, not official figures)';
@@ -46,6 +48,9 @@ const rt = (index: string, rad: string) => `<sup>${index}</sup>√${rad}`;
 const disp = (...lines: string[]) =>
   lines.map((l, j) => (j === 0 ? l : (lines[j - 1].includes('<frac>') && l.includes('<frac>') ? '<br><br>' : '<br>') + l)).join('');
 
+/** Display lines inside a worked-example card: single breaks (the card's own leading already spaces fraction rows). */
+const tight = (...lines: string[]) => lines.join('<br>');
+
 const LA = (arg = '') => lg(a, arg);
 const LB = (arg = '') => lg(b, arg);
 const LC = (arg = '') => lg(c, arg);
@@ -78,7 +83,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `Every chapter that follows this one assumes you can already do three things without thinking: manipulate exponents, simplify surds, and read a logarithm the instant you see one. None of these is a Class 11 topic in its own right (the NCERT syllabus treats indices and surds as revision from earlier classes, Classes 8 and 9, and never gives logarithms a chapter of their own), yet the rest of this book leans on all three constantly. Sequences and series turn geometric-progression problems into logarithmic equations the moment a question asks “after how many terms”. Domain-of-a-function problems routinely hide behind log(·) and demand that you know, instantly and without hesitation, what makes the expression inside a logarithm legal. Limits and derivatives use log and ln as some of their most important building blocks, and logarithmic differentiation is a named technique you will meet from Chapter 12 onward. If any of this feels shaky, this chapter is the toolkit built to fix it, once, before you need it fifty pages from now. Treat it as a reference you return to, not a chapter you read and file away.`,
+        html: `Every chapter that follows this one assumes you can already do three things without thinking: manipulate exponents, simplify surds, and read a logarithm the instant you see one. None of these is a Class 11 topic in its own right (the NCERT syllabus treats indices and surds as revision from earlier classes and never gives logarithms a chapter of their own), yet the rest of this book leans on all three constantly. Sequences and series turn geometric-progression problems into logarithmic equations the moment a question asks “after how many terms”. Domain-of-a-function problems routinely hide behind log(·) and demand that you know, instantly and without hesitation, what makes the expression inside a logarithm legal. Limits and derivatives use log and ln as some of their most important building blocks, and logarithmic differentiation is a named technique of calculus (Chapter 12 mentions it; it is taught in Class 12). If any of this feels shaky, this chapter is the toolkit built to fix it, once, before you need it fifty pages from now. Treat it as a reference you return to, not a chapter you read and file away.`,
       },
 
       // ──────────────── Section 1 · pp. 10–11 ────────────────
@@ -180,7 +185,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `When three surds sit in the denominator, rationalise in two passes: group two of them, rationalise once, then rationalise again against the remaining term. This two-step technique, often called <b>double rationalisation</b>, reappears constantly in limit problems in Chapter 12, where an expression like √(${x} + 1) − √${x} in a denominator is cleared the same way. As a worked instance, rationalise ${fr('1', '1 + √2 + √3')}. Group the first two terms and treat √3 as the term to remove first, multiplying by the conjugate (1 + √2) − √3:<br><br>${disp(
+        html: `When three surds sit in the denominator, rationalise in two passes: group two of them, rationalise once, then rationalise again against the remaining term. This two-step technique is often called <b>double rationalisation</b>. Its first step, multiplying by a conjugate, reappears in limit problems in Chapter 12, where an expression like √(${x} + 1) − √${x} in a denominator is cleared by one multiplication by √(${x} + 1) + √${x}. As a worked instance, rationalise ${fr('1', '1 + √2 + √3')}. Group the first two terms and treat √3 as the term to remove first, multiplying by the conjugate (1 + √2) − √3:<br><br>${disp(
           `${fr('1', '(1 + √2) + √3')} · ${fr('(1 + √2) − √3', '(1 + √2) − √3')}`,
           `= ${fr('1 + √2 − √3', `(1 + √2)${sup('2')} − 3`)}`,
           `= ${fr('1 + √2 − √3', '(3 + 2√2) − 3')}`,
@@ -252,7 +257,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `The first says applying ${pw(a, '(·)')} and then ${lg(a)} (or the reverse) returns the original number, the defining property of inverse functions. The second and third are the special cases ${x}${NB}=${NB}1 (since ${pw(a, '0')} = 1) and ${x}${NB}=${NB}${a} (since ${pw(a, '1')} = ${a}).`,
+        html: `The first says applying ${lg(a)} and then ${pw(a, '(·)')} (or the reverse) returns the original number, the defining property of inverse functions. The second and third are the special cases ${x}${NB}=${NB}1 (since ${pw(a, '0')} = 1) and ${x}${NB}=${NB}${a} (since ${pw(a, '1')} = ${a}).`,
       },
       {
         t: 'p',
@@ -271,16 +276,16 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Derivation.</b> Let ${y} = ${LA(b)}, so ${pw(a, y)} = ${b}. Take ${lg(c)} of both sides: ${LC(`(${pw(a, y)})`)} = ${LC(b)}, and by the power law this is ${y} ${LC(a)} = ${LC(b)}. Dividing by ${LC(a)} (nonzero since ${a}${NB}≠${NB}1) gives ${y} = ${fr(LC(b), LC(a))}, which is exactly the change-of-base formula. ■`,
+        html: `<b>Derivation.</b> Let ${y} = ${LA(b)}, so ${pw(a, y)} = ${b}. Take ${lg(c)} of both sides: ${LC(`(${pw(a, y)})`)} = ${LC(b)}, and by the power law this is ${y}${NB}${LC(a)} = ${LC(b)}. Dividing by ${LC(a)} (nonzero since ${a}${NB}≠${NB}1) gives ${y} = ${fr(LC(b), LC(a))}, which is exactly the change-of-base formula. ■`,
       },
       { t: 'p', html: 'Two consequences follow immediately and are used constantly.' },
       {
         t: 'p',
-        html: `<b>1. The reciprocal relation.</b> Setting ${c}${NB}=${NB}${b} in the formula (allowed because ${b}${NB}>${NB}0 and ${b}${NB}≠${NB}1):<br><br>${LA(b)} = ${fr(LB(b), LB(a))} = ${fr('1', LB(a))}, i.e.<br>${LA(b)} · ${LB(a)} = 1 (valid for ${a}, ${b}${NB}>${NB}0 and ${a}, ${b}${NB}≠${NB}1).<br>For instance, since ${L2('8')} = 3, it must be that ${lg('8', '2')} = ${fr('1', '3')}; and indeed 3 × ${fr('1', '3')} = 1.`,
+        html: `<b>1. The reciprocal relation.</b> Setting ${c}${NB}=${NB}${b} in the formula (this needs ${b}${NB}≠${NB}1 as well as ${b}${NB}>${NB}0, since ${b} becomes the new base):<br><br>${LA(b)} = ${fr(LB(b), LB(a))} = ${fr('1', LB(a))}, i.e.<br>${LA(b)} · ${LB(a)} = 1 (valid for ${a}, ${b}${NB}>${NB}0 and ${a}, ${b}${NB}≠${NB}1).<br>For instance, since ${L2('8')} = 3, it must be that ${lg('8', '2')} = ${fr('1', '3')}; and indeed 3 × ${fr('1', '3')} = 1.`,
       },
       {
         t: 'p',
-        html: `<b>2. Change of base with powers on both sides.</b> For ${p}, ${q}${NB}≠${NB}0,<br><br>${lg(`${a}<sup>${p}</sup>`, `(${pw(b, q)})`)} = ${fr(q, p)} ${LA(b)}.`,
+        html: `<b>2. Change of base with powers on both sides.</b> For ${p},${NB}${q}${NB}≠${NB}0,<br><br>${lg(`${a}<sup>${p}</sup>`, `(${pw(b, q)})`)} = ${fr(q, p)} ${LA(b)}.`,
       },
       {
         t: 'p',
@@ -288,7 +293,7 @@ export const TOPICS: Topic[] = [
           `${lg(`${a}<sup>${p}</sup>`, `(${pw(b, q)})`)} = ${fr(LA(`(${pw(b, q)})`), LA(`(${pw(a, p)})`))}`,
           `= ${fr(`${q} ${LA(b)}`, `${p} ${LA(a)}`)}`,
           `= ${fr(q, p)} ${LA(b)}.`,
-        )}<br><br>For example, if ${L2('5')} = ${m}, then ${lg('4', '25')} = ${lg('2<sup>2</sup>', '(5<sup>2</sup>)')} = ${fr('2', '2')} ${L2('5')} = ${m}: the exponents cancel exactly, so squaring both the base and the argument leaves the logarithm unchanged.`,
+        )}<br><br>For example, if ${L2('5')} = ${m}, then ${lg('4', '25')} = ${lg('2²', '(5<sup>2</sup>)')} = ${fr('2', '2')}${NB}${L2('5')} = ${m}: the exponents cancel exactly, so squaring both the base and the argument leaves the logarithm unchanged.`,
       },
       {
         t: 'p',
@@ -327,7 +332,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `written in <b>bar notation</b> as ${KBAR} to keep the mantissa separately non-negative: ${L10(N)} = ${KBAR}.(mantissa) means ${L10(N)} = −(${k} + 1) + mantissa, not −(${k} + 1 + mantissa). This distinction is exactly why the bar notation exists: it keeps the “shape” of the digits (the mantissa) separate from the position of the decimal point (the characteristic), which is the entire point of common logarithms in an era of log tables.`,
+        html: `written in <b>bar notation</b> as ${KBAR} to keep the mantissa separately non-negative: ${L10(N)} = ${KBAR}.${WJ}(mantissa) means ${L10(N)} = −(${k} + 1) + mantissa, not −(${k} + 1 + mantissa). This distinction is exactly why the bar notation exists: it keeps the “shape” of the digits (the mantissa) separate from the position of the decimal point (the characteristic), which is the entire point of common logarithms in an era of log tables.`,
       },
       {
         t: 'p',
@@ -342,7 +347,19 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Logarithmic equations' },
       {
         t: 'p',
-        html: `The general strategy for solving an equation involving logarithms has three steps:<br>1. <b>State the domain first.</b> Write down every condition that makes each logarithm in the equation meaningful (every argument positive, every variable base positive and not equal to 1) before touching the algebra.<br>2. <b>Combine and convert.</b> Use the laws of the part ${PART_LAWS} to reduce the equation to a single logarithm on each side (or a single logarithm equal to a constant), then remove the logarithm using ${LA(P)} = ${LA(Q)} ⟺ ${P} = ${Q} (valid once ${P}, ${Q}${NB}>${NB}0 are already known from step 1), or ${LA(P)} = ${k} ⟺ ${P} = ${pw(a, k)}.<br>3. <b>Solve, then check every root against the domain from step 1.</b>`,
+        html: `The general strategy for solving an equation involving logarithms has three steps:`,
+      },
+      {
+        t: 'p',
+        html: `1. <b>State the domain first.</b> Write down every condition that makes each logarithm in the equation meaningful (every argument positive, every variable base positive and not equal to 1) before touching the algebra.`,
+      },
+      {
+        t: 'p',
+        html: `2. <b>Combine and convert.</b> Use the laws of the part ${PART_LAWS} to reduce the equation to a single logarithm on each side (or a single logarithm equal to a constant), then remove the logarithm using ${LA(P)} = ${LA(Q)} ⟺ ${P} = ${Q} (valid once ${P}, ${Q}${NB}>${NB}0 are already known from step 1), or ${LA(P)} = ${k} ⟺ ${P} = ${pw(a, k)}.`,
+      },
+      {
+        t: 'p',
+        html: `3. <b>Solve, then check every root against the domain from step 1.</b>`,
       },
       {
         t: 'p',
@@ -357,7 +374,19 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>The rule.</b><br>• If ${a}${NB}>${NB}1: ${LA(x)} > ${LA(y)} ⟺ ${x} > ${y}: the inequality’s direction is <b>preserved</b>.<br>• If 0${NB}<${NB}${a}${NB}<${NB}1: ${LA(x)} > ${LA(y)} ⟺ ${x} < ${y}: the inequality’s direction is <b>reversed</b>.<br>• In both cases, <b>both arguments must be strictly positive to begin with</b>: check the domain before you touch the inequality sign at all.`,
+        html: `<b>The rule.</b>`,
+      },
+      {
+        t: 'p',
+        html: `• If ${a}${NB}>${NB}1: ${LA(x)} > ${LA(y)} ⟺ ${x} > ${y}: the inequality’s direction is <b>preserved</b>.`,
+      },
+      {
+        t: 'p',
+        html: `• If 0${NB}<${NB}${a}${NB}<${NB}1: ${LA(x)} > ${LA(y)} ⟺ ${x} < ${y}: the inequality’s direction is <b>reversed</b>.`,
+      },
+      {
+        t: 'p',
+        html: `• In both cases, <b>both arguments must be strictly positive to begin with</b>: check the domain before you touch the inequality sign at all.`,
       },
       {
         t: 'p',
@@ -369,11 +398,19 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `<b>Worked mini-cases</b>, both re-verified in full as the eighth example in the part ${PART_WORKED}:<br>• Base greater than 1: ${L3(`(${x} − 1)`)} < 2, domain ${x}${NB}>${NB}1; since 3 > 1, direction preserved, giving ${x} − 1 < 9, so 1${NB}<${NB}${x}${NB}<${NB}10.<br>• Base between 0 and 1: ${lg('0.5', `(2${x} − 3)`)} ≥ −2, domain ${x}${NB}>${NB}1.5; since 0 < 0.5 < 1, direction reverses, giving 2${x} − 3 ≤ (0.5)<sup>−2</sup> = 4, so 1.5${NB}<${NB}${x}${NB}≤${NB}3.5.`,
+        html: `<b>Worked mini-cases</b>, both re-verified in full as the eighth example in the part ${PART_WORKED}:`,
       },
       {
         t: 'p',
-        html: `<b>[NEW]</b> If the base itself contains ${x}, split the work into the two cases base${NB}>${NB}1 and 0${NB}<${NB}base${NB}<${NB}1, apply the rule above in each case, and keep the conditions base${NB}>${NB}0 and base${NB}≠${NB}1 in the domain as well.`,
+        html: `• Base greater than 1: ${L3(`(${x} − 1)`)} < 2, domain ${x}${NB}>${NB}1; since 3 > 1, direction preserved, giving ${x} − 1 < 9, so 1${NB}<${NB}${x}${NB}<${NB}10.`,
+      },
+      {
+        t: 'p',
+        html: `• Base between 0 and 1: ${lg('0.5', `(2${x} − 3)`)} ≥ −2, domain ${x}${NB}>${NB}1.5; since 0 < 0.5 < 1, direction reverses, giving 2${x} − 3 ≤ (0.5)<sup>−2</sup> = 4, so 1.5${NB}<${NB}${x}${NB}≤${NB}3.5.`,
+      },
+      {
+        t: 'p',
+        html: `If the base itself contains ${x}, split the work into the two cases base${NB}>${NB}1 and 0${NB}<${NB}base${NB}<${NB}1, apply the rule above in each case, and keep the conditions base${NB}>${NB}0 and base${NB}≠${NB}1 in the domain as well.`,
       },
 
       // ──────────────── Section 9 · pp. 18–20 ────────────────
@@ -383,7 +420,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE / JEE Main',
         q: `Solve ${lg(x, '81')} = 4 for ${x}.`,
         steps: [
-          `By the definition of a logarithm, ${lg(x, '81')} = 4 ⟺ ${pw(x, '4')} = 81. Solving, ${x} = ±81<sup>1/4</sup> = ±3. But the base of a logarithm must satisfy ${x}${NB}>${NB}0 and ${x}${NB}≠${NB}1 (the part ${PART_DEF}), so ${x}${NB}=${NB}−3 is rejected outright, regardless of the fact that it algebraically satisfies ${pw(x, '4')} = 81.`,
+          `By the definition of a logarithm, ${lg(x, '81')} = 4${NB}⟺ ${pw(x, '4')} = 81. Solving, ${x} = ±81<sup>1/4</sup> = ±3. But the base of a logarithm must satisfy ${x}${NB}>${NB}0 and ${x}${NB}≠${NB}1 (the part ${PART_DEF}), so ${x}${NB}=${NB}−3 is rejected outright, regardless of the fact that it algebraically satisfies ${pw(x, '4')} = 81.`,
           `<b>Check:</b> ${L3('81')} = ${L3(`(3<sup>4</sup>)`)} = 4. Correct.`,
         ],
         ans: `${x} = 3`,
@@ -414,12 +451,12 @@ export const TOPICS: Topic[] = [
         tag: 'JEE Advanced',
         q: `Evaluate ${L2('3')} · ${L3('4')} · ${lg('4', '5')} · ${lg('5', '6')} · ${lg('6', '7')} · ${lg('7', '8')}.`,
         steps: [
-          `Convert every factor to natural logarithms using the change-of-base formula of the part ${PART_CHANGE}:<br><br>${disp(
+          `Convert every factor to natural logarithms using the change-of-base formula of the part ${PART_CHANGE}:<br>${tight(
             `${L2('3')} · ${L3('4')} · ${lg('4', '5')} · ${lg('5', '6')} · ${lg('6', '7')} · ${lg('7', '8')}`,
-            `= ${fr(ln('3'), ln('2'))} · ${fr(ln('4'), ln('3'))} · ${fr(ln('5'), ln('4'))}`,
-            `· ${fr(ln('6'), ln('5'))} · ${fr(ln('7'), ln('6'))} · ${fr(ln('8'), ln('7'))}.`,
+            `= ${fr(ln('3'), ln('2'))} · ${fr(ln('4'), ln('3'))} · ${fr(ln('5'), ln('4'))}${NB}·`,
+            `${fr(ln('6'), ln('5'))} · ${fr(ln('7'), ln('6'))} · ${fr(ln('8'), ln('7'))}.`,
           )}`,
-          `Every numerator cancels the denominator of the next factor except the very first denominator and the very last numerator, leaving<br><br>${fr(ln('8'), ln('2'))} = ${L2('8')} = ${L2('(2<sup>3</sup>)')} = 3.`,
+          `Every numerator cancels the denominator of the next factor except the very first denominator and the very last numerator, leaving<br>${fr(ln('8'), ln('2'))} = ${L2('8')} = ${L2('(2<sup>3</sup>)')} = 3.`,
         ],
         ans: '3',
       },
@@ -429,23 +466,23 @@ export const TOPICS: Topic[] = [
         q: `Prove that ${A_LOGB_C} = ${C_LOGB_A} for ${a}, ${b}, ${c}${NB}>${NB}0, ${b}${NB}≠${NB}1, and verify it numerically for ${a}${NB}=${NB}4, ${b}${NB}=${NB}2, ${c}${NB}=${NB}8.`,
         steps: [
           `The proof is given in the part ${PART_CHANGE}: take ${lg(b)} of both sides and use the power law, which turns each side into the product ${LB(c)} · ${LB(a)}, in one order or the other; since ${lg(b)} is one-to-one on the positive reals, equal logarithms force equal originals.`,
-          `<b>Numerical verification.</b> With ${a}${NB}=${NB}4, ${b}${NB}=${NB}2, ${c}${NB}=${NB}8: ${L2('8')} = 3, so the left side is 4<sup>log<sub>2</sub> 8</sup> = 4<sup>3</sup> = 64. Also ${L2('4')} = 2, so the right side is 8<sup>log<sub>2</sub> 4</sup> = 8<sup>2</sup> = 64. Both equal 64.`,
+          `<b>Numerical verification.</b> With ${a}${NB}=${NB}4, ${b}${NB}=${NB}2, ${c}${NB}=${NB}8:<br>${L2('8')} = 3, so the left side is<br>4<sup>log₂ 8</sup> = 4<sup>3</sup> = 64.<br>Also ${L2('4')} = 2, so the right side is<br>8<sup>log₂ 4</sup> = 8<sup>2</sup> = 64.<br>Both equal 64.`,
         ],
-        ans: `identity confirmed; 4<sup>log<sub>2</sub> 8</sup> = 8<sup>log<sub>2</sub> 4</sup> = 64`,
+        ans: `identity confirmed; 4<sup>log₂ 8</sup> = 8<sup>log₂ 4</sup> = 64`,
       },
       {
         t: 'ex',
         tag: 'JEE Main: Characteristic and Mantissa',
         q: `(a) How many digits does 2<sup>100</sup> have? (b) (${fr('1', '2')})<sup>100</sup> is written as a decimal; how many zeros appear immediately after the decimal point before its first non-zero digit? Use ${L10('2')} = 0.3010 throughout.`,
         steps: [
-          `(a) By the power law, ${L10('(2<sup>100</sup>)')} = 100 ${L10('2')} = 100(0.3010) = 30.10. The characteristic (integer part) is 30, so by the digit-counting rule of the part ${PART_COMMON}, the number of digits is 30 + 1 = 31.`,
+          `(a) By the power law, ${L10('(2<sup>100</sup>)')} = 100${NB}${L10('2')} = 100(0.3010) = 30.10. The characteristic (integer part) is 30, so by the digit-counting rule of the part ${PART_COMMON}, the number of digits is 30 + 1 = 31.`,
           `<b>Check:</b> direct computation gives 2<sup>100</sup> = 1267650600228229401496703205376, which on counting has exactly 31 digits, confirming the log-based method exactly.`,
-          `(b) ${L10(`((${fr('1', '2')})<sup>100</sup>)`)} = −100 ${L10('2')} = −30.10. Write this in bar notation with a non-negative mantissa: −30.10 = −31 + 0.90, i.e. ${L10(`((${fr('1', '2')})<sup>100</sup>)`)} = 3${BAR}1${BAR}.90. The bar characteristic is 31, so by the rule for 0${NB}<${NB}${N}${NB}<${NB}1 in the part ${PART_COMMON}, the number of zeros right after the decimal point is ${k} = 31 − 1 = 30.`,
-          `<b>Check by direct estimate:</b><br><br>${disp(
+          `(b) ${L10(`((${fr('1', '2')})<sup>100</sup>)`)} = −100${NB}${L10('2')} = −30.10. Write this in bar notation with a non-negative mantissa: −30.10 = −31 + 0.90, i.e. ${L10(`((${fr('1', '2')})<sup>100</sup>)`)} = 3${BAR}1${BAR}.90. The bar characteristic is 31, so by the rule for 0${NB}<${NB}${N}${NB}<${NB}1 in the part ${PART_COMMON}, the number of zeros right after the decimal point is ${k} = 31 − 1 = 30.`,
+          `<b>Check by direct estimate:</b><br>${tight(
             `(${fr('1', '2')})<sup>100</sup> = ${fr('1', '2<sup>100</sup>')}`,
             `≈ ${fr('1', '1.2677 × 10<sup>30</sup>')}`,
             `≈ 7.89 × 10<sup>−31</sup>.`,
-          )}<br><br>Writing this out, the decimal point is followed by thirty 0s and then the digits 788 … (7.89 when rounded to three figures), confirming ${k}${NB}=${NB}30 independently.`,
+          )}<br>Writing this out, the decimal point is followed by thirty 0s and then the digits 788 … (7.89 when rounded to three figures), confirming ${k}${NB}=${NB}30 independently.`,
         ],
         ans: '(a) 31 digits. (b) 30 zeros.',
       },
@@ -455,7 +492,7 @@ export const TOPICS: Topic[] = [
         q: `Solve ${L2(`(${x} − 1)`)} + ${L2(`(${x} + 1)`)} = 3.`,
         steps: [
           `<b>Domain first:</b> both ${x} − 1${NB}>${NB}0 and ${x} + 1${NB}>${NB}0 are required, and the stricter of the two is ${x}${NB}>${NB}1.`,
-          `<b>Combine:</b> by the product law, ${L2(`[(${x} − 1)(${x} + 1)]`)} = 3, i.e. ${L2(`(${x2} − 1)`)} = 3.`,
+          `<b>Combine:</b> by the product law, ${L2(`[(${x}${NB}−${NB}1)${WJ}(${x}${NB}+${NB}1)]`)} = 3, i.e. ${L2(`(${x2} − 1)`)} = 3.`,
           `<b>Convert and solve:</b> ${x2} − 1 = 2<sup>3</sup> = 8, so ${x2} = 9, so ${x} = ±3.`,
           `<b>Check against the domain:</b> the domain established at the start was ${x}${NB}>${NB}1. The root ${x}${NB}=${NB}−3 fails this (it makes ${x} − 1 = −4 < 0, so ${L2(`(${x} − 1)`)} is not even defined there) and must be <b>rejected</b>, despite being a perfectly valid solution of the algebraic equation ${x2} = 9. The root ${x}${NB}=${NB}3 satisfies ${x}${NB}>${NB}1 and is accepted.`,
           `<b>Final check:</b> ${L2('(3 − 1)')} + ${L2('(3 + 1)')} = ${L2('2')} + ${L2('4')} = 1 + 2 = 3. Correct.`,
@@ -469,7 +506,7 @@ export const TOPICS: Topic[] = [
         steps: [
           `(a) Base 3 > 1. Domain: ${x} − 1${NB}>${NB}0, so ${x}${NB}>${NB}1. Since the base exceeds 1, the direction of the inequality is preserved when the logarithm is removed:<br>${x} − 1 < 3<sup>2</sup> = 9 ⇒ ${x} < 10.`,
           `Combined with the domain, the solution is 1${NB}<${NB}${x}${NB}<${NB}10.`,
-          `(b) Base 0.5, which is between 0 and 1. Domain: 2${x} − 3${NB}>${NB}0, so ${x}${NB}>${NB}1.5. Since the base is less than 1, the direction reverses:<br><br>2${x} − 3 ≤ (0.5)<sup>−2</sup> = ${fr('1', '0.25')} = 4 ⇒ 2${x} ≤ 7 ⇒ ${x} ≤ 3.5.`,
+          `(b) Base 0.5, which is between 0 and 1. Domain: 2${x} − 3${NB}>${NB}0, so ${x}${NB}>${NB}1.5. Since the base is less than 1, the direction reverses:<br>2${x} − 3 ≤ (0.5)<sup>−2</sup> = ${fr('1', '0.25')} = 4 ⇒ 2${x} ≤ 7 ⇒ ${x} ≤ 3.5.`,
           `Combined with the domain, the solution is 1.5${NB}<${NB}${x}${NB}≤${NB}3.5.`,
           `<b>Check (b) at the boundary:</b> at ${x}${NB}=${NB}3.5, 2${x} − 3 = 4, and ${lg('0.5', '4')} = ${fr(ln('4'), ln('0.5'))} = ${fr(`2 ${ln('2')}`, `−${ln('2')}`)} = −2, matching the equality case exactly.`,
         ],
@@ -494,7 +531,7 @@ export const TOPICS: Topic[] = [
           },
           { q: `Find ${x} if ${lg(x, '625')} = 4.`, a: `${x} = 5 (root ${x} = −5 rejected: the base of a logarithm must be positive)` },
           {
-            q: `Prove that ${LA(b)} · ${LB(c)} · ${LC(a)} = 1 for ${a}, ${b}, ${c}${NB}>${NB}0, all ≠ 1.`,
+            q: `Prove that ${LA(b)} · ${LB(c)} · ${LC(a)} = 1 for ${a},${NB}${b},${NB}${c}${NB}>${NB}0, all ≠ 1.`,
             a: `Change every term to a common base (say ln): the product is ${fr(ln(b), ln(a))} · ${fr(ln(c), ln(b))} · ${fr(ln(a), ln(c))} = 1, since every factor cancels.`,
           },
           {

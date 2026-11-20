@@ -32,7 +32,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter lists the three nephridia types, with the segments and outlet of the septal and integumentary types, but it never says where the pharyngeal nephridia open. NEET asks both the segment numbers and where each type opens, so this section puts all three in one table and gives a method for keeping them straight.',
+        html: 'The chapter gives the segments and outlets of the septal and integumentary nephridia and the segments of the pharyngeal nephridia, but it says where the pharyngeal ones open only in a multiple-choice hint, and never sets the three side by side. NEET asks both the segment numbers and where each type opens, so this section puts all three in one table and gives a method for keeping them straight.',
       },
 
       { t: 'part', title: 'Method' },
@@ -42,7 +42,7 @@ export const TOPICS: Topic[] = [
         title: null,
         head: ['Nephridia type', 'Location', 'Opening', 'Segments'],
         rows: [
-          ['<b>Pharyngeal nephridia</b>', 'Paired tufts of nephridia', 'Open into the pharynx (enteronephric)', 'Segments <b>4, 5, 6</b>'],
+          ['<b>Pharyngeal nephridia</b>', 'Paired tufts of nephridia', 'Open into the buccal cavity and pharynx (enteronephric)', 'Segments <b>4, 5, 6</b>'],
           [
             '<b>Integumentary nephridia</b>',
             'Line the inner surface of the body wall',
@@ -161,7 +161,7 @@ export const TOPICS: Topic[] = [
           ],
           [
             '<b>2. Conversion</b>',
-            'Tubule cells convert the nitrogenous waste into uric acid (non-toxic, nearly insoluble)',
+            'Tubule cells convert the nitrogenous waste into uric acid (non-toxic, nearly insoluble); in insects much of the uric acid is made in the fat body and secreted into the tubule fluid by these cells',
             'Cells of the Malpighian tubule wall',
           ],
           [
@@ -218,7 +218,7 @@ export const TOPICS: Topic[] = [
             a: 'Malpighian tubules; nitrogenous waste = uric acid (cockroach is uricotelic).',
           },
           {
-            q: '[NEET] Which of these is NOT a function of Malpighian tubules? (a) Uptake of nitrogenous waste from haemolymph, (b) Conversion of nitrogenous waste to uric acid, (c) Oxygen transport, (d) Water reabsorption.',
+            q: '[NEET] Which of these is NOT a function of Malpighian tubules? (a) Uptake of nitrogenous waste from haemolymph, (b) Conversion of nitrogenous waste to uric acid, (c) Oxygen transport, (d) Discharge of uric acid into the gut.',
             a: '(c) Oxygen transport. Malpighian tubules are excretory, not involved in oxygen transport. Oxygen is delivered by the tracheal system.',
           },
           {
@@ -239,7 +239,7 @@ export const TOPICS: Topic[] = [
     n: 'E',
     title: 'Frog: Arterial System, Metamorphosis Stages, and Renal Portal System',
     extra: true,
-    kalam: 'The frog’s truncus arteriosus divides into three pairs of arteries as it leaves the single ventricle.',
+    kalam: 'The frog’s truncus arteriosus, leading out of the single ventricle, divides into three pairs of arteries.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -251,7 +251,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>The arterial arcades: three pairs of arteries leaving the truncus arteriosus</b>' },
       {
         t: 'p',
-        html: 'The frog’s truncus arteriosus divides into three pairs of arteries as it leaves the single ventricle:',
+        html: 'The frog’s truncus arteriosus, leading out of the single ventricle, divides into three pairs of arteries:',
       },
       {
         t: 'table',
@@ -288,7 +288,7 @@ export const TOPICS: Topic[] = [
           ['<b>1. Egg</b>', 'Fertilised egg hatches into a free-swimming larva'],
           [
             '<b>2. Early tadpole</b>',
-            'External gills appear first, then internal gills develop; mouth is a simple, undifferentiated opening; herbivorous (feeding on algae and plant matter)',
+            'External gills appear first, then internal gills develop; mouth bears horny jaws for scraping algae; herbivorous (feeding on algae and plant matter)',
           ],
           [
             '<b>3. Tadpole with hindlimbs</b>',
@@ -567,12 +567,12 @@ export const TOPICS: Topic[] = [
     n: 'G',
     title: 'Frog Brain: Functional Regions and Comparative Neurology',
     extra: true,
-    kalam: 'The chapter names the parts of the frog brain and says what the olfactory lobes, optic lobes, cerebellum and medulla do, and Additional topic B compares the three nervous systems. This section adds the diencephalon (epithalamus, thalamus, hypothalamus), puts each region’s function in one table, and compares the three nervous systems on brain, cord, senses and decentralisation. NEET asks these functional assignments.',
+    kalam: 'The chapter names the parts of the frog brain and says what the olfactory lobes, optic lobes, cerebellum and medulla do, and Additional topic B compares the three nervous systems. This section adds the parts of the diencephalon (epithalamus, thalamus, hypothalamus), puts each region’s function in one table, and compares the three nervous systems on brain, cord, senses and decentralisation. NEET asks these functional assignments.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter names the parts of the frog brain and says what the olfactory lobes, optic lobes, cerebellum and medulla do, and Additional topic B compares the three nervous systems. This section adds the diencephalon (epithalamus, thalamus, hypothalamus), puts each region’s function in one table, and compares the three nervous systems on brain, cord, senses and decentralisation. NEET asks these functional assignments.',
+        html: 'The chapter names the parts of the frog brain and says what the olfactory lobes, optic lobes, cerebellum and medulla do, and Additional topic B compares the three nervous systems. This section adds the parts of the diencephalon (epithalamus, thalamus, hypothalamus), puts each region’s function in one table, and compares the three nervous systems on brain, cord, senses and decentralisation. NEET asks these functional assignments.',
       },
 
       { t: 'part', title: 'Method' },
@@ -736,7 +736,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET: Germ Layer Origin of Endocrine Glands] The pituitary gland and pineal gland are both endocrine glands. Which germ layer are they derived from? (a) Both ectoderm, (b) Both endoderm, (c) Pituitary = ectoderm, pineal = endoderm, (d) Pituitary = endoderm, pineal = mesoderm.',
-            a: '(a) Both pituitary and pineal glands are ectodermal derivatives. The pituitary gland develops from Rathke’s pouch (oral ectoderm) and the pineal gland develops from the diencephalon roof (neuroectoderm). Neither is endodermal.',
+            a: '(a) Both pituitary and pineal glands are ectodermal derivatives. The pituitary develops from Rathke’s pouch (oral ectoderm, the anterior lobe) and from the floor of the diencephalon (neuroectoderm, the posterior lobe); the pineal gland develops from the diencephalon roof (neuroectoderm). Neither is endodermal.',
           },
           {
             q: '[NEET Assertion–Reason: Frog Respiration] <b>Assertion (A):</b> A frog can survive underwater for extended periods by cutaneous respiration. <b>Reason (R):</b> The frog’s skin is thin, moist, and richly supplied with blood capillaries, allowing dissolved oxygen from water to diffuse directly into the blood.<br>Choose: (a) Both true, R explains A. (b) Both true, R not the explanation. (c) A true, R false. (d) A false, R true.',
@@ -804,7 +804,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>1. Pure-Recall Fact Questions (“Which tissue…?”, “The gizzard lies in segments…”)</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A single-sentence stem asking for a number, a location, or a tissue name. No elaboration, no manipulation required: either you know it or you don’t.<br><b>The crack:</b> These test the exact numbers and facts from NCERT. Build a small flashcard deck of the key earthworm segment numbers, the cockroach spiracle/heart counts, and the tissue defining features. Speed here comes from pattern recognition, not reasoning.<br><b>Representative example:</b>',
+        html: '<b>What it looks like:</b> A single-sentence stem asking for a number, a location, or a tissue name. No elaboration, no manipulation required: either you know it or you don’t.<br><b>The crack:</b> These test the exact numbers and facts from NCERT. Build a small flashcard deck of the key earthworm segment numbers, the cockroach spiracle count, and the tissue defining features. Speed here comes from pattern recognition, not reasoning.<br><b>Representative example:</b>',
       },
       {
         t: 'ex',
@@ -877,7 +877,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Trap 3: Tadpole features applied to the adult frog</b>' },
       {
         t: 'p',
-        html: '<b>The trap:</b> Questions test the frog’s aquatic larval stage against the terrestrial adult. Gills, ammonotelism and herbivory all belong to the tadpole. The adult is carnivorous, ureotelic, and lung-breathing.<br><b>The fix:</b> Use the “two-passport” check: ask “water life or land life?” for every frog feature. If the question mentions both, the adult answer is usually what NEET wants.',
+        html: '<b>The trap:</b> Questions test the frog’s aquatic larval stage against the terrestrial adult. Gills, ammonotelism and herbivory all belong to the tadpole. The adult is carnivorous, ureotelic, and lung-breathing.<br><b>The fix:</b> Use the “two-passport” check: ask “water life or land life?” for every frog feature. If the question mentions both stages, read which stage it asks about before you answer.',
       },
       { t: 'p', html: '<b>Trap 4: Tendon vs. ligament (which connects what)</b>' },
       {
@@ -934,7 +934,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Hard] Which of the following statements about cockroach is INCORRECT? <b>(a) Blood vascular system is of the open type. (b) They are monoecious. (c) Nymph grows by moulting about 13 times to reach the adult form. (d) Heart consists of 13 chambers.</b>',
-            a: '<b>(b).</b> Cockroaches are dioecious: sexes are separate (male and female individuals). They are not monoecious. Statements (a), (c), and (d) are all correct: open circulatory system, paurometabolous development with ~13 nymphal moults, and a 13-chambered dorsal heart are all NCERT facts.',
+            a: '<b>(b).</b> Cockroaches are dioecious: sexes are separate (male and female individuals). They are not monoecious. Statements (a), (c), and (d) are all correct: open circulatory system and paurometabolous development with ~13 nymphal moults are NCERT facts, and the 13-chambered dorsal heart is a standard zoology fact (NCERT says only that the heart has funnel-shaped chambers).',
           },
           {
             q: '[Hard] The spermathecae of <i>Pheretima</i> are located in segments: <b>(a) 14 to 18 (b) 10 to 13 (c) 6 to 10 (d) 6 to 9</b>',

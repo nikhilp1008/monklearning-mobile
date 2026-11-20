@@ -44,9 +44,8 @@
  *   "always the next station, no branching" line are not used;
  * - oogenesis: the "two million" at birth is not given (the chapter's
  *   60,000 to 80,000 in each ovary at puberty is); the first meiotic division
- *   is said to be completed in the large follicle before ovulation (the
- *   tertiary follicle that becomes the Graafian follicle), where the book says
- *   "at the Graafian stage"; the number of ova ovulated is "a few hundred";
+ *   is said to be completed in the large follicle before ovulation (NCERT: the
+ *   tertiary follicle, which becomes the Graafian follicle); the number of ova ovulated is "a few hundred";
  * - the cycle is about 28 days (28 to 29 as the book prints it) with ovulation
  *   near day 14; the days are the chapter's (1 to 5, 6 to 13, about 14, 15 to
  *   28) and no fertile-window days other than the contraceptive row's are
@@ -60,8 +59,9 @@
  *   forms three layers" is said as "after implantation";
  * - hCG, hPL and relaxin "only during pregnancy": hCG is made in pregnancy
  *   (apart from rare tumours) and relaxin rises in late pregnancy but the
- *   corpus luteum also makes it, so the points say so; the memory line CHaPLeR
- *   is the cheat sheet's corrected wording, word for word;
+ *   corpus luteum also makes it; the points keep NCERT's wording and add that
+ *   nuance beside it; the memory line CHaPLeR is the cheat sheet's wording,
+ *   word for word;
  * - germ layers: "all muscles" are mesoderm is said as most muscles (a few,
  *   such as the iris muscles, are ectodermal); the gut tube lining is
  *   endoderm; the heart heard "through a stethoscope" at one month is not
@@ -139,7 +139,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 0,
     kind: 'shortcut',
     q: 'How do you answer a sequence or labelling question on the ducts, and what do you do with the word ampulla?',
-    a: 'Walk the route as one sentence. Male: tubule, rete testis, vasa efferentia, epididymis, vas deferens, ejaculatory duct, urethra. Female: ovary, fimbriae, infundibulum, ampulla, isthmus, uterus, cervix, vagina. Mammary gland: alveoli, mammary tubules, mammary ducts, ampulla, lactiferous duct. The word ampulla names a part of the oviduct, the widened end of the vas deferens and a widened part of the mammary duct, so read the context before answering',
+    a: 'Walk the route as one sentence. Male: tubule, rete testis, vasa efferentia, epididymis, vas deferens, ejaculatory duct, urethra. Female: ovary, fimbriae, infundibulum, ampulla, isthmus, uterus, cervix, vagina. Mammary gland: alveoli, mammary tubules, mammary ducts, ampulla, lactiferous duct. The word ampulla names a part of the oviduct and a widened part of the mammary duct, so read the context before answering',
     why: 'Once the route is automatic, the swaps of efferentia with deferens and of ampulla with isthmus stop working as traps.',
     say: null,
   },
@@ -208,7 +208,7 @@ export const KEY_POINTS: KeyPoint[] = [
     q: 'What does the placenta do, and which hormones does it make?',
     a: 'The placenta forms where the chorionic villi of the embryo interdigitate with uterine tissue. It supplies oxygen and nutrients, removes carbon dioxide and waste through the umbilical cord, and acts as an endocrine tissue making hCG, hPL, oestrogen and progestogens. In early pregnancy hCG keeps the corpus luteum secreting progesterone until the placenta makes enough itself. hCG is made by the placenta in pregnancy (apart from rare tumours) and is the basis of pregnancy tests. Relaxin, which relaxes the pelvic ligaments, rises in late pregnancy and comes from the ovary; the corpus luteum can also make it in the luteal phase. Oxytocin comes from the maternal posterior pituitary',
     why: 'Bridge for supply and removal, gland for hormones: one example of each answers the usual question.',
-    say: 'placental hormones → CHaPLeR: hCG, hPL, Relaxin are the hormones that rise in pregnancy (relaxin also from the corpus luteum).',
+    say: 'CHaPLeR: hCG, hPL, Relaxin, the hormones NCERT gives as produced only in pregnancy (relaxin also comes from the ovary).',
   },
   // pp. 83–84, 89
   {
@@ -313,7 +313,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 6,
     kind: 'remember',
     q: 'What is the order of events in the acrosome reaction?',
-    a: 'Binding of sperm receptors to ZP3 of the zona pellucida; fusion of the plasma membrane and outer acrosomal membrane; release of the acrosomal enzymes, acrosin (a protease) and hyaluronidase; penetration (hyaluronidase has already cleared the granulosa layer on the way to the zona, and acrosin helps digest a path through the zona pellucida); merger of the sperm membrane with the oocyte membrane, so the nucleus enters the ooplasm. Contact of the sperm with the oocyte then triggers the cortical reaction, which modifies the zona and blocks further sperm. Calcium is needed for the membranes to fuse',
+    a: 'Binding of sperm receptors to ZP3 of the zona pellucida; fusion of the plasma membrane and outer acrosomal membrane; release of the acrosomal enzymes, chiefly acrosin (a protease); penetration (acrosin helps digest a path through the zona pellucida; hyaluronidase acted earlier, as the sperm crossed the granulosa (cumulus) layer on its way to the zona); merger of the sperm membrane with the oocyte membrane, so the nucleus enters the ooplasm. Contact of the sperm with the oocyte then triggers the cortical reaction, which modifies the zona and blocks further sperm. Calcium is needed for the membranes to fuse',
     why: 'Binding comes first, and the enzymes are released only after the membranes fuse: bind, fuse, release, penetrate, enter.',
     say: null,
   },
@@ -353,7 +353,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 8,
     kind: 'mistake',
     q: 'Which traps repeat in this chapter?',
-    a: 'Vasa efferentia with vas deferens; Sertoli with Leydig (location reversed); the Graafian follicle (before ovulation, oestrogen) with the corpus luteum (after ovulation, progesterone); the morula taken as bigger than the zygote; the secondary oocyte called an ovum; ampulla in the oviduct, the vas deferens and the mammary duct; the uterine layers out of order; birth taken as negative feedback instead of the positive oxytocin loop. Take care with the word pregnancy-only: hCG is made in pregnancy apart from rare tumours, and relaxin rises in late pregnancy but the corpus luteum also makes it',
+    a: 'Vasa efferentia with vas deferens; Sertoli with Leydig (location reversed); the Graafian follicle (before ovulation, oestrogen) with the corpus luteum (after ovulation, progesterone); the morula taken as bigger than the zygote; the secondary oocyte called an ovum; ampulla in the oviduct and the mammary duct; the uterine layers out of order; birth taken as negative feedback instead of the positive oxytocin loop. Take care with the word pregnancy-only: hCG is made in pregnancy apart from rare tumours, and relaxin rises in late pregnancy but the corpus luteum also makes it',
     why: 'Most of these are swaps of two near neighbours, so state the single feature that separates each pair.',
     say: null,
   },

@@ -3,7 +3,7 @@
 // teacher. The screen itself is components/pass-confirmation.tsx, shared with
 // the plans page so a pass looks the same however it was bought.
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { useAndroidBack } from '@/lib/android-back';
@@ -21,7 +21,15 @@ import { payErrorMessage } from '@/lib/payments';
 import { getProfile } from '@/lib/profile';
 
 export default function PassActiveScreen() {
-  const params = useLocalSearchParams<{ pass?: string; promo?: string; exam?: string; paid?: string; amount?: string }>();
+  const params = useLocalSearchParams<{
+    pass?: string;
+    promo?: string;
+    exam?: string;
+    paid?: string;
+    amount?: string;
+    /** The server's end, when the pass already existed before this screen. */
+    endsAt?: string;
+  }>();
   const plan = PLANS.find((p) => p.id === params.pass) ?? null;
   const starter = PASSES.find((p) => p.id === params.pass) ?? PASSES[1];
   const passId = (plan?.id ?? starter.id) as PassKind;
@@ -40,10 +48,17 @@ export default function PassActiveScreen() {
   const exam = EXAMS[examKey];
   // What was actually charged, as the server priced it: the amount rides in
   // from the payment. The only other way here is a code that made it free.
-  const charged = Number(params.amount);
+  // A pass found already paid (the app was closed after paying) arrives with
+  // no amount: then "Paid" is left out, never shown as ₹0.
+  const charged = params.amount ? Number(params.amount) : NaN;
+  const paidKnown = params.paid !== '1' || Number.isFinite(charged);
   const paid = params.paid === '1' && Number.isFinite(charged) ? charged : 0;
+  const endsAt = params.endsAt ? new Date(params.endsAt) : null;
 
   const [saving, setSaving] = useState(false);
+  /** Two taps in one frame both saw `saving` false: the pass was started twice,
+   *  and the second start's "code already used" undid the first. */
+  const savingNow = useRef(false);
   // Paid: Back would return to the price list. Held, as the swipe is (see
   // (onboarding)/_layout).
   useAndroidBack(() => true);
@@ -58,7 +73,8 @@ export default function PassActiveScreen() {
    * write and the handover to the app happen on the last of those screens.
    */
   const finish = async () => {
-    if (saving) return;
+    if (saving || savingNow.current) return;
+    savingNow.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -67,6 +83,7 @@ export default function PassActiveScreen() {
       if (params.paid !== '1') await startPass(passId, params.promo ?? '');
     } catch (err) {
       setSaving(false);
+      savingNow.current = false;
       // THE SERVER SAID NO TO THE CODE (already used, run out): say so, in its
       // words, and take the student back to choose a pass. This screen holds
       // Back, so "check your connection" used to leave them nowhere to go.
@@ -89,10 +106,12 @@ export default function PassActiveScreen() {
       headline={plan ? `You're on ${plan.name}.` : undefined}
       sub={plan ? 'Next, choose who teaches you.' : `${starter.name} of live classes, doubts and practice. Next, choose who teaches you.`}
       rows={[
+        // The first two rows are the confirming page's own, in its order, so
+        // the receipt arrives without the card reshuffling.
         [plan ? 'Plan' : 'Pass', plan ? `${plan.name} · 1 month` : starter.name],
+        ...(paidKnown ? [['Paid', rupees(paid)] as [string, string]] : []),
+        ['Active till', activeTill(passId, endsAt)],
         ['Exam', exam.name],
-        ['Active till', activeTill(passId)],
-        ['Paid', rupees(paid)],
       ]}
       buttonLabel="Choose Drona or Vedha"
       onPress={finish}

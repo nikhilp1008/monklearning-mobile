@@ -24,7 +24,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> Fungi is a frequently asked topic of this chapter in NEET: typically 1–2 MCQs every year (the book’s estimate from past papers, not official figures), heavily concentrated on telling the four classes apart (Phycomycetes / Ascomycetes / Basidiomycetes / Deuteromycetes) and on the sexual-cycle terms (plasmogamy, karyogamy, dikaryon). Example-to-class matching (<i>Rhizopus</i>, <i>Penicillium</i>, <i>Agaricus</i>, <i>Alternaria</i>) and the endogenous-vs-exogenous spore distinction are classic favourites, and assertion–reason and match-the-column formats appear here more than almost anywhere else in the chapter. CBSE Boards favour a 2–3 mark question on class features or the reproductive cycle; CUET tests direct fact recall (example ↔ class).',
+        html: '<b>Exam Relevance:</b> Fungi is a frequently asked topic of this chapter in NEET: typically 1–2 MCQs every year (the book’s estimate from past papers, not official figures), heavily concentrated on telling the four classes apart (Phycomycetes / Ascomycetes / Basidiomycetes / Deuteromycetes) and on the sexual-cycle terms (plasmogamy, karyogamy, dikaryon). Example-to-class matching (<i>Rhizopus</i>, <i>Penicillium</i>, <i>Agaricus</i>, <i>Alternaria</i>) and the endogenous-vs-exogenous spore distinction are classic favourites, and assertion–reason and match-the-column formats are common here. CBSE Boards favour a 2–3 mark question on class features or the reproductive cycle; CUET tests direct fact recall (example ↔ class).',
       },
       {
         t: 'p',
@@ -153,7 +153,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: 'Fungi are economically double-edged.' },
       {
         t: 'p',
-        html: 'On the <b>beneficial</b> side: <i>Penicillium</i> gives us the antibiotic <b>penicillin</b>; <i>Saccharomyces</i> (brewer’s/baker’s yeast) is the workhorse of fermentation, raising bread dough and the batter for <b>idli</b>, and producing beer and wine: the CO<sub>2</sub> it releases is what makes dough puff up. <i>Neurospora</i> is used so heavily in genetics and biochemistry research that it has been called the “<i>Drosophila</i> of the fungal world”. Many Deuteromycetes are <b>decomposers of litter</b> that recycle nutrients and aid mineral cycling, and edible delicacies such as <b>morels and truffles</b> are prized ascomycetes.',
+        html: 'On the <b>beneficial</b> side: <i>Penicillium</i> gives us the antibiotic <b>penicillin</b>; <i>Saccharomyces</i> (brewer’s/baker’s yeast) is the workhorse of fermentation, raising bread dough and producing beer and wine: the CO<sub>2</sub> it releases is what makes dough puff up. <i>Neurospora</i> is used so heavily in genetics and biochemistry research that it has been called the “<i>Drosophila</i> of the fungal world”. Many Deuteromycetes are <b>decomposers of litter</b> that recycle nutrients and aid mineral cycling, and edible delicacies such as <b>morels and truffles</b> are prized ascomycetes.',
       },
       {
         t: 'p',
@@ -179,7 +179,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET · MCQ',
         q: '<b>Example ↔ class recall:</b> “<i>Mucor</i>, <i>Rhizopus</i> and <i>Albugo</i> all belong to which class of fungi?” <b>(a)</b> Phycomycetes <b>(b)</b> Ascomycetes <b>(c)</b> Basidiomycetes <b>(d)</b> Deuteromycetes',
         steps: [
-          'These are the standard Phycomycetes (algal fungi) examples. The quickest confirmation is the <b>aseptate, coenocytic mycelium</b> they share, a feature unique to this class among the four. A useful memory hook: <i>Mucor</i> and <i>Rhizopus</i> are the common bread/dung moulds, and <i>Albugo</i> is the white-rust parasite of mustard; grouping the three together is a recurring CUET/NEET item.',
+          'These are the standard Phycomycetes (algal fungi) examples. The quickest confirmation is the <b>aseptate, coenocytic mycelium</b> they share, a feature unique to this class among the four. A useful memory hook: <i>Mucor</i> and <i>Rhizopus</i> are the common bread/dung moulds, and <i>Albugo</i> is the white-rust parasite of mustard; grouping the three together is a common item.',
         ],
         ans: '(a).',
       },
@@ -270,7 +270,7 @@ export const TOPICS: Topic[] = [
         t: 'mcq',
         q: 'In the sexual cycle of fungi, the fusion of two protoplasms without immediate nuclear fusion is called:',
         opts: [
-          { label: 'Karyogamy', nudge: '<b>(a)</b> karyogamy is the <b>nuclear</b> fusion that follows: the single most common swap in this whole topic.' },
+          { label: 'Karyogamy', nudge: '<b>(a)</b> karyogamy is the <b>nuclear</b> fusion that follows: a very common swap in this topic.' },
           { label: 'Plasmogamy', nudge: null },
           { label: 'Meiosis', nudge: '<b>(c)</b> meiosis comes last, in the zygote, producing haploid spores.' },
           { label: 'Syngamy', nudge: '<b>(d)</b> syngamy implies complete, immediate gamete fusion, which is exactly what the staged fungal process avoids.' },
@@ -305,7 +305,7 @@ export const TOPICS: Topic[] = [
           { f: '<b>Ascomycetes</b> (sac fungi)', note: 'ascospores <b>in an ascus</b> (endogenous); <i>Penicillium</i>, <i>Aspergillus</i>, <i>Neurospora</i>, Yeast.' },
           { f: '<b>Basidiomycetes</b> (club fungi)', note: 'basidiospores <b>on a basidium</b> (exogenous); somatogamy, no sex organs; <i>Agaricus</i>, <i>Puccinia</i>, <i>Ustilago</i>.' },
           { f: '<b>Deuteromycetes</b> (fungi imperfecti)', note: 'conidia only, no known sexual stage; <i>Alternaria</i>, <i>Colletotrichum</i>, <i>Trichoderma</i>.' },
-          { f: 'Sexual cycle', note: '<b>plasmogamy → karyogamy → meiosis</b>; dikaryon (n+n) & clamp connections in Asco/Basidio.' },
+          { f: 'Sexual cycle', note: '<b>plasmogamy → karyogamy → meiosis</b>; dikaryon (n+n) in Asco/Basidio; clamp connections in many Basidiomycetes.' },
           { f: 'Lichen', note: 'alga (phycobiont) + fungus (mycobiont); SO<sub>2</sub> pollution indicator.' },
           { f: 'Mycorrhiza', note: 'fungus + plant root; fungus supplies minerals/water, plant supplies sugars.' },
         ],
@@ -355,7 +355,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & traps:</b><br>• <b>Not all plants are fully autotrophic</b>: remember the insectivorous (partially heterotrophic) and parasitic (non-photosynthetic) exceptions; “all plants make their own food” is a false statement.<br>• <b>Animal cells have no cell wall</b>: a favourite one-mark discriminator from plant cells, which always have one.<br>• <b>Plants store starch, animals store glycogen</b>: do not swap these.<br>• This topic is a Chapter-2 overview; the systematic classification of plants (algae to angiosperms) and animals (non-chordates to chordates) belongs to Chapters 3 and 4 respectively.',
+        html: '<b>Limiting conditions & traps:</b><br>• <b>Not all plants are fully autotrophic</b>: remember the insectivorous (partially heterotrophic) and parasitic (almost no chlorophyll) exceptions; “all plants make their own food” is a false statement.<br>• <b>Animal cells have no cell wall</b>: a favourite one-mark discriminator from plant cells, which always have one.<br>• <b>Plants store starch, animals store glycogen</b>: do not swap these.<br>• This topic is a Chapter-2 overview; the systematic classification of plants (algae to angiosperms) and animals (non-chordates to chordates) belongs to Chapters 3 and 4 respectively.',
       },
       { t: 'fig', id: 'b11-02-fig-2.7' },
 
@@ -393,7 +393,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3.1 Kingdom Plantae: key characteristics</b>' },
       {
         t: 'p',
-        html: '• <b>Eukaryotic and mostly multicellular</b> (a few algae are unicellular), with cells bearing a <b>cellulose cell wall</b>, plastids (including the green chloroplasts) and, typically, a large central vacuole that stores cell sap and maintains turgor, keeping the soft plant body firm.<br>• <b>Autotrophic</b> by photosynthesis: the chlorophyll in their chloroplasts captures light to build sugars from carbon dioxide and water, releasing oxygen, with the well-known heterotrophic exceptions (insectivorous and parasitic plants). This food-making role makes plants the <b>producers</b> that ultimately feed nearly every other organism, including all animals.<br>• Store food chiefly as <b>starch</b>.<br>• Generally <b>non-motile</b> and fixed to a substrate, drawing water and minerals from the soil.<br>• Organised at the <b>tissue and organ level</b> (roots, stems, leaves in higher plants), though the simplest members (algae) have a much looser body.<br>• The kingdom is graded in complexity from <b>algae</b> (simplest, mostly aquatic, often with a loose thallus body) through <b>bryophytes</b> (the “amphibians of the plant world”, needing water for reproduction), <b>pteridophytes</b> (the first true vascular plants, with proper conducting tissue), and <b>gymnosperms</b> (naked-seeded, like pines and <i>Cycas</i>) to the <b>angiosperms</b> (flowering plants whose seeds are enclosed in a fruit), a sequence of increasing adaptation to life on land that is studied in full in Chapter 3. Each step up this ladder shows better water transport, better protection of the embryo, and reduced dependence on external water for reproduction.',
+        html: '• <b>Eukaryotic and mostly multicellular</b> (a few algae are unicellular), with cells bearing a <b>cellulose cell wall</b>, plastids (including the green chloroplasts) and, typically, a large central vacuole that stores cell sap and maintains turgor, keeping the soft plant body firm.<br>• <b>Autotrophic</b> by photosynthesis: the chlorophyll in their chloroplasts captures light to build sugars from carbon dioxide and water, releasing oxygen, with the well-known heterotrophic exceptions (insectivorous and parasitic plants). This food-making role makes plants the <b>producers</b> that ultimately feed nearly every other organism, including almost all animals.<br>• Store food chiefly as <b>starch</b>.<br>• Generally <b>non-motile</b> and fixed to a substrate, drawing water and minerals from the soil.<br>• Organised at the <b>tissue and organ level</b> (roots, stems, leaves in higher plants), though the simplest members (algae) have a much looser body.<br>• The kingdom is graded in complexity from <b>algae</b> (simplest, mostly aquatic, often with a loose thallus body) through <b>bryophytes</b> (the “amphibians of the plant world”, needing water for reproduction), <b>pteridophytes</b> (the first true vascular plants, with proper conducting tissue), and <b>gymnosperms</b> (naked-seeded, like pines and <i>Cycas</i>) to the <b>angiosperms</b> (flowering plants whose seeds are enclosed in a fruit), a sequence of increasing adaptation to life on land that is studied in full in Chapter 3. Each step up this ladder shows better water transport, better protection of the embryo, and reduced dependence on external water for reproduction.',
       },
       { t: 'p', html: '<b>3.2 Alternation of generations (a classic plant feature)</b>' },
       {
@@ -547,11 +547,11 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Assuming all plants are autotrophic.</b> Remember the insectivorous (Venus flytrap, Bladderwort, pitcher plant) and parasitic (<i>Cuscuta</i>) exceptions: a plant can be heterotrophic in part or in whole and still be a plant.',
+          '<b>Assuming all plants are autotrophic.</b> Remember the insectivorous (Venus flytrap, Bladderwort, pitcher plant) and parasitic (<i>Cuscuta</i>) exceptions: a plant can be heterotrophic in part or almost wholly and still be a plant.',
           '<b>Giving animal cells a wall.</b> Animal cells have <b>no</b> cell wall: that is the cleanest single plant-vs-animal cell discriminator, and a frequent one-mark question.',
           '<b>Swapping stored foods.</b> Plants store <b>starch</b>; animals store <b>glycogen</b> (and fat). Mixing these up is one of the commonest errors in the kingdom comparison.',
           '<b>Classifying by nutrition alone.</b> A parasitic plant that has almost lost its chlorophyll is still a plant: kingdom membership is decided by overall body organisation and ancestry, not by one feature in isolation.',
-          '<b>Confusing a mushroom or alga with these kingdoms.</b> A mushroom is a fungus and many “pond scums” are protists or algae: being green or growing like a plant does not make something Plantae.',
+          '<b>Confusing a mushroom or a blue-green “alga” with these kingdoms.</b> A mushroom is a fungus, and many “pond scums” are cyanobacteria (Monera) or protists: being green or growing like a plant does not by itself make something Plantae.',
         ],
       },
       {
@@ -568,7 +568,7 @@ export const TOPICS: Topic[] = [
           { f: 'Plant range', note: 'algae → bryophytes → pteridophytes → gymnosperms → angiosperms (detail in Ch 3).' },
           { f: 'Animalia', note: 'multicellular eukaryotes; <b>no cell wall</b>, no plastids; <b>heterotrophic/holozoic</b>; store <b>glycogen + fat</b>; motile; organ-system level with sensory/neuromotor systems; mostly sexual reproduction (detail in Ch 4).' },
           { f: 'Core split', note: 'plants make food (walled, fixed, plastids, starch); animals find food (wall-less, mobile, glycogen).' },
-          { f: 'Shared', note: 'both eukaryotic, multicellular, reproduce sexually.' },
+          { f: 'Shared', note: 'both eukaryotic, mostly multicellular, reproduce sexually.' },
         ],
         aids: [
           'Plant exceptions: <b>“Flytraps catch Nitrogen, <i>Cuscuta</i> steals Sugar.”</b>',
@@ -588,11 +588,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This cluster is a reliable NEET scorer: usually 1–2 MCQs a year (the book’s estimate from past papers, not official figures), most often on the virus discovery trio (Ivanowsky / Beijerinck / Stanley), the “DNA or RNA, never both” rule, viroids vs viruses, and lichens as pollution indicators. Prions and the virus–viroid–prion comparison have appeared in recent papers, and “which of these is not in the five-kingdom system” is a recurring framing. Statement-based and assertion–reason formats dominate here, so precise single facts (who did what, which agent lacks a coat, which lacks nucleic acid) matter more than long explanations. CBSE Boards may ask a 2–3 mark question on virus structure or lichen symbiosis; CUET tests single-fact recall.',
+        html: '<b>Exam Relevance:</b> This cluster is a reliable NEET scorer: usually 1–2 MCQs a year (the book’s estimate from past papers, not official figures), most often on the virus discovery trio (Ivanowsky / Beijerinck / Stanley), the “DNA or RNA, never both” rule, viroids vs viruses, and lichens as pollution indicators. Prions and the virus–viroid–prion comparison are also asked, and “which of these is not in the five-kingdom system” is a recurring framing. Statement-based and assertion–reason formats dominate here, so precise single facts (who did what, which agent lacks a coat, which lacks nucleic acid) matter more than long explanations. CBSE Boards may ask a 2–3 mark question on virus structure or lichen symbiosis; CUET tests single-fact recall.',
       },
       {
         t: 'p',
-        html: 'Everything so far in this chapter has been a cell, prokaryotic or eukaryotic. Now we step off the edge of the cellular world entirely. <b>Viruses, viroids and prions are acellular</b>: they are not made of cells at all, and that single fact is why Whittaker’s five-kingdom system has <b>no place for them</b>. They sit in a strange borderland between the living and the non-living, and to study them you have to set aside almost everything you learned about cell structure in Topics 01 to 03.',
+        html: 'Everything so far in this chapter has been a cell, prokaryotic or eukaryotic. Now we step off the edge of the cellular world entirely. <b>Viruses, viroids and prions are acellular</b>: they are not made of cells at all, and that single fact is why Whittaker’s five-kingdom system has <b>no place for them</b>. They sit in a strange borderland between the living and the non-living, and to study them you have to set aside almost everything you learned about cell structure in Topics 01 to 04.',
       },
       {
         t: 'p',
@@ -600,7 +600,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Think about it this way…</b> is a virus alive? The honest answer is “half.” Outside a host it behaves like a lifeless crystal; inside one it reproduces and evolves like a living thing. That dual nature, living when in a host, non-living when outside, is the single most important idea in this whole topic, and examiners test it endlessly. It is also why some biologists describe viruses as being “at the threshold of life”: they possess heredity (a genome that mutates and evolves) but not the self-sufficient metabolism that defines a living cell. They are, in a sense, more closely related to chemical matter than to a living organism, yet they undeniably evolve.',
+        html: '<b>Think about it this way…</b> is a virus alive? The honest answer is “half.” Outside a host it behaves like a lifeless crystal; inside one it reproduces and evolves like a living thing. That dual nature, living when in a host, non-living when outside, is the central idea of this topic, and examiners test it often. It is also why some biologists describe viruses as being “at the threshold of life”: they possess heredity (a genome that mutates and evolves) but not the self-sufficient metabolism that defines a living cell. They are, in a sense, more closely related to chemical matter than to a living organism, yet they undeniably evolve.',
       },
       {
         t: 'p',
@@ -654,7 +654,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3.1 Viruses: structure, discovery and types</b>' },
       {
         t: 'p',
-        html: 'A complete virus particle is a <b>virion</b>, and chemically it is an <b>infectious nucleoprotein</b>: a core of nucleic acid surrounded by a protein coat called the <b>capsid</b>, which is itself built from repeating subunits called <b>capsomeres</b>. The capsomeres may be arranged <b>helically</b> (as in the rod-shaped Tobacco Mosaic Virus) or <b>polyhedrally/icosahedrally</b>, so not all viruses share one symmetry. Viruses are too small to be seen with a light microscope and pass through filters that stop bacteria. They carry no ribosomes, no organelles and no metabolism of their own (a few carry one or two enzymes, such as reverse transcriptase in HIV, but cannot make ATP or proteins), which is why outside a host they are biologically inert, closer to chemical matter than to a living organism. A bacteriophage shows this packaging vividly: a <b>head</b> holding the nucleic acid, connected through a <b>collar</b> and <b>sheath/tail</b> to <b>tail fibres</b> that anchor the phage to its bacterial host.',
+        html: 'A complete virus particle is a <b>virion</b>, and chemically it is an <b>infectious nucleoprotein</b>: a core of nucleic acid surrounded by a protein coat called the <b>capsid</b>, which is itself built from repeating subunits called <b>capsomeres</b>. The capsomeres may be arranged <b>helically</b> (as in the rod-shaped Tobacco Mosaic Virus) or <b>polyhedrally/icosahedrally</b>, so not all viruses share one symmetry. Most viruses are too small to be seen with a light microscope and pass through filters that stop bacteria. They carry no ribosomes, no organelles and no metabolism of their own (a few carry one or two enzymes, such as reverse transcriptase in HIV, but cannot make ATP or proteins), which is why outside a host they are biologically inert, closer to chemical matter than to a living organism. A bacteriophage shows this packaging vividly: a <b>head</b> holding the nucleic acid, connected through a <b>collar</b> and <b>sheath/tail</b> to <b>tail fibres</b> that anchor the phage to its bacterial host.',
       },
       {
         t: 'p',

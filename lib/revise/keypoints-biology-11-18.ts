@@ -67,8 +67,8 @@
  *   glucose lowered" for the parasympathetic and "blood vessels to muscles
  *   dilate" are not repeated;
  * - a reflex "cannot be consciously prevented once triggered" is given as hard
- *   to prevent (a flinch can be partly held back); the arc has "up to five"
- *   parts, since a monosynaptic arc has no interneuron; the spinal nerves are
+ *   to prevent (a flinch can be partly held back); the arc has five
+ *   parts, and a monosynaptic arc has no interneuron at its centre; the spinal nerves are
  *   mixed nerves (the roots are separate);
  * - the threshold of about -55 mV is not in the NCERT chapter (it is in the
  *   book's Additional topic A) and is given as a typical value; the absolute
@@ -99,7 +99,9 @@
  *   "perennial" are not repeated as facts: the What NEET Actually Asks points
  *   say the distribution is the book's estimate from past papers and give no
  *   counts or shares; eye and ear are said to be outside this chapter's text,
- *   to be studied from the sensory reception of the NCERT book.
+ *   to be studied from the sensory reception of the NCERT book (after checking the
+ *   current syllabus: that section may have been removed from the rationalised
+ *   NCERT chapter).
  *
  * Markup is the chapter's own: <i> for the genus (Hydra), <sub> and <sup> for
  * ions and charges, <frac> for a fraction, a ratio written with the ratio
@@ -285,7 +287,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 4,
     kind: 'remember',
     q: 'What is a reflex action, and what are the parts of the reflex arc in order?',
-    a: 'A reflex action is a rapid, automatic, involuntary response to a stimulus, mediated by the CNS (most often the spinal cord) without conscious thought. The reflex arc is the pathway the impulse follows, with up to five parts in order: receptor, afferent (sensory) neuron, CNS centre (an interneuron in the grey matter of the cord), efferent (motor) neuron, effector (muscle or gland). A monosynaptic arc has no interneuron',
+    a: 'A reflex action is a rapid, automatic, involuntary response to a stimulus, mediated by the CNS (most often the spinal cord) without conscious thought. The reflex arc is the pathway the impulse follows, with five parts in order: receptor, afferent (sensory) neuron, CNS centre (the grey matter of the cord, with one or more interneurons except in a monosynaptic arc), efferent (motor) neuron, effector (muscle or gland)',
     why: 'The action is the event; the arc is the wiring that makes it possible.',
     say: 'sequence → R-S-C-M-E (Receptor, Sensory, Centre, Motor, Effector).',
   },
@@ -413,7 +415,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'What is the muscle spindle, and what does it do in the knee-jerk reflex?',
     a: 'The muscle spindle is a sensory organ inside a skeletal muscle: intrafusal muscle fibres, with sensory endings wrapped round them, lie among the ordinary extrafusal fibres, and the endings detect stretch. A tap on the patellar tendon stretches the quadriceps, the spindle fires, and the sensory neuron synapses directly (monosynaptic) onto the quadriceps motor neuron, so the muscle contracts and resists the stretch. The gamma motor neuron adjusts the sensitivity of the spindle by contracting the intrafusal fibres',
-    why: 'One synapse in the whole knee-jerk arc: the spindle’s neuron meets the motor neuron directly.',
+    why: 'One synapse in the cord: the spindle’s sensory neuron meets the motor neuron directly.',
     say: null,
   },
   // pp. 1120–1121
@@ -461,7 +463,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 11,
     kind: 'remember',
     q: 'What is the ion-channel basis of the absolute refractory period?',
-    a: 'During the absolute refractory period the voltage-gated Na<sup>+</sup> channels are inactivated: they cannot reopen however strong the depolarising stimulus, so no Na<sup>+</sup> can enter and no depolarisation can occur. The membrane cannot fire, and that keeps the impulse moving forward',
+    a: 'During the absolute refractory period the voltage-gated Na<sup>+</sup> channels are first open and then inactivated; inactivated channels cannot reopen however strong the depolarising stimulus, so no further Na<sup>+</sup> can enter and no new depolarisation can start. The membrane cannot fire, and that keeps the impulse moving forward',
     why: 'It is the state of the channels, not the strength of the stimulus, that blocks the second spike.',
     say: null,
   },
@@ -472,7 +474,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 12,
     kind: 'remember',
     q: 'How is this chapter weighted in the book’s estimate, and what question shapes return?',
-    a: 'The weighting is the book’s estimate from past papers, not official figures. It puts neuron structure and the nerve impulse, and the brain, among the topics that come back often, the peripheral and autonomic system in the middle, and the reflex arc lower, though the assertion–reason on the response coming before the sensation recurs. Eye and ear are not in this chapter’s text: study them from the sensory reception of the NCERT book. Four shapes return: the single-correct statement, match-the-column, assertion–reason and identifying a structure from a description. Use the weighting to decide what to revise first, not to skip a topic',
+    a: 'The weighting is the book’s estimate from past papers, not official figures. It puts neuron structure and the nerve impulse, and the brain, among the topics that come back often, the peripheral and autonomic system in the middle, and the reflex arc lower, though the assertion–reason on the response coming before the sensation recurs. Eye and ear are not in this chapter’s text: study them from the sensory reception of the NCERT book, after checking the current NEET syllabus, since that section may have been removed from the rationalised NCERT chapter. Four shapes return: the single-correct statement, match-the-column, assertion–reason and identifying a structure from a description. Use the weighting to decide what to revise first, not to skip a topic',
     why: 'Treat the weighting as a guide to order of revision, not a count of past questions.',
     say: null,
   },
@@ -481,7 +483,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 12,
     kind: 'mistake',
     q: 'Which wrong options keep recurring in this chapter?',
-    a: 'The book’s estimate from past papers, not official figures. Motor nerves carrying impulses to the CNS: afferent is in, efferent is out. Sympathetic with acetylcholine: the main postganglionic transmitter is noradrenaline for the sympathetic and acetylcholine for the parasympathetic. Cerebrum for balance or cerebellum for intelligence: the cerebellum is posture and balance. Grey matter inside the cerebral cortex: it is outside the cortex and inside the cord. K<sup>+</sup> outflux as the cause of depolarisation: Na<sup>+</sup> in depolarises and K<sup>+</sup> out repolarises. Nissl’s granules in the axon: they are not there. Swapped dorsal and ventral roots: sensory in dorsally, motor out ventrally. Adrenal medulla for medulla oblongata. And myelinated fibres called slow: saltatory conduction is the fast one',
+    a: 'Motor nerves carrying impulses to the CNS: afferent is in, efferent is out. Sympathetic with acetylcholine: the main postganglionic transmitter is noradrenaline for the sympathetic and acetylcholine for the parasympathetic. Cerebrum for balance or cerebellum for intelligence: the cerebellum is posture and balance. Grey matter inside the cerebral cortex: it is outside the cortex and inside the cord. K<sup>+</sup> outflux as the cause of depolarisation: Na<sup>+</sup> in depolarises and K<sup>+</sup> out repolarises. Nissl’s granules in the axon: they are not there. Swapped dorsal and ventral roots: sensory in dorsally, motor out ventrally. Adrenal medulla for medulla oblongata. And myelinated fibres called slow: saltatory conduction is the fast one. (Which options recur is the book’s estimate from past papers, not official figures.)',
     why: 'Each of these swaps one key word of a true statement, so test every option against the exact fact.',
     say: null,
   },

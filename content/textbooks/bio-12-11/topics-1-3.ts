@@ -353,7 +353,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions.</b> “Regulate” in the strict sense means holding the internal environment constant; most organisms are partial regulators at best, regulating against mild stress and conforming when it becomes extreme. And adaptations are not acquired within a lifetime by trying hard: they are heritable traits shaped by selection over generations; an individual desert plant cannot grow spines because it is thirsty.',
+        html: '<b>Limiting conditions & assumptions.</b> “Regulate” in the strict sense means holding the internal environment constant; many organisms are only partial regulators, regulating against mild stress and conforming when it becomes extreme. And adaptations are not acquired within a lifetime by trying hard: they are heritable traits shaped by selection over generations; an individual desert plant cannot grow spines because it is thirsty.',
       },
 
       { t: 'part', title: 'Classification framework and diagnostic features' },
@@ -365,7 +365,7 @@ export const TOPICS: Topic[] = [
           [
             'Regulate',
             'Maintains a constant internal environment (homeostasis): thermoregulation and/or osmoregulation, regardless of external change',
-            'Most birds and mammals; humans sweat in summer (evaporative cooling), shiver in winter (heat from muscle activity)',
+            'All birds and mammals, and a very few lower vertebrates and invertebrates (NCERT); some let body temperature fall in torpor or hibernation. Humans sweat in summer (evaporative cooling), shiver in winter (heat from muscle activity)',
           ],
           [
             'Conform',
@@ -403,7 +403,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Coping strategies and adaptive logic' },
       {
         t: 'p',
-        html: '<b>Why so few species regulate.</b> The best-known regulators (birds and mammals) pay a steep, continuous energy bill to hold body temperature and osmotic balance constant. The cost is worst for small animals: a small body has a large surface area relative to its volume, so it loses heat fast and must burn even more fuel to replace it. This is why very small animals are rare in the polar regions, and why the overwhelming majority of organisms simply conform. <b>Reasoning:</b> evolution is an accountant: constancy is “bought” only where its survival payoff exceeds its energy price.',
+        html: '<b>Why so few species regulate.</b> Regulators (NCERT: all birds and mammals, and a very few lower vertebrates and invertebrates) pay a steep, continuous energy bill to hold body temperature and osmotic balance constant. The cost is worst for small animals: a small body has a large surface area relative to its volume, so it loses heat fast and must burn even more fuel to replace it. This is why very small animals are rare in the polar regions, and why the overwhelming majority of organisms simply conform. <b>Reasoning:</b> evolution is an accountant: constancy is “bought” only where its survival payoff exceeds its energy price.',
       },
       {
         t: 'p',
@@ -510,7 +510,7 @@ export const TOPICS: Topic[] = [
         ],
         correct: 2,
         solution:
-          'Roughly 99% of animals and nearly all plants conform (NCERT’s figure); birds and mammals are the best-known regulators.',
+          'Roughly 99% of animals and nearly all plants conform (NCERT’s figure); all birds and mammals, and a very few others, regulate.',
       },
       {
         t: 'mcq',
@@ -566,7 +566,7 @@ export const TOPICS: Topic[] = [
         t: 'mistakes',
         items: [
           '<b>Hibernation vs aestivation vs diapause.</b> Hibernation = winter sleep (cold). Aestivation = summer sleep (heat/drought). Diapause = suspended development (often zooplankton). Tie each to its trigger and you will not swap them.',
-          '<b>Regulate vs conform direction.</b> Regulators hold the inside constant; conformers let it vary. Birds and mammals are the best-known regulators; the vast majority of organisms conform. Don’t assume “most animals regulate”: the reverse is true.',
+          '<b>Regulate vs conform direction.</b> Regulators hold the inside constant; conformers let it vary. Birds and mammals regulate (NCERT: all of them, and a very few other animals); the vast majority of organisms conform. Don’t assume “most animals regulate”: the reverse is true.',
           '<b>Adaptation is not effort.</b> Adaptations are heritable, evolved over generations: an individual does not grow them on demand within its lifetime. Watch for assertion-reason traps built on this.',
           '<b>Three adaptation types.</b> Morphological = form, physiological = internal function, behavioural = action. Classify the example by what changed.',
         ],
@@ -941,7 +941,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed):</b> For exponential numericals, compute <i>rt</i> first and look for a clean exponent (<i>rt</i> = 1, 2, ln 2 …). Questions often choose <i>r</i> and <i>t</i> so that the exponent comes out clean (<i>rt</i> = 1, 2, ln 2 …); if your exponent is ugly, recheck your arithmetic before reaching for a calculator.',
+        html: '<b>Pro-Tip (speed):</b> For exponential numericals, compute <i>rt</i> first and look for a clean exponent (<i>rt</i> = 1, 2, ln 2 …). Questions are often set so that the exponent is a value you can evaluate mentally; if yours is ugly, recheck your arithmetic before reaching for a calculator.',
       },
 
       { t: 'part', title: 'Cheat sheet' },

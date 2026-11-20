@@ -23,7 +23,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A perennial favourite. NEET pulls 1–2 questions on protein structure levels, fibrous-vs-globular, and purine-vs-pyrimidine almost every year (the book’s estimate from past papers, not official figures), often as assertion–reason. CBSE Boards ask 2–3 mark “distinguish between” and “draw/explain the levels” questions. CUET leans on crisp recall (nucleotide vs nucleoside, A–T vs G–C bonding). Learn the hierarchy and the bonds that hold each level, and most questions answer themselves.',
+        html: '<b>Exam Relevance:</b> A perennial favourite. NEET regularly draws on protein structure levels, fibrous-vs-globular, and purine-vs-pyrimidine (the book’s estimate from past papers, not official figures), often as assertion–reason. CBSE Boards ask 2–3 mark “distinguish between” and “draw/explain the levels” questions. CUET leans on crisp recall (nucleotide vs nucleoside, A–T vs G–C bonding). Learn the hierarchy and the bonds that hold each level, and most questions answer themselves.',
       },
       {
         t: 'p',
@@ -152,7 +152,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[CBSE] Differentiate between a nucleoside and a nucleotide, name the component that distinguishes them.',
+            q: '[CBSE] Differentiate between a nucleoside and a nucleotide, and name the component that distinguishes them.',
             a: 'Nucleoside = base + sugar; nucleotide = base + sugar + <b>phosphate</b> (the phosphate is the distinguishing part).',
           },
           {
@@ -311,7 +311,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> One of the highest-yield slices of the whole chapter. NEET asks 2–3 questions a year (the book’s estimate from past papers, not official figures): factors affecting enzyme activity, the six classes, and cofactors (apo- vs holoenzyme) are perennial, often as assertion–reason or match-the-column. CBSE Boards favour 2–3 mark “factors affecting activity” and “draw the energy/activity graph” questions. CUET sticks to crisp recall (coenzyme vs prosthetic group, competitive inhibition). Learn the graphs and the classification cold.',
+        html: '<b>Exam Relevance:</b> One of the highest-yield slices of the whole chapter. NEET regularly draws on this topic (the book’s estimate from past papers, not official figures): factors affecting enzyme activity, the six classes, and cofactors (apo- vs holoenzyme) are perennial, often as assertion–reason or match-the-column. CBSE Boards favour 2–3 mark “factors affecting activity” and “draw the energy/activity graph” questions. CUET sticks to crisp recall (coenzyme vs prosthetic group, competitive inhibition). Learn the graphs and the classification cold.',
       },
       {
         t: 'p',
@@ -375,7 +375,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'proc',
-        title: 'The six IUB (now IUBMB) classes (mnemonic: “OTHLIL”)',
+        title: 'The six IUB classes used by NCERT (mnemonic: “OTHLIL”; IUBMB added a seventh, translocases, in 2018)',
         steps: [
           '<b>Oxidoreductases</b>: oxidation–reduction (electron/H transfer).',
           '<b>Transferases</b>: transfer a functional group between molecules.',
@@ -414,7 +414,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-09-fig-9.4' },
       {
         t: 'p',
-        html: '<b>B. The catalytic cycle (and the two models).</b><br>E + S ⇌ ES → EP → E + P<br>(The book’s shorthand omits the enzyme-product complex EP.) The enzyme (E) binds substrate (S) to form the ES complex, converts it to product (P), then releases P and returns unchanged. Two pictures of how S fits the active site:<br>• <b>Lock-and-key (Fischer):</b> the active site is a rigid shape that exactly matches the substrate, like a key fitting a fixed lock.<br>• <b>Induced fit (Koshland):</b> the active site is flexible and moulds itself snugly around the substrate as it binds, like a glove shaping to a hand. This is the more accurate modern view and explains why enzymes can strain bonds to speed catalysis.',
+        html: '<b>B. The catalytic cycle (and the two models).</b><br>E + S ⇌ ES → EP → E + P<br>(EP is the enzyme–product complex, formed before the product is released.) The enzyme (E) binds substrate (S) to form the ES complex, converts it to product (P), then releases P and returns unchanged. Two pictures of how S fits the active site:<br>• <b>Lock-and-key (Fischer):</b> the active site is a rigid shape that exactly matches the substrate, like a key fitting a fixed lock.<br>• <b>Induced fit (Koshland):</b> the active site is flexible and moulds itself snugly around the substrate as it binds, like a glove shaping to a hand. This is the more accurate modern view and explains why enzymes can strain bonds to speed catalysis.',
       },
       {
         t: 'proc',
@@ -602,7 +602,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip (speed):</b> For “identify the enzyme class” questions, key off the verb in the reaction: cuts with water → hydrolase; moves a group → transferase; redox → oxidoreductase; forms a double bond without water → lyase; rearranges → isomerase; joins using ATP → ligase. The verb gives the class in one read.',
+        html: '<b>Pro-Tip (speed):</b> For “identify the enzyme class” questions, key off the verb in the reaction: cuts with water → hydrolase; moves a group → transferase; redox → oxidoreductase; adds or removes groups at a double bond, not by hydrolysis → lyase; rearranges → isomerase; joins using ATP → ligase. The verb gives the class in one read.',
       },
 
       { t: 'part', title: 'Cheat sheet' },

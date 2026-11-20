@@ -93,7 +93,7 @@ describe('Razorpay opens only after the student picks it on Google\'s screen', (
   });
 
   test('the hook hands screens startCheckout, not pay', () => {
-    expect(SRC).toContain('return { startCheckout, recover, checkout, confirming };');
+    expect(SRC).toContain('return { startCheckout, recover, checkout, confirming, stopConfirming };');
   });
 });
 
@@ -120,9 +120,9 @@ describe('Play recovery and the pending path', () => {
     expect(plans).toContain("result.status === 'recovered'");
   });
 
-  test('onboarding pass: a pending Play purchase starts the late watch, whose ticks and the foreground run recovery', () => {
+  test('onboarding pass: a pending purchase (Play included) keeps the confirming page up and starts the late watch, whose ticks and the foreground run recovery', () => {
     const pass = read('app/(onboarding)/pass.tsx');
-    expect(pass).toContain('if (result.play) watchLate();');
+    expect(pass).toMatch(/result\.status === 'pending'\) \{[\s\S]*?setLate\(true\);\s*watchLate\(\);/);
     expect(pass).toMatch(/checkPass\.current\(\);\s*if \(!payingNow\.current\) void recover\(\);/);
     expect(pass).toMatch(/if \(!payingNow\.current\) void recover\(\);\s*\}\s*\}\);/);
     expect(pass).toContain("result.status === 'recovered'");

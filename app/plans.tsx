@@ -1,13 +1,13 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Platform, View } from 'react-native';
+import { Alert, AppState, View } from 'react-native';
 
 import { PaymentConfirming } from '@/components/paywall/payment-confirming';
 import { PaymentNotice } from '@/components/paywall/payment-notice';
 import { PlansPage, type PlansPick } from '@/components/paywall/plans-page';
 import { isReviewerSession } from '@/lib/reviewer';
 import { PLANS } from '@/components/paywall/plans';
-import { PASSES } from '@/constants/onboarding';
+import { PASSES, rupees } from '@/constants/onboarding';
 import { usePassCheckout } from '@/components/paywall/razorpay-checkout';
 import { PaywallSuccess } from '@/components/paywall/screens';
 import { exitOnBack, useAndroidBack } from '@/lib/android-back';
@@ -21,6 +21,8 @@ const isPick = (v?: string): v is PlansPick => PASSES.some((p) => p.id === v) ||
 
 /** How often a page waiting on a confirmed payment asks again. */
 const PENDING_RECHECK_MS = 15000;
+/** Sooner while the confirming page is up and the student is watching it. */
+const LATE_RECHECK_MS = 5000;
 
 /**
  * WHERE A STUDENT CHOOSES A PLAN — when their pass has ended (the gate in
@@ -46,18 +48,24 @@ export default function PlansScreen() {
   // A Play purchase paid for but never confirmed is verified when the page opens;
   // when it lands the gate's own check sends the student on.
   const recheckRef = useRef<() => void>(() => {});
-  const { startCheckout, recover, checkout, confirming } = usePassCheckout({ onRecovered: () => recheckRef.current() });
-  const { starterUsed } = usePlan();
+  const { startCheckout, recover, checkout, confirming, stopConfirming } = usePassCheckout({ onRecovered: () => recheckRef.current() });
+  const { starterUsed, tier } = usePlan();
 
   /** Where the student stands. Null until the first answer. */
   const [status, setStatus] = useState<PassStatus | null>(null);
   const [teacher, setTeacher] = useState<TeacherId>('drona');
   const [paying, setPaying] = useState(false);
   /** A payment that did not happen: said in the banner at the top. */
-  const [notPaid, setNotPaid] = useState(false);
+  const [notPaid, setNotPaid] = useState<false | 'sure' | 'unsure'>(false);
   const hideNotPaid = useCallback(() => setNotPaid(false), []);
+  /** Paid, and the bank has not confirmed in time: the confirming page stays up. */
+  const [late, setLate] = useState(false);
+  const lateNow = useRef(false);
+  lateNow.current = late;
   /** The receipt: what was bought and what it cost. */
   const [done, setDone] = useState<{ kind: PassKind; paid: number; endsAt?: Date | null } | null>(null);
+  /** What is being bought right now, for the confirming page to say. */
+  const [buying, setBuying] = useState<{ kind: PassKind; paise: number } | null>(null);
   /** A payment the bank has not confirmed yet: keep asking. */
   const [pending, setPending] = useState(false);
 
@@ -104,8 +112,16 @@ export default function PlansScreen() {
    * only way out was to force-quit. (Android's Back leaves the app.) A student
    * with no plan and no free tier still has nothing behind this page.
    */
-  const canLeaveFree =
-    Platform.OS === 'ios' && (status?.state === 'none' || status?.state === 'expired') && !!status.free;
+  // Only after a pass has ended: a student who never had one starts with a
+  // pass, never free (Nikhil, 18 Nov 2026).
+  //
+  // ON BOTH PHONES, AND FROM THE FIRST FRAME (Nikhil, 19 Nov 2026). It was
+  // iPhone only, so an Android student on the free plan had no button at all,
+  // and it waited for the server's answer, so on iPhone it arrived two or three
+  // seconds after the page. `tier` is what the app already knows from the last
+  // `/pass` answer, there before anything is asked; the server's `free` agrees
+  // with it a moment later.
+  const canLeaveFree = status?.state === 'expired' && (tier === 'free' || !!status.free);
   const leave = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace('/');
@@ -123,6 +139,8 @@ export default function PlansScreen() {
     // skipped, doubled, or shown over the wrong screen. `pay` owns what happens
     // next, and shows the one completion page.
     if (gated.current !== true || done || payingNow.current) return;
+    // The confirming page is up for a slow bank: it opens the receipt itself (below).
+    if (lateNow.current) return;
     const st = await passStatus();
     if (st.state === 'active') goHome();
   }, [done, goHome]);
@@ -140,6 +158,25 @@ export default function PlansScreen() {
       return () => sub.remove();
     }, [recheck])
   );
+  /**
+   * WHILE THE CONFIRMING PAGE WAITS ON A SLOW BANK it asks for the pass itself,
+   * and opens the receipt when the paid time arrives: a pass now running, or one
+   * that now ends later than it did (for "Add more time").
+   */
+  useEffect(() => {
+    if (!late) return;
+    const before = status?.state === 'active' ? status.endsAt.getTime() : null;
+    const id = setInterval(async () => {
+      const st = await passStatus();
+      if (st.state !== 'active' || (before !== null && st.endsAt.getTime() <= before + 60000)) return;
+      setLate(false);
+      setPending(false);
+      if (buying) setDone({ kind: buying.kind, paid: rupeesOf(buying.paise), endsAt: st.endsAt });
+      else goHome();
+    }, LATE_RECHECK_MS);
+    return () => clearInterval(id);
+  }, [late, status, buying, goHome]);
+
   useEffect(() => {
     if (!pending) return;
     const id = setInterval(() => {
@@ -168,7 +205,12 @@ export default function PlansScreen() {
       goHome();
       return true;
     }
-    if (paying) return true;
+    if (paying || late) return true;
+    // A free student's Back is the page's own back button: it leaves the page, not the app.
+    if (gated.current !== false && canLeaveFree) {
+      leave();
+      return true;
+    }
     return gated.current !== false ? exitOnBack() : false;
   });
 
@@ -192,6 +234,7 @@ export default function PlansScreen() {
         promo={(params.promo ?? '').toUpperCase()}
         busy={paying}
         onClose={context === 'extend' ? () => router.back() : canLeaveFree ? leave : undefined}
+        freeBehind={context === 'gate' && canLeaveFree}
         onPromo={(pick) =>
           router.push({
             pathname: '/plans-promo',
@@ -217,6 +260,7 @@ export default function PlansScreen() {
           payingNow.current = true;
           setNotPaid(false);
           setPaying(true);
+          setBuying({ kind, paise: expectedPaise });
           try {
             const result = await startCheckout(kind, {
               description: `${PASS_NAME[kind]} ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'}`,
@@ -234,17 +278,14 @@ export default function PlansScreen() {
             } else if (result.status === 'pending') {
               // Money has moved; the server has not said so yet. Never "failed",
               // and never "pay again": this page leaves on its own once it lands.
+              // The confirming page stays up and says so (it was a system
+              // alert over the price list, with Pay live under it).
               setPending(true);
-              Alert.alert(
-                'Payment received',
-                result.play
-                  ? `Google is still confirming it. Keep MonkLearning open for a few minutes: your ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'} will start on its own — you don't need to pay again.`
-                  : `Your bank is still confirming it. Your ${kind === 'day' || kind === 'week' ? 'pass' : 'plan'} will start on its own in a few minutes — you don't need to pay again.`
-              );
+              setLate(true);
             } else if (result.status === 'recovered') {
               Alert.alert('Earlier purchase confirmed', result.message);
             } else if (result.status === 'failed' || result.status === 'cancelled') {
-              setNotPaid(true);
+              setNotPaid(result.unsure ? 'unsure' : 'sure');
             }
           } catch (err) {
             // Before any money moved: the order could not be made, or its price
@@ -256,9 +297,22 @@ export default function PlansScreen() {
           }
         }}
       />
-      <PaymentNotice visible={notPaid} onGone={hideNotPaid} />
+      <PaymentNotice visible={notPaid !== false} unsure={notPaid === 'unsure'} onGone={hideNotPaid} />
       {checkout}
-      {confirming ? <PaymentConfirming /> : null}
+      {confirming || late ? (
+        <PaymentConfirming
+          mode={confirming === 'checking' ? 'checking' : confirming ? 'paid' : 'late'}
+          onNotPaid={stopConfirming}
+          onClose={() => {
+            // `pending` keeps asking behind the page; the banner says not to pay again.
+            setLate(false);
+            setNotPaid('unsure');
+          }}
+          what={buying ? (buying.kind === 'day' || buying.kind === 'week' ? PASS_NAME[buying.kind] : `${PASS_NAME[buying.kind]} · 1 month`) : undefined}
+          amount={buying ? rupees(rupeesOf(buying.paise)) : undefined}
+          plan={!!buying && buying.kind !== 'day' && buying.kind !== 'week'}
+        />
+      ) : null}
     </>
   );
 }

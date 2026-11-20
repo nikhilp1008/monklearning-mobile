@@ -105,7 +105,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Crucially, muscular movement is never the muscle acting alone: it is a <b>system</b>. The muscle supplies the force, the <b>skeleton</b> provides the rigid levers, and the <b>joints</b> provide the pivots about which those levers swing. Remove any one component and movement fails: a muscle with nothing to pull on, or a bone with no joint, produces nothing. This three-part partnership is precisely why the rest of the chapter is organised around each component in turn: muscle (its types, structure and contraction) followed by the skeletal system and joints.',
+        html: 'Crucially, skeletal-muscle movement is never the muscle acting alone: it is a <b>system</b>. The muscle supplies the force, the <b>skeleton</b> provides the rigid levers, and the <b>joints</b> provide the pivots about which those levers swing. Remove any one component and that movement fails: a muscle with nothing to pull on, or a bone with no joint, produces nothing. This three-part partnership is precisely why the rest of the chapter is organised around each component in turn: muscle (its types, structure and contraction) followed by the skeletal system and joints. (Smooth and cardiac muscle, which move the gut and the heart, need no skeleton.)',
       },
       {
         t: 'p',
@@ -351,7 +351,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Core definitions</b> (the terms examiners insist on):<br>• <b>Striations</b>: the alternating light/dark banding seen in skeletal & cardiac muscle, produced by the <b>specialised arrangement of myofilaments</b> (not by any pigment or membrane).<br>• <b>Sarcolemma</b>: the plasma membrane enclosing a muscle fibre (the axon terminal meets it at the neuromuscular junction).<br>• <b>Sarcoplasm</b>: the cytoplasm of the muscle fibre.<br>• <b>Sarcoplasmic reticulum (SR)</b>: the muscle’s internal membrane network that acts as the <b>calcium store</b>.<br>• <b>Myofibril</b>: a rod-like contractile thread running the length of the fibre, built from repeating units called sarcomeres.<br>• <b>Titin</b>: a giant elastic protein spanning the sarcomere that holds the thick filaments in register and supplies passive elasticity.<br>• <b>Sarcomere</b>: the <b>structural & functional unit of contraction</b>, the segment of a myofibril <b>bounded by two Z-lines</b>, containing both actin and myosin.<br>• <b>Intercalated discs</b>: communication junctions unique to cardiac muscle that fuse adjacent cells so a signal to one spreads to all, making the heart contract as a single unit.',
+        html: '<b>Core definitions</b> (the terms examiners insist on):<br>• <b>Striations</b>: the alternating light/dark banding seen in skeletal & cardiac muscle, produced by the <b>specialised arrangement of myofilaments</b> (not by any pigment or membrane).<br>• <b>Sarcolemma</b>: the plasma membrane enclosing a muscle fibre (the axon terminal meets it at the neuromuscular junction).<br>• <b>Sarcoplasm</b>: the cytoplasm of the muscle fibre.<br>• <b>Sarcoplasmic reticulum (SR)</b>: the muscle’s internal membrane network that acts as the <b>calcium store</b>.<br>• <b>Myofibril</b>: a rod-like contractile thread running the length of the fibre, built from repeating units called sarcomeres.<br>• <b>Titin</b>: a giant elastic protein spanning the sarcomere that holds the thick filaments in register and supplies passive elasticity.<br>• <b>Sarcomere</b>: the <b>structural & functional unit of contraction</b>, the segment of a myofibril <b>bounded by two Z-lines</b>, containing both actin and myosin.<br>• <b>Intercalated discs</b>: communication junctions unique to cardiac muscle that join adjacent cells so a signal to one spreads to all, making the heart contract as a single unit.',
       },
       {
         t: 'p',
@@ -487,7 +487,7 @@ export const TOPICS: Topic[] = [
           },
         ],
         correct: 2,
-        solution: 'Intercalated discs fuse cardiac cells so they contract as one unit.',
+        solution: 'Intercalated discs join cardiac cells so they contract as one unit.',
       },
       {
         t: 'mcq',
@@ -502,7 +502,7 @@ export const TOPICS: Topic[] = [
           { label: 'both globular', nudge: null },
         ],
         correct: 1,
-        solution: 'G = globular monomer; F = fibrous (helical) polymer.',
+        solution: 'G = globular monomer; F = filamentous (helical) polymer.',
       },
       {
         t: 'mcq',
@@ -564,7 +564,7 @@ export const TOPICS: Topic[] = [
         aids: [
           '“<b>G</b>lobular = monomer”',
           'muscle-type filter = “<b>Striped? Branched?</b>”',
-          'cardiac = “striped rebel, takes no orders, never tires.”',
+          'cardiac = “striped rebel, takes no orders, hardly tires.”',
         ],
       },
     ],
@@ -579,7 +579,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> This is a high-yield slice of the chapter (the book’s estimate from past papers, not official figures). NEET asks the <b>sliding-filament cycle</b> almost every year (the book’s estimate from past papers, not official figures): ordering the steps, the role of Ca<sup>2+</sup>/troponin, and “which band stays constant” are recurring favourites. CBSE Boards set a 3–5 mark “explain sliding filament theory with the role of Ca<sup>2+</sup>” long-answer. CUET keeps to single MCQs and step-ordering. An assertion–reason at NEET level is common.',
+        html: '<b>Exam Relevance:</b> This is a high-yield slice of the chapter. NEET asks the <b>sliding-filament cycle</b> almost every year (the book’s estimate from past papers, not official figures): ordering the steps, the role of Ca<sup>2+</sup>/troponin, and “which band stays constant” are recurring favourites. CBSE Boards set a 3–5 mark “explain sliding filament theory with the role of Ca<sup>2+</sup>” long-answer. CUET keeps to single MCQs and step-ordering. An assertion–reason at NEET level is common.',
       },
       {
         t: 'p',
@@ -663,7 +663,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Calcium logistics differ by muscle type.</b> In skeletal muscle the Ca<sup>2+</sup> supply is held mainly inside the sarcoplasmic reticulum, bound by the protein <b>calsequestrin</b>, and released on demand. Smooth and cardiac muscle have a less extensive SR, so they draw a major part of their Ca<sup>2+</sup> from the <b>extracellular fluid</b>, a contrast NEET likes to test directly.',
+        html: '<b>Calcium logistics differ by muscle type.</b> In skeletal muscle the Ca<sup>2+</sup> supply is held mainly inside the sarcoplasmic reticulum, bound by the protein <b>calsequestrin</b>, and released on demand. Smooth and cardiac muscle have a less extensive SR and also take in Ca<sup>2+</sup> from the <b>extracellular fluid</b> (in smooth muscle a large share; in cardiac muscle a smaller share that triggers further release from the SR). This comparison goes beyond NCERT.',
       },
       {
         t: 'p',

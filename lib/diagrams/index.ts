@@ -21,6 +21,9 @@ import { DIAGRAMS_CHEMISTRY_12_08 } from '@/lib/diagrams/chemistry-12-08';
 import { DIAGRAMS_CHEMISTRY_12_09 } from '@/lib/diagrams/chemistry-12-09';
 import { DIAGRAMS_CHEMISTRY_12_10 } from '@/lib/diagrams/chemistry-12-10';
 import { DIAGRAMS_CHEMISTRY_12_11 } from '@/lib/diagrams/chemistry-12-11';
+import { DIAGRAMS_CHEMISTRY_12_12 } from '@/lib/diagrams/chemistry-12-12';
+import { DIAGRAMS_CHEMISTRY_12_12B } from '@/lib/diagrams/chemistry-12-12b';
+import { DIAGRAMS_CHEMISTRY_12_12C } from '@/lib/diagrams/chemistry-12-12c';
 import { DIAGRAMS_BIOLOGY_11_01 } from '@/lib/diagrams/biology-11-01';
 import { DIAGRAMS_BIOLOGY_11_02 } from '@/lib/diagrams/biology-11-02';
 import { DIAGRAMS_BIOLOGY_11_03 } from '@/lib/diagrams/biology-11-03';
@@ -112,6 +115,9 @@ import { DIAGRAMS_PHYSICS_12_12B } from '@/lib/diagrams/physics-12-12b';
 import { DIAGRAMS_PHYSICS_12_13 } from '@/lib/diagrams/physics-12-13';
 import { DIAGRAMS_PHYSICS_12_14 } from '@/lib/diagrams/physics-12-14';
 import { DIAGRAMS_PHYSICS_12_14B } from '@/lib/diagrams/physics-12-14b';
+import { DIAGRAMS_PHYSICS_12_15 } from '@/lib/diagrams/physics-12-15';
+import { DIAGRAMS_PHYSICS_12_15B } from '@/lib/diagrams/physics-12-15b';
+import { DIAGRAMS_PHYSICS_12_15C } from '@/lib/diagrams/physics-12-15c';
 import type { Diagram } from '@/lib/diagrams/types';
 
 /** The redrawn diagrams, by chapter ("physics|11|1", "chemistry|11|1"). Chapters not here have none yet. */
@@ -146,6 +152,7 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'physics|12|12': [...DIAGRAMS_PHYSICS_12_12, ...DIAGRAMS_PHYSICS_12_12B],
   'physics|12|13': DIAGRAMS_PHYSICS_12_13,
   'physics|12|14': [...DIAGRAMS_PHYSICS_12_14, ...DIAGRAMS_PHYSICS_12_14B],
+  'physics|12|15': [...DIAGRAMS_PHYSICS_12_15, ...DIAGRAMS_PHYSICS_12_15B, ...DIAGRAMS_PHYSICS_12_15C],
   'chemistry|11|1': DIAGRAMS_CHEMISTRY_11_01,
   'chemistry|11|2': DIAGRAMS_CHEMISTRY_11_02,
   'chemistry|11|3': DIAGRAMS_CHEMISTRY_11_03,
@@ -168,6 +175,7 @@ export const DIAGRAMS: Record<string, Diagram[]> = {
   'chemistry|12|10': DIAGRAMS_CHEMISTRY_12_10,
   // One chapter from two books: the Class 11 p-Block (Groups 13–14) then the Class 12 (Groups 15–18), in topic order.
   'chemistry|12|11': [...DIAGRAMS_CHEMISTRY_11_10, ...DIAGRAMS_CHEMISTRY_12_11].sort((a, b) => a.topic - b.topic),
+  'chemistry|12|12': [...DIAGRAMS_CHEMISTRY_12_12, ...DIAGRAMS_CHEMISTRY_12_12B, ...DIAGRAMS_CHEMISTRY_12_12C].sort((a, b) => a.topic - b.topic),
   'mathematics|11|1': DIAGRAMS_MATHEMATICS_11_01,
   'mathematics|11|2': DIAGRAMS_MATHEMATICS_11_02,
   'mathematics|11|3': DIAGRAMS_MATHEMATICS_11_03,

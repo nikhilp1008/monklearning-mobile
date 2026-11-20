@@ -122,7 +122,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: `The chapter shows the J-shaped and S-shaped growth curves and reads age pyramids in general (Topic 03, Figure 11.3: broad base expanding, bell stable, urn declining), but it says nothing about human populations: the mechanism of demographic transition, the pyramids of real countries or India’s demographic position. These are high-yield CUET and NEET topics ${EST}.`,
+        html: `The chapter shows the J-shaped and S-shaped growth curves and reads age pyramids in general (Topic 03, Figure 11.3: broad base expanding, bell stable, urn declining), but it touches human populations only in passing (Malthus, in Topic 03): it does not cover the mechanism of demographic transition, the pyramids of real countries or India’s demographic position. These are high-yield CUET and NEET topics ${EST}.`,
       },
 
       { t: 'part', title: 'Method' },
@@ -147,7 +147,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Interpreting human age pyramids.</b> The age-sex pyramid of a country directly reflects its demographic stage:<br>• <b>Expanding pyramid</b> (broad base, narrow top): Many young dependents, high birth rate, rapid growth. This is a Stage 1 and 2 pattern. India’s pyramid until recently.<br>• <b>Stationary pyramid</b> (roughly rectangular): Balanced age distribution, moderate birth and death rates. Stage 3 or 4. Many developed countries in earlier decades.<br>• <b>Contracting pyramid</b> (narrow base, wide middle/top): Low birth rate, ageing population, birth rate below death rate. Some countries now (for example Japan, Germany) are beyond Stage 4, sometimes called a Stage 5.',
+        html: '<b>Interpreting human age pyramids.</b> The age-sex pyramid of a country directly reflects its demographic stage:<br>• <b>Expanding pyramid</b> (broad base, narrow top): Many young dependents, high birth rate, rapid growth. This is a Stage 1 and 2 pattern. India’s pyramid until recently.<br>• <b>Stationary pyramid</b> (roughly rectangular): Balanced age distribution, low birth and death rates. Stage 3 or 4. Many developed countries in earlier decades.<br>• <b>Contracting pyramid</b> (narrow base, wide middle/top): Low birth rate, ageing population, birth rate below death rate. Some countries now (for example Japan, Germany) are beyond Stage 4, sometimes called a Stage 5.',
       },
       {
         t: 'p',
@@ -296,7 +296,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'Worked representative',
-        q: `In the logistic growth equation, the factor (1 − ${NK}) represents:<br><b>(a)</b> carrying capacity<br><b>(b)</b> intrinsic rate of natural increase<br><b>(c)</b> the fraction of carrying capacity not yet used (it falls towards 0 as environmental resistance rises)<br><b>(d)</b> biotic potential`,
+        q: `In the logistic growth equation, the factor (1 − ${NK}) represents:<br><b>(a)</b> carrying capacity<br><b>(b)</b> intrinsic rate of natural increase<br><b>(c)</b> environmental resistance (the fraction of carrying capacity not yet used)<br><b>(d)</b> biotic potential`,
         steps: [
           `${KNK} = 1 − ${NK} is the fraction of ${K} still unused. As ${N} approaches ${K} it falls to 0, which is the effect of rising environmental resistance (the limiting factors).`,
         ],
@@ -419,7 +419,7 @@ export const TOPICS: Topic[] = [
             a: '(a) The surface-area-to-volume argument is the mechanistic basis for why small endotherms cannot survive polar cold without enormous metabolic investment. R is the correct evolutionary explanation for A. NCERT’s statement is about small endotherms such as shrews and hummingbirds; small ectotherms (springtails, mites) do live in polar regions.',
           },
           {
-            q: '[Level 3: Reasoning] Two barnacle species, <i>Balanus</i> and <i>Chthamalus</i>, occupy the same rocky shore. <i>Balanus</i> (the superior competitor) excludes <i>Chthamalus</i> from the lower intertidal zone. When <i>Balanus</i> is experimentally removed, <i>Chthamalus</i> expands into the vacated zone. This demonstrates:<br><b>(a)</b> competitive exclusion<br><b>(b)</b> competitive release<br><b>(c)</b> resource partitioning<br><b>(d)</b> amensalism',
+            q: '[Level 3: Reasoning] Two barnacle species, <i>Balanus</i> and <i>Chthamalus</i>, occupy the same rocky shore. <i>Balanus</i> (the superior competitor) excludes <i>Chthamalus</i> from the lower intertidal zone. When <i>Balanus</i> is experimentally removed, <i>Chthamalus</i> expands into the vacated zone. This expansion of <i>Chthamalus</i> after its rival is removed is called:<br><b>(a)</b> competitive exclusion<br><b>(b)</b> competitive release<br><b>(c)</b> resource partitioning<br><b>(d)</b> amensalism',
             a: '(b) Competitive <b>release</b> occurs when a superior competitor is removed, allowing the suppressed species to expand. Competitive <b>exclusion</b> is the initial elimination by the superior competitor. Resource partitioning involves the two species dividing the resource rather than one eliminating the other.',
           },
           {
@@ -427,7 +427,7 @@ export const TOPICS: Topic[] = [
             a: '(b) Using <i>N</i><sub><i>t</i></sub> = <i>N</i><sub>0</sub><i>e</i><sup><i>rt</i></sup> = 200 × <i>e</i><sup>0.3 × 10</sup> = 200 × <i>e</i><sup>3</sup> ≈ 200 × 20.1 = 4 020 ≈ 4 000, which is option (b). Recognition: <i>rt</i> = 3 is a clean exponent, so only <i>e</i><sup>3</sup> has to be evaluated.',
           },
           {
-            q: '[Level 4: Multi-step / High-difficulty] The figure below shows three age pyramids. Each bar is one age group. Which population is declining? (Bar lengths, counted in blocks of the book’s text chart:)<br>Population (i): pre-reproductive 10, reproductive 6, post-reproductive 2<br>Population (ii): pre-reproductive 7, reproductive 8, post-reproductive 6<br>Population (iii): pre-reproductive 5, reproductive 9, post-reproductive 7<br><b>(a)</b> Population (i)<br><b>(b)</b> Population (ii)<br><b>(c)</b> Population (iii)<br><b>(d)</b> All three are stable',
+            q: '[Level 4: Multi-step / High-difficulty] Three age pyramids have the bar lengths below (each bar is one age group; pre-reproductive is the base). Which population is declining?<br>Population (i): pre-reproductive 10, reproductive 6, post-reproductive 2<br>Population (ii): pre-reproductive 7, reproductive 8, post-reproductive 6<br>Population (iii): pre-reproductive 5, reproductive 9, post-reproductive 7<br><b>(a)</b> Population (i)<br><b>(b)</b> Population (ii)<br><b>(c)</b> Population (iii)<br><b>(d)</b> All three are stable',
             a: '(c) Population (iii) has a narrow pre-reproductive base that is wider in the reproductive and post-reproductive groups: the urn shape characteristic of a declining population, because too few young individuals are entering the reproductive group. Population (i) is expanding (broad base tapering upward); population (ii) is stable (roughly equal bars across age groups).',
           },
           {
@@ -436,7 +436,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 4: Multi-step / High-difficulty] The interaction between <i>Cuscuta</i> (a total stem parasite that has lost its leaves and chlorophyll) and its host hedge plant is:<br><b>(a)</b> (+, +); mutualism<br><b>(b)</b> (+, −); parasitism<br><b>(c)</b> (+, 0); commensalism<br><b>(d)</b> (−, −); competition',
-            a: '(b) <i>Cuscuta</i> draws all nutrition through haustoria from the host’s vascular tissue. The host is harmed; <i>Cuscuta</i> benefits: (+, −). Note: this is a <b>total stem parasite</b>, not an epiphyte (which would be commensalism). The loss of chlorophyll and leaves is evidence of its obligate parasitic lifestyle: it almost entirely no longer needs to photosynthesise because it steals the host’s carbohydrates.',
+            a: '(b) <i>Cuscuta</i> draws its food through haustoria from the host’s vascular tissue. The host is harmed; <i>Cuscuta</i> benefits: (+, −). Note: this is a <b>total stem parasite</b>, not an epiphyte (which would be commensalism). The loss of leaves and of (almost all) chlorophyll is evidence of its obligate parasitic lifestyle: it no longer needs to photosynthesise because it takes the host’s food.',
           },
         ],
       },
@@ -444,7 +444,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key Points to Remember' },
       {
         t: 'p',
-        html: `1. <b>Practise the growth equations numerically.</b> Be ready to compute ${N}<sub><i>t</i></sub> from given <i>r</i> and <i>t</i>, to place the logistic peak at ${K2}, and to tell the unused fraction of ${K}, ${KNK}, apart from biotic potential. Questions often combine these in multi-step form ${EST}.<br>2. <b>Know the named examples for every sign pair.</b> Lichen, mycorrhiza and fig–wasp (mutualism); cattle egret and sea anemone–clownfish (commensalism, often treated as mutualism); brood parasitism by the cuckoo and egg mimicry (parasitism); and <i>Penicillium</i> (amensalism) are frequently used in matching and statement-based questions ${EST}.<br>3. <b>Tie each dormancy type to its trigger.</b> Hibernation is winter dormancy, aestivation is summer or dry-season dormancy, and diapause is a suspended stage of development. Matching the trigger to the term is what questions test.`,
+        html: `1. <b>Practise the growth equations numerically.</b> Be ready to compute ${N}<sub><i>t</i></sub> from given <i>r</i> and <i>t</i>, to place the logistic peak at ${K2}, and to tell the unused fraction of ${K}, ${KNK}, apart from biotic potential. Questions often combine these in multi-step form ${EST}.<br>2. <b>Know the named examples for every sign pair.</b> Lichen, mycorrhiza and fig–wasp (mutualism); cattle egret and sea anemone–clownfish (commensalism; the clownfish pair is often treated as mutualism); brood parasitism by the cuckoo and egg mimicry (parasitism); and <i>Penicillium</i> (amensalism) are frequently used in matching and statement-based questions ${EST}.<br>3. <b>Tie each dormancy type to its trigger.</b> Hibernation is winter dormancy, aestivation is summer or dry-season dormancy, and diapause is a suspended stage of development. Matching the trigger to the term is what questions test.`,
       },
     ],
   },

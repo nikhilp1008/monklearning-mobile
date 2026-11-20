@@ -1,0 +1,56 @@
+# Notes: Maths 11 Ch 0 (shots-00)
+
+Source check: content/textbooks/math-11-00/*.ts uses U+2212 for every minus (no ASCII hyphen-minus found by grep); no em dashes. Short-looking minus in shots is the correct char.
+
+- p000-01, -02: OK. (Content quibble: "logarithmic differentiation ... from Chapter 12 onward" - log differentiation is Class 12 Ch 5, not Class 11 Ch 12.)
+- p001-01: (a/b)^n law: tiny stacked a/b inside brackets next to a^n/b^n - cramped; inline "a^{1/n} = n√a", "q√(a^p)" radicals drawn as superscript index + √ with brackets, no vinculum (style).
+- p001-02: OK apart from radical style "(6√(−8))²".
+- p001-03 (=04): maths OK (2/3+1/2-1/6=1). Style: stacked fraction (27/8) inside small round brackets, brackets do not grow round the fraction (cramped, fraction touches/over-runs brackets) in paragraph and display; exponent "-2/3" slashed.
+- p001-05 (=06), 07: (27/8)^-2/3 -> (8/27)^2/3 -> (3√(8/27))^2 -> (2/3)^2 -> 4/9 correct. Same bracket-around-stacked-fraction cramping; radical drawn "3√(8/27)" with brackets, no vinculum. p001-08 vanished from folder (renamed/removed by shoot).
+- p002-01 (=02): law "n√a / n√b = n√(a/b)" tiny stacked a/b in small brackets (cramped); radicals with brackets, no vinculum.
+- p002-03: literal grey word "table" printed as a caption above the conjugate table (placeholder/stray label), big gap before and after the table. Maths OK (1/(√5−√3)=(√5+√3)/2≈1.984).
+- p002-04, 05, 07(=08): maths all checked OK (√50+√18−√8=6√2; 1/(1+√2+√3)=(√2+2−√6)/4≈0.24118). Content quibble: "double rationalisation (three surds) ... in Chapter 12, where an expression like √(x+1) − √x" - that example has only two terms, single conjugate.
+- p003-01(=02), 03, 04, 05: maths OK. Style: "(the book's estimate from past papers, not official figures)" hedge appears twice (p003-01/03 and p003-04/05), not textbook voice. "The shape of y = log_a x" described in words, no graph drawn (a textbook page would have the figure).
+- p003-06: was a 0-byte file briefly, then removed by the shoot (log: page 3 = 5 shots). Not a fault.
+- p004-01, 02: maths OK. Minor style: the "Three immediate identities" list sits tight under "the definition:" with no display gap, unlike the laws list above it (inconsistent display spacing).
+- p004-03, 04: maths OK. Style: "log_a(x²) = 2 log_a|x|." sits on its own line but the next sentence "The two expressions..." follows with no paragraph gap (formula neither displayed nor run in). To verify: "third example in Worked examples" is the log(x²) one.
+- p005-01: Derivation "...by the power law this is y" / "log_c a = log_c b." - the product "y log_c a" torn across lines (y alone at line end). FAULT.
+- p005-01/02: "2. Change of base with powers on both sides. For p," / "q ≠ 0," - "p, q ≠ 0" torn. FAULT.
+- p005-02/03: "log_4 25 = log_{2²}(5²)" renders base as subscript "22" (reads as log base twenty-two). FAULT (wrong-looking maths). Same line: "= 2/2" at line end, "log_2 5 = m" on next line - coefficient torn from its log. FAULT. Also hedge "(the book's estimate from past papers, not official figures)" 3rd time.
+- p005 maths otherwise OK (change of base, reciprocal, a^{log_b c}=c^{log_b a}).
+- p006-01: OK.
+- p006-02: "log10 N = (k+1-bar).(mantissa)" torn: line ends "= k+1-bar." and next line starts "(mantissa) means ..." - reads as a full stop + new sentence; the decimal-point notation is split (source topic-01.ts:330 `${KBAR}.(mantissa)`). FAULT.
+- p006-03, 04: maths OK (log 43700 = 4.6405; log 0.000437 = 4-bar.6405).
+- p007-01/02/03: numbered steps list broken: "2. Combine and convert." ends, then a paragraph gap and its body ("Use the laws of the part...") starts as a separate paragraph, while steps 1 and 3 have no gaps - uneven gaps inside one list / item split. FAULT. Maths OK.
+- p008-01: "The rule." bullets: first two bullets tight, third bullet ("In both cases...") after a paragraph gap - uneven gaps in one list. FAULT.
+- p008-02(=03)/04(=05): "Worked mini-cases" bullets: first bullet tight under heading, gap before second - uneven. FAULT. Literal editorial tag "[NEW]" printed at start of last paragraph. FAULT. Maths OK (1<x<10; 1.5<x≤3.5).
+- p009-01 (card 1): step 1 line starts with "⟺" ("log_x 81 = 4" / "⟺ x⁴ = 81"). FAULT. Maths OK.
+- p009-02 (card 2): OK (1.8572; true 1.8573).
+- p009-03 (card 3): maths OK; card taller than screen, answer box not captured (bottom faded behind bar).
+- p009-04 (card 4): display product wraps: "= ln3/ln2 · ln4/ln3 · ln5/ln4" then a big blank gap, then next line STARTS with "·" ("· ln6/ln5 · ..."). FAULT (operator at line start + gap inside block). Step 1 and step 2 prose have oversized line spacing with no fraction in them. FAULT (style). Answer box not captured.
+- p009-05 (card 5): step 2 superscripts collide: "4^(log2 8)" exponent drawn over "Also" on next line, "8^(log2 4) = 8² = 64" exponent and "8²=" overlap into garbled text; gaps left where exponents should be. FAULT (overlap).
+- p009-06 (card 6): "log10(2^100) = 100" / "log10 2" - "100 log10 2" torn. FAULT. Maths OK (31 digits; 2^100 value correct). Rest of card not captured.
+- p009-07 (card 7): step 2 "log2[(x − 1)" / "(x + 1)] = 3" split inside the bracket. FAULT. Maths OK; answer box fine.
+- p009-08, 09 (card 8): step 3 prose has oversized line spacing and a big gap before the display line "2x − 3 ≤ (0.5)^−2 = 1/0.25 = 4 ⇒ ..."; step 1's equivalent display sits tight - big gap inside block. FAULT. Maths OK. Cross-references (3rd, 6th, 7th, 8th example) all match the cards.
+- p010 practice 1-6 (shots 01-12, odd = question, even = question+answer): all answers correct (x; (6√3+3√5)/7; x<2 or x>3; 3; −4; 13 digits). Layout OK.
+- p010 practice 7-11 (shots 13-22): answers correct (x=5; 2<x<7/3; x=5; product=1; GP->AP). p010-19/20 (practice 10): question "for a, b," / "c > 0, all ≠ 1" - "a, b, c > 0" torn across lines. FAULT (minor).
+- p010-23/24 (practice 12): log 108 = 2.0333 correct. Layout OK.
+- p011-01..06 (pitfalls/pro-tips): maths OK. "(the book's estimate from past papers, not official figures)" hedge 4th time (p011-05/06 last pro-tip). Pitfall "-(31.90)" wrap: "not" / "−(31.90)" fine.
+- p012-01 (Addl A intro): "[NEW]" tag printed. FAULT (same as p008). Maths n/a.
+- p013-01(=02) (pH): maths OK (pH 3; 5.0×10^−5 M). Minor: exponent "−4.3" set in a smaller/lighter font than the other exponents on that line. Card has no answer box (single-step representative question).
+- p014-01: "F = 96485 C" / "mol^−1" unit torn across lines. FAULT. Card step: "1.10 − (0.02955)" / "(−2) = ..." product torn. FAULT. Maths OK (1.1591 V; 0.0591 constant). "[NEW]" tag again at bottom.
+- p015-01/02 (decibels): "I0 = 10^−12" / "W/m²" unit torn; card question "I = 10^−2" / "W/m²" torn. FAULTs. Card step: "= 10 × 10 =" then "100 dB." alone on last line (result orphaned). Stacked I/I0 and 10^−2/10^−12 inside small brackets that do not grow (cramped). Content: book paragraph says "a scale a few tens of units wide" and the very next [NEW] paragraph says "120 units wide, not 'a few tens'" - the page contradicts itself; fix the original sentence instead. Maths OK (100 dB).
+- p016-01(=02), 03(=04) (half-life): maths OK (3.32 half-lives). "[NEW]" tag again. Layout OK.
+- p017-01: maths OK so far (d/dx x^x = x^x(ln x + 1)). "Chapter 12" = Class 11 Limits and Derivatives in this app (math-11-12-limits), so earlier p000 quibble withdrawn.
+- p017-02/03: maths OK (x^x(ln x + 1)). "[NEW]" tag again. Content: card says "a variable base and a variable exponent ... have no direct differentiation rule at all", and the paragraph below then shows the "vary each and add" rule giving the same result: page contradicts itself. Oversized line spacing on the card prose after the displays (paragraph holds fractions, accepted).
+- p018-01..04 (AP/GP): maths OK (3d(d − A) = 0, d = A, terms 3A, 6A, 12A, ratio 2). "[NEW]" tag again. Style: "A+2d, A+5d, A+11d" unspaced while every other expression is spaced "A + 5d". Content: the paragraph "As printed, the question asks for a logarithmic equation that its data do not produce; the answer above works a follow-up question instead..." is editor-to-editor commentary criticising the book's own example, not textbook voice; the card's question and solution do not match each other.
+- r0-p009-card3-02: answer box x = ±10, OK.
+- r0-p009-card4-02: answer 3, OK. Confirms: display line 2 starts with "·", big gap between the two display lines, big gap before "ln 8/ln 2 = ..." display, oversized prose line spacing in steps 1-2.
+- r0-p009-card1-01: confirms "⟺ x⁴ = 81" starting line 2 of step 1. FAULT. Answer x = 3 OK.
+- r0-p009-card2-01: OK (1.8572).
+- r0-p009-card5-01: CONFIRMS the overlap: step 2 exponents "log2 8" and "log2 4" are drawn over "Also" and over "8² = 64" (garbled "Also log2 4", "= 8²=64"), and gaps left after "4" and "8". FAULT. Answer box renders the same exponents correctly.
+- r0-p009-card6-01/02: question (b) and step 3 prose have oversized line spacing (paragraphs with a small stacked 1/2, accepted). Step 4 "Check by direct estimate:" then big gap, display "(1/2)^100 = 1/2^100", another big gap, then "≈ 1/(1.2677×10^30)" - big gaps inside one display. FAULT. Maths OK (2^100 value correct; 7.89×10^−31; 30 zeros).
+- r0-p009-card6-03/04: also a big gap between the display and "Writing this out..." Answer (a) 31 (b) 30 OK.
+- r0-p009-card7-01/02: confirms "[(x − 1)" / "(x + 1)] = 3" split inside the bracket. FAULT. Answer x = 3 OK.
+- r0-p009-card8-01/02: confirms big gap before the step-3 display; step 3 prose has oversized spacing with no fraction in it. FAULT. Answer (a) 1<x<10 (b) 1.5<x≤3.5 OK.
+DONE: all files read. Log shows 2 x DONE.

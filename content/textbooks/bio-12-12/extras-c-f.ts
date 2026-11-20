@@ -21,7 +21,7 @@ export const TOPICS: Topic[] = [
     n: 'C',
     title: 'Nutrient Cycles Beyond Carbon: Nitrogen and Sulfur',
     extra: true,
-    kalam: 'These cycles share the gaseous/sedimentary distinction and involve specific microbial transformations that are tested independently.',
+    kalam: 'These cycles share the gaseous/sedimentary distinction and involve specific microbial transformations.',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -212,7 +212,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET High-Difficulty] Explain why a pyramid of energy is always upright despite the possibility of inverted pyramids of number and biomass.',
-            a: 'Energy flow per unit area per year decreases at each transfer due to the second law of thermodynamics: some energy is dissipated as heat at every step and cannot be recovered. This makes an inverted pyramid of energy flow physically impossible, whereas number and biomass pyramids can invert when one large producer supports many small consumers.',
+            a: 'Energy flow per unit area per year decreases at each transfer due to the second law of thermodynamics: some energy is dissipated as heat at every step and cannot be recovered. This makes an inverted pyramid of energy flow physically impossible, whereas a pyramid of numbers can invert when one large producer (a tree) supports many small consumers, and a pyramid of biomass can invert in the sea, where a small, fast-renewed phytoplankton standing crop supports a larger biomass of consumers.',
           },
         ],
       },
@@ -229,7 +229,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter defines ecosystem services and gives the Costanza valuation (US $33 trillion per year). It does not explain how the valuation is derived, what a keystone species is, or the mechanisms by which particular human activities degrade services. These are tested in NEET high-difficulty and CUET application questions.',
+        html: 'The chapter defines ecosystem services and gives the Costanza valuation (US $33 trillion per year). It does not explain how the valuation is derived, what a keystone species is, or the mechanisms by which particular human activities degrade services. These can appear in high-difficulty application questions.',
       },
 
       { t: 'part', title: 'Method' },
@@ -239,7 +239,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Keystone species.</b> A species whose impact on ecosystem function and biodiversity is disproportionately large relative to its abundance. Removing it can trigger trophic cascades. Classic examples: sea otters (control sea urchins → protect kelp forests); elephants (create clearings and disperse seeds); bees (pollinate crops). The concept demonstrates that species are not interchangeable: some are hard to replace.',
+        html: '<b>Keystone species.</b> A species whose impact on ecosystem function and biodiversity is disproportionately large relative to its abundance. Removing it can trigger trophic cascades. Classic examples: sea otters (control sea urchins → protect kelp forests); the starfish <i>Pisaster</i> (its removal lets mussels crowd out other shore species); elephants (create clearings and disperse seeds). The concept demonstrates that species are not interchangeable: some are hard to replace.',
       },
       {
         t: 'p',
@@ -285,7 +285,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[CUET] Define a keystone species and give one example.',
-            a: 'A species with a disproportionately large effect on ecosystem structure relative to its abundance. Example: sea otter (<i>Enhydra lutris</i>), elephant (<i>Elephas maximus</i>), or honeybee (<i>Apis</i> spp.).',
+            a: 'A species with a disproportionately large effect on ecosystem structure relative to its abundance. Example: sea otter (<i>Enhydra lutris</i>), or elephant (<i>Elephas maximus</i>).',
           },
           {
             q: '[NEET] Which single ecosystem service accounts for approximately 50% of the Costanza valuation?',
@@ -297,7 +297,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Explain why the loss of pollinator bees constitutes an ecosystem service degradation even though bees are small and easily overlooked.',
-            a: 'Bees are small but provide pollination, a service that raises the yield of about 75% of the leading crop species and is essential for some. A small, easily overlooked group with a large effect on agriculture makes them functionally critical (a keystone-level service provider).',
+            a: 'Bees are small but are the main animal pollinators, and animal pollination raises the yield of about 75% of the leading crop species and is essential for some. A small, easily overlooked group with a large effect on agriculture makes them functionally critical (an important service provider).',
           },
           {
             q: '[NEET High-Difficulty] A wetland area is drained for agriculture. Predict three ecosystem services that are lost or reduced as a result.',
@@ -392,7 +392,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>4. The Match-the-Column Question</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Two columns of four items each; you must pair A–I, B–II, etc. Often includes conceptual pairings (standing state vs standing crop; gaseous vs sedimentary cycles).<br><b>Approach:</b> Draw a quick two-by-two or three-by-three table. Eliminate mismatches using hard definitions. Watch for one-to-many traps (some columns may have more than one correct match in the original paper, but the option format forces a single best pairing).',
+        html: '<b>What it looks like:</b> Two columns of four items each; you must pair A–I, B–II, etc. Often includes conceptual pairings (standing state vs standing crop; gaseous vs sedimentary cycles).<br><b>Approach:</b> Draw a quick four-by-four grid (one row for each item of Column I). Eliminate mismatches using hard definitions. Watch for one-to-many traps (some columns may have more than one correct match in the original paper, but the option format forces a single best pairing).',
       },
       {
         t: 'ex',
@@ -410,7 +410,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>5. The Diagram-Based Pyramid / Food-Chain Identification</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> A pyramid diagram (often inverted) with trophic levels labelled PP, PC, SC, TC, or a food web with numbered organisms. You must identify which pyramid type it represents or match organisms to trophic positions.<br><b>Approach:</b> Identify the parameter being plotted (number, biomass, or energy). Check whether producers or top consumers are larger. Apply the two rules: (1) the pyramid of energy, which shows energy flow per unit area per year, is always upright; (2) biomass pyramid can invert in aquatic ecosystems. For food webs, count the arrows: each arrow = one feeding link.',
+        html: '<b>What it looks like:</b> A pyramid diagram (often inverted) with trophic levels labelled PP, PC, SC, TC, or a food web with numbered organisms. You must identify which pyramid type it represents or match organisms to trophic positions.<br><b>Approach:</b> Identify the parameter being plotted (number, biomass, or energy). Check whether producers or top consumers are larger. Apply the two rules: (1) the pyramid of energy, which shows energy flow per unit area per year, is always upright; (2) the biomass pyramid can invert in some aquatic ecosystems, typically the sea. For food webs, count the arrows: each arrow = one feeding link.',
       },
       {
         t: 'ex',

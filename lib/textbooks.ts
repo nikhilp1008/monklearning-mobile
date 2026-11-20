@@ -687,6 +687,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'physics|12|ray optics and optical instruments': () =>
     import('@/content/textbooks/phy-12-09-ray-optics'),
   'physics|12|wave optics': () => import('@/content/textbooks/phy-12-10-wave-optics'),
+  'physics|12|experimental skills': () =>
+    import('@/content/textbooks/phy-12-15-experimental-skills'),
   'physics|12|dual nature of radiation and matter': () =>
     import('@/content/textbooks/phy-12-11-dual-nature'),
   'physics|12|electromagnetic induction': () =>
@@ -790,6 +792,8 @@ const CHAPTERS: Record<string, () => Promise<{ default: Chapter }>> = {
   'chemistry|12|amines': () => import('@/content/textbooks/chem-12-09-amines'),
   'chemistry|12|biomolecules': () => import('@/content/textbooks/chem-12-10-biomolecules'),
   'chemistry|12|p block elements': () => import('@/content/textbooks/chem-12-11-p-block'),
+  'chemistry|12|practical chemistry': () =>
+    import('@/content/textbooks/chem-12-12-practical-chemistry'),
   'biology|11|the living world': () => import('@/content/textbooks/bio-11-01-living-world'),
   'biology|11|biological classification': () => import('@/content/textbooks/bio-11-02-biological-classification'),
   'biology|11|plant kingdom': () => import('@/content/textbooks/bio-11-03-plant-kingdom'),

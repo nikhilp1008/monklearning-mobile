@@ -1,0 +1,48 @@
+# Biology 11 Chapter 11: new text from fixer R3 (applies review-R3.md)
+
+All wording below is [NEW] unless it is the reviewer's text applied verbatim (marked "R3 wording"; still new to the book, so listed for the founder). Files: extras.ts, topics-1-2.ts, topics-3-4.ts are in content/textbooks/bio-11-11/; KP = lib/revise/keypoints-biology-11-11.ts; DG = lib/diagrams/biology-11-11.ts.
+
+## Flags applied (R3 wording unless noted)
+1. extras.ts, Additional D (7), Temperature optima para 1: "...(partly because the solubility of CO2 in water falls faster than that of O2 as it warms, so the CO2/O2 [stacked frac] ratio at RuBisCO falls, and partly because RuBisCO itself favours O2 more at higher temperature)."
+2. topics-3-4.ts, Topic 04, factors bullet "NCERT values": replaced with NCERT's own qualitative wording (C4 respond to higher temperatures, C3 much lower optimum; C4 CO2 saturation about 360, C3 saturate only beyond 450; light saturation about 10 per cent of full sunlight). The 20-25 / 30-45 C numbers no longer appear in Topic 04 (they stay in Additional D as the book's own figures).
+3. extras.ts, Additional B shuttle table, aspartate column, bundle sheath reaction: NAD-ME acts on malate (OAA reduced to malate in mitochondria, CO2 + pyruvate); PEP-CK acts on OAA in cytosol (CO2 + PEP).
+4. extras.ts, Additional H Trap 1 ("Oxygen comes from CO2"): "the 6 O2 released hold 12 oxygen atoms, exactly the oxygen of the 12 H2O on the left, while the 6 H2O on the right are newly formed and take their oxygen from CO2." Rest of the trap unchanged.
+5. KP topic 0 second remember point: question now "Which four pigments does paper chromatography separate, with their colours, and what do the accessory pigments do?"; answer gains "(this is NCERT's order of listing; on the strip the carotenoids run farthest)". topics-1-2.ts Topic 01 pigment-table lead-in: "With their characteristic colours, in the order NCERT lists them (not the order of the bands on the strip):".
+6. extras.ts, Additional A Example 2 step 1: "The chapter (Topic 03) gives this same balanced form; its cheat sheet also gives the short count, 6 CO2 + 18 ATP + 12 NADPH per glucose, which is the one to quote when a question asks only for the ATP and NADPH counts."
+7. extras.ts, Additional A Introduction p2: R3 sentence applied, except that R3's sentence "This section gathers the counting rules in one place and trains more of the worded problems that scale them." was NOT added: the paragraph already continues with "This section builds the counting logic from the three phases and trains speed at extracting the relevant pair from a worded problem", which says the same, so adding both would repeat. Result: "The chapter gives the per-turn and per-glucose counts (3 ATP and 2 NADPH; 18 ATP and 12 NADPH), the cost of each phase, and one scaled example (50 glucose). A Calvin-cycle numerical is usually a multiple or a fraction of these two numbers. This section builds ..."
+8. extras.ts, Additional H Archetype 5 and Graded Q9: option (d) now "A is false but R is true". Keys unchanged (both (a)).
+9. DG fig 11.4: "Calvin cycle in stroma" leader end moved from [152,238] to [170,222]; new check that the end lies inside the inner ellipse with 10 px margin.
+10. topics-1-2.ts, Topic 02 chemiosmosis lead-in: "Three things build the gradient: two add protons to the thylakoid lumen, and one removes them from the stroma:"; cheat row: "H+ piled into the lumen (water-splitting + carrier shuttle) and stromal H+ used up in NADP+ reduction -> rush back through ATP synthase ...". (Topic 03 line "the three sources above crowd protons into the lumen" was not in the flag and is untouched; founder may want it softened to match.)
+11. extras.ts, Additional D Introduction: table listed as "acceptor, first product, fixing enzyme, sites of photosynthesis, Kranz anatomy, how much photorespiration occurs, and examples"; omission (i) "the temperature optima as numbers, and why they differ" (flag 2 was applied, so the numbers version is used).
+12. extras.ts, Additional C Introduction (iv): "how far the suppression in C4 plants goes: the chapter gives the reason (a high CO2 concentration around RuBisCO in the bundle sheath) but not that a little photorespiration remains." Also "NEET assertion-reason questions hinge on these fine points." became "NEET-style assertion-reason questions can turn on these points." (flag 24).
+13. extras.ts, Additional F Introduction (iii): "the hormone and guard-cell mechanism (abscisic acid) behind the stomatal closure under water stress that the chapter mentions".
+14. extras.ts, Additional C Example 1 check: "This answer adds the return trip through the peroxisome to the chloroplast, and the glycine step."
+15. extras.ts, Additional B Introduction (iii): "the CAM pathway in more detail: the chapter gives it one line (fixation at night, Calvin cycle by day); this section adds the stomatal timing, malate storage in the vacuole and examples". Section B does cover these (vacuoles, stomatal timing).
+16. extras.ts, Additional D kalam: "The CO2 compensation point is the CO2 concentration at which a leaf's net CO2 exchange is zero."
+17. extras.ts, Additional F LSP bullet: added "NCERT gives a rounder figure, light saturation at about 10 per cent of full sunlight; sunlit crop leaves often saturate higher, as in the illustrative figures here."
+18. extras.ts, Additional D mixed-pathway lead-in: "Some plants run more than one pathway or switch between them:". Portulaca line kept (founder decision 2 stands).
+19. extras.ts, Additional D Method (b): "Because photorespiration is suppressed by the high CO2 concentration around RuBisCO, a rise in temperature raises it far less than in C3 plants, so C4 plants keep photosynthesising efficiently when it is hot." KP topic 7: "while in C4 plants it stays suppressed, so they keep working well when it is hot."
+20. topics-1-2.ts, Topic 02 weedicide example: "...the plant effectively cannot photosynthesise; together with the light damage that the blocked chain causes, this is how such herbicides kill weeds."
+21. "Proves" wording: Additional G row "Shows that water splitting is a thylakoid function."; E Practice 1 "what does it show about the site of water splitting?"; H Q9 "This is classic experimental support for Mitchell's chemiosmotic hypothesis." (the H Q9 answer's earlier "proving that energy resides in the gradient itself" was not in the flag and is left; founder may soften.)
+22. topics-3-4.ts, Topic 04: "C4 plants largely sidestep this by using PEPcase"; C4 step 4 "RuBisCO rarely binds O2".
+23. extras.ts Trap 2: "PS I receives them and passes them on to NADP+."; KP: "which passes them on to NADP+."; topics-1-2.ts Topic 02 MCQ 1 nudge (a): "PS II splits water and passes electrons on; it does not reduce NADP+."
+24. Exam-frequency softening, R3 wording: A rule 5 "seldom needed in NEET numericals"; E intro "NEET-style questions may ask for the Hill reagent"; H "NEET-style questions ask the per-CO2 ratio directly"; Topic 02 pitfall "Examiners often plant this in assertion-reason questions."; Topic 04 "is a common NEET-style high-difficulty item." C: see 12. B intro (not given an R3 wording): "NEET-style high-difficulty options can turn on these distinctions." Not changed, not flagged: Additional D intro "These form the basis of high-difficulty NEET and CUET questions" and F intro "These applications appear in NEET assertion-reason questions and CUET short-answer items" (founder may want the same softening).
+25. topics-3-4.ts Topic 03 stoichiometry paragraph and cheat-sheet "Overall" row: "(balanced for C, H and O; the water used in splitting ATP into ADP + Pi is left out)".
+26. KP topic 11 mistake `why`: "Before marking an option, check it against these swaps: many wrong options in this chapter are one of them."
+27. DG fig 11.5: PC label moved to just below-left of its dot (192,226 -> 196,216); "energy released / -> ATP synthesis" note moved down (y 240 -> 250) with its arrow start (226 -> 236). Layout checks pass; not viewed rendered.
+28. Founder decision made (mnemonic): one form only. Topic 01 cheat aid now reads "a-b-X-C -> blue-green -> yellow-green -> yellow -> yellow-orange" (matches the KP say line and the table); the explanatory aid line below it is left in place (now partly redundant; founder may delete it). KP header comment updated ("our own colour line ... matching the table"). The label "(the book's estimate from past papers, not official figures)" in Exam Relevance of Topics 02, 03, 04 is a writer exception, listed here so the founder sees it.
+29. Not changed (reviewer proposed none): van Niel assertion-reason key (a) kept.
+
+## Printed answer keys, numbers, titles, headings changed
+None. No MCQ key, count or arithmetic was altered. Topic 04's light/CO2 numbers (360, 450, 10 per cent) are as before. Removed from Topic 04: the 20-25 / 30-45 C figures (still in Additional D and KP topic 7 as the book's own figures, which are not labelled NCERT). KP topic 0 question text changed (see 5). Assertion-reason option (d) text changed in two items (see 8), keys unchanged.
+
+## Not applied / conflicts
+- Flag 7: one R3 sentence omitted as duplicate (see 7).
+- Flags 2 vs 11/17: no conflict; 11 uses the "numbers" version because 2 was applied.
+- No proposed wording dropped NCERT wording, so no keep-the-book override was needed.
+
+## Tests (run from wt-bio-r3)
+- book-rules / book-chapters / display-fit (Biology 11 Chapter 11 filter): 3 suites passed, 27 tests passed.
+- lib/diagrams -t "biology.11.11": passed (28 tests, including the new fig 11.4 check).
+- lib/revise: 137 passed.
+- eslint on the five changed files: clean.

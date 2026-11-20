@@ -27,7 +27,7 @@ import type { Check, Diagram } from '@/lib/diagrams/types';
  * SCHEMATIC: every size, position, angle and spacing (re-laid for a phone, the book's own are not to scale), the exact
  * placement of the kinetochore dots and spindle fibres, the arc shapes of the life-cycle arrows, the number of chromosomes
  * drawn where the book leaves it free (the book's four in Fig 10.2, three in Fig 10.6 are kept). Colours are the app's style
- * (no fills; one marigold highlight per drawing), not the book's. Maternal chromatids are ink and paternal ones slate (the
+ * (no fills; one marigold highlight per drawing), not the book's. Maternal chromatids are ink and paternal ones a clearly lighter stroke (the
  * book shows dark and light fills). Each diagram's checks recompute the counts from the drawn elements and the C values
  * from the chromosome and chromatid numbers.
  */
@@ -244,12 +244,12 @@ function draw103(): Sketch {
   const s = new Sketch(W, 244);
   const { x0, x1, rows, bh } = SYN, L = x1 - x0, cx = (x0 + x1) / 2;
   for (const k of ['m1', 'm2'] as const) bar(s, cx, rows[k], L, bh, 90, { color: C.ink, role: 'maternal' });
-  for (const k of ['p1', 'p2'] as const) bar(s, cx, rows[k], L, bh, 90, { color: C.slate, role: 'paternal' });
+  for (const k of ['p1', 'p2'] as const) bar(s, cx, rows[k], L, bh, 90, { color: C.faint, role: 'paternal' });
   s.add(`<line x1="${x0 + 2}" y1="${rows.sc}" x2="${x1 - 2}" y2="${rows.sc}" stroke="${C.grey}" stroke-width="5" stroke-linecap="round"/>`);
   keep(s, [[x0 + 2, rows.sc], [x1 - 2, rows.sc]]);
   count(s, 'complex');
   cen(s, SYN.cenX, (rows.m1 + rows.m2) / 2, 5, 14, { pt: true }); count(s, 'chromosome');
-  cen(s, SYN.cenX, (rows.p1 + rows.p2) / 2, 5, 14, { color: C.slate, pt: true }); count(s, 'chromosome');
+  cen(s, SYN.cenX, (rows.p1 + rows.p2) / 2, 5, 14, { color: C.faint, pt: true }); count(s, 'chromosome');
   // the bivalent: one bracket round all four chromatids (the highlight)
   const bx = 304, top = rows.m1 - 8, bot = rows.p2 + 8;
   s.add(`<path d="M${bx - 5} ${top} L${bx} ${top} L${bx} ${bot} L${bx - 5} ${bot}" fill="none" stroke="${C.mari}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`);
@@ -287,8 +287,8 @@ function draw104(): Sketch {
   lab(s, 8, 20, 'homologues repelling', { size: 11, anchor: 'start', color: C.slate });
   lab(s, 8, 34, 'but still attached', { size: 11, anchor: 'start', color: C.slate });
   for (const k of ['a', 'b'] as const) bar(s, cx, rows[k], L, 9, 90, { color: C.ink, role: 'maternal' });
-  for (const k of ['c', 'd'] as const) bar(s, cx, rows[k], L, 9, 90, { color: C.slate, role: 'paternal' });
-  cen(s, DIP.cenX, (rows.a + rows.b) / 2, 5, 14, { pt: true }); cen(s, DIP.cenX, (rows.c + rows.d) / 2, 5, 14, { color: C.slate, pt: true });
+  for (const k of ['c', 'd'] as const) bar(s, cx, rows[k], L, 9, 90, { color: C.faint, role: 'paternal' });
+  cen(s, DIP.cenX, (rows.a + rows.b) / 2, 5, 14, { pt: true }); cen(s, DIP.cenX, (rows.c + rows.d) / 2, 5, 14, { color: C.faint, pt: true });
   const my = (rows.b + rows.c) / 2, dy = (rows.c - rows.b) / 2 - 6, dx = 14, Ld = Math.hypot(2 * dx, 2 * dy) + 6, ang = (Math.atan2(2 * dx, 2 * dy) * 180) / Math.PI;
   for (const x of DIP.chiasmata) {
     bar(s, x, my, Ld, 7, ang, { color: C.mari, w: 1.9 });
@@ -377,7 +377,7 @@ function draw106(c: { panel: 'a' | 'b' }): Sketch {
   for (const x of MP.xs) {
     if (A) {
       pair(s, x, MP.cy - off, MP.L, MP.Wd, { color: C.ink });
-      pair(s, x, MP.cy + off, MP.L, MP.Wd, { color: C.slate });
+      pair(s, x, MP.cy + off, MP.L, MP.Wd, { color: C.faint });
       count(s, 'bivalent');
     } else pair(s, x, MP.cy, MP.L, MP.Wd, { color: C.ink });
   }

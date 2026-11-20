@@ -122,7 +122,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'What are the parts of an ecosystem, and which features are structural and which functional?',
     a: 'An ecosystem is a functional unit of nature in which living organisms interact with each other and with the non-living environment. The abiotic part is light, temperature, water, soil and inorganic nutrients; the biotic part is producers, consumers and decomposers. Two features are structural: species composition (which species are present, found by identification and enumeration) and stratification (vertical layering, more pronounced in a tropical rainforest than in a temperate forest). Four are functional: productivity, decomposition, energy flow and nutrient cycling',
-    why: 'An aquarium has too few producers, and water too deep for light has no photosynthetic producers, so each needs input from outside.',
+    why: 'Structure is what is there and how it is layered; function is what the ecosystem does: making, breaking down and passing on matter and energy.',
     say: null,
   },
   // pp. 660–661, 664–665
@@ -356,7 +356,7 @@ export const KEY_POINTS: KeyPoint[] = [
     topic: 5,
     kind: 'remember',
     q: 'How does the C:N ratio of detritus change the speed of decomposition?',
-    a: 'Detritus at about 25–30 ∶ 1 decomposes best; above about 80 ∶ 1 (straw, woody stems) it is slow, because microbes must take nitrogen from the soil to grow; below 25 ∶ 1 (animal tissue, legume residues) it is fast. So wheat straw at 90 ∶ 1 decomposes more slowly than green legume residue at 25 ∶ 1, and mixing a nitrogen-rich waste into a nitrogen-poor pile brings its ratio down and speeds it',
+    a: 'Detritus at about 25–30 ∶ 1 decomposes fast and in balance; above about 80 ∶ 1 (straw, woody stems) it is slow, because microbes must take nitrogen from the soil to grow; below 25 ∶ 1 (animal tissue, legume residues) it is also fast. So wheat straw at 90 ∶ 1 decomposes more slowly than green legume residue at 25 ∶ 1, and mixing a nitrogen-rich waste into a nitrogen-poor pile brings its ratio down and speeds it',
     why: 'This fits the chapter’s rule, more nitrogen and faster decomposition; the exact bands are the addendum’s and are approximate.',
     say: null,
   },

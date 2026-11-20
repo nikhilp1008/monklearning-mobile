@@ -75,7 +75,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A perennial favourite. NEET reliably pulls 1–2 questions on neuron parts, neuron types, Nissl’s granules, and the resting/action potential (often as assertion–reason) (the book’s estimate from past papers, not official figures). CBSE Boards ask 1–2 mark labelling or short-answer on neuron structure and impulse conduction. CUET leans on match-the-column and diagram identification. The polarisation/depolarisation logic here is also the foundation for the synapse (later in this topic) and for the reflex arc (Topic 04).',
+        html: '<b>Exam Relevance:</b> A perennial favourite. NEET reliably pulls 1–2 questions on neuron parts, neuron types, Nissl’s granules, and the resting/action potential, often as assertion–reason (the book’s estimate from past papers, not official figures). CBSE Boards ask 1–2 mark labelling or short-answer on neuron structure and impulse conduction. CUET leans on match-the-column and diagram identification. The polarisation/depolarisation logic here is also the foundation for the synapse (later in this topic) and for the reflex arc (Topic 04).',
       },
       {
         t: 'p',
@@ -276,11 +276,11 @@ export const TOPICS: Topic[] = [
           { label: 'more permeable to K<sup>+</sup>, nearly impermeable to Na<sup>+</sup>', nudge: null },
           {
             label: 'equally permeable to both',
-            nudge: '<b>(c)</b> and <b>(d)</b> would collapse the gradient and make a resting potential impossible.',
+            nudge: '<b>(c)</b> would collapse the gradient and make a resting potential impossible.',
           },
           {
             label: 'impermeable to both',
-            nudge: '<b>(c)</b> and <b>(d)</b> would collapse the gradient and make a resting potential impossible.',
+            nudge: '<b>(d)</b> would leave no K<sup>+</sup> leak, and the leak is what sets the resting potential.',
           },
         ],
         correct: 1,
@@ -479,7 +479,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '• <b>Cerebrum (cortex):</b> all conscious activity: thinking, memory, intelligence, perception of sensations, and initiation of voluntary movement. The <b>sensory areas</b> receive incoming information, the <b>motor areas</b> issue commands, and the <b>association areas</b> link them and underlie memory, communication, and reasoning. As the largest and most recently evolved part of the brain, the cerebrum is what makes deliberate, learned, and reasoned behaviour possible: everything from solving a problem to choosing your words.<br>• <b>Thalamus:</b> the great relay: most sensory signals (smell excepted) and many motor signals pass through it on the way to and from the cortex, so it acts as the brain’s central switchboard, filtering and forwarding information to the correct cortical area.<br>• <b>Hypothalamus:</b> the body’s <b>homeostatic controller</b>: temperature regulation, hunger, thirst, and the bridge between the nervous and endocrine systems. Its <b>neurosecretory cells</b> secrete hormones, and it directs the pituitary gland, making it a main point where electrical neural control hands over to chemical hormonal control (the link you will trace further in the next chapter).<br>• <b>Limbic system + hypothalamus:</b> the seat of <b>emotion and motivation</b>.<br>• <b>Midbrain (corpora quadrigemina):</b> centres for <b>visual and auditory reflexes</b> (e.g., turning the head towards a sound).<br>• <b>Cerebellum:</b> fine-tunes <b>posture, balance, and coordinated voluntary movement</b>: it doesn’t initiate movement but makes it smooth and accurate. Its cortex is densely packed with <b>Purkinje cells</b>, large branching neurons that release the inhibitory neurotransmitter <b>GABA</b> to dampen and time-correct motor signals; this is how a clumsy intended movement becomes a precise one.<br>• <b>Pons:</b> helps regulate <b>breathing rhythm</b> and relays signals between the two halves of the cerebellum.<br>• <b>Medulla oblongata:</b> the <b>vital reflex centre</b>: controls heartbeat, blood pressure, respiration, and reflexes like coughing, sneezing, swallowing, and vomiting. This is why medullary injury is life-threatening.<br>• <b>Brain stem (midbrain + pons + medulla):</b> beyond its own centres, it is the <b>through-route</b> for every nerve tract running between the spinal cord and the higher brain: sever it and the cortex is cut off from the body even if both are intact.',
+        html: '• <b>Cerebrum (cortex):</b> all conscious activity: thinking, memory, intelligence, perception of sensations, and initiation of voluntary movement. The <b>sensory areas</b> receive incoming information, the <b>motor areas</b> issue commands, and the <b>association areas</b> link them and underlie memory, communication, and reasoning. As the largest and most recently evolved part of the brain, the cerebrum is what makes deliberate, learned, and reasoned behaviour possible: everything from solving a problem to choosing your words.<br>• <b>Thalamus:</b> the great relay: most sensory signals (smell excepted) and many motor signals pass through it on the way to and from the cortex, so it acts as the brain’s central switchboard, filtering and forwarding information to the correct cortical area.<br>• <b>Hypothalamus:</b> the body’s <b>homeostatic controller</b>: temperature regulation, hunger, thirst, and the bridge between the nervous and endocrine systems. Its <b>neurosecretory cells</b> secrete hormones, and it directs the pituitary gland, making it a main point where electrical neural control hands over to chemical hormonal control (the link you will trace further in the next chapter).<br>• <b>Limbic system + hypothalamus:</b> the seat of <b>emotion and motivation</b>.<br>• <b>Midbrain (corpora quadrigemina):</b> centres for <b>visual and auditory reflexes</b> (e.g., turning the head towards a sound).<br>• <b>Cerebellum:</b> fine-tunes <b>posture, balance, and coordinated voluntary movement</b>: it doesn’t initiate movement but makes it smooth and accurate. Its cortex is densely packed with <b>Purkinje cells</b>, large branching neurons that release the inhibitory neurotransmitter <b>GABA</b> to dampen and time-correct motor signals; this is how a clumsy intended movement becomes a precise one.<br>• <b>Pons:</b> helps regulate <b>breathing rhythm</b> and relays signals between the cerebrum and the cerebellum.<br>• <b>Medulla oblongata:</b> the <b>vital reflex centre</b>: controls heartbeat, blood pressure, respiration, and reflexes like coughing, sneezing, swallowing, and vomiting. This is why medullary injury is life-threatening.<br>• <b>Brain stem (midbrain + pons + medulla):</b> beyond its own centres, it is the <b>through-route</b> for every nerve tract running between the spinal cord and the higher brain: sever it and the cortex is cut off from the body even if both are intact.',
       },
       { t: 'p', html: '<b>3.2 Protection and the role of CSF</b>' },
       { t: 'p', html: 'The CNS is protected at three levels that work together:' },
@@ -528,9 +528,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET high-difficulty: Assertion–Reason',
-        q: '<b>Assertion (A):</b> The limbic system is responsible for the regulation of sexual behaviour and emotional reactions. <b>Reason (R):</b> The limbic system is composed of the hypothalamus, amygdala, and hippocampus. <b>(a)</b> Both A and R true, R correct explanation of A <b>(b)</b> Both A and R true, R not the correct explanation of A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
+        q: '<b>Assertion (A):</b> The limbic system is responsible for the regulation of sexual behaviour and emotional reactions. <b>Reason (R):</b> The limbic system includes the hypothalamus, amygdala, and hippocampus. <b>(a)</b> Both A and R true, R correct explanation of A <b>(b)</b> Both A and R true, R not the correct explanation of A <b>(c)</b> A true, R false <b>(d)</b> A false, R true',
         steps: [
-          '<b>Reasoning: A is true</b>: the limbic system governs emotion, motivation, and sexual behaviour. <b>R is true</b>: its components are indeed the hypothalamus, amygdala, and hippocampus. (NCERT words the limbic system as the inner parts of the cerebral hemispheres with the amygdala, hippocampus and related structures, working with the hypothalamus; the book’s list is the usual shorthand, so R is taken as true here.) Does R explain A? No: R only lists the structures that make up the limbic system; it does not give the reason why the limbic system regulates emotion and sexual behaviour. Both statements are true, but R is not the correct explanation of A → <b>(b)</b>. Trap: (a) treats a list of parts as an explanation.',
+          '<b>Reasoning: A is true</b>: the limbic system governs emotion, motivation, and sexual behaviour. <b>R is taken as true</b>: the hypothalamus, amygdala and hippocampus are the usual shorthand list. (NCERT words the limbic system as the inner parts of the cerebral hemispheres with the amygdala, hippocampus and related structures, working with the hypothalamus; the book’s list is the usual shorthand.) Does R explain A? No: R only lists structures the limbic system includes; it does not give the reason why the limbic system regulates emotion and sexual behaviour. Both statements are true, but R is not the correct explanation of A → <b>(b)</b>. Trap: (a) treats a list of parts as an explanation.',
         ],
         ans: '',
       },
@@ -588,12 +588,12 @@ export const TOPICS: Topic[] = [
           { label: 'cerebrum, thalamus, hypothalamus', nudge: '<b>(a)</b> lists forebrain parts.' },
           {
             label: 'midbrain, pons, cerebrum',
-            nudge: '<b>(b)</b> and <b>(d)</b> mix divisions: corpora quadrigemina and thalamus belong to midbrain and forebrain respectively.',
+            nudge: '<b>(b)</b> mixes divisions: the midbrain is a division of its own and the cerebrum is forebrain.',
           },
           { label: 'pons, cerebellum, medulla oblongata', nudge: null },
           {
             label: 'corpora quadrigemina, thalamus, pons',
-            nudge: '<b>(b)</b> and <b>(d)</b> mix divisions: corpora quadrigemina and thalamus belong to midbrain and forebrain respectively.',
+            nudge: '<b>(d)</b> mixes divisions: the corpora quadrigemina are midbrain and the thalamus is forebrain.',
           },
         ],
         correct: 2,

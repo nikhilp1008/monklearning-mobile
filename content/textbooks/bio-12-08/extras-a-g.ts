@@ -27,7 +27,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter provides a solid foundation in the five NCERT sections: household fermentation, industrial microbiology, sewage treatment, biogas production, and biocontrol/biofertilisers. These Additional topics supply five quantitative and mechanistic layers that go beyond the chapter: the stoichiometric equations balancing fermentation pathways, an antibiotic classification by spectrum and mode of action, quantitative BOD calculations for sewage treatment, biogas yield calculations from the methanogenesis equation, and the environmental parameters governing biocontrol efficacy. Each section is designed to close the gap between what the chapter teaches and what questions can ask beyond the chapter.',
+        html: 'The chapter provides a solid foundation in the six NCERT sections, taught in five topics: household fermentation, industrial microbiology, sewage treatment, biogas production, and biocontrol agents and biofertilisers (two NCERT sections in one topic). These Additional topics supply five quantitative and mechanistic layers that go beyond the chapter: the stoichiometric equations balancing fermentation pathways, an antibiotic classification by spectrum and mode of action, quantitative BOD calculations for sewage treatment, biogas yield calculations from the methanogenesis equation, and the environmental parameters governing biocontrol efficacy. Each section is designed to close the gap between what the chapter teaches and what questions can ask beyond the chapter.',
       },
       {
         t: 'p',
@@ -51,9 +51,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Lactic acid fermentation',
-        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> →<sup><i>Lactobacillus</i></sup> 2 C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>',
-        legend: [],
-        note: null,
+        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>  → 2 C<sub>3</sub>H<sub>6</sub>O<sub>3</sub>',
+        legend: ['Organism: <i>Lactobacillus</i>'],
+        note: 'Carried out by <i>Lactobacillus</i>.',
       },
       {
         t: 'p',
@@ -62,9 +62,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Alcoholic fermentation',
-        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> →<sup><i>Saccharomyces</i></sup> 2 C<sub>2</sub>H<sub>5</sub>OH + 2 CO<sub>2</sub>',
-        legend: [],
-        note: null,
+        main: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>  → 2 C<sub>2</sub>H<sub>5</sub>OH + 2 CO<sub>2</sub>',
+        legend: ['Organism: <i>Saccharomyces</i> (yeast)'],
+        note: 'Carried out by <i>Saccharomyces</i> (yeast).',
       },
       {
         t: 'p',
@@ -77,13 +77,13 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'Acetic acid fermentation',
-        main: 'C<sub>2</sub>H<sub>5</sub>OH + O<sub>2</sub> →<sup><i>Acetobacter aceti</i></sup> CH<sub>3</sub>COOH + H<sub>2</sub>O',
-        legend: [],
-        note: null,
+        main: 'C<sub>2</sub>H<sub>5</sub>OH + O<sub>2</sub> → CH<sub>3</sub>COOH + H<sub>2</sub>O',
+        legend: ['Organism: <i>Acetobacter aceti</i>'],
+        note: 'Carried out by <i>Acetobacter aceti</i>.',
       },
       {
         t: 'p',
-        html: 'Atom check: left side 2 C, 6 H, 3 O; right side 2 C, 6 H, 3 O. Balanced.<br><br>Note from NCERT: <i>Acetobacter aceti</i> produces acetic acid from ethanol. The overall process requires oxygen (aerobic).',
+        html: 'Atom check: left side 2 C, 6 H, 3 O; right side 2 C, 6 H, 3 O. Balanced.<br><br>Note from NCERT: <i>Acetobacter aceti</i> is the bacterium that produces acetic acid (that it oxidises ethanol goes beyond NCERT). The overall process requires oxygen (aerobic).',
       },
       {
         t: 'table',
@@ -187,7 +187,7 @@ export const TOPICS: Topic[] = [
           ['Streptomycin', 'Broad-spectrum', 'Binds 30S ribosomal subunit, inhibits protein synthesis', 'Ribosome'],
           ['Tetracycline', 'Broad-spectrum', 'Binds 30S, blocks aminoacyl-tRNA entry', 'Ribosome'],
           ['Chloramphenicol', 'Broad-spectrum', 'Binds 50S ribosomal subunit, inhibits peptide bond formation', 'Ribosome'],
-          ['Erythromycin', 'Broad-spectrum (most active against Gram-positive bacteria)', 'Binds 50S, blocks translocation', 'Ribosome'],
+          ['Erythromycin', 'Narrow to moderate spectrum (mainly Gram-positive bacteria)', 'Binds 50S, blocks translocation', 'Ribosome'],
           ['Ciprofloxacin (quinolone)', 'Broad-spectrum', 'Inhibits DNA gyrase (topoisomerase II)', 'Nucleic acids'],
           ['Polymyxin B', 'Narrow-spectrum (Gram-negative)', 'Disrupts cell membrane integrity', 'Cell membrane'],
         ],
@@ -213,7 +213,7 @@ export const TOPICS: Topic[] = [
         tag: 'CUET',
         q: 'Mechanism of Action. Name the mechanism by which penicillin kills bacteria and state why it does not harm human cells.',
         steps: [
-          'Penicillin inhibits the synthesis of bacterial cell wall peptidoglycan by binding to the transpeptidase enzyme (also called penicillin-binding proteins), preventing cross-linking of the glycan chains. This weakens the cell wall, and bacterial cells burst due to osmotic pressure.',
+          'Penicillin inhibits the synthesis of bacterial cell wall peptidoglycan by binding to the transpeptidase enzyme (also called penicillin-binding proteins), preventing the peptide cross-links between the glycan chains. This weakens the cell wall, and bacterial cells burst due to osmotic pressure.',
           'Human cells lack cell walls: they have only plasma membranes. Therefore, penicillin selectively targets bacterial cells without harming human cells.',
         ],
         ans: 'Inhibition of cell wall synthesis; human cells lack cell walls, so they are unaffected.',
@@ -279,13 +279,13 @@ export const TOPICS: Topic[] = [
       {
         t: 'formula',
         kicker: 'BOD calculation formula',
-        main: 'BOD = (DO<sub>initial</sub> − DO<sub>final</sub>) × dilution factor',
-        legend: [],
+        main: 'BOD = (DO<sub>i</sub> − DO<sub>f</sub>) × D',
+        legend: ['DO<sub>i</sub> = dissolved oxygen before incubation (initial)', 'DO<sub>f</sub> = dissolved oxygen after incubation (final)', '<i>D</i> = dilution factor'],
         note: null,
       },
       {
         t: 'p',
-        html: 'Where DO is dissolved oxygen in mg L<sup>−1</sup>. If the sample is diluted before incubation, the dilution factor is the total volume of the diluted sample divided by the volume of the original sample; multiplying by it converts the oxygen used in the diluted sample back to the oxygen demand of the undiluted sewage. The standard test (BOD<sub>5</sub>) measures the oxygen used in 5 days at 20°C, which is only a part of the oxygen that would be used if all the organic matter were oxidised.',
+        html: 'Where DO is dissolved oxygen in mg L<sup>−1</sup>. If the sample is diluted before incubation, the dilution factor is the total volume of the diluted sample divided by the volume of the original sample; multiplying by it converts the oxygen used in the diluted sample back to the oxygen demand of the undiluted sewage. The standard test (BOD<sub>5</sub>) measures the oxygen used in 5 days at 20°C, which is only a part of the oxygen that would be used if all the organic matter were oxidised. (Indian discharge standards use a 3-day test at 27 °C, BOD<sub>3</sub>, which gives similar values.)',
       },
       {
         t: 'p',
@@ -420,7 +420,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Biogas composition.</b> The gas mixture is methane about 50–70%, CO<sub>2</sub> about 30–40% (the exact figures vary with the feed), and small amounts of H<sub>2</sub> and H<sub>2</sub>S. NCERT states “predominantly methane.”',
+        html: '<b>Biogas composition.</b> The gas mixture is methane about 50–70%, with CO<sub>2</sub> making up most of the rest (about 30–45%), and small amounts of H<sub>2</sub> and H<sub>2</sub>S; the exact figures vary with the feed. NCERT states “predominantly methane.”',
       },
       {
         t: 'p',
@@ -452,7 +452,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET',
-        q: 'Carbon Balance in Biogas Production. One molecule of glucose is completely converted to methane and carbon dioxide by methanogens. How many molecules of CH<sub>4</sub> and CO<sub>2</sub> are produced, and how many carbon atoms from the original glucose end up in methane?',
+        q: 'Carbon Balance in Biogas Production. One molecule of glucose is completely converted to methane and carbon dioxide by the microbes of a digester (fermenting bacteria, then methanogens). How many molecules of CH<sub>4</sub> and CO<sub>2</sub> are produced, and how many carbon atoms from the original glucose end up in methane?',
         steps: [
           'From the balanced equation C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> → 3 CO<sub>2</sub> + 3 CH<sub>4</sub>:<br>• Three molecules of CO<sub>2</sub> are produced.<br>• Three molecules of CH<sub>4</sub> are produced.<br>• Carbon atoms in CO<sub>2</sub>: 3 × 1 = 3.<br>• Carbon atoms in CH<sub>4</sub>: 3 × 1 = 3.<br>• Total: 6 carbon atoms, matching the original glucose (6 carbon atoms).',
         ],
@@ -503,7 +503,7 @@ export const TOPICS: Topic[] = [
     n: 'E',
     title: 'Environmental Parameters in Biocontrol and Biofertilisers',
     extra: true,
-    kalam: 'Each agent works best within a temperature range, and most within a pH range (baculovirus is not pH-critical).',
+    kalam: 'Each agent works best within a temperature range, and most within a pH range (for baculovirus, only the alkaline larval gut matters).',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -514,7 +514,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Method' },
       {
         t: 'p',
-        html: '<b>Biocontrol agent conditions.</b> Each agent works best within a temperature range, and most within a pH range (baculovirus is not pH-critical). These conditions determine field efficacy.',
+        html: '<b>Biocontrol agent conditions.</b> Each agent works best within a temperature range, and most within a pH range (for baculovirus, only the alkaline larval gut matters). These conditions determine field efficacy.',
       },
       {
         t: 'p',
@@ -531,7 +531,7 @@ export const TOPICS: Topic[] = [
         rows: [
           ['<i>Bacillus thuringiensis</i>', 'Bacterium', '25–30°C', '6–8 (near neutral)', 'Active toxin requires alkaline larval gut'],
           ['<i>Trichoderma</i>', 'Fungus', '25–30°C', '4–7 (slightly acidic to neutral)', 'Saprophytic; requires organic matter'],
-          ['Baculovirus', 'Virus', '20–30°C', 'Not critical', 'Requires living host; UV-sensitive'],
+          ['Baculovirus', 'Virus', '20–30°C', 'Not critical outside the host (its occlusion bodies, like Bt crystals, dissolve only in the alkaline larval gut)', 'Requires living host; UV-sensitive'],
           ['<i>Rhizobium</i>', 'Bacterium', '25–30°C', '6–7 (near neutral)', 'Symbiotic for nitrogen fixation: lives free in soil, fixes N<sub>2</sub> only in nodules of a compatible legume'],
           ['<i>Azotobacter</i>', 'Bacterium', '20–35°C', '6.5–7.5 (neutral)', 'Free-living; requires organic carbon'],
           ['<i>Glomus</i> (mycorrhiza)', 'Fungus', '20–30°C', '5.5–7.0 (slightly acidic to neutral)', 'Obligate symbiont; requires root contact'],
@@ -543,7 +543,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Note from NCERT: Bt toxin is activated by the alkaline pH of the insect gut. <i>Trichoderma</i> acts as a mycoparasite on fungal plant pathogens. <i>Rhizobium</i> lives in legume root nodules. <i>Glomus</i> forms mycorrhizal associations with plant roots.',
+        html: 'Note from NCERT: Bt toxin is activated by the alkaline pH of the insect gut (NCERT Chapter 10). <i>Trichoderma</i> species are free-living fungi of the root ecosystem and effective biocontrol agents of several plant pathogens (that they act as mycoparasites goes beyond NCERT). <i>Rhizobium</i> lives in legume root nodules. <i>Glomus</i> forms mycorrhizal associations with plant roots.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -626,7 +626,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Additional topic C' },
       {
         t: 'p',
-        html: '1. BOD is the oxygen consumed by microbes in the standard 5-day, 20°C test (BOD<sub>5</sub>), a part of the oxygen needed to oxidise all the organic matter in 1 L of water; unit is mg L<sup>−1</sup>.<br>2. DO consumed = 6 mg L<sup>−1</sup>; dilution factor = 5; BOD = 30 mg L<sup>−1</sup>.<br>3. High BOD indicates high organic load; microbes consume dissolved oxygen, potentially dropping DO to lethal levels for fish.<br>4. Below 30 mg L<sup>−1</sup> (Indian standards for inland water discharge).<br>5. Polluted section: low DO (2 mg L<sup>−1</sup>) and high BOD (250 mg L<sup>−1</sup>) together indicate severe organic pollution.',
+        html: '1. BOD is the oxygen microbes would consume in oxidising the organic matter in 1 L of water (NCERT: if all of it were oxidised); the standard 5-day, 20°C test (BOD<sub>5</sub>) measures part of it; unit is mg L<sup>−1</sup>.<br>2. DO consumed = 6 mg L<sup>−1</sup>; dilution factor = 5; BOD = 30 mg L<sup>−1</sup>.<br>3. High BOD indicates high organic load; microbes consume dissolved oxygen, potentially dropping DO to lethal levels for fish.<br>4. Below 30 mg L<sup>−1</sup> (Indian standards for inland water discharge).<br>5. Polluted section: low DO (2 mg L<sup>−1</sup>) and high BOD (250 mg L<sup>−1</sup>) together indicate severe organic pollution.',
       },
       { t: 'part', title: 'Additional topic D' },
       {
@@ -715,7 +715,7 @@ export const TOPICS: Topic[] = [
         tag: 'Worked representative',
         q: 'Assertion (A): In crop rotation, the plants that are best preferred are leguminous plants.<br>Reason (R): Such plants have root nodules containing <i>Clostridium</i> bacteria able to fix nitrogen.<br><b>(a)</b> Both A and R are true, and R is the correct explanation of A.<br><b>(b)</b> Both A and R are true, but R is not the correct explanation of A.<br><b>(c)</b> A is true, but R is false.<br><b>(d)</b> A is false, but R is true.',
         steps: [
-          '<b>Solution:</b> A is correct: legumes are preferred in crop rotation for their nitrogen-fixing ability. However, R is <b>false</b>: the bacteria in legume nodules are <i>Rhizobium</i>, not <i>Clostridium</i>. Since R is false, the answer is <b>(c)</b>. The distractor <b>(a)</b> tempts students who misread <i>Clostridium</i> as a generic nitrogen-fixer without checking the specific genus.',
+          '<b>Solution:</b> A is correct: legumes are preferred in crop rotation for their nitrogen-fixing ability. However, R is <b>false</b>: the bacteria in legume nodules are <i>Rhizobium</i>, not <i>Clostridium</i>. Since R is false, the answer is <b>(c)</b>. The distractor <b>(a)</b> tempts students who know <i>Clostridium</i> as a nitrogen-fixer: some species do fix nitrogen, but free-living in the soil, never in legume nodules, which hold <i>Rhizobium</i>.',
         ],
         ans: '(c)',
       },
@@ -794,17 +794,17 @@ export const TOPICS: Topic[] = [
           [
             '<b><i>Rhizobium</i> = <i>Clostridium</i></b>',
             'Assertion–reason and direct-recall questions on nitrogen fixation',
-            '<i>Rhizobium</i> is the legume nodule bacterium; <i>Clostridium</i> is butyric acid maker: they appear in different sections',
+            '<i>Rhizobium</i> is the legume-nodule bacterium; in this chapter <i>Clostridium butylicum</i> is the butyric acid maker (some <i>Clostridium</i> species fix nitrogen free in the soil, but never in nodules)',
           ],
           [
             '<b><i>Glomus</i> fixes nitrogen</b>',
-            'A common error in the biocontrol topic',
+            'A common error in the biofertiliser part of the last topic',
             'Fungi (<i>Glomus</i>/mycorrhiza) mainly supply phosphorus; bacteria and cyanobacteria fix nitrogen',
           ],
           [
             '<b><i>Azolla</i> = the fixer</b>',
             '<i>Azolla</i> is the fern; the cyanobacterium <i>Anabaena azollae</i> inside it is the actual nitrogen-fixer',
-            'State “<i>Anabaena azollae</i>” in the <i>Azolla</i> context (NCERT’s name; now called <i>Trichormus azollae</i> or <i>Nostoc azollae</i>)',
+            'State “<i>Anabaena azollae</i>” in the <i>Azolla</i> context (the traditional name; now <i>Trichormus azollae</i>, also called <i>Nostoc azollae</i>)',
           ],
           [
             '<b>Antibiotics kill viruses</b>',
@@ -827,7 +827,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'A Graded Practice Set' },
       {
         t: 'p',
-        html: 'The questions follow NEET/AIPMT patterns; where an answer goes beyond NCERT it says so.',
+        html: 'The questions follow NEET/AIPMT patterns; several answers go beyond NCERT, and the main ones say so.',
       },
       {
         t: 'practice',
@@ -854,11 +854,11 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '<b>Level 3: Multi-step reasoning.</b> A match-the-column question pairs <i>Bacillus thuringiensis</i> with “nitrogen fixation in rice fields” and <i>Anabaena</i> with “biocontrol of caterpillars.” Both pairs are incorrect. Give the correct association for each organism and state the underlying principle that makes each error misleading.',
-            a: '<i>Bacillus thuringiensis</i> (Bt) is a <b>biocontrol agent</b>: it forms a protein crystal (the inactive Cry protoxin) alongside its spores; in the alkaline gut of the larva the crystal dissolves and the protoxin is activated, killing the larva (the crystal detail goes beyond NCERT). It does not fix nitrogen. The trap is that Bt and nitrogen-fixing bacteria are both mentioned in the “Microbes as Biocontrol and Biofertilisers” section, so students may associate any microbe in that section with nitrogen fixation. <i>Anabaena</i> is a <b>cyanobacterium</b> that fixes atmospheric nitrogen (freely in rice fields and in symbiosis with the water fern <i>Azolla</i>). It does not control caterpillars: that is Bt’s role. The error arises from both being tested in the same topic, not from any genuine metabolic similarity.',
+            a: '<i>Bacillus thuringiensis</i> (Bt) is a <b>biocontrol agent</b>: it forms a protein crystal (the inactive Cry protoxin) alongside its spores; in the alkaline gut of the larva the crystal dissolves and the protoxin is activated, killing the larva (the crystal and protoxin detail is in NCERT Chapter 10, not in this chapter). It does not fix nitrogen. The trap is that Bt and nitrogen-fixing bacteria are both mentioned in the “Microbes as Biocontrol Agents and Biofertilisers” section, so students may associate any microbe in that section with nitrogen fixation. <i>Anabaena</i> is a <b>cyanobacterium</b> that fixes atmospheric nitrogen (freely in rice fields and in symbiosis with the water fern <i>Azolla</i>). It does not control caterpillars: that is Bt’s role. The error arises from both being tested in the same topic, not from any genuine metabolic similarity.',
           },
           {
             q: '<b>Level 3: Multi-step reasoning.</b> Read the following assertion and reason:<br>Assertion (A): Primary treatment of sewage is a physical process.<br>Reason (R): It involves the activity of aerobic heterotrophic bacteria that consume organic matter.<br><b>(a)</b> Both A and R are true, and R correctly explains A.<br><b>(b)</b> Both A and R are true, but R does not correctly explain A.<br><b>(c)</b> A is true, R is false.<br><b>(d)</b> A is false, R is true.',
-            a: '(c): A is correct: primary treatment uses filtration and sedimentation (physical). R is false: aerobic bacteria act in secondary (biological) treatment, not primary. This is a frequently reversed distinction in the sewage section.',
+            a: '(c): A is correct: primary treatment uses filtration and sedimentation (physical). R is false: aerobic bacteria act in secondary (biological) treatment, not primary. This is a commonly reversed distinction in the sewage section.',
           },
           {
             q: '<b>Level 3: Multi-step reasoning.</b> A stirred-tank fermenter used for industrial penicillin production is being designed. Which of the following would not be a necessary feature of such a fermenter?<br><b>(a)</b> A system to control pH<br><b>(b)</b> A mechanism for controlling dissolved oxygen levels<br><b>(c)</b> A heating element to maintain temperatures above 80 °C continuously<br><b>(d)</b> Ability to sample the broth at intervals',
@@ -866,7 +866,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '<b>Level 3: Multi-step reasoning.</b> A patient with myocardial infarction is given streptokinase. A classmate explains that streptokinase works because “it kills the bacteria causing the heart attack.” Identify the two biological errors in this statement and correct them.',
-            a: 'Two errors:<br>1. <b>Streptokinase does not kill bacteria.</b> It is not an antibiotic; it is a clot-dissolving enzyme (“clot buster”) that activates plasminogen to plasmin, which degrades the fibrin of the clot. (It is obtained from <i>Streptococcus</i> and modified by genetic engineering for clinical use, but it acts on clots, not on bacteria.) The plasminogen detail goes beyond NCERT.<br>2. <b>A heart attack is not caused by bacteria.</b> Myocardial infarction results from a blood clot blocking a coronary artery, cutting off the blood supply to part of the heart muscle.',
+            a: 'Two errors:<br>1. <b>Streptokinase does not kill bacteria.</b> It is not an antibiotic; it is a clot buster (NCERT lists it with enzymes): it binds plasminogen, and the complex turns plasminogen into plasmin, which degrades the fibrin of the clot. (It is obtained from <i>Streptococcus</i> and modified by genetic engineering for clinical use, but it acts on clots, not on bacteria.) The plasminogen detail goes beyond NCERT.<br>2. <b>A heart attack is not caused by bacteria.</b> Myocardial infarction results from a blood clot blocking a coronary artery, cutting off the blood supply to part of the heart muscle.',
           },
           {
             q: '<b>Level 4: Synthesis.</b> An Integrated Pest Management (IPM) programme in a mango orchard reports that a broad-spectrum chemical pesticide killed not only the mango fruit borer caterpillars but also the populations of parasitoid wasps and pollinating bees in the area. In response, the programme switches to baculovirus-based biocontrol.<br>(a) State two reasons why baculoviruses are preferred over broad-spectrum chemical pesticides in ecologically sensitive agricultural areas.<br>(b) A student argues that since biocontrol uses living organisms, it will always be more expensive and less reliable than chemicals. Evaluate this argument by giving one point in its favour and one against it, drawing on the mode of action of Bt as an example.',
@@ -878,7 +878,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Key Distinctions to Master' },
       {
         t: 'p',
-        html: '1. <b>Organism → product → application.</b> Pair the type of microbe (fungus vs. bacterium) with the specific clinical application (statins vs. cyclosporin) in a single match-the-column, rather than holding separate tables: <i>Monascus purpureus</i> (fungus) → statins; <i>Trichoderma polysporum</i> (fungus; NCERT’s attribution, now <i>Tolypocladium inflatum</i>) → cyclosporin A; <i>Streptococcus</i> (bacterium) → streptokinase.<br>2. <b>Nitrogen versus phosphorus.</b> Bacteria and cyanobacteria (<i>Rhizobium</i>, <i>Azotobacter</i>, <i>Azospirillum</i>, <i>Anabaena</i>, <i>Nostoc</i>) supply nitrogen; the mycorrhizal fungus <i>Glomus</i> mainly helps the plant absorb phosphorus (it also brings water and other nutrients). This split is a frequently tested distinction in the biocontrol and biofertiliser section.<br>3. <b>BOD: definition and direction.</b> BOD is the oxygen microbes would use to oxidise the organic matter in 1 litre of water (NCERT: if all of it were oxidised); the standard test measures the part used in 5 days at 20 °C (BOD<sub>5</sub>). High BOD means a heavy organic load and dirty water; treatment aims to lower BOD. Be ready to explain why the relationship runs in this direction, not just to quote the definition: assertion–reason items test exactly this.',
+        html: '1. <b>Organism → product → application.</b> Pair the type of microbe (fungus vs. bacterium) with the specific clinical application (statins vs. cyclosporin) in a single match-the-column, rather than holding separate tables: <i>Monascus purpureus</i> (fungus) → statins; <i>Trichoderma polysporum</i> (fungus; NCERT’s attribution, now <i>Tolypocladium inflatum</i>) → cyclosporin A; <i>Streptococcus</i> (bacterium) → streptokinase.<br>2. <b>Nitrogen versus phosphorus.</b> Bacteria and cyanobacteria (<i>Rhizobium</i>, <i>Azotobacter</i>, <i>Azospirillum</i>, <i>Anabaena</i>, <i>Nostoc</i>) supply nitrogen; the mycorrhizal fungus <i>Glomus</i> mainly helps the plant absorb phosphorus (it also brings water and other nutrients). This split is a key distinction in the biocontrol and biofertiliser section.<br>3. <b>BOD: definition and direction.</b> BOD is the oxygen microbes would use to oxidise the organic matter in 1 litre of water (NCERT: if all of it were oxidised); the standard test measures the part used in 5 days at 20 °C (BOD<sub>5</sub>). High BOD means a heavy organic load and dirty water; treatment aims to lower BOD. Be ready to explain why the relationship runs in this direction, not just to quote the definition: assertion–reason items test exactly this.',
       },
     ],
   },

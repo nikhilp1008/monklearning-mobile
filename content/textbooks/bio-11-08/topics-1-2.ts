@@ -23,7 +23,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A perennial scorer. CBSE Boards favour 1–2 mark definitions (cell theory, mesosome) and the occasional 3-mark “describe the cell envelope.” CUET leans on dates and discoverers (Hooke, Brown, Virchow, Schleiden, Schwann). NEET asks 1–2 questions almost every year (the book’s estimate from past papers, not official figures) on the three-layered envelope, glycocalyx forms, and the fluid-mosaic model, and loves assertion–reason items that pit prokaryotic against eukaryotic features.',
+        html: '<b>Exam Relevance:</b> A perennial scorer. CBSE Boards favour 1–2 mark definitions (cell theory, mesosome) and the occasional 3-mark “describe the cell envelope.” CUET leans on dates and discoverers (Hooke, Brown, Virchow, Schleiden, Schwann). NEET usually asks 1–2 questions (the book’s estimate from past papers, not official figures) on the three-layered envelope, glycocalyx forms, and the fluid-mosaic model, and loves assertion–reason items that pit prokaryotic against eukaryotic features.',
       },
       {
         t: 'p',
@@ -31,7 +31,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The theory was not the flash of one genius but a relay race. In the 1660s <b>Robert Hooke</b>, peering at a sliver of cork, saw tiny empty boxes that reminded him of monastery rooms, cellulae, and gave us the word. He was actually looking at the leftover <b>cell walls</b> of dead cork cells. About a decade after that <b>Anton van Leeuwenhoek</b> became the first person to watch living cells swimming in pond water. <b>Robert Brown</b> then spotted a dense body inside plant cells: the <b>nucleus</b>. Two German scientists tied it together: <b>Matthias Schleiden</b> (1838) declared all plants are built of cells, and <b>Theodor Schwann</b> (1839) extended this to animals, noting that animal cells, unlike plant cells, lack a rigid wall. Their joint <b>cell theory</b> stated that all living organisms are composed of cells and the products of cells, and that the cell is the structural and functional unit of life.',
+        html: 'The theory was not the flash of one genius but a relay race. In the 1660s <b>Robert Hooke</b>, peering at a sliver of cork, saw tiny empty boxes that reminded him of monastery rooms, cellulae, and gave us the word. He was actually looking at the leftover <b>cell walls</b> of dead cork cells. About a decade after that <b>Anton van Leeuwenhoek</b> became the first person to watch living cells swimming in pond water. <b>Robert Brown</b> then spotted a dense body inside plant cells: the <b>nucleus</b>. Two German scientists tied it together: <b>Matthias Schleiden</b> (1838) declared all plants are built of cells, and <b>Theodor Schwann</b> (1839; older NCERT reprints called him British, but he was German, and the current edition says so) extended this to animals, noting that animal cells, unlike plant cells, lack a rigid wall. Their joint <b>cell theory</b> stated that all living organisms are composed of cells and the products of cells, and that the cell is the structural and functional unit of life.',
       },
       {
         t: 'p',
@@ -149,7 +149,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The eukaryotic cell wall, by contrast.</b> Where the bacterial wall is peptidoglycan, the <b>plant</b> cell wall is built mainly of <b>cellulose</b>, with hemicellulose, pectins and proteins; algal walls add galactans, mannans and mineral deposits such as calcium carbonate. Neighbouring plant cells are cemented together by the <b>middle lamella</b>, a layer rich in <b>calcium pectate</b>; its softening during ripening is exactly why fruit turns mushy. A young <b>primary wall</b> can still grow and thins as the cell matures, while a tougher <b>secondary wall</b> is laid down toward the lumen. The shared theme across bacteria, fungi and plants is identical: a non-living rigid jacket outside the membrane that fixes shape and resists bursting.',
+        html: '<b>The eukaryotic cell wall, by contrast.</b> Where the bacterial wall is peptidoglycan, the <b>plant</b> cell wall is built mainly of <b>cellulose</b>, with hemicellulose, pectins and proteins; algal walls add galactans, mannans and mineral deposits such as calcium carbonate. Neighbouring plant cells are cemented together by the <b>middle lamella</b>, a layer rich in <b>calcium pectate</b>; its softening during ripening is exactly why fruit turns mushy. A young <b>primary wall</b> is capable of growth, which gradually diminishes as the cell matures, while a tougher <b>secondary wall</b> is laid down toward the lumen. The shared theme across bacteria, fungi and plants is identical: a non-living rigid jacket outside the membrane that fixes shape and resists bursting.',
       },
       {
         t: 'p',
@@ -192,12 +192,12 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET assertion–reason',
-        q: '<b>High-difficulty.</b> <b>Assertion (A):</b> A <i>Mycoplasma</i> cell does not lyse (burst) even in a very dilute solution. <b>Reason (R):</b> <i>Mycoplasma</i> is the smallest known cell. Options: (a) both true, R explains A; (b) both true, R does not explain A; (c) A false, R true; (d) both false.',
+        q: '<b>High-difficulty.</b> <b>Assertion (A):</b> A <i>Mycoplasma</i> cell does not lyse (burst) even in a very dilute solution. <b>Reason (R):</b> <i>Mycoplasma</i> is the smallest known cell. Options: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) A false, R true.',
         steps: [
           '<b>Reasoning.</b> R is true: <i>Mycoplasma</i> (~0.3 μm) is indeed the smallest cell. But examine A: lysis-resistance comes from a rigid <b>cell wall</b>, and <i>Mycoplasma</i> famously <b>lacks a cell wall</b>, so it is in fact osmotically fragile and does tend to burst in hypotonic media.',
           'The trap is letting a true, familiar Reason pull you into accepting a false Assertion.',
         ],
-        ans: 'A is false, R is true → option (c).',
+        ans: 'A is false, R is true → option (d).',
       },
 
       { t: 'part', title: 'Practice exercises' },
@@ -293,7 +293,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'mistakes',
         items: [
-          '<b>Reversing the envelope order.</b> “Plasma membrane outside” is the single most common slip. Anchor it: the membrane is always the innermost, living boundary; the wall and glycocalyx are added outside it.',
+          '<b>Reversing the envelope order.</b> “Plasma membrane outside” is a common slip. Anchor it: the membrane is always the innermost, living boundary; the wall and glycocalyx are added outside it.',
           '<b>Slime layer ⇄ capsule swap.</b> Loose = slime; thick/tough = capsule. Mnemonic: <b>C</b>apsule is <b>C</b>ompact.',
           '<b>“Bacterial wall = cellulose.”</b> No: that is the <b>plant</b> wall. Bacterial wall is peptidoglycan; the cellulose option is a deliberate distractor.',
           '<b>Assertion–reason traps.</b> A true Reason does <b>not</b> guarantee a true Assertion: test each clause independently (see the <i>Mycoplasma</i> example).',
@@ -360,7 +360,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Why a “club” and not simply “all the organelles”? Because membership has a strict rule: only the organelles whose functions are <b>coordinated</b> as one continuous workflow count. Those are the <b>endoplasmic reticulum (ER)</b>, the <b>Golgi apparatus</b>, <b>lysosomes</b>, and <b>vacuoles</b>. The ER manufactures, the Golgi sorts and ships, lysosomes recycle, vacuoles store: one assembly line. Strikingly, the <b>mitochondria, chloroplasts, and peroxisomes are deliberately left out</b>, even though they are membrane-bound, because their jobs are not stitched into that same line. This single exclusion is one of the most examined facts in the whole chapter. Compartmentalising jobs behind separate membranes is the eukaryotic cell’s central trick: it lets incompatible chemistries (synthesis in one place, digestion in another) run side by side without interfering.',
+        html: 'Why a “club” and not simply “all the organelles”? Because membership has a strict rule: only the organelles whose functions are <b>coordinated</b> as one continuous workflow count. Those are the <b>endoplasmic reticulum (ER)</b>, the <b>Golgi apparatus</b>, <b>lysosomes</b>, and <b>vacuoles</b>. The ER manufactures, the Golgi sorts and ships, lysosomes recycle, vacuoles store: one assembly line. Strikingly, the <b>mitochondria, chloroplasts, and peroxisomes are deliberately left out</b>, even though they are membrane-bound, because their jobs are not stitched into that same line. This exclusion is examined often. Compartmentalising jobs behind separate membranes is the eukaryotic cell’s central trick: it lets incompatible chemistries (synthesis in one place, digestion in another) run side by side without interfering.',
       },
       {
         t: 'p',
@@ -429,7 +429,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Mitochondria: the power house.</b> Each mitochondrion is bound by <b>two membranes</b> that are structurally and functionally distinct. The <b>outer membrane</b> is smooth and permeable; the <b>inner membrane</b> is thrown into folds called <b>cristae</b> that greatly increase its surface area for ATP-generating machinery. The membranes define five regions: outer membrane, intermembrane space, inner membrane, cristae, and the central <b>matrix</b>. The matrix holds a <b>single circular DNA molecule, a few RNAs, and 70S ribosomes</b>, plus respiratory enzymes, so the organelle is <b>semi-autonomous</b> and divides by <b>fission</b>. Functionally it is the site of aerobic respiration, converting the energy of organic fuels into ATP. The number of mitochondria a cell keeps is not fixed: metabolically busy cells such as muscle pack in far more than quiet ones, and their shape ranges from near-spherical to elongated rods, each roughly 0.2–1.0 μm across (average about 0.5 μm).',
+        html: '<b>Mitochondria: the power house.</b> Each mitochondrion is bound by <b>two membranes</b> that are structurally and functionally distinct. The <b>outer membrane</b> is smooth and permeable; the <b>inner membrane</b> is thrown into folds called <b>cristae</b> that greatly increase its surface area for ATP-generating machinery. The two membranes divide the organelle into two aqueous compartments: the intermembrane space (outer compartment) and the central <b>matrix</b> (inner compartment). The matrix holds a <b>single circular DNA molecule, a few RNAs, and 70S ribosomes</b>, plus respiratory enzymes, so the organelle is <b>semi-autonomous</b> and divides by <b>fission</b>. Functionally it is the site of aerobic respiration, converting the energy of organic fuels into ATP. The number of mitochondria a cell keeps is not fixed: metabolically busy cells such as muscle pack in far more than quiet ones, and their shape ranges from near-spherical to elongated rods, each roughly 0.2–1.0 μm across (average about 0.5 μm).',
       },
       {
         t: 'p',
@@ -476,7 +476,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET assertion–reason',
-        q: '<b>High-difficulty.</b> <b>Assertion (A):</b> Mitochondria and chloroplasts are described as semi-autonomous organelles. <b>Reason (R):</b> They possess their own circular DNA and 70S ribosomes and can divide by fission. Options: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) both false.',
+        q: '<b>High-difficulty.</b> <b>Assertion (A):</b> Mitochondria and chloroplasts are described as semi-autonomous organelles. <b>Reason (R):</b> They possess their own circular DNA and 70S ribosomes and can divide by fission. Options: (a) both true, R explains A; (b) both true, R does not explain A; (c) A true, R false; (d) A false, R true.',
         steps: [
           '<b>Reasoning.</b> A is true: both are semi-autonomous. R is true: both carry circular DNA and 70S ribosomes and divide by fission. Does R explain A? Yes: it is precisely this self-replicating genetic machinery that lets them make some of their own proteins and divide independently, which is the basis of the “semi-autonomous” description.',
           'The subtle point examiners probe is the word semi: the organelles still rely on the nucleus for most proteins, so R justifies “semi-,” not full, autonomy.',

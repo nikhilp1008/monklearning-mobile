@@ -232,7 +232,7 @@ export const TOPICS: Topic[] = [
           `(i)${NB}${pr(`at${NB}least${NB}one`)}${NB}= ${fr('13', '12')}${NB}− ${fr('3', '8')}${NB}+${NB}${fr('1', '24')}${NB}= ${fr('26 − 9 + 1', '24')}${NB}=${NB}${fr('3', '4')}.<br>Equivalently by the complement rule: 1${NB}−${NB}${HALF}${NB}·${NB}${fr('2', '3')}${NB}·${NB}${fr('3', '4')}${NB}=${NB}1${NB}−${NB}${QUARTER}${NB}=${NB}${fr('3', '4')}. Agreement noted.`,
           `(ii)${NB}${pr(`exactly${NB}one`)}${NB}=${NB}${fr('13', '12')}${NB}− 2${NB}·${NB}${fr('3', '8')}${NB}+${NB}3${NB}·${NB}${fr('1', '24')}<br>= ${fr('26 − 18 + 3', '24')}${NB}=${NB}${fr('11', '24')}.`,
           `(iii)${NB}${pr(`exactly${NB}two`)}${NB}=${NB}${fr('3', '8')}${NB}− 3${NB}·${NB}${fr('1', '24')}${NB}=${NB}${fr('9 − 3', '24')}${NB}=${NB}${QUARTER}.`,
-          `<b>Check.</b> Exactly three${NB}=${NB}${fr('1', '24')}, none${NB}=${NB}${QUARTER},${NB}and<br>${fr('11', '24')}${NB}+${NB}${fr('6', '24')}${NB}+${NB}${fr('1', '24')}${NB}+${NB}${fr('6', '24')}${NB}= ${fr('24', '24')}${NB}=${NB}1.<br>The decomposition closes, so the answers stand.`,
+          `<b>Check.</b> Exactly three${NB}=${NB}${fr('1', '24')}, none${NB}=${NB}${QUARTER},${NB}and<br>${fr('11', '24')}${NB}+${NB}${fr('6', '24')}${NB}+${NB}${fr('1', '24')}${NB}+${NB}${fr('6', '24')}${NB}= ${fr('24', '24')}${NB}=${NB}1.<br>The decomposition closes, so the answers${NB}stand.`,
         ],
         ans: '',
       },
@@ -314,7 +314,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'JEE Advanced Level: the canonical construction',
-        q: `Two fair coins are tossed. Let ${A}${NB}=${NB}“the first coin shows heads,” ${B}${NB}=${NB}“the second coin shows heads,” ${C}${NB}=${NB}“the two coins disagree.” Show that ${A}, ${B}, ${C} are pairwise independent but not mutually independent.`,
+        q: `Two fair coins are tossed. Let ${A}${NB}=${NB}“the first coin shows heads,” ${B}${NB}=${NB}“the second coin shows heads,” ${C}${NB}=${NB}“the two coins disagree.” Show that ${A}, ${B}, ${C} are pairwise independent but not mutually${NB}independent.`,
         steps: [
           `Sample space: ${set(HH, HT, TH, TT)}, each outcome ${QUARTER}. Then<br>${A}${NB}= ${set(HH, HT)},${NB}${NB}${B}${NB}= ${set(HH, TH)},${NB}${NB}${C}${NB}= ${set(HT, TH)},<br>so ${pr(A)}${NB}=${NB}${pr(B)}${NB}=${NB}${pr(C)}${NB}=${NB}${HALF}. Now the three pairs:<br>${PAB}${NB}=${NB}${pr(HH)}${NB}= ${QUARTER}${NB}=${NB}${HALF}${NB}·${NB}${HALF}.${NB}✓<br>${PBC}${NB}=${NB}${pr(TH)}${NB}=${NB}${QUARTER}${NB}= ${pr(B)}${pr(C)}.${NB}✓<br>${PCA}${NB}=${NB}${pr(HT)}${NB}=${NB}${QUARTER}${NB}= ${pr(C)}${pr(A)}.${NB}✓`,
           `Pairwise independence confirmed. But the triple intersection:<br>${ABC}${NB}= {${HH}}${NB}∩${NB}${set(HT, TH)}${NB}=${NB}∅<br>⟹ ${PABC}${NB}=${NB}0,${NB}while<br>${PAPBPC}${NB}= (${HALF})<sup>3</sup>${NB}=${NB}${EIGHTH}${NB}≠${NB}0.`,
@@ -344,7 +344,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: `[JEE Advanced] On the sample space ${set(HH, HT, TH, TT)} let ${A}${NB}=${NB}“first toss heads,” ${B}${NB}=${NB}“second toss heads,” ${C}${NB}=${NB}“an odd number of heads.” Show all three pairs are independent but ${A}, ${B}, ${C} are not mutually independent.`,
+            q: `[JEE Advanced] On the sample space ${set(HH, HT, TH, TT)} let ${A}${NB}=${NB}“first toss heads,” ${B}${NB}=${NB}“second toss heads,” ${C}${NB}=${NB}“an odd number of heads.” Show all three pairs are independent but ${A}, ${B}, ${C} are not mutually${NB}independent.`,
             a: `${C}${NB}= ${set(HT, TH)}, ${pr(C)}${NB}=${NB}${HALF}; ${cap(A, C)}${NB}=${NB}{${HT}}, ${cap(B, C)}${NB}=${NB}{${TH}}, both ${QUARTER}${NB}= ${P}(·)${P}(·), and ${cap(A, B)}${NB}=${NB}{${HH}} likewise; but ${ABC}${NB}=${NB}∅ while ${PAPBPC}${NB}=${NB}${EIGHTH}: not mutual.`,
           },
           {
@@ -447,7 +447,7 @@ export const TOPICS: Topic[] = [
             a: `Likelihood of two reds from A: ${fr('2', '5')}${NB}·${NB}${QUARTER}${NB}=${NB}${fr('1', '10')}; from B: ${fr('4', '5')}${NB}·${NB}${fr('3', '4')}${NB}=${NB}${fr('3', '5')}. Total${NB}=${NB}${HALF}(${fr('1', '10')}${NB}+${NB}${fr('3', '5')})${NB}=${NB}${fr('7', '20')}; posterior B${NB}=${NB}${fr('3', '10')}${NB}·${NB}${fr('20', '7')}${NB}=${NB}${fr('6', '7')}.`,
           },
           {
-            q: '[JEE Advanced] For the test of this topic’s first worked example (sensitivity 0.9, specificity 0.95) and a 1% base rate, explain why two positive results${NB}cannot push the posterior to 0.99.',
+            q: '[JEE Advanced] For the test of this topic’s first worked example (sensitivity 0.9, specificity 0.95) and a 1% base rate, explain why two positive results\u00a0cannot push the posterior to 0.99.',
             a: `Work in odds. The prior odds of carrier to healthy are ${fr('0.01', '0.99')}${NB}=${NB}${fr('1', '99')}, and each positive reading multiplies the odds by the likelihood ratio ${fr('0.9', '0.05')}${NB}=${NB}18. After two positives the odds are ${fr('1', '99')}${NB}·${NB}18<sup>2</sup>${NB}=${NB}${fr('324', '99')}${NB}≈${NB}3.3, i.e.<br>${cp(D, `+${WJ}+`)}${NB}=${NB}${fr('324', '423')}${NB}=${NB}${fr('36', '47')}${NB}≈${NB}0.766${NB}<${NB}0.99. Reaching 0.99 would need posterior odds of 99, which this test cannot supply from a<br>${fr('1', '99')} prior in two readings: the healthy pool is 99 times larger, and each healthy person still has probability (0.05)<sup>2</sup> of producing two false positives.`,
           },
         ],

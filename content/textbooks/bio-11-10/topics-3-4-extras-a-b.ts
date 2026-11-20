@@ -48,7 +48,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions & assumptions:</b><br>• <b>No S phase before Meiosis II.</b> The brief stage between the two divisions (interkinesis) is not a true interphase in the replicating sense: assuming DNA doubles again here is the classic error.<br>• Meiosis II is “mitosis-like” only in being equational; it begins with <b>haploid</b> cells, whereas mitosis can begin with diploid or haploid cells.<br>• The clean “one meiocyte → four functional cells” outcome holds for spore/pollen formation; in animal egg formation the yield differs, but that belongs to the Reproduction chapter, not here.',
+        html: '<b>Limiting conditions & assumptions:</b><br>• <b>No S phase before Meiosis II.</b> The brief stage between the two divisions (interkinesis) is not a true interphase in the replicating sense: assuming DNA doubles again here is the classic error.<br>• Meiosis II is “mitosis-like” only in being equational; it begins with <b>haploid</b> cells, whereas mitosis can begin with diploid or haploid cells.<br>• The clean “one meiocyte → four functional cells” outcome holds for microspore (pollen) formation and for sperm formation; in megaspore formation in most flowering plants only one of the four megaspores survives, and in animal egg formation the yield differs, but those belong to the Reproduction chapters, not here.',
       },
 
       { t: 'part', title: 'Key stages, events and definitions' },
@@ -106,7 +106,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: 'We begin from the two haploid cells produced by Meiosis I, each chromosome carrying two sister chromatids.' },
       {
         t: 'p',
-        html: '<b>Step 1: Interkinesis.</b> A short pause. The cell does <b>not</b> replicate its DNA: there is nothing to copy, because the chromosomes are already duplicated. Why no replication? If the DNA doubled again here, Meiosis II would not reduce anything and meiosis would fail to make haploid gametes. This single point underlies a large share of the chapter’s assertion–reason questions.',
+        html: '<b>Step 1: Interkinesis.</b> A short pause. The cell does <b>not</b> replicate its DNA: there is nothing to copy, because the chromosomes are already duplicated. Why no replication? If the DNA doubled again here, Meiosis II would not reduce anything and meiosis would fail to make haploid gametes. This point underlies many of the chapter’s assertion–reason questions.',
       },
       {
         t: 'p',
@@ -128,7 +128,7 @@ export const TOPICS: Topic[] = [
       { t: 'fig', id: 'b11-10-fig-10.7' },
       {
         t: 'p',
-        html: '<b>Meiosis II versus mitosis: why they look alike but are not the same.</b> Both are equational and both separate sister chromatids by splitting centromeres, so a single snapshot of metaphase or anaphase can look identical. The differences are in the starting material and history: Meiosis II begins with <b>haploid</b> cells whose chromosomes are products of crossing over, whereas mitosis begins with cells (often diploid) whose chromatids are exact copies; and Meiosis II is <b>never preceded by DNA replication</b>, whereas every mitosis is preceded by an S phase. Recognising that “equational ≠ mitosis” is a frequent NEET discriminator.',
+        html: '<b>Meiosis II versus mitosis: why they look alike but are not the same.</b> Both are equational and both separate sister chromatids by splitting centromeres, so a single snapshot of metaphase or anaphase can look identical. The differences are in the starting material and history: Meiosis II begins with <b>haploid</b> cells whose chromosomes are products of crossing over, whereas mitosis begins with cells (often diploid) whose chromatids are exact copies; and Meiosis II is <b>never preceded by DNA replication</b>, whereas every mitosis is preceded by an S phase. Recognising that “equational ≠ mitosis” is a useful discriminator.',
       },
       {
         t: 'p',
@@ -157,7 +157,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Solution.</b> One complete meiosis of a single meiocyte (pollen mother cell) yields <b>4</b> haploid cells (a microspore tetrad → pollen grains).',
           'Number of meiocytes = <frac><num>60</num><den>4</den></frac> = 15.',
-          '<b>Trap to avoid:</b> this 1-to-4 ratio holds for spore/pollen formation; do not apply it blindly to animal egg formation.',
+          '<b>Trap to avoid:</b> this 1-to-4 ratio holds for pollen (microspore) and sperm formation; do not apply it blindly to megaspore formation in flowering plants (one functional megaspore) or to animal egg formation.',
         ],
         ans: '15 meiocytes (15 complete meioses).',
       },
@@ -194,7 +194,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] A meiocyte has a DNA content of 4C in its G<sub>2</sub> phase (before Meiosis I). What is the DNA content of each cell at the end of (i) Meiosis I and (ii) Meiosis II?',
-            a: '(i) End of Meiosis I: <b>2C</b> per cell; (ii) End of Meiosis II: <b>1C</b> (≈ C) per cell.',
+            a: '(i) End of Meiosis I: <b>2C</b> per cell; (ii) End of Meiosis II: <b>1C</b> per cell.',
           },
           {
             q: '[NEET] State the two events of meiosis responsible for generating genetic variation, and the stage at which each occurs.',
@@ -254,7 +254,7 @@ export const TOPICS: Topic[] = [
           { label: 'A is false, R is true', nudge: '<b>(d)</b> rejects a true statement in A: likely chosen by students who mistakenly place the variation in Meiosis II.' },
         ],
         correct: 0,
-        solution: '<b>(a).</b> A is true (the variation is generated in Meiosis I), R is true (crossing over occurs in pachytene and independent assortment at metaphase I: both Meiosis I events), and R is the direct reason for A. Meiosis II merely separates chromatids and adds no new variation.',
+        solution: '<b>(a).</b> A is true (the variation is generated in Meiosis I), R is true (crossing over occurs in pachytene and independent assortment at metaphase I: both Meiosis I events), and R is the direct reason for A. Meiosis II makes no new combinations: it only shares out the chromatids, already recombined in Meiosis I, among the four cells.',
       },
 
       { t: 'part', title: 'Common student pitfalls and pro-tips' },
@@ -269,7 +269,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip:</b> For any “how many divisions / how many cells” problem, anchor on <b>one meiosis → four haploid cells</b> (for spores/pollen). Number of meiocytes = required cells ÷ 4. And for stage-counting, remember the rhythm “<b>reduce, then split</b>”: Meiosis I reduces the number, Meiosis II splits the chromatids.',
+        html: '<b>Pro-Tip:</b> For any “how many divisions / how many cells” problem, anchor on <b>one meiosis → four haploid cells</b> (for pollen, that is microspores). Number of meiocytes = required haploid cells (pollen grains, or sperm) ÷ 4. And for stage-counting, remember the rhythm “<b>reduce, then split</b>”: Meiosis I reduces the number, Meiosis II splits the chromatids.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -299,7 +299,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Where each division happens: the life-cycle context' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> “Differentiate mitosis from meiosis” is one of the most reliably asked questions across <b>CBSE Boards</b> (3–5 marks) and <b>NEET</b> (as match-the-column or pick-the-difference). The haploid/diploid life-cycle framing underpins how every cell-division question is set. Treat this section as the integration that ties the whole chapter together.',
+        html: '<b>Exam Relevance:</b> “Differentiate mitosis from meiosis” is one of the most reliably asked questions across <b>CBSE Boards</b> (3–5 marks) and <b>NEET</b> (as match-the-column or pick-the-difference) (the book’s estimate from past papers, not official figures). The haploid/diploid life-cycle framing underpins how every cell-division question is set. Treat this section as the integration that ties the whole chapter together.',
       },
       {
         t: 'p',
@@ -307,7 +307,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Mitosis</b> runs in the body’s <b>somatic cells</b>, in dividing <b>germ-line</b> cells (before meiosis) and in the <b>zygote</b>, in both haploid and diploid cells, and in the <b>meristematic tissues</b> of plants (apical and lateral meristems). Its job is growth, repair, and replacement, producing genetically identical diploid cells so the body stays one consistent genome.',
+        html: '<b>Mitosis</b> runs in the body’s <b>somatic cells</b>, in dividing <b>germ-line</b> cells (before meiosis) and in the <b>zygote</b>, and in the <b>meristematic tissues</b> of plants (apical and lateral meristems). Its job is growth, repair, and replacement, producing daughter cells genetically identical to the parent (diploid in a diploid body) so the body stays one consistent genome.',
       },
       {
         t: 'p',
@@ -426,7 +426,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The chapter tells you that the cell cycle is controlled at check points, with cyclins acting together with cyclin-dependent kinases. For NEET and CUET you need the named checkpoints, the specific cyclin–CDK pairs active at each transition, and the logic of why a checkpoint can halt the cycle.',
+        html: 'The chapter tells you that the cell cycle is controlled at check points, with cyclins acting together with cyclin-dependent kinases. For enrichment beyond NCERT (and for harder application items), it helps to know the named checkpoints, the specific cyclin–CDK pairs active at each transition, and the logic of why a checkpoint can halt the cycle.',
       },
 
       { t: 'part', title: 'Method' },
@@ -528,7 +528,7 @@ export const TOPICS: Topic[] = [
     n: 'B',
     title: 'Full Chromosome and DNA Accounting Through Meiosis',
     extra: true,
-    kalam: 'One complete meiosis → 4 haploid cells (for pollen grains or spores).',
+    kalam: 'One complete meiosis → 4 haploid cells (4 microspores, that is 4 pollen grains).',
     blocks: [
       { t: 'part', title: 'Introduction' },
       {
@@ -557,7 +557,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>“How many divisions” shortcuts:</b><br>• Mitotic divisions: <i>n</i> divisions → 2<sup><i>n</i></sup> cells.<br>• One complete meiosis → 4 haploid cells (for pollen grains or spores).<br>• Number of meiocytes needed = desired gametes ÷ 4.<br>• For animal oogenesis: one ovum and up to three polar bodies per meiosis (unequal cytokinesis). For animal spermatogenesis: one primary spermatocyte gives four sperm (equal cytokinesis).',
+        html: '<b>“How many divisions” shortcuts:</b><br>• Mitotic divisions: <i>n</i> divisions → 2<sup><i>n</i></sup> cells.<br>• One complete meiosis → 4 haploid cells (4 microspores, that is 4 pollen grains).<br>• Number of meiocytes needed = haploid products wanted (microspores/pollen grains, or sperm) ÷ 4. For male gametes of a flowering plant divide by 8 (each pollen grain gives two male gametes); for eggs, one meiosis gives one ovum.<br>• For animal oogenesis: one ovum and up to three polar bodies per meiosis (unequal cytokinesis). For animal spermatogenesis: one primary spermatocyte gives four sperm (equal cytokinesis).',
       },
 
       { t: 'part', title: 'Worked examples' },

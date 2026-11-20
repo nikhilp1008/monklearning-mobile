@@ -421,7 +421,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET high-difficulty',
-        q: '<b>Multi-statement.</b> Select the correct statements about transgenic animals: (i) About 95% of existing transgenic animals are mice. (ii) Rosie produced milk rich in human α-lactalbumin. (iii) A transgenic animal is one produced purely by selective breeding. (iv) α-1-antitrypsin produced in sheep is used to treat emphysema.<br><b>(a)</b> (i), (ii) and (iv)<br><b>(b)</b> (i), (ii) and (iii)<br><b>(c)</b> all four<br><b>(d)</b> (ii) and (iii) only',
+        q: '<b>Multi-statement.</b> Select the correct statements about transgenic animals: (i) About 95% of existing transgenic animals are mice. (ii) Rosie produced milk rich in human α-lactalbumin. (iii) A transgenic animal is one produced purely by selective breeding. (iv) The human protein α-1-antitrypsin, used to treat emphysema, has been made in transgenic sheep.<br><b>(a)</b> (i), (ii) and (iv)<br><b>(b)</b> (i), (ii) and (iii)<br><b>(c)</b> all four<br><b>(d)</b> (ii) and (iii) only',
         steps: [
           '(i), (ii) and (iv) are correct. (iii) is the trap: selective breeding does <b>not</b> make an animal transgenic; a <b>foreign gene</b> must be deliberately introduced and expressed.',
         ],
@@ -446,7 +446,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] Give one example of a biological product made by a transgenic animal and the disease it treats.',
-            a: 'α-1-antitrypsin made in sheep, used to treat emphysema (also acceptable: Rosie’s α-lactalbumin milk).',
+            a: 'α-1-antitrypsin, made in transgenic sheep, for emphysema (also acceptable: Rosie’s α-lactalbumin milk).',
           },
           {
             q: '[NEET high-difficulty] Explain how transgenic animals contribute to both disease research and vaccine safety, with one example each.',
@@ -610,7 +610,7 @@ export const TOPICS: Topic[] = [
           ['Biopiracy', 'Use of <b>bioresources</b> by companies/organisations <b>without proper authorisation</b> from the countries/people concerned and <b>without compensatory payment</b>; appropriation of traditional knowledge.'],
           ['Bioethics', 'The branch of ethics dealing with the biological sciences and their impact on society.'],
           ['GMO concern', 'GM organisms may have <b>unpredictable effects</b> when introduced into ecosystems.'],
-          ['Indian Patents Bill', 'The legislative step India took (its second amendment); it has provisions on patent terms, emergency provisions and research and development initiatives.'],
+          ['Indian Patents Bill', 'India’s patent law; the step taken against biopiracy was its second amendment, with provisions on patent terms, emergency provisions and research and development initiatives.'],
         ],
       },
       { t: 'p', html: '<b>Three look-alike terms, lock the distinction:</b>' },
@@ -881,7 +881,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'This four-step protocol is the indirect (or sandwich) layout. In direct ELISA the sample’s antigen is itself adsorbed to the well in step 1, and the enzyme-linked antibody of step 4 is added straight after blocking.',
+        html: 'This four-step protocol is the indirect layout: a known antigen is coated and the sample’s antibody is what binds. In direct ELISA the sample’s antigen is itself adsorbed to the well in step 1, and the enzyme-linked antibody of step 4 is added straight after blocking. The antigen-trapping (sandwich) format below differs again: the well is coated with a capture antibody.',
       },
       { t: 'p', html: '<b>Two ELISA formats, keep them separate:</b>' },
       {

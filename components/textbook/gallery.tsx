@@ -63,7 +63,7 @@ export function TextbooksGallery() {
 
   const pad = scale(24);
   const gap = scale(16);
-  const coverW = Math.floor((width - pad * 2 - gap * 2) / 3 / 1.04);
+  const coverW = Math.floor((width - pad * 2 - gap * 2) / 3);
   const slot = bookSize(coverW);
 
   return (

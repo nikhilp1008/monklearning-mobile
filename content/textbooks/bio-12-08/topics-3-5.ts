@@ -299,7 +299,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'The heroes of this process are a special group of microbes called <b>methanogens</b>, literally “methane-makers”. These are microbes (archaea, which NCERT calls bacteria) that grow <b>anaerobically</b> (without oxygen) on cellulose-rich material and produce a large amount of methane along with carbon dioxide and hydrogen. A common example is <i>Methanobacterium</i>.',
+        html: 'The heroes of this process are a special group of microbes called <b>methanogens</b>, literally “methane-makers”. These are microbes (archaea, which NCERT calls bacteria) that grow <b>anaerobically</b> (without oxygen) on cellulose-rich material and produce a large amount of methane along with carbon dioxide and hydrogen (NCERT’s wording for the digesting microbes as a group; strictly, other bacteria make the H<sub>2</sub> and CO<sub>2</sub>, and methanogens use them to make methane). A common example is <i>Methanobacterium</i>.',
       },
       {
         t: 'p',
@@ -311,7 +311,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting Conditions & Assumptions.</b><br>• <b>It must be anaerobic.</b> Methanogens are killed or inhibited by oxygen. A biogas digester works only because it is sealed against air; expose it to oxygen and methane production stops.<br>• <b>Cellulose-rich, wet feedstock.</b> The microbes work on cellulosic organic matter in a slurry (dung + water); dry or non-organic input will not ferment.<br>• <b>The product is a mixture, not pure methane.</b> Biogas is mostly methane but also contains carbon dioxide and other gases. Calling biogas “pure methane” is a classic exam error.<br>• <b>The spent slurry is a bonus, not waste.</b> What is left after gas production is rich in nutrients and used as <b>manure (fertiliser)</b>: nothing is wasted.',
+        html: '<b>Limiting Conditions & Assumptions.</b><br>• <b>It must be anaerobic.</b> Methanogens are killed or inhibited by oxygen. A biogas digester works only because it is sealed against air; expose it to oxygen and methane production stops.<br>• <b>Cellulose-rich, wet feedstock.</b> The microbes work on cellulosic organic matter in a slurry (dung + water); dry or non-organic input will not ferment.<br>• <b>The product is a mixture, not pure methane.</b> Biogas is mostly methane but also contains carbon dioxide and other gases. Calling biogas “pure methane” is wrong.<br>• <b>The spent slurry is a bonus, not waste.</b> What is left after gas production is rich in nutrients and used as <b>manure (fertiliser)</b>: nothing is wasted.',
       },
 
       { t: 'part', title: 'Classification framework and diagnostic features' },
@@ -325,7 +325,7 @@ export const TOPICS: Topic[] = [
           ['Common name', 'Gobar gas (from cattle dung)'],
           ['Producing microbes', '<b>Methanogens</b> (e.g. <i>Methanobacterium</i>)'],
           ['Nature of methanogens', '<b>Anaerobic</b> microbes (archaea; NCERT calls them bacteria); grow on cellulosic material'],
-          ['Products of methanogens', 'Methane + carbon dioxide + hydrogen (NCERT); biogas as a whole is methane (about 50 to 70 per cent), carbon dioxide, and small amounts of hydrogen and hydrogen sulphide'],
+          ['Gases made in the digester', 'Methane + carbon dioxide + hydrogen (NCERT); biogas as a whole is methane (about 50 to 70 per cent), carbon dioxide, and small amounts of hydrogen and hydrogen sulphide'],
           ['Where methanogens occur', 'Anaerobic sewage sludge; <b>rumen of cattle</b>; cattle dung'],
           ['Role in cattle', 'Help break down cellulose; contribute to the <b>nutrition</b> of cattle (the cellulose is broken down mainly by other rumen microbes; methanogens use the H<sub>2</sub> and CO<sub>2</sub> released)'],
           ['Spent slurry', 'Used as <b>manure</b>'],
@@ -369,7 +369,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>The rumen link: why dung is the fuel source</b>' },
       {
         t: 'p',
-        html: 'Cattle eat cellulose-rich grass they cannot digest alone. Their <b>rumen</b> houses microbes, including methanogens, that ferment this cellulose, aiding the animal’s nutrition and releasing methane in the process (the cellulose is broken down mainly by other rumen microbes; methanogens use the H<sub>2</sub> and CO<sub>2</sub> they release). Because these methanogens leave the body in the dung, <b>the dung is a ready inoculum</b> of methane-makers. Feeding dung into a digester simply continues the rumen’s work in a tank we can tap.',
+        html: 'Cattle eat cellulose-rich grass they cannot digest alone. Their <b>rumen</b> houses microbes, including methanogens, that ferment this cellulose, aiding the animal’s nutrition and releasing methane in the process (with other rumen microbes). Because these methanogens leave the body in the dung, <b>the dung is a ready inoculum</b> of methane-makers. Feeding dung into a digester simply continues the rumen’s work in a tank we can tap.',
       },
       { t: 'p', html: '<b>Comparison framework</b>' },
       {
@@ -390,7 +390,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board',
         q: '<b>Short answer, 3 marks.</b> What are methanogens? State their role in cattle and explain why cattle dung is used for biogas production.',
         steps: [
-          '<b>Model answer.</b><br>• <b>Methanogens</b> are <b>anaerobic</b> microbes (archaea; NCERT calls them bacteria), e.g. <i>Methanobacterium</i>, that grow on cellulosic material and produce <b>methane</b> (with CO<sub>2</sub> and H<sub>2</sub>).<br>• In cattle, they live in the <b>rumen</b>, where they help <b>break down cellulose</b> and contribute to the animal’s nutrition (the cellulose is broken down mainly by other rumen microbes; methanogens use the H<sub>2</sub> and CO<sub>2</sub> released).<br>• Since methanogens pass out in the dung, <b>cattle dung is rich in methanogens</b>, making it an ideal raw material for biogas production.',
+          '<b>Model answer.</b><br>• <b>Methanogens</b> are <b>anaerobic</b> microbes (archaea; NCERT calls them bacteria), e.g. <i>Methanobacterium</i>, that grow on cellulosic material and produce <b>methane</b> (NCERT lists CO<sub>2</sub> and H<sub>2</sub> with it).<br>• In cattle, they live in the <b>rumen</b>, where they help <b>break down cellulose</b> and contribute to the animal’s nutrition (with other rumen microbes).<br>• Since methanogens pass out in the dung, <b>cattle dung is rich in methanogens</b>, making it an ideal raw material for biogas production.',
           '<b>Full-marks tip:</b> state “anaerobic”, name <i>Methanobacterium</i>, and connect rumen → dung → biogas explicitly.',
         ],
         ans: '',
@@ -445,7 +445,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET high-difficulty] Explain the link between sewage treatment and biogas production, naming the type of microbe responsible. (Reasoning, 3 marks)',
-            a: 'In sewage treatment, the major part of the activated sludge is sent to <b>anaerobic sludge digesters</b>, where <b>anaerobic methanogens</b> digest the organic matter and produce a <b>methane-rich biogas</b>: so biogas is a by-product of sewage treatment.',
+            a: 'In sewage treatment, the major part of the activated sludge is sent to <b>anaerobic sludge digesters</b>, where <b>anaerobic bacteria</b> digest the organic matter and <b>methanogens</b> produce a <b>methane-rich biogas</b>: so biogas is a by-product of sewage treatment.',
           },
         ],
       },
@@ -507,7 +507,7 @@ export const TOPICS: Topic[] = [
           '<b>Pitfall 1: “Biogas is pure methane.”</b> It is <b>predominantly</b> methane, but a <b>mixture</b> (with CO<sub>2</sub>, H<sub>2</sub> and a little H<sub>2</sub>S). State “mixture” for full marks.',
           '<b>Pitfall 2: Forgetting the anaerobic requirement.</b> Methanogens are <b>anaerobic</b>; the plant is sealed. Writing that they need air is a direct error.',
           '<b>Pitfall 3: Missing the rumen connection.</b> The reason dung works is that methanogens come from the <b>cattle rumen</b>. This causal chain is a common basis for questions.',
-          '<b>Pitfall 4: Treating spent slurry as waste.</b> It is used as <b>manure</b>: a frequently tested “fate” question.',
+          '<b>Pitfall 4: Treating spent slurry as waste.</b> It is used as <b>manure</b>: a “fate” question.',
         ],
       },
       {
@@ -521,7 +521,7 @@ export const TOPICS: Topic[] = [
         rows: [
           { f: '<b>Biogas</b> = mixture of gases, <b>predominantly methane</b>; common name <b>gobar gas</b>; used for <b>cooking and lighting</b>.', note: '' },
           {
-            f: '<b>Methanogens</b> = <b>anaerobic</b> microbes (archaea; NCERT: bacteria), e.g. <i>Methanobacterium</i>, that grow on cellulosic matter and make methane (+ CO<sub>2</sub>, H<sub>2</sub>).',
+            f: '<b>Methanogens</b> = <b>anaerobic</b> microbes (archaea; NCERT: bacteria), e.g. <i>Methanobacterium</i>, that grow on cellulosic matter and make methane (NCERT: with CO<sub>2</sub>, H<sub>2</sub>).',
             note: '',
           },
           {
@@ -572,7 +572,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting Conditions & Assumptions.</b> The living-helper approach only works inside real biological constraints, and exams test exactly these edges:<br>• <b>Biocontrol agents should be as selective as possible.</b> A good agent controls the target pest and spares non-target organisms: plants, mammals, birds, fish, and beneficial insects. Baculoviruses are prized for this: their narrow host range. A “broad-spectrum” biological killer would be no better than a chemical.<br>• <b>Biofertilisers need the right partnership and the right host.</b> <i>Rhizobium</i> fixes nitrogen in the root nodules of <b>legumes</b> (the usual host, as NCERT says); with wheat it does not form nodules. A mycorrhizal seedling often fails to establish if the fungal inoculum is absent from the soil.<br>• <b>It is slower and gentler, not instant.</b> Living agents act through biology, not a quick chemical knockdown. They depend on moisture, temperature, and soil health, and they keep pests low rather than zero. Expecting overnight, total kill is the wrong mental model.<br>• <b>Free-living vs symbiotic matters.</b> Some nitrogen-fixers (<i>Azotobacter</i>, <i>Azospirillum</i>) work alone in the soil; others (<i>Rhizobium</i>) work only in partnership. Mixing these up is the classic exam trap.',
+        html: '<b>Limiting Conditions & Assumptions.</b> The living-helper approach only works inside real biological constraints, and exams test exactly these edges:<br>• <b>Biocontrol agents should be as selective as possible.</b> A good agent controls the target pest and spares non-target organisms: plants, mammals, birds, fish, and beneficial insects. Baculoviruses are prized for this: their narrow host range. A “broad-spectrum” biological killer would be no better than a chemical.<br>• <b>Biofertilisers need the right partnership and the right host.</b> <i>Rhizobium</i> fixes nitrogen in the root nodules of <b>legumes</b> (NCERT’s example; a rare non-legume host exists); with wheat it does not form nodules. A mycorrhizal seedling often fails to establish if the fungal inoculum is absent from the soil.<br>• <b>It is slower and gentler, not instant.</b> Living agents act through biology, not a quick chemical knockdown. They depend on moisture, temperature, and soil health, and they keep pests low rather than zero. Expecting overnight, total kill is the wrong mental model.<br>• <b>Free-living vs symbiotic matters.</b> Some nitrogen-fixers (<i>Azotobacter</i>, <i>Azospirillum</i>) work alone in the soil; others (<i>Rhizobium</i>) work only in partnership. Mixing these up is a common error.',
       },
 
       { t: 'part', title: 'Classification framework and diagnostic features' },
@@ -626,7 +626,7 @@ export const TOPICS: Topic[] = [
             'Fix <b>nitrogen</b> + add <b>organic matter</b>; key biofertiliser in <b>paddy fields</b>',
           ],
           [
-            '<i>Azolla</i> (water fern) + <i>Anabaena azollae</i> (NCERT’s name; now <i>Trichormus azollae</i>)',
+            '<i>Azolla</i> (water fern) + <i>Anabaena azollae</i> (the traditional name; now <i>Trichormus azollae</i>, also called <i>Nostoc azollae</i>)',
             'Fern–cyanobacterium symbiosis',
             'Symbiotic (cyanobacterium in leaf cavities)',
             'Fixes nitrogen in rice fields',
@@ -642,7 +642,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>Diagnostic features worth burning in:</b>' },
       {
         t: 'p',
-        html: '• <b>Nitrogen vs phosphorus is the master split.</b> Bacteria and cyanobacteria here fix nitrogen; the fungus <i>Glomus</i> (mycorrhiza) mainly supplies phosphorus (mycorrhiza also help with water and other nutrients). These two are often swapped in questions.<br>• <b>Symbiotic vs free-living nitrogen-fixers.</b> <i>Rhizobium</i> = symbiotic (needs a legume host). <i>Azotobacter</i> and <i>Azospirillum</i> = free-living. Cyanobacteria can be either.<br>• <b>Mycorrhiza = “fungus-root”.</b> A mutualistic fungus-plus-root partnership. Besides phosphorus, mycorrhizal plants gain resistance to root-borne pathogens and tolerance to salinity and drought.<br>• <b>Integrated Pest Management (IPM).</b> An environmentally sensitive approach using knowledge of pest life cycles and their interactions with the environment to keep pests below damaging levels: biocontrol agents are its tools.<br>• <b>Bt’s mechanism is often asked.</b> The toxin is made and sprayed as an <b>inactive protoxin</b>; it is <b>activated by the alkaline pH of the insect gut</b>, then damages the gut-lining cells. The genes coding these toxins are the <i>cry</i> genes; some of them were engineered into <b>Bt cotton</b>.',
+        html: '• <b>Nitrogen vs phosphorus is the master split.</b> Bacteria and cyanobacteria here fix nitrogen; the fungus <i>Glomus</i> (mycorrhiza) mainly supplies phosphorus (mycorrhiza also help with water and other nutrients). These two are often swapped in questions.<br>• <b>Symbiotic vs free-living nitrogen-fixers.</b> <i>Rhizobium</i> = symbiotic (needs a legume host). <i>Azotobacter</i> and <i>Azospirillum</i> = free-living. Cyanobacteria can be either.<br>• <b>Mycorrhiza = “fungus-root”.</b> A mutualistic fungus-plus-root partnership. Besides phosphorus, mycorrhizal plants gain resistance to root-borne pathogens and tolerance to salinity and drought.<br>• <b>Integrated Pest Management (IPM).</b> An environmentally sensitive approach using knowledge of pest life cycles and their interactions with the environment to keep pests below damaging levels: biocontrol agents are its tools.<br>• <b>Learn Bt’s mechanism.</b> The toxin is made and sprayed as an <b>inactive protoxin</b>; it is <b>activated by the alkaline pH of the insect gut</b>, then damages the gut-lining cells. The genes coding these toxins are the <i>cry</i> genes; some of them were engineered into <b>Bt cotton</b>.',
       },
 
       { t: 'part', title: 'Comparative characteristics and key processes' },
@@ -654,9 +654,9 @@ export const TOPICS: Topic[] = [
         t: 'proc',
         title: 'How Bacillus thuringiensis kills a caterpillar',
         steps: [
-          '<b>Spray the spores.</b> Bt is sold as <b>dried spores</b>, mixed with water, and sprayed onto vulnerable plants such as brassicas and fruit trees. <b>Why dried spores:</b> they are stable, easy to store, and activate only once eaten.',
+          '<b>Spray the spores.</b> Bt is sold as <b>dried spores</b>, mixed with water, and sprayed onto vulnerable plants such as brassicas and fruit trees. <b>Why dried spores:</b> they are stable, easy to store, and the toxin they carry becomes active only once eaten.',
           '<b>The larva eats the toxin.</b> A feeding caterpillar ingests the spores along with the leaf.',
-          '<b>The alkaline gut activates the protoxin.</b> The toxin enters the larva as an <b>inactive protoxin</b>. The caterpillar’s gut is strongly <b>alkaline</b>, and this high pH solubilises and proteolytically processes the protoxin into the <b>active toxin</b>. <b>Why this matters:</b> activation is conditional on the insect’s own gut chemistry, which is what makes Bt safe for organisms (like us) without that alkaline gut.',
+          '<b>The alkaline gut activates the protoxin.</b> The toxin enters the larva as an <b>inactive protoxin</b>. The caterpillar’s gut is strongly <b>alkaline</b>, this high pH dissolves the crystals, and gut enzymes (proteases) cut the protoxin into the <b>active toxin</b>. <b>Why this matters:</b> activation is conditional on the insect’s own gut chemistry, which is what makes Bt safe for organisms (like us) without that alkaline gut.',
           '<b>The gut cells are destroyed.</b> The active toxin binds the gut-lining (epithelial) cells, punching pores in them, causing the cells to swell, burst (lyse), and the larva to stop feeding and die.',
           '<b>Most non-target insects are spared.</b> Because activation and binding need the right gut conditions and receptors, a given Bt toxin kills only a limited group of insects (mainly caterpillars) and <b>leaves most other insects, such as bees, unharmed</b>: the selectivity that makes a good biocontrol agent.',
         ],
@@ -782,7 +782,7 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: 'completely eradicate the pest species from the field',
-            nudge: '<b>(a)</b> the eradication mindset is the classic conceptual error: biocontrol deliberately tolerates a low pest level.',
+            nudge: '<b>(a)</b> this is the eradication mindset: biocontrol deliberately tolerates a low pest level.',
           },
           { label: 'keep the pest at a manageable level through natural checks and balances', nudge: null },
           { label: 'replace all insects with chemical-resistant varieties', nudge: '<b>(c)</b> confuses biocontrol with breeding/biotech.' },
@@ -797,12 +797,12 @@ export const TOPICS: Topic[] = [
         opts: [
           {
             label: '<i>Rhizobium</i>, <i>Glomus</i>, <i>Anabaena</i>',
-            nudge: '<b>(a)</b> and <b>(c)</b> are <b>biofertilisers</b> (N and P), not biocontrol: the favourite swap.',
+            nudge: '<b>(a)</b> and <b>(c)</b> are <b>biofertilisers</b> (N and P), not biocontrol: the usual swap.',
           },
           { label: '<i>Trichoderma</i>, Baculovirus, <i>Bacillus thuringiensis</i>', nudge: null },
           {
             label: '<i>Azotobacter</i>, <i>Nostoc</i>, <i>Azospirillum</i>',
-            nudge: '<b>(a)</b> and <b>(c)</b> are <b>biofertilisers</b> (N and P), not biocontrol: the favourite swap.',
+            nudge: '<b>(a)</b> and <b>(c)</b> are <b>biofertilisers</b> (N and P), not biocontrol: the usual swap.',
           },
           {
             label: '<i>Lactobacillus</i>, <i>Saccharomyces</i>, <i>Propionibacterium</i>',
@@ -850,7 +850,7 @@ export const TOPICS: Topic[] = [
           '<b>Pitfall 1: Nitrogen/phosphorus mix-up.</b> Writing “<i>Glomus</i> fixes nitrogen” is a very common error (the book’s view, not a counted figure). <b>Bacteria/cyanobacteria → nitrogen; <i>Glomus</i>/mycorrhiza (fungus) → phosphorus.</b>',
           '<b>Pitfall 2: Symbiotic vs free-living.</b> <i>Rhizobium</i> needs a <b>legume host</b> (symbiotic); <i>Azotobacter</i> and <i>Azospirillum</i> are <b>free-living</b>. Pair questions can hinge on this exact distinction.',
           '<b>Pitfall 3: Crediting <i>Azolla</i> instead of its symbiont.</b> <i>Azolla</i> is the fern; the actual nitrogen-fixer is the cyanobacterium <b><i>Anabaena azollae</i></b> living in its leaf cavities.',
-          '<b>Pitfall 4: “Biocontrol = total kill.”</b> It does not eradicate; it keeps pests at a <b>manageable level</b>. And <i>Trichoderma</i> fights <b>fungi</b>, not insects: a frequently mis-paired agent.',
+          '<b>Pitfall 4: “Biocontrol = total kill.”</b> It does not eradicate; it keeps pests at a <b>manageable level</b>. And <i>Trichoderma</i> fights <b>fungi</b>, not insects: a commonly mis-paired agent.',
         ],
       },
       {

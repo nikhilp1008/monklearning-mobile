@@ -1,0 +1,84 @@
+# notes-final4 (Ch 11 + Ch 12 final4 re-shoot, after app restart)
+## Ch 11
+- card001: FIXED (now breaks after "+", second line starts "(z2 − z1)²)")
+- card002/003: ok
+- card017: FIXED (break after "+")
+- card004-044: ok (card033 angle-bisector fractions now have a gap)
+- p002-01/02: FIXED (distance box breaks after "+")
+- p002-03..06, 08..11: ok
+- p002-07: STILL (minor) "Collinearity of three points: either" breaks early, room left on line
+- p003-01..07: ok
+- p003-08/09: FIXED ("is" no longer alone; now "to it is" short line before the √ expression, minor)
+- p003-11/13: STILL minor — "+ A) =" jammed against fraction (A+B+C)/3 (no space after "=")
+- p003-14: ok
+- minor NEW p003-08/09: "The nearest point on the yz-plane" / "is the projection..." early break (room for "is")
+- p010-01..06, 10..14: ok
+- p010-08/09 (was p010-07): STILL — big gap between "...any distance in the fixed direction." and "It is worth pausing..." (~1.7x normal paragraph gap)
+- p012-01/02: ok
+- p012-04/06: "sin²γ = 3 −" / "(l² + m² + n²) = 2." still breaks after "−" (end-of-line operator, accepted/borderline)
+- p012-08/09: FIXED (PQ = √(... + (y2−y1)² +" / "(z2 − z1)²)." breaks after "+")
+- p012-07..11: ok
+- p020-01/02: FIXED (cos θ fractions no longer touch). Minor: now a large blank gap (~1 line) between first fraction row and the "= |a1a2+...|/√..." row inside the box.
+- p020-03: ok
+- p020-04/05: "For lines" two fraction lines: IMPROVED, small gap now (not touching), still tight. d = |Δ|/|b1×b2| over determinant: tight but not touching (ok).
+- p020-05/06: FIXED √ "+" (now breaks after "+")
+- p020-05 minor: "Shortest distance: Cartesian" / "determinant form (02b)." heading line spacing taller (fraction paragraph, accepted)
+- p020-07..12, p021-01: ok
+- p021-02..06: ok; p021-07/08: FIXED (√ breaks after "+")
+- p021-09/10: ok; p037-01: ok (bullets even; intro-to-list gap now matches)
+- p037-02..09: ok
+- p037-10/11: ok
+- p038-01/02: NEW minor — "Point to a line" box: big blank gap (~1 line) between the "Foot: λ0 = ..., F = ..." row and "Distance: PF = ..." row (same in p038-03 "Point to a plane" box between t = ... and Distance). Same family as p020-01 gap.
+- p038-04: CHANGED — "(image)." no longer alone, but now line STARTS with "=": "(x−x1)/a = ... = −t (foot)," / "= −2t (image)." (prose paragraph, not step working).
+- p038-05: ok (table fine)
+- p038-06: ok
+- p039-01: FIXED ("λ0 = ..., and PF = ..." on one line)
+- p039-02: FIXED ("so" no longer alone; "a + λb, so" short line then FP = ..., set step lines, ok)
+- p039-04/05: FIXED ("i.e." ends "c(z1−sc)+d = 0, i.e."; "giving s = t = ..." on one line). Minor: "The distance" short line before PF = ... (display break, ok)
+- p039-06: ok
+- p039-07..10: ok
+- p047-01: ok
+- p047-02/03: STILL — "Intersects: b·n = Aa + Bb +" / "Cc ≠ 0" (Cc ≠ 0 alone on line)
+- p047-04/05: FIXED angle-bisector fractions no longer touch; but now a big blank gap (~1 line) between "... = ±" row and the second fraction (same gap family as p020-01, p038-01).
+- p047-06: ok (table)
+- p047-07, p048-01: ok
+- p048-02: FIXED ("i.e." now ends the "B(y1+bλ)+...+D = 0, i.e." line)
+- p048-02: STILL minor — "unique λ = −K/(b·n):" tiny fraction, ":" jammed against it
+- p048-03..07: ok (p048-04 same view as 03, page did not move; diagram fine)
+- p048-09/10: FIXED touching fractions (gap now between "|P1/|n1|| = |P2/|n2||, i.e." and "P1/|n1| = ± P2/|n2|."). STILL minor: "if and only if" alone on a line before the fraction; "P_i = 0 is" and "equal:" short lines.
+- p048-11: ok ("Intersection:" short label line, minor as before)
+- p048-12/13: ok
+- p050-01: FIXED (question wraps normally: "Find the point of" / "intersection of the line" / fraction line)
+- p050-02..10: ok (maths checked: (3,1,0); parallel; 2x+3y+7z=16 via (2,3,7); x−2y+z=0; bisectors ok)
+- p077-01: ok
+- p077-02/03: 1/8 answer only top half captured (identical shots, page not scrolled); visible part ok (λ=1/2, y=−2, z=6)
+- p077-05..09: STILL — 5 byte-identical shots of 2/8 answer, never scrolled below "Equal inclination ⇒"; rest of 2/8 answer not captured (shoot artefact).
+- p077-10: STILL — 3/8 question wraps early before answer opened ("Find the" / "foot of the perpendicular from"), normal in p077-11.
+- p077-11/12: ok (answer 2x+y−z=1; F=(1,0,1) checks)
+- p077-13/14: STILL — 4/8 blank gap (~1 line) between "(c) ... (d) (0,1,−1)" and "Check answer" / answer box.
+- p077-14: also NEW minor: "Normal =" / "direction of segment = ..." and "Plane:" alone on a line in answer box. 4/8 answer below "Plane:" never captured (14/15 identical).
+- p077-16/17: ok (5/8 maths ok, x−y−z=0)
+- p077-19: STILL — 6/8 question wraps early: "[JEE Main – Medium] The" / "plane bisecting the angle"
+- p077-20/21: ok (6/8 maths checked: x−3y−2=0, 3x+y+4z−6=0, (2,−4,1) on second); last line cut at scroll fade, 20/21 identical (not scrolled)
+- p077-22: ok
+- p077-23/24: STILL — 7/8 "Distance = √((−10)² +" / "(−10)² + (−10)²) = 10√3." split inside √( ). Maths ok.
+- p077-25..30: ok (8/8 maths checked; lines starting "=" are set step lines)
+## Ch 12
+- p014-01: ok. Minor NEW: "Profit is ₹40 per cake and ₹25" / "per pastry." early break (room for "per").
+- p014-02: FIXED ("200x + 100y ≤ 5000 ⇒" / "2x + y ≤ 50;" break after ⇒, accepted)
+- p014-03..08: ok
+- p014-09: STILL minor — 5/5 "costs ₹2000/" / "trip." unit torn at the slash
+- p014-10/11: ok
+- p029-01: ok (minor "P1, ...," / "Pn if" short line before display)
+- p029-02: FIXED "(1 − λ)" torn (now breaks after "+"). STILL minor: "P = (λq_x + (1 − λ)r_x," / "λq_y + (1 − λ)r_y), so" pair split at comma inside bracket.
+- p029-02/03: NEW minor — "Proof. Triangulate R by drawing" / "all diagonals from V1 ..." early break (room for "all").
+- p029-03/04: ok
+- p029-05..07: ok (diagram fine)
+- p032-01/02: STILL (changed) — step 2: "The maximum occurs at Vk" / "if and only if" (alone on short line) / "Z(Vk) ≥ Z(Vj) for every j." Now three short lines.
+- p032-02/03: step 4 FIXED-ish ("tie-edge exactly when" on its own line before the fraction; no lone word). STILL minor: "rearranges to" short line before the fraction.
+- p032-04/05: ok
+- r12-p013-card1-01/03: ok
+- r12-p013-card1-04: FIXED (changed) — "← Maximum" no longer alone; now "(20, 40) → 1200 + 5600 =" / "6800 ← Maximum" (break after "=", accepted).
+- r12-p013-card1-02/05/06: ok (maths ok, 6800 at (20,40))
+- r12-p013-card2-01..06: STILL — card set NOT ADVANCING: all "card 2" shots show counter 1/4 and the printing-press example again (card2-06 byte-identical to card1-06; log "no card counter on screen"). Card 2 never captured.
+## DONE: CHAIN-DONE seen; all files read (ch11 204 + ch12 35; byte-identical repeats skipped).

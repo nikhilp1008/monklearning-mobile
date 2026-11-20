@@ -228,6 +228,10 @@ export function ObButton({
                 ...face(held),
                 backgroundColor: '#FFFFFF',
                 // A hairline instead of the ledge: the second button sits flat.
+                // On Android the hairline is a border (lib/inset-line.ts), so
+                // the face's soft drop shadow has to be taken off by hand;
+                // on iOS the inset line replaces it.
+                ...(Platform.OS === 'android' ? { boxShadow: undefined } : null),
                 ...insetLine(1.5, ob.hairline18),
                 transform: [{ translateY: held ? ds(1) : 0 }],
                 opacity: held ? 0.7 : 1,

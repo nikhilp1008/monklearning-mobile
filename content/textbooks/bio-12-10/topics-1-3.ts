@@ -129,7 +129,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Why the specificity?</b> Only insects whose gut chemistry and cell-surface receptors match the toxin are killed: hence Bt cotton is effective only against certain taxa (bollworm and the like), not against every pest, and is not toxic to mammals and birds, and spares most non-target insects.',
+        html: '<b>Why the specificity?</b> Only insects whose gut chemistry and cell-surface receptors match the toxin are killed: hence Bt cotton is effective only against certain taxa (bollworm and the like), not against every pest, and the Cry proteins used in Bt cotton are not known to be toxic to mammals and birds, and spare most non-target insects.',
       },
       { t: 'fig', id: 'b12-10-fig-10.1' },
       { t: 'p', html: '<b>B. How RNA interference protects against the nematode</b>' },
@@ -460,7 +460,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Because the product is structurally identical to human insulin, it does not carry the foreign-protein allergy risk of animal insulin, and because bacteria multiply endlessly in a tank, supply is no longer limited by slaughtering animals. (For scale, NCERT’s figures: at present around 30 recombinant therapeutics are approved for human use worldwide, of which about 12 are marketed in India: humulin being the flagship example; the numbers have grown since.)',
+        html: 'Because the product is structurally identical to human insulin, it does not carry the foreign-protein allergy risk of animal insulin, and because bacteria multiply endlessly in a tank, supply is no longer limited by slaughtering animals. (For scale, NCERT’s figures: around 30 recombinant therapeutics are approved for human use worldwide, of which about 12 are marketed in India; the numbers have grown since. Humulin, the brand name of this insulin, is the best-known example.)',
       },
       { t: 'fig', id: 'b12-10-fig-10.3' },
       { t: 'p', html: '<b>C. Insulin’s wider family: other recombinant therapeutics</b>' },
@@ -681,7 +681,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Limiting Conditions & Assumptions.</b> Here is the subtlety examiners love. In the 1990 procedure, the corrected cells were the patient’s lymphocytes, and mature lymphocytes are not immortal; they die off and are replaced by new (still-faulty) cells made by the body. So the patient needed the corrected lymphocytes infused again and again: it was not a permanent cure. A truly permanent cure would require introducing the functional gene into cells at an early embryonic stage (NCERT: a gene isolated from the marrow cells that make ADA), so that all future cells inherit the correction. Also note: gene therapy works best for single-gene disorders (enzymatic and immunodeficiency disorders); a disease caused by many genes acting together is far harder to fix this way.',
+        html: '<b>Limiting Conditions & Assumptions.</b> Here is the subtlety examiners love. In the 1990 procedure, the corrected cells were the patient’s lymphocytes, and mature lymphocytes are not immortal; they die off and are replaced by new (still-faulty) cells made by the body. So the patient needed the corrected lymphocytes infused again and again: it was not a permanent cure. A truly permanent cure would require introducing the functional gene (NCERT describes it as a gene isolated from the marrow cells that make ADA) into cells at an early embryonic stage, so that all future cells inherit the correction. Also note: gene therapy works best for single-gene disorders (enzymatic and immunodeficiency disorders); a disease caused by many genes acting together is far harder to fix this way.',
       },
 
       { t: 'part', title: 'Key terms, tools and constructs' },
@@ -732,7 +732,7 @@ export const TOPICS: Topic[] = [
           ['Cost / convenience', 'One-time delivery (ideally)', 'Repeated, more expensive'],
           [
             'Limitation',
-            'Mature lymphocytes die → periodic re-infusion until embryonic-stage correction',
+            'Mature lymphocytes die, so the corrected cells must be re-infused periodically; only a correction made at an early embryonic stage would be permanent',
             'Not a permanent cure',
           ],
         ],

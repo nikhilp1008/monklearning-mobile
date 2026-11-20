@@ -295,8 +295,8 @@ export const TOPICS: Topic[] = [
             a: 'Reciprocal innervation means that when a flexor muscle contracts during a withdrawal reflex, the antagonistic extensor muscle simultaneously relaxes via an inhibitory interneuron, preventing the two muscle groups from opposing each other and allowing smooth withdrawal.',
           },
           {
-            q: '[NEET] The knee-jerk reflex involves how many synapses in total?<br>(a) 0<br>(b) 1<br>(c) 2<br>(d) 3',
-            a: '(b): one. The sensory neuron synapses directly onto the motor neuron (monosynaptic); no interneuron is interposed.',
+            q: '[NEET] In the knee-jerk reflex arc, how many synapses lie between the sensory neuron and the motor neuron in the spinal cord?<br>(a) 0<br>(b) 1<br>(c) 2<br>(d) 3',
+            a: '(b): one, in the cord. The sensory neuron synapses directly onto the motor neuron (monosynaptic); no interneuron is interposed.',
           },
           {
             q: '[CUET] When the right foot withdraws from a sharp object, which muscles of the left leg contract to support the body?',
@@ -426,7 +426,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The following questions synthesise across all the additional topics. Attempt them after completing each additional topic.',
+        html: 'The following questions synthesise across all the additional topics. Attempt them after completing Additional topics A to F.',
       },
 
       { t: 'part', title: 'Practice' },
@@ -435,11 +435,11 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '[NEET] A patient with a spinal cord lesion at level T5 (left side) loses pain sensation in the right leg and fine touch sensation in the left leg. Explain why.',
-            a: 'Pain (spinothalamic tract) crosses at the level of entry into the spinal cord. A left-side lesion at T5 interrupts pain fibres that have already crossed to the left side; these carry pain from the right leg. Fine touch (dorsal column) has not yet crossed at T5; the left dorsal column carries fine touch from the left leg ipsilaterally. So right-leg pain and left-leg fine touch are both lost. This is Brown-Séquard syndrome (hemisection of the spinal cord).',
+            a: 'Pain (spinothalamic tract) crosses within a segment or two of its entry into the spinal cord. A left-side lesion at T5 interrupts pain fibres that have already crossed to the left side; these carry pain from the right leg. Fine touch (dorsal column) has not yet crossed at T5; the left dorsal column carries fine touch from the left leg ipsilaterally. So right-leg pain and left-leg fine touch are both lost. This is Brown-Séquard syndrome (hemisection of the spinal cord).',
           },
           {
             q: '[NEET] During the absolute refractory period, a neuron cannot fire an action potential regardless of stimulus strength. State the ion-channel basis for this.',
-            a: 'During the absolute refractory period, voltage-gated Na<sup>+</sup> channels are in the inactivated state: they cannot reopen no matter how strong the depolarising stimulus. Because no Na<sup>+</sup> can enter, depolarisation cannot occur. The membrane is physically incapable of firing.',
+            a: 'During the absolute refractory period the voltage-gated Na<sup>+</sup> channels are first open and then inactivated; inactivated channels cannot reopen no matter how strong the depolarising stimulus. Because no further Na<sup>+</sup> can enter, a new depolarisation cannot start. The membrane is physically incapable of firing.',
           },
           {
             q: '[CUET] Arrange the twelve cranial nerves in order and identify which carry parasympathetic fibres.',
@@ -485,7 +485,7 @@ export const TOPICS: Topic[] = [
           ],
           [
             'Sense Organs (Eye & Ear)',
-            '<b>Highest volume:</b> rods vs cones, fovea/blind spot, cochlear chambers, organ of Corti, balance receptors. These appear as statement-type and match-the-column questions. They are not part of this chapter’s text, so study them from the sensory-reception section of NCERT.',
+            '<b>Not in the NEET (UG) 2026 syllabus.</b> The NMC list for this unit names only neurons and nerves, the human nervous system (central, peripheral and visceral) and the generation and conduction of the nerve impulse. The book rates rods vs cones, fovea/blind spot, cochlear chambers, organ of Corti and balance receptors as its highest-volume questions in past papers; they are not part of this chapter’s text, and for 2026 you need not spend time on them.',
           ],
           [
             'Peripheral & Autonomic NS',
@@ -542,7 +542,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3. Assertion–Reason</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Two statements, Assertion (A) and Reason (R), with four answer options:<br>• (a) Both A and R are true, and R correctly explains A.<br>• (b) Both A and R are true, but R is NOT the correct explanation of A.<br>• (c) A is true, but R is false.<br>• (d) A is false, but R is true. (Some papers print “Both A and R are false” here.)<br><b>Approach:</b> First evaluate A alone. If A is false, rule out (a), (b) and (c): only the option that begins “A is false” can be right. If A is true, evaluate R. Then check whether R actually explains A mechanistically, or merely states a related but insufficient fact.',
+        html: '<b>What it looks like:</b> Two statements, Assertion (A) and Reason (R), with four answer options:<br>• (a) Both A and R are true, and R correctly explains A.<br>• (b) Both A and R are true, but R is NOT the correct explanation of A.<br>• (c) A is true, but R is false.<br>• (d) A is false, but R is true.<br><b>Approach:</b> First evaluate A alone. If A is false, rule out (a), (b) and (c): only the option that begins “A is false” can be right. If A is true, evaluate R. Then check whether R actually explains A mechanistically, or merely states a related but insufficient fact.',
       },
       {
         t: 'ex',
@@ -567,7 +567,7 @@ export const TOPICS: Topic[] = [
         q: 'A patient with damage to a brain structure cannot walk in a straight line or maintain balance while standing. MRI shows the structure is dorsal, behind the pons and medulla, and below the cerebrum. It has a highly folded surface. Identify the structure.<br>(a) Cerebrum<br>(b) Hypothalamus<br>(c) Cerebellum<br>(d) Medulla oblongata',
         steps: [
           '“Cannot maintain balance” → cerebellum (it coordinates posture and equilibrium).',
-          '“Dorsal, posterior to midbrain, below cerebrum” → cerebellum is the second-largest brain part, dorsal and posterior, lying below the occipital cerebrum.',
+          '“Dorsal, behind the pons and medulla, below the cerebrum” → cerebellum is the second-largest brain part, dorsal and posterior, lying below the occipital cerebrum.',
           '“Highly folded surface” → cerebellar cortex is deeply convoluted to pack in Purkinje cells.',
           'The distractors: cerebrum handles voluntary movement, not balance; hypothalamus is ventral and doesn’t produce motor incoherence; medulla oblongata controls vital reflexes but does not affect coordination.',
         ],
@@ -640,7 +640,7 @@ export const TOPICS: Topic[] = [
         t: 'practice',
         items: [
           {
-            q: '[Level 1: Recall] The sodium–potassium pump transports:<br>(a) 2 Na<sup>+</sup> out : 2 K<sup>+</sup> in<br>(b) 3 Na<sup>+</sup> out : 2 K<sup>+</sup> in<br>(c) 2 Na<sup>+</sup> out : 3 K<sup>+</sup> in<br>(d) 3 K<sup>+</sup> out : 2 Na<sup>+</sup> in',
+            q: '[Level 1: Recall] The sodium–potassium pump transports:<br>(a) 2 Na<sup>+</sup> out ∶ 2 K<sup>+</sup> in<br>(b) 3 Na<sup>+</sup> out ∶ 2 K<sup>+</sup> in<br>(c) 2 Na<sup>+</sup> out ∶ 3 K<sup>+</sup> in<br>(d) 3 K<sup>+</sup> out ∶ 2 Na<sup>+</sup> in',
             a: '<b>Solution:</b> The Na<sup>+</sup>–K<sup>+</sup> ATPase expels 3 Na<sup>+</sup> for every 2 K<sup>+</sup> it imports, both against their concentration gradients. This is ATP-driven active transport.<br><b>Answer:</b> (b)',
           },
           {
@@ -665,7 +665,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 3: Analysis] Assertion (A): The limbic system is responsible for emotional behaviour and sexual function.<br>Reason (R): The limbic system includes the hypothalamus, amygdala and hippocampus.<br>(a) Both A and R are true and R correctly explains A.<br>(b) Both A and R are true but R does not correctly explain A.<br>(c) A is true but R is false.<br>(d) A is false but R is true.',
-            a: '<b>Solution:</b> A is true: the limbic system governs emotion, motivation, and sexual behaviour. R is true: its components are the hypothalamus, amygdala, and hippocampus. Does the composition explain the function? No: R only lists the structures that make up the limbic system; it does not give the reason why the limbic system regulates emotion and sexual behaviour. Both statements are true, but R is not the correct explanation of A.<br><b>Answer:</b> (b)',
+            a: '<b>Solution:</b> A is true: the limbic system governs emotion, motivation, and sexual behaviour. R is taken as true: the hypothalamus, amygdala and hippocampus are the usual shorthand list, though NCERT has the hypothalamus working with the limbic system rather than inside it. Does the list explain the function? No: R only lists structures the limbic system includes; it does not give the reason why the limbic system regulates emotion and sexual behaviour. Both statements are true, but R is not the correct explanation of A.<br><b>Answer:</b> (b)',
           },
           {
             q: '[Level 3: Analysis] Match the columns:<br><br>Column I | Column II<br>A. Bipolar neuron | I. Embryonic stage<br>B. Multipolar neuron | II. Retina of eye<br>C. Unipolar neuron | III. Cerebral cortex<br>D. Pseudounipolar neuron | IV. Dorsal root ganglion<br><br>Which option is correct?<br>(a) A–II, B–III, C–I, D–IV<br>(b) A–I, B–II, C–III, D–IV<br>(c) A–III, B–I, C–II, D–IV<br>(d) A–II, B–III, C–IV, D–I',
@@ -677,7 +677,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[Level 3: Analysis] Which of the following is NOT a reflex action?<br>(a) Blinking when a speck enters the eye<br>(b) Withdrawal of hand from a hot object<br>(c) Solving a mathematics problem<br>(d) Knee-jerk reflex',
-            a: '<b>Solution:</b> A reflex is rapid, automatic, involuntary, and stereotyped: the same stimulus always produces the same response. Solving a mathematics problem is a voluntary, conscious, learned cognitive act. Blinking, withdrawal, and the knee-jerk are all pre-wired, involuntary responses mediated by the CNS.<br><b>Answer:</b> (c)',
+            a: '<b>Solution:</b> A reflex is rapid, automatic, involuntary, and stereotyped: the same stimulus usually produces the same response. Solving a mathematics problem is a voluntary, conscious, learned cognitive act. Blinking, withdrawal, and the knee-jerk are all pre-wired, involuntary responses mediated by the CNS.<br><b>Answer:</b> (c)',
           },
           {
             q: '[Level 3: Analysis] A person standing in bright light has constricted pupils. This is due to the action of:<br>(a) sympathetic fibres to the sphincter pupillae muscle<br>(b) parasympathetic fibres to the dilator pupillae muscle<br>(c) parasympathetic fibres to the sphincter pupillae muscle<br>(d) sympathetic fibres to the dilator pupillae muscle',
@@ -693,7 +693,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Gaps to Fill in Your Notes' },
       {
         t: 'p',
-        html: '1. <b>Link saltatory conduction to speed and energy efficiency.</b> NEET asks “Why is conduction faster in myelinated fibres?” The answer is that the impulse jumps from node to node; add that this also saves energy, because ions cross the membrane only at the nodes of Ranvier.<br>2. <b>Eye and ear are not covered in this chapter’s text.</b> NEET’s match-the-column and statement questions on rods vs cones, fovea vs blind spot, and cochlear chambers need many pairwise comparisons held at once. Study the sensory-reception section of NCERT and make a comparison table (structure, location, function, what is absent there).<br>3. <b>Contrast the autonomic and somatic pathways structurally.</b> The somatic pathway uses a single motor neuron; the autonomic pathway uses two neurons with a ganglion between them. Anchor it with a mnemonic for the sympathetic outflow (thoracolumbar, short preganglionic fibres) versus the parasympathetic outflow (craniosacral, long preganglionic fibres); it settles questions such as “which division has short preganglionic fibres?”',
+        html: '1. <b>Link saltatory conduction to speed and energy efficiency.</b> NEET asks “Why is conduction faster in myelinated fibres?” The answer is that the impulse jumps from node to node; add that this also saves energy, because ions cross the membrane only at the nodes of Ranvier.<br>2. <b>Eye and ear are not covered in this chapter’s text.</b> The rationalised NCERT chapter has dropped its sensory-reception section, and the NEET (UG) 2026 syllabus for this unit does not list the eye or ear. Past questions on rods vs cones, fovea vs blind spot and cochlear chambers need many pairwise comparisons held at once, so if you study them for another exam, make a comparison table (structure, location, function, what is absent there).<br>3. <b>Contrast the autonomic and somatic pathways structurally.</b> The somatic pathway uses a single motor neuron; the autonomic pathway uses two neurons with a ganglion between them. Anchor it with a mnemonic for the sympathetic outflow (thoracolumbar, short preganglionic fibres) versus the parasympathetic outflow (craniosacral, long preganglionic fibres); it settles questions such as “which division has short preganglionic fibres?”',
       },
     ],
   },

@@ -466,7 +466,7 @@ function draw96(): Sketch {
 function check96(): Check[] {
   const s = draw96();
   return [
-    ['The gel shows three ordinary bands and the target fragment lowest (the farthest run, hence the smallest), as in the book', BARS96.length === 3 && BARS96.every(([, y]) => y < 128 - 20) && BARS96.every((b, i, a) => i === 0 || b[1] > a[i - 1][1])],
+    ['The gel shows three ordinary bands with the target fragment lowest, as the book draws it (the book gives no sizes and no direction of run)', BARS96.length === 3 && BARS96.every(([, y]) => y < 128 - 20) && BARS96.every((b, i, a) => i === 0 || b[1] > a[i - 1][1])],
     ['The target band, with the two dashed cut lines above and below it, is the highlight (one band marked, two dashes)', marigold(s) >= 3 && (s.svg().match(/stroke="#EEA31F" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray/g) ?? []).length === 2],
     ['The sequence is the book\'s: gel, cut out with a blade, gel slice with DNA fragment, elute DNA from gel slice, purified DNA ready for ligation', hasAll(s, ['cut out', 'with a blade', 'Gel slice with', 'DNA fragment', 'Elute DNA', 'from gel slice', 'Purified', 'DNA', 'ready for', 'ligation', 'Target', 'fragment'])],
     ['The flow goes down the page: gel above the slice, the slice before the elution box, the elution box above the tube', 154 < 206 && 110 < 150 && 259 < 300],
@@ -522,7 +522,7 @@ function check97(): Check[] {
 const fig97: Diagram = { id: 'b12-09-fig-9.7', topic: 3, name: 'Workflow of recombinant DNA technology', cases: [{ chip: 'Nine steps', cap: CAP97 }], draw: draw97, check: check97 };
 
 /* ================= Figure 9.8 ================= */
-const CAP98 = `One PCR cycle: (A) denaturation at ~94${NB}°C, (B) annealing at ~40–60${NB}°C with two primers binding opposite strands, (C) extension at ~72${NB}°C by Taq polymerase. About 30 cycles give roughly a billion copies of the target.`;
+const CAP98 = `One PCR cycle: (A) denaturation at ~94${NB}°C, (B) annealing at ~40–60${NB}°C with two primers binding opposite strands, (C) extension at ~72${NB}°C by Taq polymerase. About 30 cycles give roughly a billion copies of the target in the ideal case.`;
 const CYCLES = 30;
 const BLK = 132, SX0 = 98, SX1 = 242;
 const TEMP98 = [`~94${NB}°C`, `~40–60${NB}°C`, `~72${NB}°C`];
@@ -573,7 +573,7 @@ function draw98(): Sketch {
   arrow(s, [14, yA + 14], [90, yA + 14], { color: C.mari, w: 2.6 });
   lab(s, 24, yB + 50, 'repeat', { size: 13, bold: true, anchor: 'start', color: C.amber });
   lab(s, 24, yB + 67, '~30 cycles', { size: 13, bold: true, anchor: 'start', color: C.amber });
-  pill(s, `~30 cycles: up to about a billion copies (2<sup>30</sup> ≈ 10<sup>9</sup>)`, { size: 12 });
+  pill(s, `~30 cycles: about a billion, ideally (2<sup>30</sup> ≈ 10<sup>9</sup>)`, { size: 12 });
   return s;
 }
 function check98(): Check[] {
@@ -585,7 +585,7 @@ function check98(): Check[] {
     ['Two primers sit on opposite strands in B (one under the top strand at the left, one over the bottom strand at the right), labelled primer', s.labels.filter((l) => l.text === 'primer').length === 2 && 104 < 200 && 136 < 236],
     ['In C the extension of each primer is longer than the primer was in B, and Taq sits at the growing end of the upper one', (204 - 104) > (136 - 104) && (236 - 150) > (236 - 200) && has(s, 'Taq')],
     ['The notes are the book\'s: Double helix separates into two single strands; Primers bind to opposite strands (template regions); Taq polymerase extends the primers, synthesising new complementary strands', hasAll(s, ['Double helix separates', 'into two single strands', 'Primers bind to opposite', 'strands (template regions)', 'Taq polymerase extends the primers,', 'synthesising new complementary strands'])],
-    ['2^30 = 1 073 741 824, which is about 10^9 (a billion): 1.07 × 10^9', copies === 1073741824 && Math.abs(copies / 1e9 - 1.07) < 0.01 && s.tags.some((q) => q.name === '~30 cycles: up to about a billion copies (230 ≈ 109)')],
+    ['2^30 = 1 073 741 824, which is about 10^9 (a billion): 1.07 × 10^9', copies === 1073741824 && Math.abs(copies / 1e9 - 1.07) < 0.01 && s.tags.some((q) => q.name === '~30 cycles: about a billion, ideally (230 ≈ 109)')],
     ['The loop back from C to A, "repeat ~30 cycles", is the highlight', has(s, 'repeat') && has(s, '~30 cycles') && heads(s, C.mari) === 1],
     ...layout(s), clean(s),
   ];

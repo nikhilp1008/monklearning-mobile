@@ -34,7 +34,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> Chordata is a question-dense topic for NEET: expect <b>3–5 questions</b> yearly (the book’s estimate from past papers, not official figures), weighted heavily toward vertebrate-class characteristics “without a single exception” (the crocodile’s heart, the platypus’s eggs), protochordate notochord position, and assertion–reason items on chordate fundamentals. CBSE Boards ask <b>2–3 mark</b> “list the features of class X” or “distinguish between two classes” answers, and CUET lifts one-liners. (Biology is not part of the JEE syllabus.) This topic completes the chapter: Topic 03 left off at the notochord boundary, and here we cross it.',
+        html: '<b>Exam Relevance:</b> Chordata is a question-dense topic for NEET: expect <b>3–5 questions</b> yearly (the book’s estimate from past papers, not official figures), weighted heavily toward vertebrate-class characteristics asked as “without a single exception” questions, where the exceptions (the crocodile’s heart, the platypus’s eggs) are the trap, protochordate notochord position, and assertion–reason items on chordate fundamentals. CBSE Boards ask <b>2–3 mark</b> “list the features of class X” or “distinguish between two classes” answers, and CUET lifts one-liners. (Biology is not part of the JEE syllabus.) This topic completes the chapter: Topic 03 left off at the notochord boundary, and here we cross it.',
       },
       {
         t: 'p',
@@ -225,9 +225,9 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET Assertion–Reason',
-        q: '<b>Assertion (A):</b> Cyclostomes are classified as vertebrates even though they lack jaws and paired fins. <b>Reason (R):</b> They possess a cranium enclosing the brain (NCERT: cranium and vertebral column are cartilaginous; in lampreys the vertebral elements are small, and hagfishes have none). Options: (1) Both true, R explains A. (2) Both true, R does not explain A. (3) A true, R false. (4) A false, R true.',
+        q: '<b>Assertion (A):</b> Cyclostomes are classified as vertebrates even though they lack jaws and paired fins. <b>Reason (R):</b> They possess a cranium enclosing the brain. Options: (1) Both true, R explains A. (2) Both true, R does not explain A. (3) A true, R false. (4) A false, R true.',
         steps: [
-          '<b>Evaluate A.</b> Cyclostomata (e.g., <i>Petromyzon</i>) are jawless and without paired fins yet are placed in Vertebrata. <b>A is true.</b> <b>Evaluate R.</b> They do have a cranium enclosing the brain (NCERT: cranium and vertebral column are cartilaginous; in lampreys the vertebral elements are small, and hagfishes have none), the defining vertebrate criterion. <b>R is true.</b> <b>Test the link.</b> Vertebrate status is decided by the cranium, <b>not</b> by jaws or fins, so R is precisely why A holds.',
+          '<b>Evaluate A.</b> Cyclostomata (e.g., <i>Petromyzon</i>) are jawless and without paired fins yet are placed in Vertebrata. <b>A is true.</b> <b>Evaluate R.</b> They do have a cranium enclosing the brain (NCERT: their cranium and vertebral column are cartilaginous), the defining vertebrate criterion. <b>R is true.</b> <b>Test the link.</b> Vertebrate status is decided by the cranium, <b>not</b> by jaws or fins, so R is precisely why A holds.',
         ],
         ans: '(1).',
       },
@@ -237,7 +237,7 @@ export const TOPICS: Topic[] = [
         q: 'Four vertebrates are described only by features:<br>• P: four-chambered heart, body covered with feathers, bones with air cavities.<br>• Q: four-chambered heart, hair on skin, lays eggs.<br>• R: three-chambered heart, dry scaly skin, lungs only, lays shelled eggs on land.<br>• S: cartilaginous skeleton, gill slits without an operculum, placoid scales.<br>Identify the class of each, and explain why Q is still placed in Mammalia despite laying eggs.',
         steps: [
           '<b>Step 1: Decode each.</b><br>• <b>P:</b> feathers + pneumatic bones + 4-chambered → <b>Aves.</b><br>• <b>Q:</b> hair + 4-chambered heart, but oviparous → <b>Mammalia</b> (a monotreme).<br>• <b>R:</b> dry scales + lungs + shelled land eggs + 3-chambered → <b>Reptilia.</b><br>• <b>S:</b> cartilage + no operculum + placoid scales → <b>Chondrichthyes.</b>',
-          '<b>Step 2: Resolve the Q paradox.</b> Mammalia is defined by <b>hair, mammary glands, and a diaphragm</b>, not by viviparity. The monotremes (<i>Ornithorhynchus</i>, <i>Echidna</i>) lay eggs yet possess hair and secrete milk, so they satisfy the defining mammalian criteria and remain mammals. Egg-laying is an exception to the usual mammalian habit, not to the definition.',
+          '<b>Step 2: Resolve the Q paradox.</b> Mammalia is defined by <b>hair, mammary glands, and a diaphragm</b>, not by viviparity. The monotremes (<i>Ornithorhynchus</i>, the platypus, and <i>Tachyglossus</i>, the echidna) lay eggs yet possess hair and secrete milk, so they satisfy the defining mammalian criteria and remain mammals. Egg-laying is an exception to the usual mammalian habit, not to the definition.',
         ],
         ans: 'P → Aves, Q → Mammalia, R → Reptilia, S → Chondrichthyes; Q is a mammal because hair and mammary glands, not viviparity, define the class.',
       },
@@ -308,11 +308,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'mcq',
-        q: 'A marine cartilaginous fish that lacks an operculum and an air bladder belongs to',
+        q: 'A marine, jawed, cartilaginous fish that lacks an operculum and an air bladder belongs to',
         opts: [
           { label: 'Osteichthyes', nudge: '<b>(a)</b> trap: Osteichthyes are bony and have an operculum and air bladder.' },
           { label: 'Chondrichthyes', nudge: null },
-          { label: 'Cyclostomata', nudge: '<b>(c)</b> trap: cyclostomes are jawless and not true fishes.' },
+          { label: 'Cyclostomata', nudge: '<b>(c)</b> trap: cyclostomes are jawless, so the word “jawed” rules them out.' },
           { label: 'Amphibia', nudge: '<b>(d)</b> trap: amphibians are not fishes and have moist scaleless skin.' },
         ],
         correct: 1,
@@ -419,7 +419,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Every Exception and Superlative' },
       {
         t: 'p',
-        html: 'These are the lines NEET often tests:<br>• <b>Largest phylum:</b> Arthropoda. <b>Second largest:</b> Mollusca.<br>• <b>Largest animal ever:</b> blue whale (<i>Balaenoptera</i>), a mammal.<br>• <b>Freshwater sponge in NCERT:</b> <i>Spongilla</i>.<br>• <b>Echinoderms:</b> adults radial but <b>larvae bilateral</b> (secondarily radial); <b>exclusively marine</b>; <b>excretory system absent</b>; coelom is enterocoelom.<br>• <b>Mollusca circulation:</b> open in most, <b>closed in cephalopods</b> (octopus, squid).<br>• <b>Reptile heart:</b> 3-chambered; <b>4-chambered in crocodiles</b>.<br>• <b>Mammals:</b> viviparous, <b>except monotremes</b> (<i>Ornithorhynchus</i>, <i>Echidna</i>) which lay eggs.<br>• <b>Hemichordata:</b> once a sub-phylum of Chordata, <b>now a separate non-chordate phylum</b> (no true notochord).<br>• <b>Cyclostomata:</b> jawless, no scales, no paired fins; <b>ectoparasites</b> on fishes; marine but <b>migrate to fresh water to spawn</b>, then die; larva returns to sea.<br>• <b>Chondrichthyes: no air bladder</b> (must keep swimming to avoid sinking) and <b>no operculum</b>; many are viviparous; <i>Torpedo</i> gives electric shocks, <i>Trygon</i> has a poison sting.<br>• <b>Notochord fate:</b> larval-tail only (Urochordata) · lifelong head-to-tail (Cephalochordata) · replaced by vertebral column (Vertebrata).<br>• <b>“At some stage” rule:</b> the four chordate features need appear only once in the life cycle, usually the embryo.',
+        html: 'These are the lines NEET often tests:<br>• <b>Largest phylum:</b> Arthropoda. <b>Second largest:</b> Mollusca.<br>• <b>Largest animal ever:</b> blue whale (<i>Balaenoptera</i>), a mammal.<br>• <b>Freshwater sponge in NCERT:</b> <i>Spongilla</i>.<br>• <b>Echinoderms:</b> adults radial but <b>larvae bilateral</b> (secondarily radial); <b>exclusively marine</b>; <b>excretory system absent</b>; coelom is enterocoelom.<br>• <b>Mollusca circulation:</b> open in most, <b>closed in cephalopods</b> (octopus, squid).<br>• <b>Reptile heart:</b> 3-chambered; <b>4-chambered in crocodiles</b>.<br>• <b>Mammals:</b> viviparous, <b>except monotremes</b> (<i>Ornithorhynchus</i>, the platypus, and <i>Tachyglossus</i>, the echidna) which lay eggs.<br>• <b>Hemichordata:</b> once a sub-phylum of Chordata, <b>now a separate non-chordate phylum</b> (no true notochord).<br>• <b>Cyclostomata:</b> jawless, no scales, no paired fins; <b>ectoparasites</b> on fishes; marine but <b>migrate to fresh water to spawn</b>, then die; larva returns to sea.<br>• <b>Chondrichthyes: no air bladder</b> (must keep swimming to avoid sinking) and <b>no operculum</b>; many are viviparous; <i>Torpedo</i> gives electric shocks, <i>Trygon</i> has a poison sting.<br>• <b>Notochord fate:</b> larval-tail only (Urochordata) · lifelong head-to-tail (Cephalochordata) · replaced by vertebral column (Vertebrata).<br>• <b>“At some stage” rule:</b> the four chordate features need appear only once in the life cycle, usually the embryo.',
       },
 
       { t: 'part', title: 'High-Yield Rapid-Fire (Whole Chapter)' },
@@ -444,7 +444,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'This supplement extends Chapter 4 with six additional topics: A compares the excretory, respiratory and circulatory systems across the phyla; B covers the economic and medical importance of animals; C covers larval forms and the life cycles of <i>Obelia</i> and <i>Fasciola</i>; D covers how the coelom forms and why Hemichordata stays a non-chordate phylum; E is a mixed practice set; F shows what NEET asks about this chapter. Topics 03 and 05 describe each phylum’s organs and set the phyla in whole-kingdom tables; these topics add cross-phylum comparisons and detail the chapter does not give. NEET and CBSE Boards set cross-phylum questions in assertion-reason items, match-the-column questions and HOTS (the book’s view; its estimate from past papers, not official figures). Where a point goes beyond the NCERT text it is marked, but some book-level detail here (for example the organ of Bojanus, LAL and the stomochord) is not in NCERT even where unmarked.',
+        html: 'This supplement extends Chapter 4 with six additional topics: A compares the excretory, respiratory and circulatory systems across the phyla; B covers the economic and medical importance of animals; C covers larval forms and the life cycles of <i>Obelia</i> and <i>Fasciola</i>; D covers how the coelom forms and why Hemichordata stays a non-chordate phylum; E is a mixed practice set; F shows what NEET asks about this chapter. Topics 03 and 05 describe each phylum’s organs and set the phyla in whole-kingdom tables; these topics add cross-phylum comparisons and detail the chapter does not give. NEET and CBSE Boards set cross-phylum questions in assertion-reason items, match-the-column questions and HOTS (the book’s view; its estimate from past papers, not official figures). Where a point goes beyond the NCERT text it is marked, but some book-level detail here (for example the organ of Bojanus and LAL) is not in NCERT even where unmarked.',
       },
       {
         t: 'p',
@@ -471,9 +471,9 @@ export const TOPICS: Topic[] = [
             'Arthropoda',
             'Malpighian tubules (insects) + green glands/antennal glands (crustaceans) + coxal glands (arachnids)',
             'Uric acid (insects, conserves water); ammonia (aquatic crustaceans)',
-            'Malpighian tubules are the landmark: arthropods have the most varied excretory equipment in the kingdom',
+            'Malpighian tubules are the landmark: arthropods use several different excretory organs',
           ],
-          ['Mollusca', 'Metanephridia (kidney-like; one or two pairs)', 'Ammonia (aquatic forms); uric acid (land snails); kidney-like metanephridia', 'Kidney analogues called organ of Bojanus in bivalves'],
+          ['Mollusca', 'Metanephridia (kidney-like; one or two pairs)', 'Ammonia (aquatic forms); uric acid (land snails)', 'Kidney analogues called organ of Bojanus in bivalves'],
           [
             'Echinodermata',
             'No excretory organ: no dedicated excretory system at all',
@@ -549,7 +549,7 @@ export const TOPICS: Topic[] = [
         title: null,
         head: ['Phylum', 'Circulatory Pattern', 'Key Detail'],
         rows: [
-          ['Porifera', 'No circulatory system: all transport by diffusion through seawater in the canal system', 'Choanocytes drive water that distributes nutrients'],
+          ['Porifera', 'No circulatory system: all transport is by diffusion from the water flowing through the canal system', 'Choanocytes drive water that distributes nutrients'],
           ['Cnidaria', 'No circulatory system: gastrovascular cavity distributes nutrients', 'One opening; no blood'],
           ['Ctenophora', 'No circulatory system', ''],
           ['Platyhelminthes', 'No circulatory system: gastrovascular cavity distributes nutrients', 'Flat body means no cell is far from gut'],
@@ -688,7 +688,7 @@ export const TOPICS: Topic[] = [
           [
             '<i>Limulus</i> (horseshoe crab)',
             'Arthropoda',
-            'Not a parasite; its blue blood (haemocyanin) is used to detect bacterial endotoxins in medical equipment, critically important in pharmaceutical safety testing',
+            'Not a parasite; an extract of its blood cells (amoebocytes), LAL, is used to detect bacterial endotoxins in vaccines, injectable drugs and medical equipment (its blood is blue from haemocyanin)',
             '–',
           ],
         ],
@@ -709,7 +709,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET HOTS',
         q: 'A patient from a waterlogged rural area presents with fever, lymphedema, and elephantiasis. Microscopic examination reveals sheathed microfilariae in a night blood smear. Identify the parasite, its phylum, and the vector most likely involved in her village in India.',
         steps: [
-          'Sheathed microfilariae in a night blood smear is the diagnostic marker of <i>Wuchereria bancrofti</i>, the filarial worm. <i>Wuchereria</i> belongs to Phylum Aschelminthes (Nematoda). The village is in a waterlogged rural area: this describes the breeding ground of <i>Culex</i>, the most common Indian vector for filariasis. (<i>Anopheles</i> and <i>Aedes</i> are also vectors, but <i>Culex</i> is the primary Indian rural vector.)',
+          'Sheathed microfilariae in a night blood smear is the diagnostic marker of <i>Wuchereria bancrofti</i>, the filarial worm. <i>Wuchereria</i> belongs to Phylum Aschelminthes (Nematoda). The village is in a waterlogged rural area: this describes the breeding ground of <i>Culex</i>, the most common Indian vector for filariasis. (<i>Anopheles</i> and <i>Aedes</i> can also transmit it, but in India the main vector is <i>Culex</i> (<i>C. quinquefasciatus</i>), which breeds in dirty standing water.)',
         ],
         ans: '<i>Wuchereria bancrofti</i>, Phylum Aschelminthes; <i>Culex</i> mosquito.',
       },
@@ -718,7 +718,7 @@ export const TOPICS: Topic[] = [
         tag: 'CBSE Board',
         q: '<i>Taenia saginata</i> and <i>Taenia solium</i> are tapeworms of humans. State (a) the intermediate host for each, (b) the infective stage for humans, and (c) one preventive measure against taeniasis.',
         steps: [
-          '(a) <i>T. saginata</i> (beef tapeworm) uses cattle as the intermediate host; <i>T. solium</i> (pork tapeworm) uses pig. (b) Humans acquire infection by eating undercooked beef or pork containing the cysticercus larva (the bladder worm stage). The cysticercus develops into an adult tapeworm in the human intestine. (c) Cooking meat thoroughly; inspecting beef and pork at slaughterhouses; proper disposal of human sewage to prevent cattle and pigs from ingesting eggs or cysts.',
+          '(a) <i>T. saginata</i> (beef tapeworm) uses cattle as the intermediate host; <i>T. solium</i> (pork tapeworm) uses pig. (b) Humans acquire infection by eating undercooked beef or pork containing the cysticercus larva (the bladder worm stage). The cysticercus develops into an adult tapeworm in the human intestine. (c) Cooking meat thoroughly; inspecting beef and pork at slaughterhouses; proper disposal of human sewage to prevent cattle and pigs from swallowing the eggs (or the egg-filled gravid proglottids) passed in human faeces.',
         ],
         ans: '(a) Cattle; (b) cysticercus in undercooked meat; (c) cook meat thoroughly.',
       },
@@ -795,7 +795,7 @@ export const TOPICS: Topic[] = [
             'Ammocoete',
             'Cyclostomata (Chordata)',
             '<i>Petromyzon</i> (lamprey)',
-            'Ciliated, filter-feeding larval stage of the lamprey; lives burrowed in sand; metamorphoses into a parasitic adult after several years',
+            'Eel-like, filter-feeding larval stage of the lamprey (it feeds through a mucus-lined, ciliated pharynx); lives burrowed in sand; metamorphoses into a parasitic adult after several years',
           ],
         ],
       },
@@ -811,7 +811,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>The complete cycle (from the chapter’s description of <i>Obelia</i>):</b><br>1. <b>Adult polyp</b> (asexual, sessile, colonial) → budding → produces <b>medusa buds</b>.<br>2. <b>Medusa</b> (sexual, free-swimming) is released from the polyp colony.<br>3. Medusa produces gametes (eggs and sperm) → <b>external fertilisation</b> in water.<br>4. Zygote → <b>planula larva</b> (free-swimming, ciliated).<br>5. Planula settles on a substrate → transforms back into a new <b>polyp</b> → colonial growth.<br>6. Cycle repeats.',
+        html: '<b>The complete cycle (added detail beyond the chapter):</b><br>1. <b>Adult polyp</b> (asexual, sessile, colonial) → budding → produces <b>medusa buds</b>.<br>2. <b>Medusa</b> (sexual, free-swimming) is released from the polyp colony.<br>3. Medusa produces gametes (eggs and sperm) → <b>external fertilisation</b> in water.<br>4. Zygote → <b>planula larva</b> (free-swimming, ciliated).<br>5. Planula settles on a substrate → transforms back into a new <b>polyp</b> → colonial growth.<br>6. Cycle repeats.',
       },
       {
         t: 'p',

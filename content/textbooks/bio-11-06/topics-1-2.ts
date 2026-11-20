@@ -22,7 +22,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A reliable scorer across every board this chapter touches. CBSE Boards favour 1–2 mark “distinguish between” and diagram-labelling questions on the three simple tissues. CUET leans on direct fact-recall (which tissue is living/dead, where each occurs). NEET pushes harder: match-the-column grids, “which is not true” elimination, and assertion–reason pairs on collenchyma corner-thickening and sclereid distribution are perennial. Tissue questions are a frequent topic in NEET (the book’s estimate from past papers, not official figures).',
+        html: '<b>Exam Relevance:</b> A reliable scorer across every board this chapter touches. CBSE Boards favour 1–2 mark “distinguish between” and diagram-labelling questions on the three simple tissues. CUET leans on direct fact-recall (which tissue is living/dead, where each occurs). NEET pushes harder: match-the-column grids, “which is not true” elimination, and assertion–reason pairs on collenchyma corner-thickening and sclereid distribution recur. Tissue questions are a frequent topic in NEET (the book’s estimate from past papers, not official figures).',
       },
       {
         t: 'p',
@@ -227,7 +227,7 @@ export const TOPICS: Topic[] = [
         items: [
           {
             q: '<b>[CBSE]</b> Define a tissue. Why is parenchyma often described as the “fundamental” or most primitive tissue?',
-            a: 'A tissue = a group of cells of common origin usually performing a common function; parenchyma is “fundamental” because it is the most abundant, least specialised tissue from which others are derived.',
+            a: 'A tissue = a group of cells of common origin usually performing a common function; parenchyma is “fundamental” because it is the most abundant and least specialised tissue, forms the bulk of the ground tissue, and is considered the tissue from which the more specialised tissues evolved.',
           },
           {
             q: '<b>[CUET]</b> Name the meristem responsible for regrowth of grass blades after grazing, and state its position.',
@@ -242,7 +242,7 @@ export const TOPICS: Topic[] = [
             a: 'Sclerenchyma: fibres.',
           },
           {
-            q: '<b>[NEET: high difficulty]</b> Arrange and name the three stages a mature cortical parenchyma cell passes through when it gives rise to a cork cambium and, through it, to cork cells, and state at which stage division capacity is present.',
+            q: '<b>[NEET: high difficulty]</b> Name, in order, the three stages in the life of a cortical parenchyma cell that matures and later gives rise to a cork cambium and, through it, to cork cells, and state at which stage division capacity is regained.',
             a: 'Differentiation → dedifferentiation → redifferentiation; division capacity is present at the dedifferentiation stage (when the mature cell regains it).',
           },
         ],
@@ -263,7 +263,7 @@ export const TOPICS: Topic[] = [
         ],
         correct: 1,
         solution:
-          'Collenchyma is the only tissue that is simultaneously mechanical and living with unlignified (cellulose–pectin) walls. Trap: students equate “mechanical” with “sclerenchyma” reflexively: the word “living” is the decider.',
+          'Of these options, only collenchyma is both mechanical and living, with unlignified (cellulose, hemicellulose and pectin) walls. Trap: students equate “mechanical” with “sclerenchyma” reflexively: the word “living” is the decider.',
       },
       {
         t: 'mcq',
@@ -373,7 +373,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Concept intuition' },
       {
         t: 'p',
-        html: '<b>Exam Relevance:</b> A dense, high-yield topic. CBSE Boards repeatedly ask “name the components of xylem/phloem” and “distinguish xylem from phloem” as 2–3 mark questions, plus diagram labelling of conducting elements. CUET favours single-fact recall (which element is dead, which lacks a nucleus, what companion cells do). NEET loves match-the-column grids pairing each element with its feature, and assertion–reason pairs on the anucleate sieve tube and its companion-cell dependence. A frequent topic in NEET (the book’s estimate from past papers, not official figures).',
+        html: '<b>Exam Relevance:</b> A dense, high-yield topic. CBSE Boards repeatedly ask “name the components of xylem/phloem” and “distinguish xylem from phloem” as 2–3 mark questions, plus diagram labelling of conducting elements. CUET favours single-fact recall (which element is dead, which lacks a nucleus, what companion cells do). NEET uses match-the-column grids pairing each element with its feature, and assertion–reason pairs on the anucleate sieve tube and its companion-cell dependence. A frequent topic in NEET (the book’s estimate from past papers, not official figures).',
       },
       {
         t: 'p',
@@ -393,11 +393,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Phloem, the four-member crew:</b> sieve tube elements, companion cells, phloem parenchyma, and phloem fibres. The sieve tubes are the food pipes; companion cells are their life-support partners; parenchyma stores and packs; fibres strengthen.',
+        html: '<b>Phloem, the four-member crew (in angiosperms):</b> sieve tube elements, companion cells, phloem parenchyma, and phloem fibres. The sieve tubes are the food pipes; companion cells are their life-support partners; parenchyma stores and packs; fibres strengthen.',
       },
       {
         t: 'p',
-        html: '<b>Limiting conditions worth flagging.</b> “Conducting tissue is dead” is true only for xylem’s conducting cells; phloem’s sieve tubes are living (though anucleate). Don’t blur the two. Also note this topic is about the cells that make up xylem and phloem; how those cells are arranged into bundles (radial, conjoint, collateral and so on) and the physiology of how sap actually rises and food is translocated belong to later topics: keep “structure” and “transport mechanism” mentally separate, because exams deliberately mix them.',
+        html: '<b>Limiting conditions worth flagging.</b> “Conducting tissue is dead” is true only for xylem’s conducting cells; phloem’s sieve tubes are living (though anucleate). Don’t blur the two. Also note this topic is about the cells that make up xylem and phloem; how those cells are arranged into bundles (radial, conjoint, collateral and so on) is Topic 03, and the physiology of how sap rises and food is translocated belongs to plant physiology, not this chapter: keep “structure” and “transport mechanism” mentally separate, because exams deliberately mix them.',
       },
 
       { t: 'part', title: 'Tissue types and diagnostic anatomical features' },
@@ -475,7 +475,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'Note: phloem fibres are generally absent from primary phloem, and phloem parenchyma is absent in most monocots.',
+        html: 'Note: phloem fibres are generally absent from primary phloem, and phloem parenchyma is absent in most monocots. Gymnosperm phloem is different: it has sieve cells and albuminous cells and lacks sieve tubes and companion cells.',
       },
       {
         t: 'p',
@@ -555,7 +555,7 @@ export const TOPICS: Topic[] = [
           '<b>Living or dead?</b> Dead → it’s a xylem element or a phloem (bast) fibre; Living → xylem parenchyma or a phloem living element.',
           'If <b>dead and a hollow conducting pipe</b> → tracheid/vessel (xylem). If <b>dead with obliterated lumen, purely supportive</b> → a fibre (xylem fibre or bast fibre, depending on tissue).',
           'If <b>living but lacks a nucleus</b>, stacked into pipes → <b>sieve tube element</b> (phloem). If <b>living with a nucleus, attached to a sieve tube</b> → <b>companion cell.</b>',
-          'The “living, anucleate, conducts food” combination is unique to the sieve tube: it is a highly diagnostic description in the whole topic.',
+          'The “living, anucleate, conducts food” combination is unique to the sieve tube among the eight elements, so that description identifies it at once.',
         ],
       },
       { t: 'fig', id: 'b11-06-fig-6.2' },
@@ -729,7 +729,7 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'Phloem',
-            note: 'food, <b>bidirectional</b>. Four elements: <b>sieve tube elements</b> (living, <b>no nucleus</b>), <b>companion cells</b> (living, nucleate, control the sieve tube), <b>phloem parenchyma</b> (storage), <b>phloem/bast fibres</b> (dead, support).',
+            note: 'food, <b>bidirectional</b>. Four elements: <b>sieve tube elements</b> (living, <b>no nucleus</b>), <b>companion cells</b> (living, nucleate, control the sieve tube), <b>phloem parenchyma</b> (storage), <b>phloem/bast fibres</b> (dead, support). (Angiosperms; gymnosperms have sieve cells and albuminous cells instead.)',
           },
           {
             f: 'Protoxylem vs metaxylem',

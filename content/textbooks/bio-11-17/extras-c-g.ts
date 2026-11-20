@@ -26,7 +26,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter classifies joints structurally, names the bone divisions and the three kinds of cartilage, and mentions the synovial cavity, fluid and articular cartilage, but two topics are not developed: how bones themselves are built during development (the two pathways of ossification and the epiphyseal plate) and the functional architecture of the synovial joint as a load-bearing organ (membrane, capsule, menisci, the make-up of synovial fluid). Both are examinable: ossification type identification appears at NEET level, and synovial joint structure including synovial fluid biochemistry is a reliable CUET/NEET short-answer target (the book’s estimate from past papers, not official figures).',
+        html: 'The chapter classifies joints structurally, names the bone divisions and the three kinds of cartilage, and mentions the synovial cavity, fluid and articular cartilage, but two topics are not developed: how bones themselves are built during development (the two pathways of ossification and the epiphyseal plate) and the functional architecture of the synovial joint as a load-bearing organ (membrane, capsule, menisci, the make-up of synovial fluid). Both are examinable: ossification type identification appears at NEET level, and synovial joint structure, including the make-up of synovial fluid, is a likely short-answer topic in board-style papers (the book’s estimate; NEET asks MCQs only, and this goes beyond NCERT).',
       },
 
       { t: 'part', title: 'Method' },
@@ -72,7 +72,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Synovial joint architecture: functional detail.</b><br>The chapter names the five subtypes and states that synovial joints have a synovial cavity filled with fluid. The full architecture that NEET requires:',
+        html: '<b>Synovial joint architecture: functional detail.</b><br>The chapter names the five subtypes and states that synovial joints have a synovial cavity filled with fluid. The full architecture (beyond NCERT):',
       },
       {
         t: 'table',
@@ -113,7 +113,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Synovial fluid composition (examinable).</b> Synovial fluid is a filtrate of blood plasma (supplied by capillaries in the synovial membrane) with added hyaluronic acid (from synovial fibroblasts) and a glycoprotein called lubricin. The hyaluronic acid gives the fluid its viscous, lubricating quality. Because articular cartilage is avascular, it receives its nutrition mainly from synovial fluid by diffusion (with a minor contribution from the underlying bone), which is why joint immobility (as in prolonged bed rest) can impair cartilage health.',
+        html: '<b>Synovial fluid composition (beyond NCERT).</b> Synovial fluid is a filtrate of blood plasma (supplied by capillaries in the synovial membrane) with added hyaluronic acid (from synovial fibroblasts) and a glycoprotein called lubricin. The hyaluronic acid gives the fluid its viscous, lubricating quality. Because articular cartilage is avascular, it receives its nutrition mainly from synovial fluid by diffusion (with a minor contribution from the underlying bone), which is why joint immobility (as in prolonged bed rest) can impair cartilage health.',
       },
 
       { t: 'part', title: 'Worked examples' },
@@ -153,14 +153,14 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '[NEET] State two components of synovial fluid and explain their functions.',
-            a: '(i) Hyaluronic acid: secreted by synovial fibroblasts; gives synovial fluid its viscosity and provides boundary lubrication between articular surfaces. (ii) Lubricin (a glycoprotein): coats the articular surface and reduces friction during movement. Additional component: plasma filtrate (water, glucose, proteins): supplies nutrients and maintains fluid volume.',
+            a: '(i) Hyaluronic acid: secreted by synovial fibroblasts; gives synovial fluid its viscosity and helps lubricate the joint. (ii) Lubricin (a glycoprotein): coats the articular surface and reduces friction during movement. Additional component: plasma filtrate (water, glucose, proteins): supplies nutrients and maintains fluid volume.',
           },
           {
             q: '[CBSE] State one difference between intramembranous and endochondral ossification with respect to the starting tissue.',
             a: 'Intramembranous ossification begins directly in mesenchyme (embryonic connective tissue), forming bone within a membrane. Endochondral ossification begins with a pre-existing hyaline cartilage model that is later replaced by bone: bone does not form directly from mesenchyme.',
           },
           {
-            q: '[NEET A-R] A: Articular cartilage cannot repair itself effectively after injury. R: Articular cartilage is avascular and receives nutrition mainly by diffusion from synovial fluid. Evaluate A, R, and whether R explains A. Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true. [Standard four options in letters, new wording: the book prints no options here.]',
+            q: '[NEET A-R] A: Articular cartilage cannot repair itself effectively after injury. R: Articular cartilage is avascular and receives nutrition mainly by diffusion from synovial fluid. Evaluate A, R, and whether R explains A. Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
             a: 'A true, R true, R explains A. Avascularity limits the delivery of inflammatory cells, fibroblasts, and blood-borne growth factors needed for effective repair. Diffusion from synovial fluid provides nutrition but is insufficient to drive a robust regenerative response, so cartilage defects typically fill with fibrocartilage (mechanically inferior) or remain unrepaired.',
           },
           {
@@ -182,7 +182,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter treats calcium in two places and notes that it is the same element in two very different disorders: low Ca<sup>2+</sup> in body fluid causes tetany (muscle side), and loss of bone calcium underlies osteoporosis (bone side). It does not say how blood calcium is regulated. For NEET, the reader must integrate these: calcium is a single ion regulated by a single hormonal system, and the muscle and bone effects are downstream consequences of the same regulatory axis. PTH, calcitonin, and vitamin D form the core hormonal triad that a Class 11 student must connect across chapters.',
+        html: 'The chapter treats calcium in two places and notes that it is the same element in two very different disorders: low Ca<sup>2+</sup> in body fluid causes tetany (muscle side), and loss of bone calcium underlies osteoporosis (bone side). It does not say how blood calcium is regulated. To see the whole picture, the reader must integrate these: calcium is a single ion regulated by a single hormonal system, and the muscle and bone effects are downstream consequences of the same regulatory axis. PTH, calcitonin, and vitamin D form the core hormonal triad that a Class 11 student must connect across chapters.',
       },
 
       { t: 'part', title: 'Method' },
@@ -233,11 +233,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: 'NCERT says that PTH increases Ca<sup>2+</sup> absorption from the digested food; the table above gives the mechanism, which is through active vitamin D. [New wording.]',
+        html: 'NCERT says that PTH increases Ca<sup>2+</sup> absorption from the digested food; the table above gives the mechanism, which is through active vitamin D.',
       },
       {
         t: 'p',
-        html: '<b>The tetany–osteoporosis calcium thread.</b><br>• <b>Tetany</b>: when plasma Ca<sup>2+</sup> falls below the normal range (approximately 9 to 10.5 mg/dL, a figure outside NCERT), motor nerves and muscle membranes become hyperexcitable, because Ca<sup>2+</sup> normally stabilises excitable membranes (it raises the threshold at which voltage-gated Na<sup>+</sup> channels open); with less Ca<sup>2+</sup> the threshold falls and membranes depolarise spontaneously. The result is involuntary, repetitive muscle spasms (carpopedal spasm, laryngospasm). The immediate cause is hypocalcaemia; the ultimate cause may be parathyroid malfunction (insufficient PTH → insufficient bone resorption → low serum calcium).<br>• <b>Osteoporosis</b>: chronic net bone loss in which the mineral matrix (calcium phosphate) is drawn out of bone faster than it is deposited. Oestrogen deficiency (post-menopause) is the most common cause because oestrogen normally suppresses osteoclast activity. Because blood calcium is held within a narrow range by PTH, calcitonin and vitamin D, the calcium lost from bone does not appear as a high blood level. In postmenopausal osteoporosis serum calcium and PTH are usually normal; the loss is from the bone compartment.',
+        html: '<b>The tetany–osteoporosis calcium thread.</b><br>• <b>Tetany</b>: when plasma Ca<sup>2+</sup> falls below the normal range (approximately 9 to 10.5 mg/dL, a figure outside NCERT), motor nerves and muscle membranes become hyperexcitable, because Ca<sup>2+</sup> normally stabilises excitable membranes (it raises the threshold at which voltage-gated Na<sup>+</sup> channels open); with less Ca<sup>2+</sup> the threshold falls and membranes depolarise spontaneously. The result is involuntary, repetitive muscle spasms (carpopedal spasm, laryngospasm). The immediate cause is hypocalcaemia; the ultimate cause may be parathyroid malfunction (insufficient PTH → insufficient bone resorption → low serum calcium).<br>• <b>Osteoporosis</b>: chronic net bone loss in which the mineral matrix (calcium phosphate) is drawn out of bone faster than it is deposited. Estrogen deficiency (post-menopause) is the most common cause because estrogen normally suppresses osteoclast activity. Because blood calcium is held within a narrow range by PTH, calcitonin and vitamin D, the calcium lost from bone does not appear as a high blood level. In postmenopausal osteoporosis serum calcium and PTH are usually normal; the loss is from the bone compartment.',
       },
       {
         t: 'p',
@@ -295,7 +295,7 @@ export const TOPICS: Topic[] = [
             a: '1,25-dihydroxycholecalciferol (calcitriol).',
           },
           {
-            q: '[NEET A-R] A: Osteoporosis and tetany are both caused by a low blood calcium level. R: Osteoporosis involves loss of bone mineral density, whereas tetany involves a low blood calcium level. Evaluate A and R. Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true. [Standard four options in letters, new wording: the book prints no options here.]',
+            q: '[NEET A-R] A: Osteoporosis and tetany are both caused by a low blood calcium level. R: Osteoporosis involves loss of bone mineral density, whereas tetany involves a low blood calcium level. Evaluate A and R. Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
             a: 'A false, R true. Both disorders involve calcium, but in different compartments. Tetany is a blood-calcium problem (low serum Ca<sup>2+</sup>); osteoporosis is a bone-mass problem (bone mineral density falls) with usually normal serum calcium, so A is false. R states the distinction correctly.',
           },
           {
@@ -317,11 +317,11 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'The chapter closes by tying each disorder to the structure it affects (Figure 5), but treats each disorder on its own. For NEET, the examinable skill is connecting normal physiology to clinical presentation: why a training adaptation occurs (adaptation within a fibre type), why an injury produces specific signs (synovial fluid in joint effusion), and why a drug produces a specific effect (acetylcholinesterase inhibitor in myasthenia gravis). This section integrates the chapter’s content into four clinical reasoning chains.',
+        html: 'The chapter closes by tying each disorder to the structure it affects (Figure 5), but treats each disorder on its own. The skill these questions test is connecting normal physiology to clinical presentation: why a training adaptation occurs (adaptation within a fibre type), why an injury produces specific signs (synovial fluid in joint effusion), and why a drug produces a specific effect (acetylcholinesterase inhibitor in myasthenia gravis). This section integrates the chapter’s content into four clinical reasoning chains.',
       },
 
       { t: 'part', title: 'Method' },
-      { t: 'p', html: '<b>Four clinical integration patterns (exam-tested).</b>' },
+      { t: 'p', html: '<b>Four clinical integration patterns (beyond NCERT).</b>' },
       {
         t: 'p',
         html: '<b>Pattern 1: Exercise adaptation → change within the fibre type.</b> Sustained aerobic training increases mitochondrial density and myoglobin content within existing slow-twitch fibres, making them more fatigue-resistant. Training does not usually turn slow fibres into fast fibres or the reverse; the fibres adapt within their type. The visible result: the muscle becomes darker red. High-resistance anaerobic training enlarges fast-twitch fibres (hypertrophy) by adding myofibrils, increasing the cross-sectional area and therefore the force available.',
@@ -347,7 +347,7 @@ export const TOPICS: Topic[] = [
         steps: [
           '<b>Solution.</b> The increased fatigue resistance results from <b>mitochondrial biogenesis</b> and increased myoglobin content within the existing slow-twitch (type I) fibres of the trained muscles. Endurance training stimulates the synthesis of new mitochondria (via PGC-1α activation, a transcriptional coactivator upregulated by repeated muscle contraction). More mitochondria increase the capacity for oxidative phosphorylation, allowing each fibre to produce ATP aerobically at a higher rate and to sustain it for longer, without accumulating the lactic acid that causes fatigue. (The ATP yield per glucose molecule is fixed by the pathway and does not change.)',
           'Myoglobin content also increases: this oxygen-storing protein holds a reserve of oxygen inside the fibre, prolonging aerobic metabolism when blood flow cannot keep pace during sustained submaximal contraction.',
-          'The fibres do <b>not</b> change from one type to the other: the type of a fibre is set largely by the motor neuron that supplies it, so training does not convert fast-twitch fibres into slow-twitch fibres. Training adapts the existing fibres within their type: slow-twitch fibres become more oxidative; fast-twitch fibres become larger (hypertrophy) but remain fast. The marathon runner’s improved fatigue resistance therefore comes from optimisation of the existing fibres, not from a type switch.',
+          'The fibres do <b>not</b> usually change from one main type to the other: the type of a fibre is set largely by the motor neuron that supplies it, so training does not convert fast-twitch fibres into slow-twitch fibres to any useful extent. Training adapts the existing fibres within their type: slow-twitch fibres become more oxidative; fast-twitch fibres become larger (hypertrophy) but remain fast. The marathon runner’s improved fatigue resistance therefore comes from optimisation of the existing fibres, not from a type switch.',
         ],
         ans: '',
       },
@@ -377,15 +377,15 @@ export const TOPICS: Topic[] = [
           { q: '[CUET] A joint injury that involves tearing of the ligaments is called a ______.', a: 'Sprain.' },
           {
             q: '[CBSE] State one structural adaptation that occurs in skeletal muscle as a result of regular aerobic exercise.',
-            a: 'Any one of: increased mitochondrial density (more oxidative capacity); increased myoglobin content (darker red colour); increased capillary density (improved oxygen delivery to fibres); greater oxidative capacity within the existing fibres. (The fibres adapt within their type; they do not switch type.)',
+            a: 'Any one of: increased mitochondrial density (more oxidative capacity); increased myoglobin content (darker red colour); increased capillary density (improved oxygen delivery to fibres); greater oxidative capacity within the existing fibres. (The fibres adapt largely within their type; they do not switch between slow and fast.)',
           },
           {
             q: '[NEET] Distinguish between haemarthrosis and joint effusion with respect to the contents of the joint cavity.',
             a: 'Haemarthrosis = blood in the joint cavity (from trauma to blood vessels in the synovial membrane or subchondral bone). Joint effusion = excess synovial fluid accumulation (from inflammation; fluid may be clear or cloudy depending on cause).',
           },
           {
-            q: '[NEET A-R] A: Immobilisation of a limb in a cast leads to bone loss. R: Mechanical loading of bone normally suppresses osteoclast activity; without loading, osteoclasts are disinhibited and bone is resorbed. Evaluate A, R, and whether R explains A. Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true. [Standard four options in letters, new wording: the book prints no options here.]',
-            a: 'A true, R true, R explains A. Osteocytes embedded in bone matrix are mechanosensors that regulate osteoclast and osteoblast activity. Physiological loading produces strain that stimulates osteocytes to produce signals (sclerostin, osteoprotegerin) that suppress osteoclast differentiation and activity. When loading is removed (immobilisation), this inhibitory signal is lost, osteoclasts become relatively active, and bone resorption exceeds deposition, measurable as reduced bone mineral density within weeks. [Note, new wording: sclerostin is not an osteoclast-suppressing signal. Osteocytes make more of it when loading falls, and it inhibits bone formation by osteoblasts. Osteoprotegerin is the signal that opposes osteoclast differentiation; when loading falls, osteocytes also make more RANKL, which favours it.]',
+            q: '[NEET A-R] A: Immobilisation of a limb in a cast leads to bone loss. R: Mechanical loading of bone normally suppresses osteoclast activity; without loading, osteoclasts are disinhibited and bone is resorbed. Evaluate A, R, and whether R explains A. Choose: <b>(a)</b> Both true, R explains A. <b>(b)</b> Both true, R not the explanation. <b>(c)</b> A true, R false. <b>(d)</b> A false, R true.',
+            a: 'A true, R true, R explains A. Osteocytes embedded in bone matrix are mechanosensors that regulate osteoclast and osteoblast activity. Physiological loading produces strain that stimulates osteocytes to produce signals (sclerostin, osteoprotegerin) that suppress osteoclast differentiation and activity. When loading is removed (immobilisation), this inhibitory signal is lost, osteoclasts become relatively active, and bone resorption exceeds deposition, measurable as reduced bone mineral density within weeks. Note: sclerostin is not an osteoclast-suppressing signal. Osteocytes make more of it when loading falls, and it inhibits bone formation by osteoblasts. Osteoprotegerin is the signal that opposes osteoclast differentiation; when loading falls, osteocytes also make more RANKL, which favours it.',
           },
         ],
       },
@@ -432,7 +432,7 @@ export const TOPICS: Topic[] = [
         steps: [
           'Endochondral ossification. Primary centre: diaphysis (shaft), appears during foetal development (from about the eighth week). Secondary centres: in each epiphysis (proximal and distal ends of the humerus); they appear around or after birth.',
           'Epiphyseal plate; epiphyseal line (or epiphyseal scar/bony bridge).',
-          '(i) Hyaluronic acid: secreted by synovial fibroblasts; gives synovial fluid its viscosity and provides boundary lubrication. (ii) Lubricin: a glycoprotein that coats articular surfaces and reduces shear friction during movement. Both components are essential for near-frictionless joint motion.',
+          '(i) Hyaluronic acid: secreted by synovial fibroblasts; gives synovial fluid its viscosity and helps lubricate the joint. (ii) Lubricin: a glycoprotein that coats articular surfaces and reduces shear friction during movement. Both components are essential for near-frictionless joint motion.',
           'Intramembranous ossification begins directly within mesenchymal membrane: mesenchymal cells differentiate into osteoblasts, which lay down osteoid directly. Endochondral ossification begins with a pre-existing hyaline cartilage model that is subsequently replaced by bone: the first bone does not form in mesenchyme but within cartilage.',
           'A true; R true; R explains A. The avascular nature of articular cartilage means no blood vessels enter it, limiting the delivery of inflammatory cells and fibroblasts required for repair. Nutrition arrives mainly by diffusion from synovial fluid, which is insufficient to drive a robust regenerative response. Defects therefore heal slowly and incompletely.',
           'Elastic (yellow) cartilage.',
@@ -462,7 +462,7 @@ export const TOPICS: Topic[] = [
           'Sprain.',
           'Increased mitochondrial density (more oxidative enzymes per fibre); or increased myoglobin content (darker red colour); or increased capillary density (more oxygen delivery per unit mass). Any one correctly stated earns full credit.',
           'Haemarthrosis: the joint cavity contains blood (RBCs, fibrin, inflammatory cells) from trauma to vessels in the synovial membrane or subchondral bone. Joint effusion: the cavity contains excess synovial fluid (plasma filtrate plus hyaluronic acid), which may be clear (non-inflammatory) or cloudy with inflammatory cells (gout, rheumatoid).',
-          'A true; R true; R explains A. Osteocytes detect mechanical strain and respond by producing anti-resorptive signals. Immobilisation removes this stimulus, removing the brake on osteoclasts. The resulting imbalance, increased osteoclast activity relative to osteoblast activity, causes net bone loss measurable within weeks of immobilisation. (See the note under Additional topic E, practice 5: the signal that opposes osteoclasts is osteoprotegerin, not sclerostin. [New wording.])',
+          'A true; R true; R explains A. Osteocytes detect mechanical strain and respond by producing anti-resorptive signals. Immobilisation removes this stimulus, removing the brake on osteoclasts. The resulting imbalance, increased osteoclast activity relative to osteoblast activity, causes net bone loss measurable within weeks of immobilisation. (See the note under Additional topic E, practice 5: the signal that opposes osteoclasts is osteoprotegerin, not sclerostin.)',
         ],
       },
     ],
@@ -529,7 +529,7 @@ export const TOPICS: Topic[] = [
       { t: 'p', html: '<b>3. The Assertion–Reason (A–R) Item</b>' },
       {
         t: 'p',
-        html: '<b>What it looks like:</b> Assertion followed by Reason; options are (a) both true and R explains A, (b) both true but R does not explain A, (c) A true R false, (d) A false R true. [Standard four options in letters, new wording: the book prints the fourth as “both false”.]<br><b>The crack:</b> Evaluate <b>each statement independently first</b>. Only if both are true ask whether R is a genuine explanation of A. The chapter’s A–R items frequently test:<br>• Whether striated = voluntary (it does not: cardiac disproves it)<br>• Whether ATP’s role is only in the power stroke (it is also needed to detach the head)<br>• Whether low Ca<sup>2+</sup> causes tetany vs. bone calcium loss causing osteoporosis (same element, different disorders)',
+        html: '<b>What it looks like:</b> Assertion followed by Reason; options are (a) both true and R explains A, (b) both true but R does not explain A, (c) A true R false, (d) A false R true.<br><b>The crack:</b> Evaluate <b>each statement independently first</b>. Only if both are true ask whether R is a genuine explanation of A. The chapter’s A–R items frequently test:<br>• Whether striated = voluntary (it does not: cardiac disproves it)<br>• Whether ATP’s role is only in the power stroke (it is also needed to detach the head)<br>• Whether low Ca<sup>2+</sup> causes tetany vs. bone calcium loss causing osteoporosis (same element, different disorders)',
       },
       {
         t: 'ex',
@@ -580,7 +580,7 @@ export const TOPICS: Topic[] = [
           '<b>“All movements lead to locomotion” (or the reverse logic)</b><br>• The textbook says: all locomotion is movement, not all movement is locomotion. Every NEET cycle tests this distinction (the book’s estimate from past papers, not official figures).',
           '<b>Striated = voluntary</b><br>• Cardiac is striated and involuntary. Striation reports on filament arrangement; control reports on innervation. Keeping these axes separate is essential for this item (the book’s estimate from past papers, not official figures).',
           '<b>A-band shortens during contraction</b><br>• The A-band (thick filament) never changes length. The I-band and H-zone shrink. This is the single most-repeatable error NEET punishes (the book’s estimate from past papers, not official figures).',
-          '<b>G-actin vs F-actin (which is monomer, which polymer?)</b><br>• G = <b>Globular</b> monomer; F = <b>Fibrous</b> polymer. Some distractors reverse these: lock the “Globular = monomer” mnemonic.',
+          '<b>G-actin vs F-actin (which is monomer, which polymer?)</b><br>• G = <b>Globular</b> monomer; F = <b>Filamentous</b> polymer. Some distractors reverse these: lock the “Globular = monomer” mnemonic.',
           '<b>Joint-type to example swaps</b><br>• Shoulder = ball-and-socket, not gliding; atlas–axis = pivot, not ball-and-socket; intervertebral = cartilaginous, not fibrous. These are the three joints students most misclassify (the book’s estimate from past papers, not official figures).',
           '<b>Gout vs tetany cause swap</b><br>• Gout = <b>uric acid</b> crystals in joints. Tetany = <b>low Ca<sup>2+</sup></b> in body fluid → spasms. NEET offers one as the distractor for the other routinely (the book’s estimate from past papers, not official figures).',
           '<b>“Bony joint” as a structural class</b><br>• There are only three classes: fibrous, cartilaginous, synovial. “Bony” is not a class: it is a frequent trap in joint-classification questions (the book’s estimate from past papers, not official figures).',
@@ -604,7 +604,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '<b>Q3: Easy</b><br>The joint between adjacent vertebrae is:<br>(a) Fibrous joint<br>(b) Synovial joint<br>(c) Cartilaginous joint<br>(d) Pivot joint',
-            a: '(c): Intervertebral discs are fibrocartilage, making these cartilaginous joints that allow slight movement. They are not fibrous (which are immovable sutures), synovial (which have a fluid cavity), or pivot joints (which allow rotation).',
+            a: '(c): Intervertebral discs are fibrocartilage, making these cartilaginous joints that allow slight movement. They are not fibrous (which are immovable sutures), synovial (which have a fluid cavity), or pivot joints (which allow rotation). (Strictly, the articular processes of neighbouring vertebrae also meet at small synovial gliding joints, as Topic 03 says; cartilaginous is the NCERT answer wanted here.)',
           },
           {
             q: '<b>Q4: Easy</b><br>The functional unit of contraction in a skeletal muscle fibre is the:<br>(a) Myofibril<br>(b) Sarcomere<br>(c) Sarcoplasm<br>(d) Sarcolemma',
@@ -616,7 +616,7 @@ export const TOPICS: Topic[] = [
           },
           {
             q: '<b>Q6: Medium</b><br>Which of the following is the correct statement about cardiac muscle?<br>(a) It is striated and voluntary<br>(b) It is non-striated and involuntary<br>(c) It is striated and involuntary<br>(d) It is spindle-shaped and multinucleate',
-            a: '(c): Cardiac muscle is striated (has organized sarcomeres) but involuntary (controlled by the autonomic nervous system). It is also branched and uninucleate, with intercalated discs. The option describing it as voluntary is the trap; striation does not imply voluntary control.',
+            a: '(c): Cardiac muscle is striated (has organised sarcomeres) but involuntary (it beats on its own; the autonomic nervous system only adjusts its rate). It is also branched and uninucleate, with intercalated discs. The option describing it as voluntary is the trap; striation does not imply voluntary control.',
           },
           {
             q: '<b>Q7: Medium</b><br>A patient shows rapid spasms of hand and foot muscles. Blood tests reveal hypocalcaemia. The most likely disorder is:<br>(a) Myasthenia gravis<br>(b) Tetany<br>(c) Gout<br>(d) Muscular dystrophy',
@@ -631,7 +631,7 @@ export const TOPICS: Topic[] = [
             a: '(b): (i) is true (cardiac = striated + involuntary). (ii) is false: smooth muscle contains actin and myosin; it simply lacks the regular striated arrangement. (iii) is true (SR releases Ca<sup>2+</sup> on stimulation). (iv) is false: red fibres are fatigue-resistant due to aerobic metabolism and high myoglobin.',
           },
           {
-            q: '<b>Q10: Hard</b><br><b>Assertion (A):</b> In a body deprived of ATP after death, muscles become stiff (rigor mortis).<br><b>Reason (R):</b> ATP is required to detach myosin heads from actin, breaking the cross-bridges.<br>The correct option is:<br>(a) Both A and R are true and R is the correct explanation of A<br>(b) Both A and R are true but R is not the correct explanation of A<br>(c) A is true but R is false<br>(d) A is false but R is true [new wording: the book prints the fourth option as “Both A and R are false”]',
+            q: '<b>Q10: Hard</b><br><b>Assertion (A):</b> In a body deprived of ATP after death, muscles become stiff (rigor mortis).<br><b>Reason (R):</b> ATP is required to detach myosin heads from actin, breaking the cross-bridges.<br>The correct option is:<br>(a) Both A and R are true and R is the correct explanation of A<br>(b) Both A and R are true but R is not the correct explanation of A<br>(c) A is true but R is false<br>(d) A is false but R is true',
             a: '(a): A is true (rigor mortis is a real post-mortem phenomenon). R is true and explains A: each cross-bridge cycle requires a new ATP to detach the myosin head from actin. Without ATP, the heads cannot release, cross-bridges accumulate, and the muscle locks in a contracted state: rigor mortis. Students who only remember ATP for the power stroke and forget its detachment role mark R false; that is the trap.',
           },
           {

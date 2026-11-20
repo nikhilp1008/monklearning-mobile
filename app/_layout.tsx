@@ -532,6 +532,10 @@ export default function RootLayout() {
               animation: 'slide_from_right',
             }}
           />
+          {/* Practice history (17 Nov 2026): calendar → day → question. */}
+          <Stack.Screen name="practice-history" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="practice-history-day" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="practice-history-question" options={{ headerShown: false, animation: 'slide_from_right' }} />
           <Stack.Screen name="mocks" options={{ headerShown: false }} />
           <Stack.Screen name="mock-test" options={{ headerShown: false }} />
           {/* A full page that slides up, not a transparent modal over the

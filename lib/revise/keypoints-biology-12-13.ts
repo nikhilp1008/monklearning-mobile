@@ -114,7 +114,7 @@ export const KEY_POINTS: KeyPoint[] = [
     kind: 'remember',
     q: 'What are the four causes of biodiversity loss (the Evil Quartet), and which is generally ranked first?',
     a: 'Habitat loss and fragmentation (generally ranked the most important cause, since it removes the home of whole communities at once), over-exploitation (harvesting faster than a species can reproduce, as with Steller’s sea cow and the passenger pigeon), alien species invasions (the Nile perch in Lake Victoria and the cichlids; water hyacinth <i>Eichhornia</i>, <i>Parthenium</i> and <i>Lantana</i>; the African catfish <i>Clarias gariepinus</i>) and co-extinctions (a host fish takes its specific parasites with it, a plant loses its only pollinator). The memory order is HOAC, Habitat, Over-exploitation, Alien, Co-extinction',
-    why: 'Hunting is a form of over-exploitation, so it is not a separate fifth cause.',
+    why: 'Hunting is a form of over-exploitation, so it is not a separate cause.',
     say: null,
   },
   // pp. 714–715

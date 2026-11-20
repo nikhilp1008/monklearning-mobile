@@ -161,7 +161,7 @@ export const TOPICS: Topic[] = [
         t: 'p',
         html: '• <b>Tidal Volume (TV):</b> air inspired or expired during one normal breath ≈ <b>500 mL</b>.<br>• <b>Inspiratory Reserve Volume (IRV):</b> extra air that can be forcibly inhaled over and above a normal breath ≈ <b>2500–3000 mL</b>.<br>• <b>Expiratory Reserve Volume (ERV):</b> extra air that can be forcibly exhaled after a normal breath ≈ <b>1000–1100 mL</b>.<br>• <b>Residual Volume (RV):</b> air that always remains in the lungs even after the most forceful expiration ≈ <b>1100–1200 mL</b>.',
       },
-      { t: 'p', html: 'The four <b>capacities</b> are then defined as sums:' },
+      { t: 'p', html: 'The five <b>capacities</b> are then defined as sums:' },
       {
         t: 'formula',
         kicker: 'Respiratory capacities',
@@ -385,7 +385,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip:</b> Don’t memorise all four capacity formulas as separate facts. Memorise the four primary volumes in size order (at the typical values, TV < ERV < RV < IRV, roughly 500, 1100, 1200 and 2500–3000 mL) and one composite, <b>TLC = RV + ERV + TV + IRV</b>. Every other capacity is just TLC with one or two volumes removed: drop RV → VC; keep only the two “remaining-after-normal-breath” volumes → FRC; the two “inspiration” volumes → IC; the two “expiration” volumes → EC. One picture, not five formulas.',
+        html: '<b>Pro-Tip:</b> Don’t memorise all five capacity formulas as separate facts. Memorise the four primary volumes in size order (at the typical values, TV < ERV < RV < IRV, roughly 500, 1100, 1200 and 2500–3000 mL) and one composite, <b>TLC = RV + ERV + TV + IRV</b>. Every other capacity is just TLC with one or two volumes removed: drop RV → VC; keep only the two “remaining-after-normal-breath” volumes → FRC; the two “inspiration” volumes → IC; the two “expiration” volumes → EC. One picture, not five formulas.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -464,7 +464,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'table',
         title: 'Partial pressures around the body (approximate NCERT values, mmHg)',
-        head: ['Site', 'pO2', 'pCO2'],
+        head: ['Site', '<i>p</i>O<sub>2</sub>', '<i>p</i>CO<sub>2</sub>'],
         rows: [
           ['Atmospheric air', '159', '0.3'],
           ['Alveoli', '104', '40'],
@@ -502,7 +502,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '• Each haemoglobin molecule binds up to <b>four O<sub>2</sub> molecules</b>, one at each heme group, and does so <b>reversibly</b>: the reversibility is the single most important property, allowing pick-up in the lungs and release in tissues.<br>• Bound form: <b>oxyhaemoglobin</b> (HbO<sub>2</sub>).<br>• About <b>5 mL of O<sub>2</sub></b> is delivered to the tissues by every 100 mL of oxygenated blood.',
+        html: '• Each haemoglobin molecule binds up to <b>four O<sub>2</sub> molecules</b>, one at each haem group, and does so <b>reversibly</b>: the reversibility is the single most important property, allowing pick-up in the lungs and release in tissues.<br>• Bound form: <b>oxyhaemoglobin</b> (HbO<sub>2</sub>).<br>• About <b>5 mL of O<sub>2</sub></b> is delivered to the tissues by every 100 mL of oxygenated blood.',
       },
       { t: 'p', html: '<b>Carbon dioxide</b> (three modes):' },
       {
@@ -575,7 +575,7 @@ export const TOPICS: Topic[] = [
         tag: 'NEET Speed Trap',
         q: '<b>The solubility paradox.</b> At the alveoli the O<sub>2</sub> gradient (104 → 40 = 64 mmHg) is far larger than the CO<sub>2</sub> gradient (45 → 40 = 5 mmHg). Yet CO<sub>2</sub> is still exchanged very efficiently. Why? <b>(a)</b> CO<sub>2</sub> molecules are smaller <b>(b)</b> CO<sub>2</sub> is ≈ 20–25× more soluble than O<sub>2</sub> <b>(c)</b> the membrane is thinner for CO<sub>2</sub> <b>(d)</b> CO<sub>2</sub> has higher partial pressure overall',
         steps: [
-          '<b>The trap:</b> students fixate on the gradient and assume the gas with the bigger gradient must dominate, picking nothing for CO<sub>2</sub> or guessing (d). The shortcut: diffusion rate = <frac><num>gradient × solubility</num><den>thickness</den></frac>. CO<sub>2</sub>’s tiny gradient is more than compensated by its much higher <b>solubility</b>, so <b>(b)</b> is correct. (a) is false (CO<sub>2</sub> is the heavier molecule, 44 against 32), (c) is false: it’s the same membrane for both gases, and (d) misreads the table.',
+          '<b>The trap:</b> students fixate on the gradient and assume the gas with the bigger gradient must dominate, picking nothing for CO<sub>2</sub> or guessing (d). The shortcut: diffusion rate = <frac><num>gradient × solubility</num><den>thickness</den></frac>. CO<sub>2</sub>’s tiny gradient is more than compensated by its much higher <b>solubility</b>, so <b>(b)</b> is correct. (a) is false (the CO<sub>2</sub> molecule is larger and heavier than O<sub>2</sub>, 44 against 32), (c) is false: it’s the same membrane for both gases, and (d) misreads the table.',
         ],
         ans: '',
       },
@@ -644,12 +644,12 @@ export const TOPICS: Topic[] = [
           { label: '4 O<sub>2</sub>', nudge: null },
           {
             label: '6 O<sub>2</sub>',
-            nudge: '<b>(d)</b> is the classic distractor for students who confuse heme count.',
+            nudge: '<b>(d)</b> overcounts: haemoglobin has four haem groups, so it carries four O<sub>2</sub>, not six.',
           },
         ],
         correct: 2,
         solution:
-          'Haemoglobin has four heme groups, each binding one O<sub>2</sub> reversibly, so four O<sub>2</sub> molecules in total.',
+          'Haemoglobin has four haem groups, each binding one O<sub>2</sub> reversibly, so four O<sub>2</sub> molecules in total.',
       },
       {
         t: 'mcq',
@@ -707,7 +707,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'protip',
-        html: '<b>Pro-Tip:</b> Memorise just two numbers and derive the rest: at the alveoli (O<sub>2</sub> 104 / CO<sub>2</sub> 40) and in deoxygenated blood/tissues (O<sub>2</sub> 40 / CO<sub>2</sub> 45). Every diffusion-direction question falls out of comparing these. And for the dissociation curve, remember one phrase, <b>“hot, acidic, CO<sub>2</sub>-rich tissues let oxygen go”</b>, and the entire right-shift list (high temp, low pH, high <i>p</i>CO<sub>2</sub>) reconstructs itself; the fall in <i>p</i>O<sub>2</sub> only moves Hb down the curve, it does not shift it.',
+        html: '<b>Pro-Tip:</b> Memorise just two pairs of numbers and derive the rest: at the alveoli (O<sub>2</sub> 104 / CO<sub>2</sub> 40) and in deoxygenated blood/tissues (O<sub>2</sub> 40 / CO<sub>2</sub> 45). Every diffusion-direction question falls out of comparing these. And for the dissociation curve, remember one phrase, <b>“hot, acidic, CO<sub>2</sub>-rich tissues let oxygen go”</b>, and the entire right-shift list (high temp, low pH, high <i>p</i>CO<sub>2</sub>) reconstructs itself; the fall in <i>p</i>O<sub>2</sub> only moves Hb down the curve, it does not shift it.',
       },
 
       { t: 'part', title: 'Cheat sheet' },
@@ -728,11 +728,11 @@ export const TOPICS: Topic[] = [
           },
           {
             f: 'O<sub>2</sub> transport',
-            note: '≈ 97% on Hb (4 O<sub>2</sub>/Hb, reversible) + ≈ 3% dissolved; ≈ 5 mL O<sub>2</sub> per 100 mL oxygenated blood.',
+            note: '≈ 97% on Hb (4 O<sub>2</sub>/Hb, reversible) + ≈ 3% dissolved; ≈ 5 mL O<sub>2</sub> delivered to the tissues per 100 mL oxygenated blood.',
           },
           {
             f: 'CO<sub>2</sub> transport',
-            note: '≈ 70% bicarbonate · ≈ 20–25% carbaminohaemoglobin · ≈ 7% dissolved; ≈ 4 mL CO<sub>2</sub> per 100 mL deoxygenated blood. Enzyme: <b>carbonic anhydrase</b> (in RBC).',
+            note: '≈ 70% bicarbonate · ≈ 20–25% carbaminohaemoglobin · ≈ 7% dissolved; ≈ 4 mL CO<sub>2</sub> delivered to the alveoli per 100 mL deoxygenated blood. Enzyme: <b>carbonic anhydrase</b> (in RBC).',
           },
           {
             f: 'O<sub>2</sub>–Hb curve',

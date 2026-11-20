@@ -71,7 +71,7 @@ export const TOPICS: Topic[] = [
         head: ['Interaction', 'Species A', 'Species B', 'One-line diagnosis'],
         rows: [
           ['Mutualism', '+', '+', 'Both benefit; often obligate'],
-          ['Competition', '−', '−', 'Both usually harmed by a shared limited resource (one may suffer far more)'],
+          ['Competition', '−', '−', 'Both usually harmed, through a shared resource or interference (one may suffer far more)'],
           ['Predation', '+', '−', 'Predator eats prey (kills it)'],
           ['Parasitism', '+', '−', 'Parasite feeds on living host (usually does not kill quickly)'],
           ['Commensalism', '+', '0', 'One benefits, other unaffected'],
@@ -80,11 +80,11 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: '<b>Diagnostic features & canonical NCERT examples</b>',
+        html: '<b>Diagnostic features & examples (NCERT’s, plus a few extra: <i>Glomus</i>, <i>Yucca</i>–<i>Pronuba</i> moth, tapeworm, <i>Penicillium</i>)</b>',
       },
       {
         t: 'p',
-        html: '• <b>Predation</b>: a free-living organism catches, kills, and eats another (the prey). Tiger–deer. Also the route by which energy moves to higher trophic levels. Carnivores eat animals; herbivores eating plants are predators in the broad sense.<br>• <b>Competition</b>: two species need the same resource that is in short supply; the fitness of the weaker is usually depressed by the stronger’s presence. Barnacles <i>Balanus</i> (superior) excluding <i>Chthamalus</i> on Scottish rocky shores (Connell’s classic case).<br>• <b>Parasitism</b>: one species (parasite) lives on/in a host, takes food and shelter, and harms it. <b>Ectoparasites:</b> lice on humans, ticks on dogs, copepods on marine fish. <b>Endoparasites:</b> liver fluke, <i>Plasmodium</i>, tapeworm. <b>Brood parasitism:</b> cuckoo (koel) laying eggs in a host’s nest. <i>Cuscuta</i>: a total stem parasite that lost its leaves and chlorophyll.<br>• <b>Commensalism</b>: orchid (epiphyte) on a mango branch; barnacles riding a whale’s back; cattle egret following grazing cattle; sea anemone and clownfish (many ecologists now class this pair as mutualism, because the fish also defends the anemone).<br>• <b>Mutualism</b>: lichen (fungus + alga/cyanobacterium); mycorrhiza (fungus + plant roots, e.g. <i>Glomus</i>); fig and its specific wasp pollinator; <i>Ophrys</i> orchid and its bee; <i>Yucca</i> and the <i>Pronuba</i> moth.<br>• <b>Amensalism</b>: <i>Penicillium</i> secreting penicillin that kills bacteria, while the mould is unaffected.',
+        html: '• <b>Predation</b>: a free-living organism catches, kills, and eats another (the prey). Tiger–deer. Also the route by which energy moves to higher trophic levels. Carnivores eat animals; herbivores eating plants are predators in the broad sense.<br>• <b>Competition</b>: two species need the same resource that is in short supply; the fitness of the weaker is usually depressed by the stronger’s presence. NCERT adds two points: totally unrelated species can also compete for the same resource (flamingos and resident fishes compete for zooplankton in some shallow South American lakes), and resources need not be limiting for competition to occur: in interference competition one species lowers the other’s feeding efficiency even when food and space are plentiful. NCERT separately cites the Galápagos case, where introduced goats drove out the Abingdon tortoise by out-browsing it, as evidence of competitive exclusion in nature. Barnacles <i>Balanus</i> (superior) excluding <i>Chthamalus</i> on Scottish rocky shores (Connell’s classic case).<br>• <b>Parasitism</b>: one species (parasite) lives on/in a host, takes food and shelter, and harms it. <b>Ectoparasites:</b> lice on humans, ticks on dogs, copepods on marine fish. <b>Endoparasites:</b> liver fluke, <i>Plasmodium</i>, tapeworm. <b>Brood parasitism:</b> cuckoo (koel) laying eggs in a host’s nest. <i>Cuscuta</i>: a total stem parasite that lost its leaves and chlorophyll.<br>• <b>Commensalism</b>: orchid (epiphyte) on a mango branch; barnacles riding a whale’s back; cattle egret following grazing cattle; sea anemone and clownfish (many ecologists now class this pair as mutualism, because the fish also defends the anemone).<br>• <b>Mutualism</b>: lichen (fungus + alga/cyanobacterium); mycorrhiza (fungus + plant roots, e.g. <i>Glomus</i>); fig and its specific wasp pollinator; <i>Ophrys</i> orchid and its bee; <i>Yucca</i> and the <i>Pronuba</i> moth.<br>• <b>Amensalism</b>: <i>Penicillium</i> secreting penicillin that kills bacteria, while the mould is unaffected.',
       },
       {
         t: 'p',
@@ -122,7 +122,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'CBSE Board, 3 marks',
-        q: 'Name the interaction in each case and give its sign-pair: <b>(a)</b> a tropical reef clownfish sheltering unharmed among a sea anemone’s tentacles while the anemone is unaffected; <b>(b)</b> two species of paramecium in one flask both growing more slowly than they would alone; <b>(c)</b> a tapeworm in a goat’s gut.',
+        q: 'Name the interaction in each case and give its sign-pair: <b>(a)</b> a tropical reef clownfish sheltering unharmed among a sea anemone’s tentacles while the anemone is unaffected; <b>(b)</b> two species of <i>Paramecium</i> in one flask both growing more slowly than they would alone; <b>(c)</b> a tapeworm in a goat’s gut.',
         steps: [
           '<b>Model answer.</b> <b>(a)</b> <b>Commensalism</b> (+, 0), as NCERT lists it: the clownfish gains protection and the anemone is taken as unaffected (many ecologists now class this pair as mutualism, because the fish also defends the anemone). <b>(b)</b> <b>Competition</b> (−, −): sharing one limited resource lowers both species’ growth. <b>(c)</b> <b>Parasitism</b> (+, −): the tapeworm (endoparasite) benefits at the host goat’s expense.',
         ],
@@ -277,7 +277,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'This section adds five topics that NEET, CUET and CBSE questions draw on beyond the main chapter text: (A) solving population-growth equations for time and extracting the intrinsic rate from data, by inverting the two growth models; (B) the Allee effect and the top-down versus bottom-up debate in population regulation, which answers the question “what controls population size?”; (C) Gause’s competitive exclusion principle with the full barnacle mechanism, including how resource partitioning restores coexistence; (D) functional responses (Holling’s three types), which connect predation to prey density; and (E) human population dynamics: demographic transition, India’s age pyramid and the demographic dividend. A final section, “What NEET Actually Asks”, maps the recurring question types and traps.',
+        html: 'This section adds five topics that go beyond the main chapter text (most also go beyond NCERT; the core of (C), Gause’s principle, the barnacle case and resource partitioning, is in NCERT); the book judges that NEET, CUET and CBSE questions draw on them (its estimate from past papers, not official figures): (A) solving population-growth equations for time and extracting the intrinsic rate from data, by inverting the two growth models; (B) the Allee effect and the top-down versus bottom-up debate in population regulation, which answers the question “what controls population size?”; (C) Gause’s competitive exclusion principle with the full barnacle mechanism, including how resource partitioning restores coexistence; (D) functional responses (Holling’s three types), which connect predation to prey density; and (E) human population dynamics: demographic transition, India’s age pyramid and the demographic dividend. A final section, “What NEET Actually Asks”, maps the recurring question types and traps.',
       },
       {
         t: 'p',
@@ -420,7 +420,7 @@ export const TOPICS: Topic[] = [
       },
       {
         t: 'p',
-        html: `The Lotka–Volterra predator-prey equations give the coupled oscillations:<br>${fr('d' + N, 'd' + t)} = ${r}${N} − <i>aNP</i> (prey), ${fr('d<i>P</i>', 'd' + t)} = <i>baNP</i> − <i>dP</i> (predator),<br>where <i>a</i> is the predation rate constant, <i>b</i> is the conversion efficiency (prey turned into predator), and <i>d</i> is the predator death rate.`,
+        html: `The Lotka–Volterra predator-prey equations give the coupled oscillations:<br>${fr('d' + N, 'd' + t)} = ${r}${N} − <i>aNP</i> (prey), ${fr('d<i>P</i>', 'd' + t)} = <i>caNP</i> − <i>mP</i> (predator),<br>where <i>a</i> is the predation rate constant, <i>c</i> is the conversion efficiency (prey turned into predator), and <i>m</i> is the predator death rate.`,
       },
       {
         t: 'p',
@@ -495,7 +495,7 @@ export const TOPICS: Topic[] = [
       { t: 'part', title: 'Introduction' },
       {
         t: 'p',
-        html: 'Topic 04 states Gause’s competitive exclusion principle, competitive release and resource partitioning, and names the barnacle case (<i>Balanus</i> and <i>Chthamalus</i>). It does not develop how the two barnacle species are separated along the shore, why one excludes the other at each tidal height, what Connell’s removal experiment showed, or the ways species partition resources (such as MacArthur’s warblers). This additional topic fills that gap.',
+        html: 'Topic 04 states Gause’s competitive exclusion principle, competitive release and resource partitioning, and names the barnacle case (<i>Balanus</i> and <i>Chthamalus</i>). It does not develop how the two barnacle species are separated along the shore, why one excludes the other at each tidal height, what Connell’s removal experiment showed, or the full set of ways species partition resources, with MacArthur’s warblers as the classic case. This additional topic fills that gap.',
       },
 
       { t: 'part', title: 'Method statement' },
@@ -545,7 +545,7 @@ export const TOPICS: Topic[] = [
       {
         t: 'ex',
         tag: 'NEET',
-        q: '<b>Applying Gause’s Principle.</b> Two species of paramecium (<i>Paramecium caudatum</i> and <i>Paramecium aurelia</i>) grown separately in culture with the same bacterial food both survive indefinitely. When grown together in the same culture, one species eventually dies out. Explain this using Gause’s principle.',
+        q: '<b>Applying Gause’s Principle.</b> Two species of <i>Paramecium</i> (<i>Paramecium caudatum</i> and <i>Paramecium aurelia</i>) grown separately in culture with the same bacterial food both survive indefinitely. When grown together in the same culture, one species eventually dies out. Explain this using Gause’s principle.',
         steps: [
           'Gause’s principle predicts that two complete competitors for the same limited resource (bacterial food in this case) cannot coexist indefinitely. In pure culture, each species has enough food and survives. When together, both compete for the same food resource. The species with the slightly faster growth rate under those conditions will outcompete the other, eventually eliminating it from the culture. This is competitive exclusion.',
         ],
