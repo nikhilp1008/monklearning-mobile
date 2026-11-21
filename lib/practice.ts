@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api';
 import { clearProgressCache } from '@/lib/progress';
 import {
+  anchorFromAnswer,
   AnswerTally,
   emptyTally,
   QuotaAnchor,
@@ -107,7 +108,11 @@ export interface AnswerResult {
   correct_value: number | null;
   solution: StructuredSolution | string | null;
   /** Null when the question carries no concept tagging yet. */
-  scoring?: AnswerScoring | null;
+  scoring?: AnswerScoring | null;  /** The day's tally INCLUDING this answer (non-mock attempts in the last
+   *  24 h) — what `/practice/next` will say once the row lands. Absent from
+   *  API builds before it existed; see lib/practice-quota.ts `anchorFromAnswer`. */
+  questions_used_today?: number;
+  daily_limit?: number;
 }
 
 /**
@@ -262,6 +267,22 @@ export function foldQuotaReply(
 ): QuotaAnchor | null {
   quotaAnchor = reconcile(quotaAnchor, reply, stamp);
   return quotaAnchor;
+}
+
+/**
+ * Fold a `/practice/answer` reply into the day's count. Call AFTER
+ * `noteAnswerAccepted`, so the anchor is pinned to a tally that includes this
+ * answer. Returns the new anchor, or null when the reply carries no count
+ * (older API): the screen then keeps the anchor it has and the tally estimate
+ * carries on exactly as before.
+ */
+export function foldAnswerReply(reply: {
+  questions_used_today?: number | null;
+  daily_limit?: number | null;
+}): QuotaAnchor | null {
+  const next = anchorFromAnswer(quotaAnchor, reply, tally.accepted);
+  if (next) quotaAnchor = next;
+  return next;
 }
 
 /**

@@ -46,6 +46,7 @@ import {
   getNextQuestion,
   getPracticeStats,
   answersAccepted,
+  foldAnswerReply,
   foldQuotaReply,
   hasQueuedQuestion,
   holdQueuedQuestion,
@@ -331,6 +332,11 @@ export default function PracticeScreen() {
     // included, so each one is a question off the day.
     noteAnswerAccepted();
     setAccepted(answersAccepted());
+    // Newer API builds say the exact count, this answer included: take it as
+    // the anchor (pinned to the tally just recorded). Older builds send
+    // nothing and the tally estimate carries the line as before.
+    const counted = foldAnswerReply(result);
+    if (counted) setQuotaAnchor(counted);
     // The verdict, felt. Only for an answer actually given: "I don't know" asked
     // to be shown the working, and a tap for it would read as a mark against.
     if (!context.gaveUp) {

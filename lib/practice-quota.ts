@@ -28,6 +28,18 @@
  * and (2) is handled by `reconcile`: an answer accepted within SETTLE_MS of a
  * request being issued may be missing from that reply, so the reply is not
  * allowed to undo it.
+ *
+ * Newer API builds also send `questions_used_today` and `daily_limit` on the
+ * `/practice/answer` reply, counted INCLUDING that answer — the exact figure
+ * `/practice/next` will report once the row lands. When both are there,
+ * `anchorFromAnswer` takes it as the anchor, pinned to the tally WITH that
+ * answer recorded. Later answers still add on top, and a `/practice/next`
+ * reply issued before the answer was accepted has a lower stamp, so
+ * `reconcile` drops it as older. A reply issued after it is folded as usual:
+ * the pending-answer guard stops a count-behind prefetch from raising the
+ * line, while a 24 h rollover (lower beyond what is pending) or another
+ * device (higher) still moves it. An answer reply without the numbers (older
+ * API) leaves the anchor alone and the estimate above carries on as before.
  */
 
 /** How long after an answer is accepted its attempt row may still be
@@ -107,6 +119,31 @@ export function reconcile(
     adjusted = Math.max(used, Math.min(implied, used + stamp.pending));
   }
   return { used: adjusted, limit, at: stamp.at };
+}
+
+function isCount(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0;
+}
+
+/**
+ * Anchor from a `/practice/answer` reply, or null when the reply does not
+ * carry both numbers (older API: keep the anchor you have).
+ *
+ * `acceptedNow` is the tally AFTER this answer was recorded, so the anchor's
+ * `used` already includes it and only answers accepted later are added. It is
+ * the server's exact count at that moment, so it replaces `prev` outright —
+ * higher (another device) or lower (24 h window rolled) alike — unless `prev`
+ * is somehow pinned to a later tally, which only a newer reply can be.
+ */
+export function anchorFromAnswer(
+  prev: QuotaAnchor | null,
+  reply: { questions_used_today?: number | null; daily_limit?: number | null },
+  acceptedNow: number
+): QuotaAnchor | null {
+  const { questions_used_today: used, daily_limit: limit } = reply;
+  if (!isCount(used) || !isCount(limit)) return null;
+  if (prev && prev.at > acceptedNow) return prev;
+  return { used: Math.floor(used), limit: Math.floor(limit), at: acceptedNow };
 }
 
 /** The number under Submit, or null while the API has not said. */
