@@ -5,6 +5,7 @@ import type { Purchase } from 'expo-iap';
 import { ApiError, apiFetch } from '@/lib/api';
 import type { PassKind } from '@/lib/pass';
 import { supabase } from '@/lib/supabase';
+import { noteTap } from '@/lib/tap';
 
 /**
  * GOOGLE PLAY BILLING, BESIDE RAZORPAY (India user choice billing).
@@ -263,7 +264,7 @@ export const CHOICE_TIMEOUT_MS = 30 * 60 * 1000;
  * `accountId` is `obfuscatedAccountIdFor(user id)`; Play keeps it on the purchase
  * and the server checks it.
  */
-export async function chooseHowToPay(kind: PassKind, accountId: string): Promise<ChoiceResult> {
+async function chooseHowToPayScreen(kind: PassKind, accountId: string): Promise<ChoiceResult> {
   const sku = playProductId(kind);
   if (!sku) throw new PlayBillingUnavailableError('This pass cannot be bought through Google Play.');
 
@@ -357,6 +358,24 @@ export async function chooseHowToPay(kind: PassKind, accountId: string): Promise
         // Already gone.
       }
     }
+  }
+}
+
+/**
+ * The same, with two actions noted on the way (lib/tap.ts, to our own server only): that Google's screen was
+ * about to open for this pass, and how it ended: 'play', 'razorpay', 'pending', 'cancelled', 'failed', or
+ * 'unavailable' (it threw before Google's screen was up). A student who opens it and backs out used to leave
+ * no trace at all. noteTap never throws, so this cannot change what the student sees.
+ */
+export async function chooseHowToPay(kind: PassKind, accountId: string): Promise<ChoiceResult> {
+  noteTap('play_screen_opened', { kind });
+  try {
+    const result = await chooseHowToPayScreen(kind, accountId);
+    noteTap('play_screen_result', { kind, result: result.type });
+    return result;
+  } catch (err) {
+    noteTap('play_screen_result', { kind, result: 'unavailable' });
+    throw err;
   }
 }
 

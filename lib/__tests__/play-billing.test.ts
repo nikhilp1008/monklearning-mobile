@@ -166,6 +166,49 @@ describe('products and accounts', () => {
   });
 });
 
+describe('chooseHowToPay: the screen opening and its outcome are noted for the admin', () => {
+  // Each test reloads the modules (above), so the tap module is taken from the same registry `b` came from.
+  let setTapSink: (fn: ((name: string, props?: unknown) => void) | null) => void;
+  const seen: Array<[string, unknown]> = [];
+  beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    setTapSink = require('@/lib/tap').setTapSink;
+    seen.length = 0;
+    setTapSink((name: string, props?: unknown) => { seen.push([name, props]); });
+  });
+  afterEach(() => setTapSink(null));
+
+  test('a purchase is noted as opened, then as play', async () => {
+    answerWith(() => handlers.purchase?.(PURCHASE));
+    await b.chooseHowToPay('pro_1m', 'h');
+    expect(seen).toEqual([['play_screen_opened', { kind: 'pro_1m' }], ['play_screen_result', { kind: 'pro_1m', result: 'play' }]]);
+  });
+
+  test('backing out of Google\'s screen is noted as cancelled, the trace that used to be missing', async () => {
+    answerWith(() => handlers.error?.({ code: 'user-cancelled', message: 'x' }));
+    expect(await b.chooseHowToPay('day', 'h')).toEqual({ type: 'cancelled' });
+    expect(seen.map(([n, p]) => [n, (p as { result?: string }).result])).toEqual([['play_screen_opened', undefined], ['play_screen_result', 'cancelled']]);
+  });
+
+  test('choosing Razorpay on Google\'s screen is noted as razorpay', async () => {
+    answerWith(() => handlers.choice?.({ externalTransactionToken: 'ext_tok', products: ['pro_monthly'] }));
+    await b.chooseHowToPay('pro_1m', 'h');
+    expect(seen[1]).toEqual(['play_screen_result', { kind: 'pro_1m', result: 'razorpay' }]);
+  });
+
+  test('a pass Google cannot sell is noted as unavailable, and the error still reaches the screen', async () => {
+    stockProducts([PREPAID[0], { id: 'max_monthly', productStatusAndroid: 'ok', subscriptionOffers: [] }]);
+    await expect(b.chooseHowToPay('max_1m', 'h')).rejects.toBeInstanceOf(b.PlayBillingUnavailableError);
+    expect(seen).toEqual([['play_screen_opened', { kind: 'max_1m' }], ['play_screen_result', { kind: 'max_1m', result: 'unavailable' }]]);
+  });
+
+  test('a tracker that throws cannot change what the student gets', async () => {
+    setTapSink(() => { throw new Error('tracker down'); });
+    answerWith(() => handlers.purchase?.(PURCHASE));
+    expect(await b.chooseHowToPay('pro_1m', 'h')).toEqual({ type: 'play', purchase: PURCHASE });
+  });
+});
+
 describe('chooseHowToPay: Google picks which way', () => {
   test('Pro is bought as a SUBSCRIPTION, with its offer token and the account id', async () => {
     answerWith(() => handlers.purchase?.(PURCHASE));
